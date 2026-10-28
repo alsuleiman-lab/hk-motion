@@ -16,13 +16,13 @@ const KIT = {
   "قائمة→لوحة": ["PanelToCanvas"],
   "جوال": ["PhoneChips"],
   "نافذة تحسين/ملاحظة": ["RewriteWindow", "TiltNote"],
-  "وهج انتقال/شطب": ["HeatFlash", "BrushX"],
+  "شطب": ["BrushX"],
   "مشي المصدر": ["SakugaMove", "SourceWalk"],
   "كشّاف": ["SpotlightCard"],
   "عبارة مفتاحية": ["KeyChip"],
   "بطاقات بنود": ["StatRow"],
   "اشتراك": ["Subscribe"],
-  "بطاقة اسم": ["NameTag"],
+  "بطاقة اسم": ["NameTag", "NameCard1", "NameCard3"],
 };
 const file = process.argv[2];
 if (!file) { console.error("usage: node tools/mg_usage_audit.mjs src/<File>.tsx [--minutes 8]"); process.exit(2); }

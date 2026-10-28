@@ -1,6 +1,6 @@
 # فهرس قطع الموشن (مولَّد آلياً من src/MG.tsx و src/PortraitKit.tsx — لا تعدّله يدوياً)
 
-> يُولَّد بـ`node tools/gen_quickref.mjs`. الزمن بالثواني المطلقة ما لم يُذكر؛ كل قطعة تُوضع داخل `<Gfx>`؛ التفاصيل والضوابط الكاملة لكل قطعة في مهارة motion-graphics وأخواتها، وهنا ما يكفي لاستدعائها دون قراءة طويلة. عدد القطع: 50.
+> يُولَّد بـ`node tools/gen_quickref.mjs`. الزمن بالثواني المطلقة ما لم يُذكر؛ كل قطعة تُوضع داخل `<Gfx>`؛ التفاصيل والضوابط الكاملة لكل قطعة في مهارة motion-graphics وأخواتها، وهنا ما يكفي لاستدعائها دون قراءة طويلة. عدد القطع: 48.
 
 ### `MGTheme`
 one colour identity (src/brand.ts, user 2026-10-27): whatever `theme` an older composition passes, the brand (steel) is used
@@ -50,12 +50,8 @@ Bars that grow one after the other (black / red / green in the reference).
 A clock whose hands spin fast then ease (reference: the "24 hours" polaroid).
 `props:` at: number; size: number
 
-### `Iris`
-Iris wipe: a coloured disc grows from a point (0.5 s ease-in-out) and covers the scene; place it between the background and the speaker so the person stays on top.
-`props:` at: number; cx: number; cy: number; color?: string; dur?: number
-
 ### `GlowCaption`
-Iris wipe: a coloured disc grows from a point (0.5 s ease-in-out) and covers the scene; place it between the background and the speaker so the person stays on top. */ export const Iris: React.FC<{ at: number; cx: number; cy: number; color?: string; dur?: numbe
+A clock whose hands spin fast then ease (reference: the "24 hours" polaroid). */ export const Clock: React.FC<{ at: number; size: number }> = ({ at, size }) => { const t = useT(at); const m = 360 * 5 * ease(t / 1.6), h = m / 12; const c = size / 2; return ( <s
 `props:` words: { t: string; at: number; gold?: boolean }[]; x: number; y: number; w: number; size?: number
 
 ### `DashArc`
@@ -137,10 +133,6 @@ A flat bold colour field with paper grain; paper PIECES (cut-out photos, coloure
 ### `HandheldShake`
 Wraps the SHEIKH'S camera footage and shakes it like a hand-held camera, ONLY during an interjected (جملة اعتراضية) or sarcastic (جملة تهكمية) sentence — decided from the meaning of the sentence, never for emphasis, never continuous. windows = [{ from, to }] i
 `props:` windows: { from: number; to: number }[]; amp?: number; rot?: number; children: React.ReactNode
-
-### `HeatFlash`
-A topic-change transition laid over the footage: at `at` the picture is tinted red-orange, the tint rises to a PEACH WHITE-OUT peak (≈0.25 s) and clears (≈0.55 s total), while the speaker is punched in (scale 1.12→1) with a small slide. Hard cut underneath; th
-`props:` at: number; dur?: number; children: React.ReactNode
 
 ### `BrushX`
 A red hand-brushed X draws itself diagonally over `box` (two strokes, 0.25 s each, slightly translucent, rough edge), holds, then dissolves. Mark a rejected idea/word. NEVER over the speaker's face: give it a `box` on a graphic (a keyword, a photo), not on the

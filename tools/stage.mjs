@@ -82,15 +82,17 @@ const toText = (words) => {
 if (stage === "prep") {
   const video = rest.find((a) => !a.startsWith("--"));
   if (!video || !fs.existsSync(video)) { say(`✘ video not found: ${video}`); finish(1); }
-  const src = path.join("public", `${p}_src.mp4`);
+  const audioOnly = rest.includes("--audio-only");
+  const src = path.join("public", `${p}_src${audioOnly ? path.extname(video).toLowerCase() : ".mp4"}`);
+  fs.writeFileSync(path.join(T, "prep_config.json"), JSON.stringify({ source: src, original: path.resolve(video), audioOnly }, null, 2));
   if (!fs.existsSync(src)) { try { fs.linkSync(video, src); } catch { fs.copyFileSync(video, src); } }
   fs.mkdirSync(path.join("public", p), { recursive: true });
   const a16 = path.join(T, "a16k.wav");
-  await must("audio 16k", "ffmpeg", ["-v", "error", "-y", "-i", src, "-vn", "-ac", "1", "-ar", "16000", a16]);
-  const srcWin = sources(src);
-  const sheet = must("contact sheet", "ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", src, "-vf", "fps=1/6,scale=320:-1,tile=8x8", "-frames:v", "1", path.join(T, "sheet.jpg")]);
+  await must("audio 16k", "ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", src, "-vn", "-ac", "1", "-ar", "16000", "-threads", "4", a16]);
+  const srcWin = audioOnly ? Promise.resolve() : sources(src);
+  const sheet = audioOnly ? Promise.resolve() : must("contact sheet", "ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", src, "-vf", "fps=1/6,scale=320:-1,tile=8x8", "-frames:v", "1", path.join(T, "sheet.jpg")]);
   await must("VAD", PY, ["tools/vad_segments.py", a16, path.join(T, "vad.json"), "--padstart", "100", "--padend", "180", "--minsil", "150"]);
-  await must("per-VAD transcript", PY, ["tools/transcribe_vad_segments.py", a16, path.join(T, "vad.json"), path.join(T, "tr_vad.json")]);
+  await must("per-VAD transcript", PY, ["tools/transcribe_vad_segments.py", a16, path.join(T, "vad.json"), path.join(T, "tr_vad.json"), "--device", opt("asr-device", "cuda"), "--threads", opt("asr-threads", "4")]);
   await sheet;
   await srcWin;
   const segs = JSON.parse(fs.readFileSync(path.join(T, "tr_vad.json"), "utf8"));
@@ -100,6 +102,7 @@ if (stage === "prep") {
   fs.writeFileSync(path.join(T, "transcript.txt"), toText(words));
   say(`source ${(await dur(src)).toFixed(1)} s · ${segs.length} VAD segments · ${words.length} words`);
   // من يتكلم ومتى (WhisperX/pyannote، 2026-10-28): أدوار غير «sheikh» = المقطع الذي يرد عليه / الطرف الآخر في المناظرة. لا يوقف المرحلة إن فشل
+  if (!rest.includes("--skip-diarize")) {
   const dz = await run(PY, ["tools/diarize.py", a16, path.join(T, "speakers.json"), "--words", path.join(T, "words.json")]);
   if (dz.code !== 0) say(`⚠ speakers failed — ${dz.out.trim().split("\n").slice(-2).join(" | ")}`);
   else {
@@ -109,12 +112,15 @@ if (stage === "prep") {
     const others = turns.filter((t) => t.name !== "sheikh");
     say(`speakers: ${Object.values(speakers).map((v) => `${v.name} ${v.talk_s}s`).join(", ")}${Object.values(speakers).some((v) => v.name === "sheikh") ? "" : " (⚠ sheikh not matched)"} · ${others.length} other-speaker turn(s) → ${path.join(T, "speakers.txt")}`);
   }
-  say(`read: ${path.join(T, "transcript.txt")}  (contact sheet: ${path.join(T, "sheet.jpg")})`);
+  } else say("speaker roles: review the narrator and story dialogue from the audio/transcript");
+  say(`read: ${path.join(T, "transcript.txt")}${audioOnly ? " (audio-only source)" : `  (contact sheet: ${path.join(T, "sheet.jpg")})`}`);
   finish(0);
 }
 
 if (stage === "cut") {
-  const src = path.join("public", `${p}_src.mp4`), mapF = path.join("public", `${p}_map.json`), wav = path.join(T, "cut.wav");
+  const cfgFile = path.join(T, "prep_config.json");
+  const prepConfig = fs.existsSync(cfgFile) ? JSON.parse(fs.readFileSync(cfgFile, "utf8")) : {};
+  const src = prepConfig.source ?? path.join("public", `${p}_src.mp4`), mapF = path.join("public", `${p}_map.json`), wav = path.join(T, "cut.wav");
   const rem = (opt("rem", "") || "").split(",").filter(Boolean).map((r) => r.split("-").map(Number));
   const vad = JSON.parse(fs.readFileSync(path.join(T, "vad.json"), "utf8")).speech;
   let segs = [];
@@ -158,6 +164,19 @@ if (stage === "cut") {
   const gate = await run("node", ["tools/audio_gate.mjs", p, "--cut", wav, "--map", mapF, "--tr", path.join(T, "tr_vad.json"), "--src16k", path.join(T, "a16k.wav"), "--audio", wav, ...(opt("keep", "") ? ["--keep", opt("keep", "")] : [])]);
   if (gate.code !== 0) { say(`✘ audio_gate — ${gate.out.trim().split("\n").slice(-6).join(" | ")}`); say("fix with --rem (source seconds) and re-run this stage; nothing was built"); finish(1); }
   say("audio_gate ✔");
+  if (prepConfig.audioOnly) {
+    const audioAsset = path.join("public", p, `voice_${Date.now()}.wav`);
+    fs.copyFileSync(wav, audioAsset);
+    fs.writeFileSync(cfgFile, JSON.stringify({ ...prepConfig, cutAudio: audioAsset }, null, 2));
+    const cutWords = remapWords(JSON.parse(fs.readFileSync(path.join(T, "words_vad.json"), "utf8")), JSON.parse(fs.readFileSync(mapF, "utf8")).segments);
+    fs.writeFileSync(path.join(T, "cut_words.json"), JSON.stringify(cutWords));
+    fs.writeFileSync(path.join(T, "cut_transcript.txt"), toText(cutWords));
+    say(`audio-only cut ${(await dur(audioAsset)).toFixed(1)} s · ${segments.length} segments → ${audioAsset}`);
+    const vs = await run("node", ["tools/verse_scan.mjs", p]);
+    say(`verse_scan: ${(vs.out.match(/✔ /g) ?? []).length} تلاوة في القص → .tmp/${p}/verses.json`);
+    say(`read: ${path.join(T, "cut_transcript.txt")}`);
+    finish(0);
+  }
   const cut = path.join("public", `${p}_cut.mp4`);
   await must("NVENC build", "node", ["tools/cut_edl.mjs", "build", src, mapF, cut]);
   // duplicated frames of the recording (frame-rate conversion) make the motion judder: ALWAYS smooth them right here (PREFERENCES §6 «تسجيلاته ترتجف»); the video is built on <p>_cut_s.mp4

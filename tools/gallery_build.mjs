@@ -63,7 +63,7 @@ const cut = (file, id) => {   // the "  Id: { … }," entry of a Record literal,
 };
 const TL = fs.readFileSync("src/TransitionsLab.tsx", "utf8").replace(/\r\n/g, "\n");
 const transitions = [...TL.matchAll(/^  (\w+): \{ ar: "([^"]+)", kit: "([^"]+)", where: "([^"]+)",\n    node: ([\s\S]*?) \},\n/gm)]
-  .map((m) => ({ id: m[1], kind: "transition", ar: m[2], kit: m[3], group: m[3] === "Transitions" ? "انتقالات جديدة للاختيار" : "الانتقالات الحالية", where: m[4], note: "", code: m[5].trim(), still: { PaperCover: 20, PushIn: 40, HandheldShake: 40, Iris: 40, TrSection: 40 }[m[1]] ?? 45 }));
+  .map((m) => ({ id: m[1], kind: "transition", ar: m[2], kit: m[3], group: m[3] === "Transitions" ? "انتقالات جديدة للاختيار" : "الانتقالات الحالية", where: m[4], note: "", code: m[5].trim(), still: { PaperCover: 20, PushIn: 40, HandheldShake: 40, TrSection: 40 }[m[1]] ?? 45 }));
 const tIds = new Set(transitions.map((t) => t.id));
 const lab = JSON.parse(fs.readFileSync("data/elements_lab.json", "utf8"));
 const elements = lab.filter((m) => !tIds.has(m.id)).map((m) => ({
@@ -73,7 +73,7 @@ const elements = lab.filter((m) => !tIds.has(m.id)).map((m) => ({
 for (const t of transitions) { const m = lab.find((x) => x.id === t.id); if (m?.note) t.note = m.note; }
 // four sections (user 2026-10-28): backgrounds · elements over the video · moves of the video · transitions (scene↔scene, cover→scene)
 const MOVES = new Set(["PushIn", "HandheldShake", "FlashCut", "SakugaMove", "SpotlightCard", "TimelineTravel"]);
-const SECTION_OF = (it) => (it.group === "خلفيات" ? "bg" : MOVES.has(it.id) ? "move" : it.kind === "transition" || ["Curtain", "Iris", "HeatFlash", "PaperCover"].includes(it.id) ? "transition" : "element");
+const SECTION_OF = (it) => (it.group === "خلفيات" ? "bg" : MOVES.has(it.id) ? "move" : it.kind === "transition" || ["Curtain", "PaperCover"].includes(it.id) ? "transition" : "element");
 const items = [...elements, ...transitions].map((it) => ({ ...it, section: SECTION_OF(it) }));
 
 // ── 4) the page: the old gallery's look + tabs, live stages and code blocks

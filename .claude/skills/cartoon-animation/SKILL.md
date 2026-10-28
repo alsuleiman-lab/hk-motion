@@ -7,6 +7,12 @@ description: Plan, create, and animate story-driven cartoon videos with distinct
 
 Create a moving story from the spoken content, not a slideshow of character images. Follow the project's `PREFERENCES.md`, `MONTAGE_BRIEF.md`, and `WORKFLOW_CHECKLIST.md`; those rules override examples here.
 
+## Cartoon art direction is independent
+
+Use a colourful story-film palette appropriate to the characters and setting, with distinct clothing, skin, architecture, wood, textiles, sky and props. Do not impose the monochrome lesson-video `brand.ts` palette on a cartoon. Keep the film visually cohesive and test text contrast; the reusable starting palette is `src/cartoon/palette.ts`.
+
+Judge cartoon quality by storytelling, acting, contact, staging, continuity and timing. The lecture template's overlay-kind quota is not a cartoon quality gate. Apply only the shared content, source, resource and approval rules that actually concern the cartoon; do not copy lesson metadata or source-video layouts into the story by default.
+
 Use [Claude Animation Base: local adaptation](references/claude-animation-base.md) when planning character acting, object handling, or a hand-drawn look. It translates the user's reference into the existing Remotion workflow; it does not make its character design, palette, facial features, constant motion, or renderer the project's defaults.
 
 For code-drawn illustration detail, articulated characters, grounded walking, or reproducible frames, use [Hanif's animation skill: local adaptation](references/hanif-animation-detail.md). It complements the acting reference with material layers, rig review, and render-order checks.

@@ -48,12 +48,20 @@ function collectSources(id) {
   return withSpecs(files);
 }
 
-function neededAssets(id, manifest) {
+function neededAssets(id, manifest, manifestOnly = false) {
   const rel = new Set();
   const add = (p) => { // p relative to public/ (file or folder)
     const abs = path.join(PUB, p);
     try { const st = fs.statSync(abs); if (st.isDirectory()) for (const f of walk(abs)) rel.add(path.relative(PUB, f).replace(/\\/g, "/")); else rel.add(p.replace(/\\/g, "/")); } catch { /* not a public path */ }
   };
+  if (manifestOnly) {
+    if (!manifest || !fs.existsSync(manifest)) throw new Error('manifest-only requires an existing asset manifest');
+    for (const line of readSrc(manifest).split(/\r?\n/)) {
+      const item = line.replace(/#.*/, '').trim();
+      if (item) add(item.replace(/^public[\\/]/, ''));
+    }
+    return [...rel].sort();
+  }
   let allPub = null;
   const prefix = (pre) => { // `kh/alpha_${n}.webm` -> every public file whose path starts with "kh/alpha_"
     allPub ??= walk(PUB).map((f) => path.relative(PUB, f).replace(/\\/g, "/"));
@@ -83,10 +91,11 @@ function linkInto(destPublic, files) {
   return { linked, copied, mb: Math.round(bytes / 1048576) };
 }
 
-export async function cachedServeUrl(id, { manifest = "", tag = "bundle" } = {}) {
+export async function cachedServeUrl(id, { manifest = "", tag = "bundle", manifestOnly = false } = {}) {
   const cacheDir = path.join(ROOT, ".tmp", "stills_bundle", id);
   const emptyPub = path.join(ROOT, ".tmp", "stills_empty_public"); fs.mkdirSync(emptyPub, { recursive: true });
   const h = crypto.createHash("sha1");
+  h.update(`${ENTRY}|manifestOnly=${manifestOnly}\n`);
   for (const f of walk(SRC).sort()) { const st = fs.statSync(f); h.update(`${path.relative(ROOT, f)}|${st.size}|${Math.round(st.mtimeMs)}\n`); }
   try { for (const f of walk(path.join(ROOT, "data", "specs")).sort()) { const st = fs.statSync(f); h.update(`${path.relative(ROOT, f)}|${st.size}|${Math.round(st.mtimeMs)}
 `); } } catch { /* no specs */ }   // montage specs are imported JSON: a spec edit must rebuild the bundle
@@ -101,7 +110,7 @@ export async function cachedServeUrl(id, { manifest = "", tag = "bundle" } = {})
     fs.writeFileSync(stampFile, stamp);
     console.log(`[${tag}] bundle built`);
   }
-  const need = neededAssets(id, manifest);
+  const need = neededAssets(id, manifest, manifestOnly);
   const r = linkInto(path.join(cacheDir, "public"), need);
   console.log(`[${tag}] assets: ${need.length} files (${r.linked} hard-linked, ${r.copied} copied, ${r.mb} MB) — not the whole public/`);
   return { serveUrl: cacheDir, cacheDir };

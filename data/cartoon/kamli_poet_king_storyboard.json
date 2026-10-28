@@ -1,0 +1,403 @@
+{
+  "title": "طرفة الشاعر والملك - سعيد الكملي",
+  "status": "planned",
+  "fps": 30,
+  "duration": 52.273333,
+  "formats": [
+    "portrait"
+  ],
+  "characters": [
+    "poet",
+    "king",
+    "minister",
+    "narrator"
+  ],
+  "requireDistinctSets": true,
+  "beats": [
+    {
+      "id": "beat-01",
+      "from": 0,
+      "to": 2.573,
+      "actor": "poet",
+      "speaker": "narrator",
+      "environment": "palace",
+      "action": "يدخل الشاعر إلى قاعة الملك بخطوتين",
+      "shot": "لقطة تأسيسية بعمق الباب والعرش",
+      "narration": true,
+      "note": "سرد خارج الكادر؛ حركة فعل واضحة دون إيماءة كلام زائفة"
+    },
+    {
+      "id": "beat-02",
+      "from": 2.573,
+      "to": 5.793,
+      "actor": "poet",
+      "speaker": "narrator",
+      "environment": "palace",
+      "action": "يفتح الشاعر لفافته ويمدح الملك",
+      "shot": "جانب الشاعر مع الملك في العمق",
+      "narration": true,
+      "note": "سرد خارج الكادر؛ حركة فعل واضحة دون إيماءة كلام زائفة"
+    },
+    {
+      "id": "beat-03",
+      "from": 5.793,
+      "to": 8.267,
+      "actor": "king",
+      "speaker": "king",
+      "environment": "palace",
+      "action": "يلتفت الملك إلى الوزير ويشير بأمر عشرة آلاف",
+      "shot": "كادر العرش واليد والوزير",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-04",
+      "from": 8.267,
+      "to": 11.887,
+      "actor": "poet",
+      "speaker": "narrator",
+      "environment": "palace",
+      "action": "الشاعر ينظر إلى اللفافة ثم يفتح كفيه فرحاً",
+      "shot": "كادر رد فعل قريب عند مدخل البساط",
+      "narration": true,
+      "note": "سرد خارج الكادر؛ حركة فعل واضحة دون إيماءة كلام زائفة"
+    },
+    {
+      "id": "beat-05",
+      "from": 11.887,
+      "to": 15.833,
+      "actor": "king",
+      "speaker": "narrator",
+      "environment": "palace",
+      "action": "يراقب الملك فرح الشاعر ويميل رأسه نحوه",
+      "shot": "زاوية مقابلة من جانب العرش",
+      "narration": true,
+      "note": "سرد خارج الكادر؛ حركة فعل واضحة دون إيماءة كلام زائفة"
+    },
+    {
+      "id": "beat-06",
+      "from": 15.833,
+      "to": 17.6,
+      "actor": "king",
+      "speaker": "king",
+      "environment": "palace",
+      "action": "يرفع الملك كفه ويأمر بخمسين ألفاً",
+      "shot": "لقطة أمر أقرب باتجاه الوزير",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-07",
+      "from": 17.6,
+      "to": 19.6,
+      "actor": "poet",
+      "speaker": "narrator",
+      "environment": "palace",
+      "action": "يرتفع الشاعر على قدميه ويفتح ذراعيه ثم يستقر",
+      "shot": "كادر كامل يبين القدمين ورد الفعل",
+      "narration": true,
+      "note": "سرد خارج الكادر؛ حركة فعل واضحة دون إيماءة كلام زائفة"
+    },
+    {
+      "id": "beat-08",
+      "from": 19.6,
+      "to": 23.973,
+      "actor": "king",
+      "speaker": "narrator",
+      "environment": "palace",
+      "action": "يتابع الملك مبالغة الشاعر في فرحه ثم يستعد للأمر",
+      "shot": "كادر من خلف كتف الشاعر نحو العرش",
+      "narration": true,
+      "note": "سرد خارج الكادر؛ حركة فعل واضحة دون إيماءة كلام زائفة"
+    },
+    {
+      "id": "beat-09",
+      "from": 23.973,
+      "to": 25.053,
+      "actor": "king",
+      "speaker": "king",
+      "environment": "palace",
+      "action": "يصدر الملك أمر مئة ألف بالإشارة",
+      "shot": "قطع إلى يد الملك والرقم عند نطقه",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-10",
+      "from": 25.053,
+      "to": 26.16,
+      "actor": "poet",
+      "speaker": "narrator",
+      "environment": "corridor",
+      "action": "يسير الشاعر من القاعة إلى مكتب الوزير",
+      "shot": "رواق جانبي متصل بباب المكتب",
+      "narration": true,
+      "note": "سرد خارج الكادر؛ حركة فعل واضحة دون إيماءة كلام زائفة"
+    },
+    {
+      "id": "beat-11",
+      "from": 26.16,
+      "to": 27.38,
+      "actor": "poet",
+      "speaker": "poet",
+      "environment": "office",
+      "action": "يشير الشاعر إلى قاعة الملك وإلى نفسه طالباً العطاء",
+      "shot": "الشاعر أمام طاولة الوزير",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-12",
+      "from": 27.38,
+      "to": 28.733,
+      "actor": "minister",
+      "speaker": "minister",
+      "environment": "office",
+      "action": "يفتح الوزير كفه بالسؤال ويضع يده الأخرى على الدفتر",
+      "shot": "عكس المحور من وراء كتف الشاعر",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-13",
+      "from": 28.733,
+      "to": 29.393,
+      "actor": "poet",
+      "speaker": "poet",
+      "environment": "office",
+      "action": "يؤكد الشاعر المبلغ ويشير إلى وعد الملك",
+      "shot": "كادر الشاعر واليد أمام الطاولة",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-14",
+      "from": 29.393,
+      "to": 30.513,
+      "actor": "minister",
+      "speaker": "minister",
+      "environment": "office",
+      "action": "يغلق الوزير الدفتر ويعرض كف الرفض",
+      "shot": "قريب على يد الوزير والدفتر",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-15",
+      "from": 30.513,
+      "to": 31.713,
+      "actor": "poet",
+      "speaker": "narrator",
+      "environment": "corridor",
+      "action": "يعود الشاعر عبر الرواق نحو باب العرش",
+      "shot": "لقطة انتقال باتجاه معاكس لذهابه",
+      "narration": true,
+      "note": "سرد خارج الكادر؛ حركة فعل واضحة دون إيماءة كلام زائفة"
+    },
+    {
+      "id": "beat-16",
+      "from": 31.713,
+      "to": 35.227,
+      "actor": "poet",
+      "speaker": "poet",
+      "environment": "palace",
+      "action": "يتوقف أمام درجات العرش ويشكو مانع العطاء",
+      "shot": "زاوية منخفضة نسبياً للشاعر والملك",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-17",
+      "from": 35.227,
+      "to": 36.707,
+      "actor": "king",
+      "speaker": "king",
+      "environment": "palace",
+      "action": "يفتح الملك كفه سائلاً عما أعطاه",
+      "shot": "كادر الملك المنصت ثم المتحدث",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-18",
+      "from": 36.707,
+      "to": 37.947,
+      "actor": "poet",
+      "speaker": "poet",
+      "environment": "palace",
+      "action": "يكرر الشاعر المبلغ بإشارة تقرير",
+      "shot": "عكس المحور على الشاعر وكفه",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-19",
+      "from": 37.947,
+      "to": 41.207,
+      "actor": "king",
+      "speaker": "king",
+      "environment": "palace",
+      "action": "يميل الملك للأمام سائلاً هل صدق وعد مئة ألف",
+      "shot": "قريب على رأس الملك وكتفه ويده",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-20",
+      "from": 41.207,
+      "to": 42.777,
+      "actor": "poet",
+      "speaker": "poet",
+      "environment": "palace",
+      "action": "يومئ الشاعر نعم ثم يثبت منصتاً",
+      "shot": "كادر قريب يتسع للكتفين والكفين",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-21",
+      "from": 42.777,
+      "to": 44.257,
+      "actor": "king",
+      "speaker": "king",
+      "environment": "palace",
+      "action": "يشير الملك إلى نفسه وإلى مدح الشاعر",
+      "shot": "لقطة أوسع تهيئ الفراغ للتشبيه",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-22",
+      "from": 44.257,
+      "to": 45.017,
+      "actor": "king",
+      "speaker": "king",
+      "environment": "moon-metaphor",
+      "action": "يظهر القمر المرسوم عند كلمة قمر والملك يشير إليه",
+      "shot": "قطع دلالي يضع القمر في فراغ الكادر",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-23",
+      "from": 45.017,
+      "to": 46.703,
+      "actor": "king",
+      "speaker": "king",
+      "environment": "sea-metaphor",
+      "action": "يظهر تمثيل البحر عند كلمته والملك يشير إلى الموج",
+      "shot": "تغير دلالي إلى البحر مع بقاء هوية الملك",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-24",
+      "from": 46.703,
+      "to": 47.966,
+      "actor": "king",
+      "speaker": "king",
+      "environment": "palace",
+      "action": "يسأل الملك عن حقيقة التشبيهات بكف مفتوح",
+      "shot": "عودة إلى القاعة والعرش من زاوية أقرب",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-25",
+      "from": 47.966,
+      "to": 49.407,
+      "actor": "king",
+      "speaker": "king",
+      "environment": "palace",
+      "action": "يشير الملك إلى الشاعر ثم إلى صدره لبيان أثر المدح",
+      "shot": "لقطة نصفية واضحة لانتقال الإشارة",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    },
+    {
+      "id": "beat-26",
+      "from": 49.407,
+      "to": 52.273333,
+      "actor": "king",
+      "speaker": "king",
+      "environment": "palace",
+      "action": "يعيد الملك الكف نحو الشاعر وتظهر يده الخالية في الرد الأخير",
+      "shot": "كادر مشترك للمفارقة واليد الخالية دون إعطاء نقود",
+      "narration": false,
+      "note": "إيماءة الكلام داخل فترات الكلمات فقط؛ بقية الشخصيات تنصت"
+    }
+  ],
+  "captions": [
+    {
+      "from": 6.893,
+      "to": 8.267,
+      "words": [
+        {
+          "at": 6.893,
+          "text": "١٠٬٠٠٠"
+        }
+      ]
+    },
+    {
+      "from": 16.4,
+      "to": 17.6,
+      "words": [
+        {
+          "at": 16.4,
+          "text": "٥٠٬٠٠٠"
+        }
+      ]
+    },
+    {
+      "from": 24.373,
+      "to": 25.053,
+      "words": [
+        {
+          "at": 24.373,
+          "text": "١٠٠٬٠٠٠"
+        }
+      ]
+    },
+    {
+      "from": 48.966,
+      "to": 49.407,
+      "words": [
+        {
+          "at": 48.966,
+          "text": "بالكلام"
+        }
+      ]
+    },
+    {
+      "from": 50.926,
+      "to": 52.273333,
+      "words": [
+        {
+          "at": 50.926,
+          "text": "بالكلام"
+        }
+      ]
+    }
+  ],
+  "entities": [
+    {
+      "name": "القمر",
+      "at": 44.257,
+      "spokenAt": 44.257,
+      "asset": "kamli_poet_king/moon_colour_v1.svg"
+    },
+    {
+      "name": "البحر",
+      "at": 45.017,
+      "spokenAt": 45.017,
+      "asset": "kamli_poet_king/sea_colour_v1.svg"
+    }
+  ],
+  "assets": [
+    "kamli_poet_king/voice_1793216306635.wav",
+    "kamli_poet_king/saeed_kamli_commons_v1.jpg"
+  ],
+  "artPending": false,
+  "quotations": [],
+  "colourPalette": "src/cartoon/palette.ts"
+}

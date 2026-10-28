@@ -5,7 +5,7 @@ import { WarmBase, clamp } from "./PortraitKit";
 import { BRAND } from "./brand";
 
 /**
- * Scene transitions in the channel identity (user 2026-10-28: «صمّمها» — six new transitions to choose from in the gallery).
+ * Scene transitions in the channel identity (user 2026-10-28: «صمّمها» — the transitions kept in the gallery).
  * Every transition takes the outgoing scene `a` and the incoming scene `b` and runs from `at` for `dur` seconds; before it only `a` shows,
  * after it only `b`. Identity colours only (src/brand.ts); no white flash. Played between real scenes in src/TransitionsLab.tsx.
  */
@@ -14,22 +14,7 @@ const inOut = (x: number) => { const u = clamp(x); return u < 0.5 ? 4 * u * u * 
 const useP = (at: number, dur: number) => clamp((useT() - at) / dur);
 const Fill: React.FC<{ style?: React.CSSProperties; children?: React.ReactNode }> = ({ style, children }) => <AbsoluteFill style={style}>{children}</AbsoluteFill>;
 
-/** 1) push: the new scene pushes the old one out to the left, with a light fade and motion blur (the house «slide + fade») */
-export const TrPush: React.FC<Tr> = ({ at, dur = 0.8, a, b }) => {
-  const { width: W } = useVideoConfig();
-  const p = useP(at, dur), e = inOut(p), blur = Math.sin(Math.PI * p) * 8;
-  if (p <= 0) return <Fill>{a}</Fill>;
-  if (p >= 1) return <Fill>{b}</Fill>;
-  return (
-    <>
-      <Fill style={{ transform: `translateX(${-e * W}px)`, opacity: 1 - 0.5 * e, filter: `blur(${blur}px)` }}>{a}</Fill>
-      <Fill style={{ transform: `translateX(${(1 - e) * W}px)`, opacity: 0.5 + 0.5 * e, filter: `blur(${blur}px)` }}>{b}</Fill>
-      <div style={{ position: "absolute", top: 0, bottom: 0, left: (1 - e) * W - 6, width: 12, background: BRAND.accent, opacity: Math.sin(Math.PI * p) }} />
-    </>
-  );
-};
-
-/** 2) accent wipe: a slanted band in the accent colour sweeps from right to left and uncovers the new scene behind it */
+/** accent wipe: a slanted band in the accent colour sweeps from right to left and uncovers the new scene behind it */
 export const TrAccentWipe: React.FC<Tr> = ({ at, dur = 0.75, a, b }) => {
   const { width: W, height: H } = useVideoConfig();
   const p = useP(at, dur), e = inOut(p), k = H * 0.2, band = 54;
@@ -46,37 +31,7 @@ export const TrAccentWipe: React.FC<Tr> = ({ at, dur = 0.75, a, b }) => {
   );
 };
 
-/** 3) zoom through: the old scene pushes in and fades, the new one settles from a slight zoom — calm, for a continuing thought */
-export const TrZoomFade: React.FC<Tr> = ({ at, dur = 0.7, a, b }) => {
-  const p = useP(at, dur), e = inOut(p);
-  if (p <= 0) return <Fill>{a}</Fill>;
-  if (p >= 1) return <Fill>{b}</Fill>;
-  return (
-    <>
-      <Fill style={{ transform: `scale(${1 + 0.14 * e})`, opacity: 1 - e, filter: `blur(${6 * e}px)` }}>{a}</Fill>
-      <Fill style={{ transform: `scale(${1.08 - 0.08 * e})`, opacity: e, filter: `blur(${6 * (1 - e)}px)` }}>{b}</Fill>
-    </>
-  );
-};
-
-/** 4) page turn: the old scene turns like a book page on its right-hand spine (Arabic books open that way) and shows the new one under it */
-export const TrPageTurn: React.FC<Tr> = ({ at, dur = 0.9, a, b }) => {
-  const p = useP(at, dur), e = inOut(p);
-  if (p <= 0) return <Fill>{a}</Fill>;
-  if (p >= 1) return <Fill>{b}</Fill>;
-  return (
-    <AbsoluteFill style={{ perspective: 2400, background: BRAND.base }}>
-      <Fill>{b}</Fill>
-      <Fill style={{ background: `rgba(6,12,24,${0.45 * (1 - e)})` }} />
-      <Fill style={{ transformOrigin: "100% 50%", transform: `rotateY(${-105 * e}deg)`, backfaceVisibility: "hidden", boxShadow: `0 0 ${60 * e}px rgba(0,0,0,.5)` }}>
-        {a}
-        <Fill style={{ background: `linear-gradient(90deg, rgba(6,12,24,${0.55 * e}), rgba(6,12,24,0) 70%)` }} />
-      </Fill>
-    </AbsoluteFill>
-  );
-};
-
-/** 5) the decorated doors: two halves of the decorated base close from the sides, meet at an accent seam, and open on the new scene */
+/** the decorated doors: two halves of the decorated base close from the sides, meet at an accent seam, and open on the new scene */
 export const TrDoors: React.FC<Tr> = ({ at, dur = 1.0, a, b }) => {
   const { width: W } = useVideoConfig();
   const p = useP(at, dur);
@@ -97,7 +52,7 @@ export const TrDoors: React.FC<Tr> = ({ at, dur = 1.0, a, b }) => {
   );
 };
 
-/** 6) section card: for a change of topic — the decorated base rises over the old scene with the new section's title, then lifts away */
+/** section card: for a change of topic — the decorated base rises over the old scene with the new section's title, then lifts away */
 export const TrSection: React.FC<Tr & { title: string; sub?: string }> = ({ at, dur = 1.8, a, b, title, sub }) => {
   const { height: H } = useVideoConfig();
   const p = useP(at, dur);

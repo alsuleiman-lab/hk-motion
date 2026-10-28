@@ -2,7 +2,7 @@ import React from "react";
 import { AbsoluteFill, OffthreadVideo, Sequence, staticFile } from "remotion";
 import {
   Bars, BlurRise, BrushX, Clock, CollageAssemble, ConvergeMerge, CornerTags, DashArc, DimLayer, EllipseMark, FlashCut, GlowCaption, GlowCounter,
-  HeatFlash, Highlight, Iris, MGTheme, NoteCard, PanelToCanvas, PhoneChips, PinnedPhoto,
+  Highlight, MGTheme, NoteCard, PanelToCanvas, PhoneChips, PinnedPhoto,
   HandheldShake, PaperBg, RewriteWindow, SakugaMove, SpotlightCard, Stamp, Strike, T, TagChip, TiltNote, TimelineCounter, TimelineTravel, TypeBox, kufiF, naskhF,
 } from "./MG";
 import { Banner, Sources, StatRow, useFonts } from "./EuKit";
@@ -110,8 +110,6 @@ const E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   GlowCaption: { node: <GlowCaption words={[{ t: "كلمة", at: 0.1 }, { t: "كلمة", at: 0.5 }, { t: "ذهبية", at: 0.9, gold: true }, { t: "متوهجة", at: 1.3 }]} x={360} y={440} w={1200} size={90} /> },
   DashArc: { node: <><PinnedPhoto at={0.1} x={1260} y={300} w={300} h={380} name="الأول"><Sil /></PinnedPhoto><PinnedPhoto at={0.5} x={360} y={300} w={300} h={380} name="الثاني"><Sil bg="linear-gradient(160deg,#c9b99a,#8d7a5c)" /></PinnedPhoto><DashArc at={0.9} x1={1260} y1={420} x2={660} y2={420} lift={160} /></> },
   DimLayer: { light: true, node: <><AbsoluteFill style={{ background: "linear-gradient(120deg,#d9a35b,#6fb0d6)" }} /><DimLayer at={0.1} amount={0.62} blur={6} x={160} y={160} w={900} h={760} r={24} /><div style={{ position: "absolute", left: 220, top: 420, width: 780, textAlign: "center", fontFamily: kufiF, fontSize: 80, color: "#fff" }}>رسم واضح فوق التعتيم</div></> },
-  Iris: { node: <><Page /><Iris at={0.1} cx={960} cy={540} dur={1.6} color="#e0a93a" /></> },
-  HeatFlash: { node: <HeatFlash at={0.6} dur={1.6}><Page /></HeatFlash> },
   MapRoute: { node: <MapRoute at={0.1} until={3} x={460} y={140} w={1000} h={800} center={[36, 38]} spanLat={10} highlight={["Syria"]} pts={[{ name: "دمشق", lon: 36.3, lat: 33.5, at: 0.3 }, { name: "حلب", lon: 37.2, lat: 36.2, at: 0.7 }]} legs={[{ from: [36.3, 33.5], to: [37.2, 36.2], at: 1.0, dur: 1 }]} /> },
   PaperMap: { node: <PaperMap at={0.1} until={3} x={460} y={140} w={1000} h={800} center={[36, 38]} spanLat={10} highlight={["Syria"]} pts={[{ name: "دمشق", lon: 36.3, lat: 33.5, at: 0.3 }, { name: "حلب", lon: 37.2, lat: 36.2, at: 0.7 }]} legs={[{ from: [36.3, 33.5], to: [37.2, 36.2], at: 1.0, dur: 1, car: true }]} /> },
   HandheldShake: { node: <HandheldShake windows={[{ from: 0.2, to: 2.8 }]} amp={6} rot={0.4}><OffthreadVideo src={staticFile("kit_sample_sheikh.mp4")} muted /></HandheldShake> },

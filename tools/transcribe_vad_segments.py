@@ -10,13 +10,15 @@ from faster_whisper.audio import decode_audio
 src, vadf, out = sys.argv[1:4]
 a = sys.argv[4:]
 MERGE = float(a[a.index("--merge")+1]) if "--merge" in a else 0.3
+DEVICE = a[a.index("--device")+1] if "--device" in a else "cuda"
+THREADS = min(4, max(1, int(a[a.index("--threads")+1]))) if "--threads" in a else 4
 audio = decode_audio(src, sampling_rate=16000)
 sp = json.load(open(vadf))["speech"]
 segs = []
 for s, e in sp:
     if segs and s - segs[-1][1] < MERGE: segs[-1][1] = e
     else: segs.append([s, e])
-m = WhisperModel("large-v3", device="cuda", compute_type="int8_float16")
+m = WhisperModel("large-v3", device=DEVICE, compute_type="int8" if DEVICE == "cpu" else "int8_float16", cpu_threads=THREADS, num_workers=1)
 res = []
 for i, (s, e) in enumerate(segs):
     s0, e0 = max(0, s - 0.15), min(len(audio)/16000, e + 0.15)
@@ -25,5 +27,8 @@ for i, (s, e) in enumerate(segs):
                          temperature=[0.0, 0.2], no_speech_threshold=None, log_prob_threshold=None, compression_ratio_threshold=None)
     words = [{"s": round(w.start+s0, 2), "e": round(w.end+s0, 2), "w": w.word.strip()} for g in it for w in g.words]
     res.append({"i": i, "s": round(s, 2), "e": round(e, 2), "text": " ".join(w["w"] for w in words), "words": words})
+    print(f"segment {i+1}/{len(segs)}: {res[-1]['text']}", flush=True)
+    with open(out + ".partial.json", "w", encoding="utf-8") as checkpoint:
+        json.dump(res, checkpoint, ensure_ascii=False)
 json.dump(res, open(out, "w", encoding="utf-8"), ensure_ascii=False)
 print(len(res), "segments")

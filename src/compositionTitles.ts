@@ -43,4 +43,5 @@ export const COMPOSITION_TITLES: Record<string, string> = {
   "Clip5TaslamPortrait": "قول لا نريدك أن تسلم خطير لا يجوز",
   "JordanInterior": "كلام خطير لوزير الداخلية الأردني",
   "JordanInterior-L": "كلام خطير لوزير الداخلية الأردني (عرضي)",
+  "KamliPoetKing": "طرفة الشاعر والملك - سعيد الكملي",
 };

@@ -157,13 +157,6 @@ export const Clock: React.FC<{ at: number; size: number }> = ({ at, size }) => {
   );
 };
 
-/** Iris wipe: a coloured disc grows from a point (0.5 s ease-in-out) and covers the scene; place it between the background and the speaker so the person stays on top. */
-export const Iris: React.FC<{ at: number; cx: number; cy: number; color?: string; dur?: number }> = ({ at, cx, cy, color = T.navy, dur = 0.5 }) => {
-  const u = clamp(useT(at) / dur), e = u * u * (3 - 2 * u);
-  const r = 2300 * e;
-  return u <= 0 ? null : <div style={{ position: "absolute", left: cx - r, top: cy - r, width: r * 2, height: r * 2, borderRadius: "50%", background: color }} />;
-};
-
 /* ====================================================================================================================
  * «السبت الممتاز» moves (studied 2026-10-19, see STYLE_REFERENCES.md §2): 13 reusable pieces. Times in seconds (`at`).
  * Positions are absolute in the composition (works in 1920x1080 and 1080x1920). Colours come from the active theme (T);
@@ -868,22 +861,6 @@ export const HandheldShake: React.FC<{ windows: { from: number; to: number }[]; 
   const k = Math.min(ease((t - w.from) / 0.12), ease((w.to + 0.12 - t) / 0.12));
   const n = (s: number) => Math.sin(t * 9.1 * s + s * 1.7) * 0.5 + Math.sin(t * 15.3 * s + s * 4.1) * 0.3 + Math.sin(t * 23.7 * s + s * 2.3) * 0.2;
   return <AbsoluteFill style={{ transform: `translate(${n(1) * amp * k}px, ${n(1.37) * amp * k}px) rotate(${n(0.83) * rot * k}deg) scale(${1 + 0.04 * k})` }}>{children}</AbsoluteFill>;
-};
-
-/**
- * 29) HeatFlash — «وهج الانتقال الحار» (reference: «سب الدين أسهل كفر», SKILL.md §20). A topic-change transition laid over the footage: at `at` the picture is tinted red-orange, the tint rises to a
- * PEACH WHITE-OUT peak (≈0.25 s) and clears (≈0.55 s total), while the speaker is punched in (scale 1.12→1) with a small slide. Hard cut underneath; the tint hides it. Use ONCE per topic change
- * (not every cut), only on the footage layer; never over the face for longer than the peak frames (check face_check after use). children = the footage; the overlay is drawn inside <Gfx>-safe divs.
- */
-export const HeatFlash: React.FC<{ at: number; dur?: number; children: React.ReactNode }> = ({ at, dur = 0.55, children }) => {
-  const t = useT(at), k = clamp(t / dur), up = Math.sin(Math.PI * Math.min(1, k * 1.15));
-  const active = t >= 0 && t <= dur;
-  return (
-    <AbsoluteFill>
-      <AbsoluteFill style={{ transform: active ? `scale(${1 + 0.12 * (1 - ease(k))}) translateX(${(1 - ease(k)) * -18}px)` : undefined }}>{children}</AbsoluteFill>
-      {active ? <AbsoluteFill style={{ background: `radial-gradient(circle at 50% 45%, rgba(246,248,250,${0.85 * up}), rgba(230,70,50,${0.55 * up}) 70%)`, mixBlendMode: "screen" }} /> : null}
-    </AbsoluteFill>
-  );
 };
 
 /**

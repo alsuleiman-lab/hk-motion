@@ -3,6 +3,7 @@ import { Composition, Folder } from "remotion";
 import { SHOW_ARCHIVE } from "./archive";
 import { ByRecency } from "./ByRecency";
 import { JuhaStory15, JUHA_STORY_FRAMES } from "./JuhaStory15";
+import { KamliPoetKing, KAMLI_FRAMES } from "./KamliPoetKing";
 import { SakugaDemo, SpotDemo, TravelDemo, SAKUGA_DEMO_FRAMES, SPOT_DEMO_FRAMES, TRAVEL_DEMO_FRAMES, CollageDemo, CollageDemoL, COLLAGE_DEMO_FRAMES } from "./SourceMovesDemo";
 import { ConvergeDemo, BlurRiseDemo, PanelDemo, CONVERGE_DEMO_FRAMES, BLURRISE_DEMO_FRAMES, PANEL_DEMO_FRAMES, PhoneDemo, PHONE_DEMO_FRAMES } from "./FlowDemos";
 import { FlashDemo, FLASH_DEMO_FRAMES } from "./SpaceFlashDemo";
@@ -53,6 +54,7 @@ import { Clip5TaslamPortrait, CLIP5_FRAMES, CLIP5_FPS } from "./Clip5TaslamPortr
 export const RemotionRoot: React.FC = () => {
   return (
     <ByRecency>
+      <Composition id="KamliPoetKing" component={KamliPoetKing} durationInFrames={KAMLI_FRAMES} fps={30} width={1080} height={1920} />
 
       {/* ACTIVE project(s): Livestream Debate Shorts */}
       <Composition id="Clip1SunPortrait" component={Clip1SunPortrait} durationInFrames={CLIP1_FRAMES} fps={CLIP1_FPS} width={1080} height={1920} />

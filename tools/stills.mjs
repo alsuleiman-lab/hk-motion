@@ -31,7 +31,7 @@ let serveUrl, cacheDir = null;
 if (flag("legacy") || process.env.PD) {
   serveUrl = await bundle({ entryPoint: ENTRY, publicDir: process.env.PD ? path.resolve(process.env.PD) : undefined, onProgress: () => {} });
 } else {
-  ({ serveUrl, cacheDir } = await cachedServeUrl(id, { manifest: opt("manifest", process.env.STILLS_MANIFEST ?? ""), tag: "stills" }));
+  ({ serveUrl, cacheDir } = await cachedServeUrl(id, { manifest: opt("manifest", process.env.STILLS_MANIFEST ?? ""), manifestOnly: flag('manifest-only'), tag: "stills" }));
 }
 
 // SPEED (2026-10-22, from the official Remotion skills: one call for many frames): ONE shared headless browser for every still (no launch per frame) and the frames are rendered

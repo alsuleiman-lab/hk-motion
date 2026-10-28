@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "remotion-studio",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set TEMP=S:\AI_Tools\Remotion_Workspace\.tmp&& set TMP=S:\AI_Tools\Remotion_Workspace\.tmp&& npx remotion studio --port=3100 --no-open"],
+      "port": 3100
+    }
+  ]
+}

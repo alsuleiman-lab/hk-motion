@@ -1,0 +1,66 @@
+// Automatic "nothing covers the speaker's face/hair" check — MANDATORY after every build, before showing anything (user 2026-10-18).
+//   node tools/face_check.mjs <CompositionId> [--step 15] [--frames 10,40,90] [--reviewed] [--props '{"theme":"steel"}'] [--region x,y,w,h] [--out .tmp/facecheck]
+// For each sampled frame it renders the composition twice: normal, and with inputProps {hideGfx:true} (every overlay wrapped in <Gfx>/<Show> returns null),
+// finds the face in the clean render and measures how many pixels of the face/hair zone changed. Any overlap > 0.8% = FAIL (move the element, re-run).
+// Rule for compositions: put EVERY overlay (cards, chips, stickers, captions, title bar, cover cards) inside <Gfx> (or MotionLab's <Show>); video + background stay outside.
+import { cachedServeUrl, privateTemp } from "./lib/cached_bundle.mjs";
+privateTemp("facecheck");   // 2026-10-25: asset folders of every still went to the shared temp and piled up; now private + deleted on exit
+const { openBrowser, renderFrames, renderStill, selectComposition } = await import("@remotion/renderer");
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+
+const argv = process.argv.slice(2);
+const id = argv[0];
+const opt = (n, d) => (argv.includes("--" + n) ? argv[argv.indexOf("--" + n) + 1] : d);
+const outDir = opt("out", ".tmp/facecheck");
+const port = Number(opt("port", process.env.FACE_CHECK_PORT ?? "3451"));
+const props = JSON.parse(opt("props", "{}"));
+const SC = 0.75;   // render scale of the stills
+const regionArg = opt("region", "");   // x,y,w,h in COMPOSITION pixels: where the person is shown
+const region = regionArg ? regionArg.split(",").map((v) => Math.round(Number(v) * SC)).join(",") : "";
+const PY = "C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe";
+fs.mkdirSync(outDir, { recursive: true });
+
+const { serveUrl } = await cachedServeUrl(id, { tag: "facecheck" });   // cached code bundle + hard-linked assets (was: the whole public/ copied, 5.4 GB per run)
+const comp = await selectComposition({ serveUrl, id, inputProps: props, port });
+const compHide = await selectComposition({ serveUrl, id, inputProps: { ...props, hideGfx: true }, port });
+const step = Number(opt("step", 15));
+const frames = opt("frames", "") ? opt("frames", "").split(",").map(Number) : Array.from({ length: Math.floor(comp.durationInFrames / step) }, (_, i) => i * step + 3);
+let fails = 0, unknown = 0;
+// speed + disk (2026-10-25: a 2-min reel took >10 min, and every renderStill copied the whole video into its own temp folder — 35 GB for one run):
+// the sampled frames are rendered by ONE renderFrames call per pass (frameRange + everyNthFrame: the video is loaded once, FC_CONC tabs in parallel).
+// An explicit --frames list (a few frames) keeps one still per frame on a shared browser.
+const browser = await openBrowser("chrome", { chromiumOptions: { gl: "angle" } });
+const RT = Number(process.env.RT || 30000), CONC = Number(process.env.FC_CONC || 3);
+const pass = async (c, ip, suffix) => {
+  if (!opt("frames", "")) {
+    await renderFrames({ composition: c, serveUrl, inputProps: ip, imageFormat: "png", scale: SC, frameRange: [frames[0], frames[frames.length - 1]], everyNthFrame: step, outputDir: null,
+      onFrameBuffer: (buf, fr) => fs.writeFileSync(path.join(outDir, `f${fr}_${suffix}.png`), buf), onStart: () => {}, concurrency: CONC, port, puppeteerInstance: browser, chromiumOptions: { gl: "angle" }, timeoutInMilliseconds: RT });
+  } else {
+    for (const fr of frames) await renderStill({ composition: c, serveUrl, port, frame: fr, output: path.join(outDir, `f${fr}_${suffix}.png`), scale: SC, timeoutInMilliseconds: RT, chromiumOptions: { gl: "angle" }, inputProps: ip, puppeteerInstance: browser });
+  }
+};
+await pass(comp, props, "gfx");
+await pass(compHide, { ...props, hideGfx: true }, "clean");
+await browser.close({ silent: true }).catch(() => {});
+const results = frames.map((fr) => {
+  const a = path.join(outDir, `f${fr}_gfx.png`), b = path.join(outDir, `f${fr}_clean.png`);
+  if (!fs.existsSync(a) || !fs.existsSync(b)) return { fr, a, j: { ok: null, note: "frame not rendered" } };
+  const r = spawnSync(PY, [path.resolve("tools/face_check.py"), a, b, ...(region ? ["--region", region] : [])], { encoding: "utf8" });
+  let j; try { j = JSON.parse(r.stdout.trim().split("\n").pop()); } catch { j = { ok: null, note: "checker error: " + (r.stderr || "").slice(-200) }; }
+  return { fr, a, j };
+});
+for (const { fr, a, j } of results) {
+  if (j.ok === false) fails++; else if (j.ok === null) unknown++;
+  console.log(`frame ${fr} (${(fr / comp.fps).toFixed(1)}s): ${j.ok === true ? "ok" : j.ok === false ? "FAIL overlap " + (j.overlap * 100).toFixed(1) + "% → " + a : "? " + j.note}`);
+}
+// separate outcomes (review 2026-10-22): FAIL (graphics over a face) = exit 1; UNVERIFIED (no face found in some sampled frames) = exit 3 unless --reviewed (you looked at those frames by eye); else PASS = exit 0.
+const reviewed = argv.includes("--reviewed");
+if (fails) console.log(`
+FAILED: ${fails} frame(s) have graphics over the face/hair — move them and re-run. (Before moving anything compare the clean/gfx stills by eye: a video frame that differs between the two renders can give a false alarm.)`);
+else if (unknown && !reviewed) console.log(`
+UNVERIFIED: ${unknown} of ${frames.length} sampled frames had no detectable face, so nothing was proven for them. Look at those frames by eye (${outDir}), then re-run with --reviewed to accept. (Frames with no person on screen are fine once you have looked.)`);
+else console.log(`
+PASSED (${frames.length - unknown} frames verified${unknown ? `, ${unknown} without a face accepted after your review` : ""})`);
+process.exit(fails ? 1 : unknown && !reviewed ? 3 : 0);

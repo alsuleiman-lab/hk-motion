@@ -1,0 +1,6 @@
+[
+ { "id": "Kashf-Hadith-Cover", "bg": "cov/ms_marinid.jpg", "book": "none", "palette": "BLUE", "at": "2026-10-19T00:00:00.000Z" },
+ { "id": "As-Cover-P", "bg": "cov/ms_marinid.jpg", "book": "as/flag_sy.png", "palette": "BLUE", "at": "2026-10-21T00:00:00.000Z" },
+ { "id": "Nm-Cover-P", "bg": "cov/ms_marinid.jpg", "book": "nm/cov_ant.png", "palette": "BLUE", "at": "2026-10-22T00:00:00.000Z" },
+ { "id": "Tb-Cover-P", "bg": "cov/ms_marinid.jpg", "book": "tb/cov_tv.png", "palette": "BLUE", "at": "2026-10-22T12:00:00.000Z" }
+]

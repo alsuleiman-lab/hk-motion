@@ -1,0 +1,31 @@
+{
+  "name": "example",
+  "title": "عنوان الفيديو",
+  "fps": 30,
+  "durationSec": 60,
+  "reaction": {
+    "src": "silent/example/reaction.mp4",
+    "proxy": "silent/example/reaction_proxy.mp4",
+    "w": 1920, "h": 1080,
+    "offset": 0,
+    "crop": { "portrait": { "x": 560, "y": 0, "w": 800, "h": 1080 }, "landscape": { "x": 660, "y": 0, "w": 600, "h": 1080 } }
+  },
+  "source": {
+    "src": "silent/example/source.mp4",
+    "proxy": "silent/example/source_proxy.mp4",
+    "w": 1920, "h": 1080,
+    "crop": { "x": 0, "y": 0, "w": 1920, "h": 1080 },
+    "startSec": 0
+  },
+  "cover": "silent/example/cover.jpg",
+  "theme": { "bgA": "#24456e", "bgB": "#6b4630", "accent": "#e8ae2c" },
+  "captions": [ { "at": 3.2, "dur": 4, "text": "يقول إن الأمر كذا" } ],
+  "keywords": [ { "at": 6, "dur": 2.5, "text": "تناقض", "pos": "top" } ],
+  "facts": [ { "at": 12, "dur": 4, "label": "التاريخ", "value": "2020" } ],
+  "highlights": [ { "at": 8, "dur": 3, "box": { "x": 0.1, "y": 0.6, "w": 0.5, "h": 0.15 } } ],
+  "punches": [ { "at": 20, "dur": 3, "scale": 1.25, "cx": 0.5, "cy": 0.4 } ],
+  "reactionZoom": [],
+  "ambient": { "period": 2, "amount": 1 },
+  "voiceover": { "src": "silent/example/voice.mp3", "durationSec": 20, "lines": [ { "at": 1, "dur": 3, "text": "رأيي في الموضوع", "kind": "line" }, { "at": 5, "dur": 2.5, "text": "تناقض", "kind": "keyword" }, { "at": 9, "dur": 3.5, "text": "2020", "label": "التاريخ", "kind": "fact" } ]
+  }
+}

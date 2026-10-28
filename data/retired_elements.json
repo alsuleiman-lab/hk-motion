@@ -1,0 +1,7 @@
+{
+  "_": "Elements the user cancelled in the gallery (2026-10-24 … 2026-10-28). Their code is DELETED; tools/rules_audit.mjs fails if any name returns to src/ or tools/ (the exceptions are listed in `allowedIn`). Never re-add one: pick the approved element in the gallery instead.",
+  "components": ["SpaceCards", "BeforeAfter", "BigWordPop", "LightLeak", "NeonWord", "Sticker", "NumberList", "CreditLine", "Polaroid", "PersonCard", "CropCard", "ScholarPolaroid", "NoCircle", "HandCircle", "TopicBg", "CollageBg", "ColorWash"],
+  "itemTypes": ["neon", "person"],
+  "specFields": ["iso", "hookEnd", "hookBg", "collage"],
+  "allowedIn": ["tools/gen_quickref.mjs", "data/retired_elements.json", "tools/rules_audit.mjs", "tools/spec_validate.mjs"]
+}

@@ -1,0 +1,117 @@
+{
+  "id": "Spec-Demo",
+  "title": "عرض قالب المونتاج من بيانات",
+  "frames": 600,
+  "cut": "kit_sample_sheikh.mp4",
+  "zooms": [
+    {
+      "from": 5,
+      "to": 7
+    }
+  ],
+  "items": [
+    {
+      "t": "word",
+      "text": "كل عنصر يُكتب مرة واحدة",
+      "at": 0.5,
+      "until": 1.9,
+      "x": 540,
+      "y": 1450,
+      "size": 50
+    },
+    {
+      "t": "word",
+      "text": "والمونتاج ملف بيانات",
+      "at": 1.8,
+      "until": 3,
+      "x": 540,
+      "y": 1560,
+      "size": 46,
+      "tone": "cream"
+    },
+    {
+      "t": "pic",
+      "src": "collage/tv.png",
+      "at": 3,
+      "until": 7.5,
+      "x": 40,
+      "y": 1380,
+      "w": 360,
+      "h": 300
+    },
+    {
+      "t": "blur",
+      "text": "عدّل مرة فيتعدل الكل",
+      "at": 4.5,
+      "until": 7.8,
+      "y": 1720,
+      "accentWords": [
+        1
+      ]
+    },
+    {
+      "t": "rows",
+      "from": 8,
+      "to": 12,
+      "title": {
+        "at": 8,
+        "text": "ملف واحد للاتجاهين"
+      },
+      "rows": [
+        {
+          "at": 8.6,
+          "label": "العرضي والطولي",
+          "sub": "من الملف نفسه",
+          "icon": "Quote"
+        },
+        {
+          "at": 9.8,
+          "label": "عدّل مرة",
+          "sub": "فيتعدل الكل",
+          "icon": "Quote"
+        }
+      ]
+    },
+    {
+      "t": "scholar",
+      "src": "cov/zayed.png",
+      "name": "مثال لعالِم",
+      "sub": "رحمه الله",
+      "at": 13,
+      "until": 18,
+      "x": 600,
+      "y": 1360,
+      "pos": "50% 10%"
+    },
+    {
+      "t": "credit",
+      "text": "مثال: data/specs/demo.json"
+    },
+    {
+      "t": "cover",
+      "style": "pro",
+      "pro": {
+        "layout": "duel",
+        "bg": "cov/ms_marinid.jpg",
+        "words": {
+          "main": "المونتاج",
+          "accent": "بيانات"
+        },
+        "sheikh": {
+          "src": "cov/sheikh_t268.png",
+          "headX": 907,
+          "headTop": 131,
+          "headW": 218,
+          "srcW": 1920
+        },
+        "opp": {
+          "src": "cov/zayed.png",
+          "headX": 811,
+          "headTop": 88,
+          "headW": 207,
+          "srcW": 1100
+        }
+      }
+    }
+  ]
+}

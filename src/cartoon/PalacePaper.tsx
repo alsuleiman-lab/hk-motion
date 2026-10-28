@@ -10,7 +10,7 @@ export type PaperRole = 'king' | 'poet' | 'minister';
 export type Pose = 'rest' | 'praise' | 'order' | 'joy' | 'ask' | 'deny' | 'complain' | 'explain' | 'yes';
 const line = (p: Point) => p.join(',');
 const mix = (a:number,b:number,p:number) => a+(b-a)*p;
-const handAngle = (elbow:Point,wrist:Point) => {
+export const handAngle = (elbow:Point,wrist:Point) => {
   const dx=wrist[0]-elbow[0],dy=wrist[1]-elbow[1];
   return Math.atan2(dx,-dy)*180/Math.PI;
 };
@@ -117,15 +117,15 @@ const Hand: React.FC<{at:Point;angle?:number;open?:boolean}> = ({at,angle=0,open
 </g>;
 
 /** The contacting palm is painted in front of a held foreground prop. */
-export const ContactPalm:React.FC<{x:number;y:number;scale:number;at:Point;flip?:boolean}> = ({x,y,scale,at,flip=true}) => <g transform={`translate(${x} ${y}) scale(${flip?-scale:scale} ${scale})`}><Hand at={at} angle={35}/></g>;
+export const ContactPalm:React.FC<{x:number;y:number;scale:number;at:Point;angle:number;flip?:boolean}> = ({x,y,scale,at,angle,flip=true}) => <g transform={`translate(${x} ${y}) scale(${flip?-scale:scale} ${scale})`}><Hand at={at} angle={angle}/></g>;
 
 const Sleeve: React.FC<{a:Point;b:Point;c:Point;fill:string;near?:boolean}> = ({a,b,c,fill,near=false}) => {
   const dx=c[0]-b[0],dy=c[1]-b[1],len=Math.hypot(dx,dy)||1;
   const nx=-dy/len*23,ny=dx/len*23;
   return <g strokeLinejoin="round">
-    <path d={`M${line(a)}L${line(b)}L${line(c)}`} fill="none" stroke={B.ink} strokeWidth={near?64:59} strokeLinecap="round"/>
-    <path d={`M${line(a)}L${line(b)}L${line(c)}`} fill="none" stroke={fill} strokeWidth={near?59:54} strokeLinecap="round"/>
-    <path d={`M${a[0]-9},${a[1]+1}L${b[0]-9},${b[1]-4}L${c[0]-9},${c[1]-5}`} fill="none" stroke={B.paper} strokeWidth="5" opacity=".18" strokeLinecap="round"/>
+    <path d={`M${line(a)}Q${line(b)} ${line(c)}`} fill="none" stroke={B.ink} strokeWidth={near?64:59} strokeLinecap="round"/>
+    <path d={`M${line(a)}Q${line(b)} ${line(c)}`} fill="none" stroke={fill} strokeWidth={near?59:54} strokeLinecap="round"/>
+    <path d={`M${a[0]-9},${a[1]+1}Q${b[0]-9},${b[1]-4} ${c[0]-9},${c[1]-5}`} fill="none" stroke={B.paper} strokeWidth="5" opacity=".18" strokeLinecap="round"/>
     <path d={`M${c[0]-nx*.72},${c[1]-ny*.72}L${c[0]+nx*.72},${c[1]+ny*.72}`} stroke={B.woodDeep} strokeWidth="6" opacity=".82" strokeLinecap="round"/>
   </g>;
 };
@@ -141,7 +141,7 @@ export const PaperActor: React.FC<{
   const lean=pose==='complain'?-4*p:pose==='explain'?-2*p:pose==='praise'?-6*p:pose==='order'?4*p:0;
   const restR:Point=[112,-235],restL:Point=[-112,-235];
   let endR:Point=restR,endL:Point=restL;
-  if(pose==='order')endR=[178,-337];
+  if(pose==='order')endR=[280,-410];
   if(pose==='praise'){endR=[140,-365];endL=[-105,-315];}
   if(pose==='joy'){endR=[126,-258];endL=[-158,-309];}
   if(pose==='ask'){endR=[166,-310];endL=[-116,-237];}

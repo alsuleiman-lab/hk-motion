@@ -1,6 +1,6 @@
 import React from "react";
-import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
-import { NewsTearOpen, PaperStrip } from "./NewsPaperCover";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { NewsTearOpen, Newsprint, PaperStrip } from "./NewsPaperCover";
 import { Backdrop, Book, BLUE, BROWN, Cut, Headline, STEEL, Tag } from "./CoverTry4";
 import type { P } from "./CoverTry4";
 import { Gfx } from "./MG";
@@ -91,46 +91,37 @@ export const KitP4: React.FC = () => <CoverKit format="portrait" palette={STEEL}
 /**
  * PaperCoverKit — the DEFAULT cover of data-spec montages (user 2026-10-27; approved proposal 2026-10-25_badawi_newspaper-cover-curl):
  * the same CoverProps layout on plain NEWSPRINT paper (texture only, no printed text), line1 on a torn PaperStrip in dark ink, line2 on a dark ink strip.
- * Frames 0–2 = the still cover; from frame 3 every element flies fully out of frame in stop-motion (3-frame holds, no fades) while NewsTearOpen
- * tears the sheet into strips — the strip over the Sheikh's face leaves first. Renders nothing from frame PAPER_COVER_END on.
+ * Frames 0–2 = the still cover; from frame 3 the whole cover — paper, cut-outs and headline together — rips in two along a ragged edge and the halves
+ * pull away over his recording (NewsTearOpen → PaperTear, user 2026-10-28). Renders nothing from frame PAPER_COVER_END on.
+ * `tearOrder` belonged to the old strip tear and is ignored.
  */
 export const PAPER_COVER_END = 51;
-export const PaperCoverKit: React.FC<CoverProps & { tearOrder?: number[] }> = ({ format, palette = STEEL, line1, line2, sheikh = "cov/sheikh_t268.png", opp = "cov/zayed.png", sheikhClip, book, bookPos, sheikhPos, oppPos, oppClip, bookBox, headBottom, headSize, headlinePos, tearOrder }) => {
+export const PaperCoverKit: React.FC<CoverProps & { tearOrder?: number[] }> = ({ format, palette = STEEL, line1, line2, sheikh = "cov/sheikh_t268.png", opp = "cov/zayed.png", sheikhClip, book, bookPos, sheikhPos, oppPos, oppClip, bookBox, headBottom, headSize, headlinePos }) => {
   const frame = useCurrentFrame();
   const portrait = format === "portrait";
   const g = portrait ? Pt : L;
   const W = portrait ? 1080 : 1920, H = portrait ? 1920 : 1080;
-  const fq = Math.floor(frame / 3) * 3; // stop-motion clock
-  if (fq >= PAPER_COVER_END) return null;
-  // element exit: starts at `at`, flies (dx,dy)·2.6 so it leaves the frame completely; no opacity change
-  const ex = (at: number, dx: number, dy: number, spin: number): React.CSSProperties => {
-    const u = interpolate(fq, [at, at + 24], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.in(Easing.cubic) });
-    return { transform: `translate(${dx * 2.6 * u}px, ${dy * 2.6 * u}px) rotate(${spin * u}deg)` };
-  };
+  if (frame >= PAPER_COVER_END) return null;
   const sp = sheikhPos ?? g.sheikh;
-  // the strips over his face tear first: portrait = horizontal bands, his face in the recording and in the cut-out lies in bands 1–2;
-  // landscape = vertical bands, the cut-out face (centre-x of the cut-out) first, then outward
-  const n = 5;
-  const fs = Math.max(0, Math.min(n - 1, Math.floor((sp.left + sp.w * 0.5) / (W / n))));
-  const order = tearOrder ?? (portrait ? [1, 2, 0, 3, 4] : Array.from({ length: n }, (_, i) => i).sort((a, b) => Math.abs(a - fs) - Math.abs(b - fs) || a - b));
   const bb = bookBox ?? g.book;
   const s1 = Math.min(headSize?.s1 ?? 130, Math.floor((portrait ? 900 : 1300) / (line1.length * 0.5)));
   const s2 = headSize?.s2 ?? (portrait ? 70 : 64);
   const stripW = Math.min(portrait ? 1040 : 1400, Math.round(line1.length * s1 * 0.62 + 160));
   const ink: P = { ...palette, rim: "rgba(60,45,20,.35)", oppRim: "rgba(60,45,20,.35)", border: "#f4efe2", glow2: "rgba(60,45,20,.25)" };
-  return (
-    <AbsoluteFill style={{ pointerEvents: "none" }}>
-      <NewsTearOpen w={W} h={H} order={order} />
-      {book ? <Gfx><div style={{ position: "absolute", inset: 0, ...ex(3, portrait ? 0 : -700, portrait ? -900 : -500, -10) }}><Book p={ink} {...bb} src={book} pos={bookPos} /></div></Gfx> : null}
-      {opp && !portrait ? <Gfx><div style={{ position: "absolute", inset: 0, ...ex(6, -900, 200, -8) }}><Cut p={ink} src={opp} {...(oppPos ?? g.opp)} rim={ink.oppRim} clip={oppClip ?? "inset(0 0 0 9%)"} mask /></div></Gfx> : null}
-      <div style={{ position: "absolute", inset: 0, ...ex(9, portrait ? 1100 : 1000, 120, 8) }}><Cut p={ink} src={sheikh} {...sp} rim={ink.rim} clip={sheikhClip} /></div>
-      {opp && portrait ? <Gfx><div style={{ position: "absolute", inset: 0, ...ex(6, -1100, 200, -8) }}><Cut p={ink} src={opp} {...(oppPos ?? g.opp)} rim={ink.oppRim} clip={oppClip ?? "inset(0 0 0 9%)"} mask /></div></Gfx> : null}
+  const sheet = (
+    <AbsoluteFill>
+      <Newsprint w={W} h={H} />
+      {book ? <Gfx><Book p={ink} {...bb} src={book} pos={bookPos} /></Gfx> : null}
+      {opp && !portrait ? <Gfx><Cut p={ink} src={opp} {...(oppPos ?? g.opp)} rim={ink.oppRim} clip={oppClip ?? "inset(0 0 0 9%)"} mask /></Gfx> : null}
+      <Cut p={ink} src={sheikh} {...sp} rim={ink.rim} clip={sheikhClip} />
+      {opp && portrait ? <Gfx><Cut p={ink} src={opp} {...(oppPos ?? g.opp)} rim={ink.oppRim} clip={oppClip ?? "inset(0 0 0 9%)"} mask /></Gfx> : null}
       {/* no name tags under pictures (rule «عبارات الغلاف وتوقيعه»): `oppName` is ignored here; the signature sits bottom-left */}
-      <Gfx><div style={{ position: "absolute", left: portrait ? 36 : 40, bottom: portrait ? 22 : 18, direction: "rtl", fontFamily: "Almarai", fontWeight: 800, fontSize: 30, color: "#3a3226", ...ex(3, -600, 300, -6) }}>محمد بن شمس الدين</div></Gfx>
+      <Gfx><div style={{ position: "absolute", left: portrait ? 36 : 40, bottom: portrait ? 22 : 18, direction: "rtl", fontFamily: "Almarai", fontWeight: 800, fontSize: 30, color: "#3a3226" }}>محمد بن شمس الدين</div></Gfx>
       <Gfx><div style={{ position: "absolute", left: 0, right: 0, bottom: headBottom ?? (portrait ? 78 : 66), display: "flex", flexDirection: "column", alignItems: "center", ...headlinePos }}>
-        <div style={{ position: "relative", width: stripW, height: Math.round(s1 * 1.45), ...ex(6, portrait ? -1300 : -1500, 0, -5) }}><PaperStrip w={stripW} h={Math.round(s1 * 1.45)} text={line1} size={s1} style={{ left: 0, top: 0, transform: "rotate(-1.2deg)" }} /></div>
-        <div style={{ marginTop: -14, direction: "rtl", whiteSpace: "nowrap", fontFamily: "Almarai", fontWeight: 800, fontSize: s2, color: "#f4efe2", background: "#2c2418", padding: "4px 44px 12px", transform: "rotate(.8deg)", boxShadow: "0 12px 22px rgba(40,30,10,.45)", ...ex(9, portrait ? 1300 : 1500, 300, 7) }}>{line2}</div>
+        <div style={{ position: "relative", width: stripW, height: Math.round(s1 * 1.45) }}><PaperStrip w={stripW} h={Math.round(s1 * 1.45)} text={line1} size={s1} style={{ left: 0, top: 0, transform: "rotate(-1.2deg)" }} /></div>
+        <div style={{ marginTop: -14, direction: "rtl", whiteSpace: "nowrap", fontFamily: "Almarai", fontWeight: 800, fontSize: s2, color: "#f4efe2", background: "#2c2418", padding: "4px 44px 12px", transform: "rotate(.8deg)", boxShadow: "0 12px 22px rgba(40,30,10,.45)" }}>{line2}</div>
       </div></Gfx>
     </AbsoluteFill>
   );
+  return <NewsTearOpen w={W} h={H} to={PAPER_COVER_END} sheet={sheet} />;
 };

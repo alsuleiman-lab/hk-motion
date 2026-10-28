@@ -1,0 +1,877 @@
+[
+  {
+    "text": "قالوا",
+    "startMs": 0,
+    "endMs": 340,
+    "timestampMs": 170,
+    "confidence": null
+  },
+  {
+    "text": "إن",
+    "startMs": 340,
+    "endMs": 420,
+    "timestampMs": 380,
+    "confidence": null
+  },
+  {
+    "text": "شاعرا",
+    "startMs": 420,
+    "endMs": 920,
+    "timestampMs": 670,
+    "confidence": null
+  },
+  {
+    "text": "أتى",
+    "startMs": 920,
+    "endMs": 1333,
+    "timestampMs": 1127,
+    "confidence": null
+  },
+  {
+    "text": "ملكا",
+    "startMs": 1613,
+    "endMs": 2033,
+    "timestampMs": 1823,
+    "confidence": null
+  },
+  {
+    "text": "من",
+    "startMs": 2033,
+    "endMs": 2133,
+    "timestampMs": 2083,
+    "confidence": null
+  },
+  {
+    "text": "الملوك",
+    "startMs": 2133,
+    "endMs": 2573,
+    "timestampMs": 2353,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "فمدحه",
+    "startMs": 2573,
+    "endMs": 3173,
+    "timestampMs": 2873,
+    "confidence": null
+  },
+  {
+    "text": "بمدح",
+    "startMs": 3173,
+    "endMs": 3793,
+    "timestampMs": 3483,
+    "confidence": null
+  },
+  {
+    "text": "فقال له",
+    "startMs": 3793,
+    "endMs": 4633,
+    "timestampMs": 4213,
+    "confidence": null
+  },
+  {
+    "text": "الملك",
+    "startMs": 4633,
+    "endMs": 5533,
+    "timestampMs": 5083,
+    "confidence": null
+  },
+  {
+    "text": "قال",
+    "startMs": 5533,
+    "endMs": 5793,
+    "timestampMs": 5663,
+    "confidence": null
+  },
+  {
+    "text": "لوزيره",
+    "startMs": 5793,
+    "endMs": 6453,
+    "timestampMs": 6123,
+    "confidence": null
+  },
+  {
+    "text": "أعطوه",
+    "startMs": 6453,
+    "endMs": 6893,
+    "timestampMs": 6673,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "عشرة",
+    "startMs": 6893,
+    "endMs": 7373,
+    "timestampMs": 7133,
+    "confidence": null
+  },
+  {
+    "text": "آلاف",
+    "startMs": 7373,
+    "endMs": 7953,
+    "timestampMs": 7663,
+    "confidence": null
+  },
+  {
+    "text": "شاعر",
+    "startMs": 8267,
+    "endMs": 8607,
+    "timestampMs": 8437,
+    "confidence": null
+  },
+  {
+    "text": "ما",
+    "startMs": 8607,
+    "endMs": 8727,
+    "timestampMs": 8667,
+    "confidence": null
+  },
+  {
+    "text": "كان",
+    "startMs": 8727,
+    "endMs": 8867,
+    "timestampMs": 8797,
+    "confidence": null
+  },
+  {
+    "text": "يظن",
+    "startMs": 8867,
+    "endMs": 9267,
+    "timestampMs": 9067,
+    "confidence": null
+  },
+  {
+    "text": "أن",
+    "startMs": 9267,
+    "endMs": 9527,
+    "timestampMs": 9397,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "هذه",
+    "startMs": 9527,
+    "endMs": 9847,
+    "timestampMs": 9687,
+    "confidence": null
+  },
+  {
+    "text": "القصيدة",
+    "startMs": 9847,
+    "endMs": 10327,
+    "timestampMs": 10087,
+    "confidence": null
+  },
+  {
+    "text": "ستأتيه",
+    "startMs": 10327,
+    "endMs": 10767,
+    "timestampMs": 10547,
+    "confidence": null
+  },
+  {
+    "text": "بعشرة",
+    "startMs": 10767,
+    "endMs": 11287,
+    "timestampMs": 11027,
+    "confidence": null
+  },
+  {
+    "text": "آلاف",
+    "startMs": 11287,
+    "endMs": 11887,
+    "timestampMs": 11587,
+    "confidence": null
+  },
+  {
+    "text": "فلما",
+    "startMs": 11887,
+    "endMs": 12267,
+    "timestampMs": 12077,
+    "confidence": null
+  },
+  {
+    "text": "رأى",
+    "startMs": 12267,
+    "endMs": 12747,
+    "timestampMs": 12507,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "الملك",
+    "startMs": 13167,
+    "endMs": 14267,
+    "timestampMs": 13717,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "فرحه",
+    "startMs": 14727,
+    "endMs": 15227,
+    "timestampMs": 14977,
+    "confidence": null
+  },
+  {
+    "text": "قال",
+    "startMs": 15227,
+    "endMs": 15834,
+    "timestampMs": 15531,
+    "confidence": null
+  },
+  {
+    "text": "أعطوه",
+    "startMs": 15833,
+    "endMs": 16400,
+    "timestampMs": 16116,
+    "confidence": null
+  },
+  {
+    "text": "خمسين",
+    "startMs": 16400,
+    "endMs": 16860,
+    "timestampMs": 16630,
+    "confidence": null
+  },
+  {
+    "text": "ألفا",
+    "startMs": 16860,
+    "endMs": 17260,
+    "timestampMs": 17060,
+    "confidence": null
+  },
+  {
+    "text": "فكاد",
+    "startMs": 17600,
+    "endMs": 18120,
+    "timestampMs": 17860,
+    "confidence": null
+  },
+  {
+    "text": "يجن",
+    "startMs": 18120,
+    "endMs": 18580,
+    "timestampMs": 18350,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "ذاك",
+    "startMs": 18580,
+    "endMs": 18800,
+    "timestampMs": 18690,
+    "confidence": null
+  },
+  {
+    "text": "من",
+    "startMs": 18800,
+    "endMs": 18900,
+    "timestampMs": 18850,
+    "confidence": null
+  },
+  {
+    "text": "الفرح",
+    "startMs": 18900,
+    "endMs": 19340,
+    "timestampMs": 19120,
+    "confidence": null
+  },
+  {
+    "text": "فلما",
+    "startMs": 19600,
+    "endMs": 20253,
+    "timestampMs": 19927,
+    "confidence": null
+  },
+  {
+    "text": "رأى",
+    "startMs": 20253,
+    "endMs": 20593,
+    "timestampMs": 20423,
+    "confidence": null
+  },
+  {
+    "text": "الملك",
+    "startMs": 20593,
+    "endMs": 21413,
+    "timestampMs": 21003,
+    "confidence": null
+  },
+  {
+    "text": "ذاك",
+    "startMs": 21413,
+    "endMs": 21673,
+    "timestampMs": 21543,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "فزاد",
+    "startMs": 21673,
+    "endMs": 22073,
+    "timestampMs": 21873,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "منه",
+    "startMs": 22813,
+    "endMs": 23033,
+    "timestampMs": 22923,
+    "confidence": null
+  },
+  {
+    "text": "الفرح",
+    "startMs": 23033,
+    "endMs": 23373,
+    "timestampMs": 23203,
+    "confidence": null
+  },
+  {
+    "text": "وكل",
+    "startMs": 23373,
+    "endMs": 23593,
+    "timestampMs": 23483,
+    "confidence": null
+  },
+  {
+    "text": "هذا",
+    "startMs": 23593,
+    "endMs": 23713,
+    "timestampMs": 23653,
+    "confidence": null
+  },
+  {
+    "text": "الملك",
+    "startMs": 23713,
+    "endMs": 23973,
+    "timestampMs": 23843,
+    "confidence": null
+  },
+  {
+    "text": "أعطوه",
+    "startMs": 23973,
+    "endMs": 24373,
+    "timestampMs": 24173,
+    "confidence": null
+  },
+  {
+    "text": "مئة",
+    "startMs": 24373,
+    "endMs": 24693,
+    "timestampMs": 24533,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "ألف",
+    "startMs": 24693,
+    "endMs": 25053,
+    "timestampMs": 24873,
+    "confidence": null
+  },
+  {
+    "text": "فذهب",
+    "startMs": 25053,
+    "endMs": 25467,
+    "timestampMs": 25260,
+    "confidence": null
+  },
+  {
+    "text": "للوزير",
+    "startMs": 25640,
+    "endMs": 26060,
+    "timestampMs": 25850,
+    "confidence": null
+  },
+  {
+    "text": "قال",
+    "startMs": 26060,
+    "endMs": 26160,
+    "timestampMs": 26110,
+    "confidence": null
+  },
+  {
+    "text": "أمر",
+    "startMs": 26160,
+    "endMs": 26760,
+    "timestampMs": 26460,
+    "confidence": null
+  },
+  {
+    "text": "للملك",
+    "startMs": 26760,
+    "endMs": 27200,
+    "timestampMs": 26980,
+    "confidence": null
+  },
+  {
+    "text": "قال",
+    "startMs": 27200,
+    "endMs": 27380,
+    "timestampMs": 27290,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "ما",
+    "startMs": 27380,
+    "endMs": 27580,
+    "timestampMs": 27480,
+    "confidence": null
+  },
+  {
+    "text": "الذي",
+    "startMs": 27580,
+    "endMs": 27680,
+    "timestampMs": 27630,
+    "confidence": null
+  },
+  {
+    "text": "أمر",
+    "startMs": 27680,
+    "endMs": 28000,
+    "timestampMs": 27840,
+    "confidence": null
+  },
+  {
+    "text": "للملك",
+    "startMs": 28000,
+    "endMs": 28480,
+    "timestampMs": 28240,
+    "confidence": null
+  },
+  {
+    "text": "قال",
+    "startMs": 28480,
+    "endMs": 28682,
+    "timestampMs": 28581,
+    "confidence": null
+  },
+  {
+    "text": "مئة",
+    "startMs": 28733,
+    "endMs": 29173,
+    "timestampMs": 28953,
+    "confidence": null
+  },
+  {
+    "text": "ألف",
+    "startMs": 29173,
+    "endMs": 29353,
+    "timestampMs": 29263,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "قال",
+    "startMs": 29353,
+    "endMs": 29393,
+    "timestampMs": 29373,
+    "confidence": null
+  },
+  {
+    "text": "ما",
+    "startMs": 29393,
+    "endMs": 29793,
+    "timestampMs": 29593,
+    "confidence": null
+  },
+  {
+    "text": "أعطيك",
+    "startMs": 29793,
+    "endMs": 30213,
+    "timestampMs": 30003,
+    "confidence": null
+  },
+  {
+    "text": "شيئا",
+    "startMs": 30213,
+    "endMs": 30513,
+    "timestampMs": 30363,
+    "confidence": null
+  },
+  {
+    "text": "فرجع",
+    "startMs": 30513,
+    "endMs": 30893,
+    "timestampMs": 30703,
+    "confidence": null
+  },
+  {
+    "text": "الشاعر",
+    "startMs": 30893,
+    "endMs": 31213,
+    "timestampMs": 31053,
+    "confidence": null
+  },
+  {
+    "text": "الملك",
+    "startMs": 31213,
+    "endMs": 31473,
+    "timestampMs": 31343,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "قال",
+    "startMs": 31473,
+    "endMs": 31713,
+    "timestampMs": 31593,
+    "confidence": null
+  },
+  {
+    "text": "أصلحك",
+    "startMs": 31713,
+    "endMs": 32793,
+    "timestampMs": 32253,
+    "confidence": null
+  },
+  {
+    "text": "الله",
+    "startMs": 32793,
+    "endMs": 32993,
+    "timestampMs": 32893,
+    "confidence": null
+  },
+  {
+    "text": "الوزير",
+    "startMs": 32993,
+    "endMs": 33473,
+    "timestampMs": 33233,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "منعني",
+    "startMs": 34087,
+    "endMs": 34607,
+    "timestampMs": 34347,
+    "confidence": null
+  },
+  {
+    "text": "ما",
+    "startMs": 34607,
+    "endMs": 34727,
+    "timestampMs": 34667,
+    "confidence": null
+  },
+  {
+    "text": "أعطيتني",
+    "startMs": 34727,
+    "endMs": 35227,
+    "timestampMs": 34977,
+    "confidence": null
+  },
+  {
+    "text": "قال",
+    "startMs": 35227,
+    "endMs": 35807,
+    "timestampMs": 35517,
+    "confidence": null
+  },
+  {
+    "text": "ما",
+    "startMs": 35807,
+    "endMs": 35887,
+    "timestampMs": 35847,
+    "confidence": null
+  },
+  {
+    "text": "الذي",
+    "startMs": 35887,
+    "endMs": 35987,
+    "timestampMs": 35937,
+    "confidence": null
+  },
+  {
+    "text": "أعطيتك",
+    "startMs": 35987,
+    "endMs": 36427,
+    "timestampMs": 36207,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "قال",
+    "startMs": 36427,
+    "endMs": 36707,
+    "timestampMs": 36567,
+    "confidence": null
+  },
+  {
+    "text": "مئتي",
+    "startMs": 36707,
+    "endMs": 37467,
+    "timestampMs": 37087,
+    "confidence": null
+  },
+  {
+    "text": "ألف",
+    "startMs": 37727,
+    "endMs": 37947,
+    "timestampMs": 37837,
+    "confidence": null
+  },
+  {
+    "text": "قال",
+    "startMs": 37947,
+    "endMs": 38107,
+    "timestampMs": 38027,
+    "confidence": null
+  },
+  {
+    "text": "أو",
+    "startMs": 38107,
+    "endMs": 38327,
+    "timestampMs": 38217,
+    "confidence": null
+  },
+  {
+    "text": "وقع",
+    "startMs": 38327,
+    "endMs": 38747,
+    "timestampMs": 38537,
+    "confidence": null
+  },
+  {
+    "text": "في",
+    "startMs": 38747,
+    "endMs": 38887,
+    "timestampMs": 38817,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "ظنك",
+    "startMs": 38887,
+    "endMs": 39227,
+    "timestampMs": 39057,
+    "confidence": null
+  },
+  {
+    "text": "أني",
+    "startMs": 39227,
+    "endMs": 39487,
+    "timestampMs": 39357,
+    "confidence": null
+  },
+  {
+    "text": "أعطيك",
+    "startMs": 39487,
+    "endMs": 39847,
+    "timestampMs": 39667,
+    "confidence": null
+  },
+  {
+    "text": "مئة",
+    "startMs": 39847,
+    "endMs": 40127,
+    "timestampMs": 39987,
+    "confidence": null
+  },
+  {
+    "text": "ألف",
+    "startMs": 40127,
+    "endMs": 40347,
+    "timestampMs": 40237,
+    "confidence": null
+  },
+  {
+    "text": "حقا",
+    "startMs": 40347,
+    "endMs": 40687,
+    "timestampMs": 40517,
+    "confidence": null
+  },
+  {
+    "text": "قال",
+    "startMs": 40687,
+    "endMs": 41207,
+    "timestampMs": 40947,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "نعم",
+    "startMs": 41207,
+    "endMs": 41587,
+    "timestampMs": 41397,
+    "confidence": null
+  },
+  {
+    "text": "قال",
+    "startMs": 41587,
+    "endMs": 41947,
+    "timestampMs": 41767,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "أنت",
+    "startMs": 42777,
+    "endMs": 42977,
+    "timestampMs": 42877,
+    "confidence": null
+  },
+  {
+    "text": "عندما",
+    "startMs": 42977,
+    "endMs": 43397,
+    "timestampMs": 43187,
+    "confidence": null
+  },
+  {
+    "text": "كنت",
+    "startMs": 43397,
+    "endMs": 43597,
+    "timestampMs": 43497,
+    "confidence": null
+  },
+  {
+    "text": "تقول",
+    "startMs": 43597,
+    "endMs": 44117,
+    "timestampMs": 43857,
+    "confidence": null
+  },
+  {
+    "text": "أنا",
+    "startMs": 44117,
+    "endMs": 44257,
+    "timestampMs": 44187,
+    "confidence": null
+  },
+  {
+    "text": "قمر",
+    "startMs": 44257,
+    "endMs": 44797,
+    "timestampMs": 44527,
+    "confidence": null
+  },
+  {
+    "text": "أنا",
+    "startMs": 44797,
+    "endMs": 45017,
+    "timestampMs": 44907,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "بحر",
+    "startMs": 45017,
+    "endMs": 45657,
+    "timestampMs": 45337,
+    "confidence": null
+  },
+  {
+    "text": "أنا",
+    "startMs": 45657,
+    "endMs": 45757,
+    "timestampMs": 45707,
+    "confidence": null
+  },
+  {
+    "text": "كذا",
+    "startMs": 45757,
+    "endMs": 46157,
+    "timestampMs": 45957,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "فعلا",
+    "startMs": 46703,
+    "endMs": 47143,
+    "timestampMs": 46923,
+    "confidence": null
+  },
+  {
+    "text": "كذلك",
+    "startMs": 47143,
+    "endMs": 47603,
+    "timestampMs": 47373,
+    "confidence": null
+  },
+  {
+    "text": "أدخلت",
+    "startMs": 47966,
+    "endMs": 48367,
+    "timestampMs": 48167,
+    "confidence": null
+  },
+  {
+    "text": "علي",
+    "startMs": 48367,
+    "endMs": 48526,
+    "timestampMs": 48447,
+    "confidence": null
+  },
+  {
+    "text": "الفرحة",
+    "startMs": 48526,
+    "endMs": 48966,
+    "timestampMs": 48746,
+    "confidence": null
+  },
+  {
+    "text": "بالكلام",
+    "startMs": 48966,
+    "endMs": 49407,
+    "timestampMs": 49186,
+    "confidence": null
+  },
+  {
+    "text": "فأنا",
+    "startMs": 49407,
+    "endMs": 49666,
+    "timestampMs": 49537,
+    "confidence": null,
+    "pageBreakAfter": true
+  },
+  {
+    "text": "أردت",
+    "startMs": 49666,
+    "endMs": 49966,
+    "timestampMs": 49816,
+    "confidence": null
+  },
+  {
+    "text": "أن",
+    "startMs": 49966,
+    "endMs": 50087,
+    "timestampMs": 50027,
+    "confidence": null
+  },
+  {
+    "text": "أدخل",
+    "startMs": 50087,
+    "endMs": 50326,
+    "timestampMs": 50207,
+    "confidence": null
+  },
+  {
+    "text": "عليك",
+    "startMs": 50327,
+    "endMs": 50587,
+    "timestampMs": 50457,
+    "confidence": null
+  },
+  {
+    "text": "الفرحة",
+    "startMs": 50587,
+    "endMs": 50926,
+    "timestampMs": 50757,
+    "confidence": null
+  },
+  {
+    "text": "بالكلام",
+    "startMs": 50926,
+    "endMs": 51367,
+    "timestampMs": 51147,
+    "confidence": null,
+    "pageBreakAfter": true
+  }
+]

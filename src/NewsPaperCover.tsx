@@ -1,11 +1,12 @@
 import React from "react";
-import { AbsoluteFill, Easing, interpolate, random, useCurrentFrame } from "remotion";
+import { random } from "remotion";
+import { PaperTear } from "./PaperTear";
 const FONT_TEXT = "Almarai";
 
 /**
  * Newspaper-paper cover pieces (user 2026-10-25, Badawi cover):
  *  - Newsprint: the whole background is aged newsprint paper (texture only, no printed text), drawn in SVG.
- *  - NewsTearOpen: after the 3 still cover frames the sheet is torn into strips that are pulled off one by one, paper-animation stop-motion.
+ *  - NewsTearOpen: after the 3 still cover frames the whole sheet rips in two and the halves pull away (PaperTear).
  *  - PaperStrip: a torn cream paper strip with ink text (replaces the grey newsprint strip behind the key phrase).
  */
 const INK = "#2c2418";
@@ -34,56 +35,13 @@ export const Newsprint: React.FC<{ w: number; h: number; seed?: number }> = ({ w
   </svg>
 );
 
-/** a torn cut line across the sheet: points every 24 px along the long axis, wandering slightly (deterministic) */
-const tearLine = (len: number, base: number, slant: number, seed: string) =>
-  Array.from({ length: Math.ceil(len / 24) + 1 }, (_, i) => { const t = Math.min(len, i * 24); return base + slant * (t / len - 0.5) + (random(`${seed}${i}`) - 0.5) * 16; });
-
 /**
- * Paper-animation opening (user 2026-10-25: «طريقة اللف غير جيدة، أريدها ورق على نمط الأنميشن الورقي»):
- * the newsprint sheet is torn into 5 hand-cut strips; one after another each strip lifts (shadow) and is pulled off the frame
- * in stop-motion (picture holds 3 frames); `order` = which strip leaves first (the one over the speaker's face first, so nothing covers his face), alternating directions with a little tilt — like the cut-outs of our paper montage. Frames before `from` = one whole sheet (thumbnail, no seams).
+ * The cover opening (user 2026-10-28: «استعمل هذا لتمزيق الورق»): after the still cover frames the whole sheet rips in two along a ragged fibrous edge
+ * and the halves pull away over the recording (PaperTear, adapted from Motionstash «Paper Tear Wipe», MIT). `sheet` = what is torn (default plain newsprint;
+ * the covers pass the whole cover); frames before `from` = one whole sheet (thumbnail, no seam). `order` and `n` belonged to the old strip tear and are ignored.
  */
-export const NewsTearOpen: React.FC<{ w: number; h: number; from?: number; to?: number; n?: number; order?: number[]; sheet?: React.ReactNode }> = ({ w, h, from = 3, to = 51, n = 5, order = [2, 0, 4, 1, 3], sheet }) => {
-  // `sheet` = what is torn (default plain newsprint); ThumbPro covers pass the whole cover so the cover itself tears into paper strips
-  const page = sheet ?? <Newsprint w={w} h={h} />;
-  const frame = useCurrentFrame();
-  const fq = Math.floor(frame / 3) * 3; // stop-motion clock
-  if (fq >= to) return null;
-  if (fq < from) return <AbsoluteFill style={{ pointerEvents: "none" }}>{page}</AbsoluteFill>;
-  const land = w >= h;
-  const L = land ? h : w;          // length of each cut line
-  const span = land ? w : h;       // the strips are laid across this axis
-  const lines = Array.from({ length: n + 1 }, (_, i) => (i === 0 ? null : i === n ? null : tearLine(L, (span * i) / n, (random(`s${i}`) - 0.5) * span * 0.12, `c${i}`)));
-  const pt = (along: number, across: number) => (land ? `${across}px ${along}px` : `${along}px ${across}px`);
-  const stagger = Math.round((to - from) * 0.11);
-  const dur = to - from - stagger * (n - 1);
-  return (
-    <AbsoluteFill style={{ pointerEvents: "none" }}>
-      {Array.from({ length: n }, (_, i) => {
-        const k = order.indexOf(i) >= 0 ? order.indexOf(i) : i;
-        const t0 = from + k * stagger;
-        const u = interpolate(fq, [t0, t0 + dur], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.in(Easing.cubic) });
-        if (u >= 1) return null;
-        const lift = interpolate(fq, [t0, t0 + 6], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-        const A = lines[i], B = lines[i + 1];
-        const pts: string[] = [];
-        const steps = Math.ceil(L / 24) + 1;
-        for (let j = 0; j < steps; j++) pts.push(pt(Math.min(L, j * 24), A ? A[j] : -40));
-        for (let j = steps - 1; j >= 0; j--) pts.push(pt(Math.min(L, j * 24), B ? B[j] + 3 : span + 40));
-        const dir = i % 2 === 0 ? -1 : 1;                       // alternate: up/down (landscape) or left/right (portrait)
-        const out = (L + 300) * u * dir;
-        const drift = ((i - (n - 1) / 2) / n) * 260 * u;          // slight fan outward
-        const rot = dir * (2 + 14 * u) * (i % 3 === 1 ? -1 : 1) + (random(`j${i}${fq}`) - 0.5) * 1.4 * lift;
-        const tx = land ? drift : out, ty = land ? out : drift;
-        return (
-          <div key={i} style={{ position: "absolute", inset: 0, transform: `translate3d(${tx}px,${ty}px,0) rotate(${rot}deg) scale(${1 + 0.025 * lift})`, filter: `drop-shadow(0 ${4 + 14 * lift}px ${6 + 12 * lift}px rgba(25,20,10,${0.25 + 0.3 * lift}))` }}>
-            <div style={{ position: "absolute", inset: 0, clipPath: `polygon(${pts.join(",")})` }}>{page}</div>
-          </div>
-        );
-      })}
-    </AbsoluteFill>
-  );
-};
+export const NewsTearOpen: React.FC<{ w: number; h: number; from?: number; to?: number; n?: number; order?: number[]; sheet?: React.ReactNode }> = ({ w, h, from = 3, to = 51, sheet }) =>
+  <PaperTear from={from} to={to} sheet={sheet ?? <Newsprint w={w} h={h} />} />;
 
 /** torn cream paper strip with dark ink text (the key phrase sits on paper, not on a grey print strip) */
 export const PaperStrip: React.FC<{ w: number; h: number; text: string; size: number; textW?: number; style?: React.CSSProperties }> = ({ w, h, text, size, textW, style }) => {

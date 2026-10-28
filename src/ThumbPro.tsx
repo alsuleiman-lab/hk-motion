@@ -141,7 +141,7 @@ export const ThumbWordP: React.FC = () => <ThumbPro format="portrait" layout="wo
 /**
  * ThumbPro + paper animation (user 2026-10-28: «اعتمدها كخيار مع الورقية، ادمجها مع الورقية»):
  * frames 0–2 = the ThumbPro cover (the thumbnail); from frame 3 the cover itself is torn into paper strips that are pulled off
- * in stop-motion (NewsTearOpen, 3-frame holds, no fades), the strips over the faces first, revealing the video. Nothing from THUMBPRO_END on.
+ * by NewsTearOpen (the whole cover rips in two and the halves pull away), revealing the video. Nothing from THUMBPRO_END on.
  */
 export const THUMBPRO_END = 51;
 export const ThumbProOpen: React.FC<ThumbProps & { tearOrder?: number[] }> = ({ tearOrder, ...p }) => {

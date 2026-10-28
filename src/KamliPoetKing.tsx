@@ -2,14 +2,15 @@ import React from 'react';
 import { AbsoluteFill, Audio, Img, staticFile, useCurrentFrame } from 'remotion';
 import { CARTOON_PALETTE as B } from './cartoon/palette';
 import { FONT_TITLE } from './localFonts';
-import {CartoonGfx as Gfx, AmountCard, CartoonWord} from './cartoon/StoryCards';
-import { PaperActor, PaperDefs, PalaceSet, Throne, LedgerDesk, OfficeChair, ContactPalm, smooth, unit, type Pose, type PaperRole } from './cartoon/PalacePaper';
+import {CartoonGfx as Gfx, AmountCard} from './cartoon/StoryCards';
+import { CartoonCaptions } from './cartoon/CartoonCaptions';
+import { PaperActor, PaperDefs, PalaceSet, Throne, LedgerDesk, OfficeChair, ContactPalm, elbow, handAngle, smooth, unit, type Point, type Pose, type PaperRole } from './cartoon/PalacePaper';
 import plan from '../data/cartoon/kamli_poet_king_storyboard.json';
 import words from '../data/cartoon/kamli_poet_king_words.json';
 
 export const KAMLI_FRAMES = 1569;
-const TITLE='طرفة الشاعر والملك - سعيد الكملي';
 const DIR='kamli_poet_king/';
+const contactAngle=(wrist:Point)=>handAngle(elbow([-75,-431],wrist,104,112,1),wrist);
 
 // One restrained hand accent at spaced phrase onsets; never a per-syllable twitch.
 export function voicePulse(t:number, from:number, to:number):number {
@@ -59,17 +60,17 @@ const Shot:React.FC<{index:number;t:number}> = ({index,t}) => {
     }
     case 10:{
       const hand:[number,number]=[(800-875)/1.05,(1143-1500)/1.05];
-      people=<><OfficeChair x={800} y={1500} scale={1.05}/>{actor('minister',800,1500,1.05,'rest',{flip:true,seated:true,leftHand:hand})}{actor('poet',310,1700,1.37,'ask')}<LedgerDesk/><ContactPalm x={800} y={1500} scale={1.05} at={hand}/></>;break;
+      people=<><OfficeChair x={800} y={1500} scale={1.05}/>{actor('minister',800,1500,1.05,'rest',{flip:true,seated:true,leftHand:hand})}{actor('poet',310,1700,1.37,'ask')}<LedgerDesk/><ContactPalm x={800} y={1500} scale={1.05} at={hand} angle={contactAngle(hand)}/></>;break;
     }
     case 11:{
       const hand:[number,number]=[(745-875)/1.47,(1143-1535)/1.47];
-      people=<><OfficeChair x={745} y={1535} scale={1.47}/>{actor('minister',745,1535,1.47,'ask',{flip:true,seated:true,leftHand:hand})}<LedgerDesk/><ContactPalm x={745} y={1535} scale={1.47} at={hand}/></>;break;
+      people=<><OfficeChair x={745} y={1535} scale={1.47}/>{actor('minister',745,1535,1.47,'ask',{flip:true,seated:true,leftHand:hand})}<LedgerDesk/><ContactPalm x={745} y={1535} scale={1.47} at={hand} angle={contactAngle(hand)}/></>;break;
     }
     case 12:people=<>{actor('poet',385,1690,1.55,'explain')}<LedgerDesk/></>;break;
     case 13:{
       const close=smooth(local/.6), angle=close*Math.PI;
       const hand:[number,number]=[(745-(765+110*Math.cos(angle)))/1.47,((1143-60*Math.sin(angle))-1535)/1.47];
-      people=<><OfficeChair x={745} y={1535} scale={1.47}/>{actor('minister',745,1535,1.47,'deny',{flip:true,seated:true,leftHand:hand})}<LedgerDesk closed={close}/><ContactPalm x={745} y={1535} scale={1.47} at={hand}/></>;break;
+      people=<><OfficeChair x={745} y={1535} scale={1.47}/>{actor('minister',745,1535,1.47,'deny',{flip:true,seated:true,leftHand:hand})}<LedgerDesk closed={close}/><ContactPalm x={745} y={1535} scale={1.47} at={hand} angle={contactAngle(hand)}/></>;break;
     }
     case 14: {
       const u=smooth(local/duration), x=820-480*u;
@@ -129,11 +130,9 @@ export const KamliPoetKing:React.FC = () => {
       <AmountCard at={6.893} until={8.267} amount="١٠٬٠٠٠"/>
       <AmountCard at={16.4} until={17.6} amount="٥٠٬٠٠٠"/>
       <AmountCard at={24.373} until={25.053} amount="١٠٠٬٠٠٠"/>
-      <CartoonWord from={41.207} to={41.95} y={1460}>نعم</CartoonWord>
-      <CartoonWord from={48.966} to={49.407}>بالكلام</CartoonWord>
-      <CartoonWord from={50.926} to={52.273333}>بالكلام</CartoonWord>
       <Opening f={f}/>
       {f<53&&<div style={{position:'absolute',left:300,top:1430-1600*smooth((f-3)/35),width:480,padding:'10px 20px 18px',borderRadius:12,background:B.card,color:B.ink,fontFamily:FONT_TITLE(),fontSize:52,fontWeight:800,textAlign:'center'}}>سعيد الكملي</div>}
+      <CartoonCaptions />
     </Gfx>
   </AbsoluteFill>;
 };

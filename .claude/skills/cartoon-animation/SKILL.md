@@ -5,6 +5,10 @@ description: Plan, create, and animate story-driven cartoon videos with distinct
 
 # Cartoon animation
 
+## Fixed delivery format
+
+Always make cartoons portrait-only at 9:16. Every visual scene, including opening and ending, must be cartoon artwork: no live footage, source-video inserts, photographic portraits, or B-roll. Original narration, captions, and verified text rendered in code are allowed. Do not ask about portrait/landscape or real-footage options; ask only for a title when it is missing. This cartoon-specific rule overrides shared montage defaults that request photographs of named people.
+
 Create a moving story from the spoken content, not a slideshow of character images. Follow the project's `PREFERENCES.md`, `MONTAGE_BRIEF.md`, and `WORKFLOW_CHECKLIST.md`; those rules override examples here.
 
 ## Cartoon art direction is independent
@@ -38,16 +42,17 @@ Define the scene inventory (locations, background layouts, character designs and
 - Block readable key poses before in-betweens. Stage the important event, then its reaction; give each enough time to be understood within the spoken interval. Use anticipation, curved paths, weight, and staggered settling where they clarify the action.
 - For object handling, plan reach → grip → move → contact → release. While held, attach the prop to the hand's transform; after release, anchor it to the shelf, counter, or other destination. Inspect consecutive frames around contact, not only attractive stills.
 - Drive speaking gestures from the active speaker's voiced word intervals. Other characters must not gesture as if speaking. Mark narrated action cutaways explicitly: the visible actor performs the task while the narrator is off-screen. Pause speech gestures in audio gaps.
+- Make hand acting read as one connected motion: shoulder leads, elbow follows a stable bend, wrist and palm stay aligned with the forearm, then settle into a held pose. Use restrained phrase-level accents, not a hand jerk on every word or syllable. Keep listeners' hands at rest unless their own action calls for movement. Cartoons have no counter, title strip, date, or lecture metadata unless the user explicitly asks for it.
 - Prefer layered cutouts, pose variants, hand/prop rigs, and Remotion frame-based motion. A still illustration is acceptable only as a brief establishing shot or when the narration describes a still object.
 - Keep drawn overlays inside `<Gfx>` and ensure they do not cover faces or other important character details.
 
 ## Character and asset constraints
 
 - Preserve the user's character and environment details.
-- **No eyes rule (user order 2026-10-27):** Never draw eyes on any character or drawn entity. All drawn characters, people, and creatures must have NO eyes (no pupils, no sclera/whites, no eye sockets). Facial expressions are conveyed through head tilt, eyebrows/forehead lines, mouth movement, and body gestures.
+- **No facial features:** All drawn people and creatures stay faceless: no eyes, eyebrows, nose, or mouth. Convey reactions through posture, head angle, and purposeful body/hand acting only.
 - Avoid unrequested characters, logos, labels, and readable text. Required text must be exact and appear at the spoken moment.
 - For a named product, use a checked reference for its silhouette and a real, legible brand asset. Show the product/brand at its own word onset; do not reveal a row of brands before they are named. Check readability at the delivered aspect ratio and mobile size. Never invent a branded label or replace it with generic text when the brand is required.
-- Reveal selected captions word by word from the audio timestamps. Do not show future words or add unrequested quotations, religious texts, facts, or concluding sayings. If the user explicitly requests the cited source text, fetch it from its source, preserve the verified wording, identify it as a source quotation, and display its citation at the reference cue. Do not claim the speaker recited the full displayed quotation or invent a hadith grading.
+- Caption every audible word in every cartoon, word-timed from the actual audio. Prefer a data-driven word-level caption list in a reusable overlay, grouped into short readable phrase pages. Place the Arabic RTL caption bar in the top safe area of the frame, keeping characters and important props unobstructed. Reveal each word only at its spoken onset; do not show future words, and clear captions during silence. Verify the caption text against the audio. Captions do not authorize unrequested quotations, religious texts, facts, or concluding sayings; when a source text is requested, fetch and verify it and label it as a quotation.
 - When the user asks for a rule on a board behind a character, stage the board physically behind the character and keep its writing in the visible empty area. Preserve word timing and avoid duplicating the same rule in a foreground caption.
 - Do not overwrite an existing asset; use a descriptive new filename for a revised pose or background.
 - Before sharing a preview, inspect representative frames from every setting and major action, including the middle of the movement. Confirm characters stay in frame, props reach the right character, and cuts match sentence timing.

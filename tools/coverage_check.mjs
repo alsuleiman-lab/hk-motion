@@ -39,6 +39,7 @@ let fails = 0;
   if ((spec.behind ?? []).length && !spec.matte) errs.push("نوافذ behind بلا matte (node tools/matte_cache.mjs get …)");
   const pal = fs.readFileSync(path.join("src", "brand.ts"), "utf8").match(/BrandName = ([^;]+);/)?.[1] ?? "";
   if (spec.brand && !pal.includes(String.fromCharCode(34) + spec.brand + String.fromCharCode(34))) errs.push(`نمط لوني غير معروف «${spec.brand}» (${pal})`);
+  for (const s of spec.splits ?? []) if (s.layout && !["orbital", "dossier", "blocks"].includes(s.layout)) errs.push(`نموذج رد غير معروف «${s.layout}» (orbital | dossier | blocks)`);
   console.log(errs.length ? "✘ الصيغة والعزل: " + errs.join("، ") : `✔ الصيغة: ${spec.kind === "reel" ? "ريلز" : "كامل"} · النمط اللوني: ${spec.brand ?? "steel"}${spec.matte ? " · عزل سريع في " + (spec.behind ?? []).length + " نافذة" : ""}`);
   if (errs.length) fails++;
 }

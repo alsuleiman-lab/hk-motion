@@ -22,7 +22,8 @@
     "HeatFlash",
     "TrPush",
     "TrZoomFade",
-    "TrPageTurn"
+    "TrPageTurn",
+    "DebateOrbital"
   ],
   "itemTypes": [
     "neon",

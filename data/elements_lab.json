@@ -502,14 +502,6 @@
     "note": "يُكتشف عرض المصدر آلياً."
   },
   {
-    "id": "DebateOrbital",
-    "ar": "نموذج المدار",
-    "kit": "DebateLayouts",
-    "group": "نماذج الرد",
-    "where": "العرضي، مدة المقطع المردود عليه: نافذتان 4:3 (الشيخ كبيرة يميناً، المقطع يساراً) على حلقتين تدوران، ووسم CONVERSATION / 02 واسمه أسفل. splits[].layout = \"orbital\".",
-    "note": ""
-  },
-  {
     "id": "DebateDossier",
     "ar": "نموذج الملف",
     "kit": "DebateLayouts",

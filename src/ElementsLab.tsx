@@ -21,7 +21,7 @@ import { BRAND, applyBrand } from "./brand";
 import type { BrandName } from "./brand";
 import { BrowserFrame, VideoFrame, PostCard, CommentCard, BookPage, CitationTag, ArticleMock } from "./SourceFrames";
 import { NewsClip, TornNote, FolderOpen, FoldReveal, WordScraps, TornPhoto, PaperGrain } from "./PaperKit";
-import { DebateOrbital, DebateDossier, DebateBlocks } from "./DebateLayouts";
+import { DebateDossier, DebateBlocks } from "./DebateLayouts";
 
 /**
  * ElementsLab — every kit element drawn ALONE on a calm backdrop, one 3-second Sequence each (user 2026-10-27: «العناصر مرسومة ومعها اسمها وأين توضع»).
@@ -42,7 +42,7 @@ const Rec: React.FC<{ style?: React.CSSProperties }> = ({ style }) => (
   <OffthreadVideo src={staticFile(REAL_CUT)} muted style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080, objectFit: "cover", ...style }} />
 );
 /** elements that fill the frame or sit on its edges keep their own layout over his centred recording */
-const KEEP = new Set(["DebateOrbital", "DebateDossier", "DebateBlocks", "ReelVerseFull", "PaperGrain", "CornerTags", "DimLayer", "HandheldShake", "TitleBar", "Subscribe", "SplitCards", "Curtain", "TailVoice", "PaperCover", "PushIn", "NameCard1", "NameCard3", "Banner", "Sources"]);
+const KEEP = new Set(["DebateDossier", "DebateBlocks", "ReelVerseFull", "PaperGrain", "CornerTags", "DimLayer", "HandheldShake", "TitleBar", "Subscribe", "SplitCards", "Curtain", "TailVoice", "PaperCover", "PushIn", "NameCard1", "NameCard3", "Banner", "Sources"]);
 const keepLayout = (id: string) => id.startsWith("Bg") || KEEP.has(id);
 /** his recording behind the element: centred for full-frame pieces; otherwise pushed right (face ≈ x 1470–1710) over a blurred copy, and the element drawn
  *  at 0.76 in the free left side, as a card sits beside him in a real video */
@@ -92,7 +92,6 @@ const SPEC_E: Record<string, { node: React.ReactNode; light?: boolean }> = {
     </SakugaMove>) },
   PopCard: { node: <PopCard at={0.1} x={700} y={240}><div style={{ width: 520, height: 600, borderRadius: 14, overflow: "hidden", border: "5px solid #f6efe0", position: "relative" }}><Real src="people/azharMosque.jpg" /></div></PopCard> },
   SplitCards: { node: <SplitCards cut="kit_sample_sheikh.mp4" sp={SPLIT} /> },
-  DebateOrbital: { node: <DebateOrbital at={0.1} main={{ src: "kit_sample_sheikh.mp4" }} guest={{ src: "gallery_opp_clip.mp4", aspect: 544 / 720 }} /> },
   DebateDossier: { node: <DebateDossier at={0.1} main={{ src: "kit_sample_sheikh.mp4" }} guest={{ src: "gallery_opp_clip.mp4", aspect: 544 / 720 }} /> },
   DebateBlocks: { node: <DebateBlocks at={0.1} main={{ src: "kit_sample_sheikh.mp4" }} guest={{ src: "gallery_opp_clip.mp4", aspect: 544 / 720 }} /> },
   Curtain: { node: <><SplitCards cut="kit_sample_sheikh.mp4" sp={SPLIT} /><Curtain at={2.58} /></> },

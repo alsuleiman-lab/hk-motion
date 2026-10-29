@@ -68,7 +68,7 @@ export type MontageSpec = {
   zooms?: { from: number; to: number; amt?: number }[];
   shake?: { from: number; to: number }[];
   /** windows where the source recording has a baked-in split (clip left | him right): landscape = the reply model `layout` behind a curtain (default "blocks" = الكتل المنحوتة, user 2026-10-29;
-   *  orbital | dossier | blocks, src/DebateLayouts.tsx; "cards" = the two polaroid cards); portrait = his slice + the clip as a tilted card at his shoulder (x/w are source px) */
+   *  blocks | dossier, src/DebateLayouts.tsx; "cards" = the two polaroid cards); portrait = his slice + the clip as a tilted card at his shoulder (x/w are source px) */
   splits?: { from: number; to: number; clip: { x: number; w: number }; sheikh: { x: number; w: number }; clipName?: string; faceX?: number; blur?: number; layout?: DebateLayoutName | "cards" }[];
   /** an audio message added after his video: plays `src` from `from` s (+ voice card with a waveform and cycling photos) */
   tail?: { from: number; to: number; src: string; label: string; photos: string[] };

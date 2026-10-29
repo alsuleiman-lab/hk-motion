@@ -5,14 +5,14 @@ import { kufiF, monoF } from "./MG";
 import { BRAND, alpha } from "./brand";
 
 /**
- * DebateLayouts — only the three reply models the user chose (2026-10-29): orbital.html, dossier.html and «الكتل المنحوتة» (s07 of creative_4x3_gallery.html),
+ * DebateLayouts — only the reply models the user chose (2026-10-29): «الكتل المنحوتة» (default) (s07 of creative_4x3_gallery.html) and dossier.html,
  * on the original's geometry («نوافذ 4:3 كبيرة، لوحة إخراج 16:9»): his window (main) 4:3 at ≈ 65 % of the width on the right, the answered clip (guest) 4:3
  * at ≈ 33 % on the left, each video whole inside its window (contain). Only the original's own decor and words; colours from BRAND, and the decorated base
  * under the original's background shapes (no plain background).
  * A source is either a whole video (`src`) or a source-pixel column of the baked split (`src` + `x`/`w`, like SplitCards).
  */
 export type DebateSrc = { src: string; x?: number; w?: number; aspect?: number; blur?: number };
-export type DebateLayoutName = "orbital" | "dossier" | "blocks";
+export type DebateLayoutName = "dossier" | "blocks";
 type Props = { main: DebateSrc; guest: DebateSrc; guestName?: string; title?: string; at?: number };
 
 const W = LANDSCAPE.W, H = LANDSCAPE.H;
@@ -73,30 +73,6 @@ export const DebateBlocks: React.FC<Props> = ({ main, guest, title = "الشيخ
   );
 };
 
-/* ── orbital.html: two rings behind, the two windows, the small header tag «CONVERSATION / 02» and the lower name tag */
-export const DebateOrbital: React.FC<Props> = ({ main, guest, title = "محمد بن شمس الدين", at = 0 }) => {
-  const f = useCurrentFrame(), mi = useIn(at), gi = useIn(at, 0.12), mb = box({ left: 0.33, top: 0.06, width: 0.65 }, main);
-  const ring = (d: number, i: number) => (
-    <div key={i} style={{ position: "absolute", width: d, height: d, left: W * 0.5 - d / 2, top: H * 0.5 - d / 2, borderRadius: "50%", boxSizing: "border-box",
-      border: `${i ? 2 : 3}px ${i ? "dashed" : "solid"} ${alpha(BRAND.light, i ? 0.2 : 0.28)}`, transform: `rotate(${(i ? -1 : 1) * f * 0.15}deg)` }}>
-      <div style={{ position: "absolute", left: "50%", top: -7, width: 14, height: 14, marginLeft: -7, borderRadius: "50%", background: BRAND.accent }} />
-    </div>
-  );
-  return (
-    <AbsoluteFill>
-      <WarmBase />
-      {ring(H * 0.95, 0)}{ring(H * 1.35, 1)}
-      <Window w={{ left: 0.33, top: 0.06, width: 0.65 }} s={main} p={mi}
-        style={{ borderRadius: 18 * K, outline: `${4 * K}px solid ${BRAND.light}`, boxShadow: `0 0 0 ${10 * K}px ${alpha(BRAND.accent, 0.2)}, 0 ${24 * K}px ${50 * K}px rgba(0,0,0,.6)` }} />
-      <Window w={{ left: 0.02, top: 0.28, width: 0.33 }} s={guest} p={gi}
-        style={{ borderRadius: 18 * K, outline: `${4 * K}px solid ${BRAND.accent}`, boxShadow: `0 0 0 ${10 * K}px ${alpha(BRAND.light, 0.12)}, 0 ${20 * K}px ${40 * K}px rgba(0,0,0,.6)` }} />
-      <div style={{ position: "absolute", top: H * 0.05, left: W * 0.02, fontFamily: monoF, fontSize: Math.round(11 * K), letterSpacing: 4, color: alpha(BRAND.light, 0.85),
-        border: `1px solid ${alpha(BRAND.light, 0.4)}`, borderRadius: 6, padding: "4px 12px", opacity: mi }}>CONVERSATION / 02</div>
-      <Cap text={title} style={{ top: mb.y + mb.h + 18 * K, right: W - mb.x - mb.w, color: BRAND.ink, background: BRAND.card, borderRadius: 8, padding: `${4 * K}px ${14 * K}px ${7 * K}px`, opacity: mi }} />
-    </AbsoluteFill>
-  );
-};
-
 /* ── dossier.html: a case sheet behind, the two windows as clipped photos, tape on the guest, the «ON RECORD» stamp and the file detail */
 export const DebateDossier: React.FC<Props> = ({ main, guest, title = "ملف النقاش", at = 0 }) => {
   const t = useCurrentFrame() / 30 - at, mi = useIn(at), gi = useIn(at, 0.12);
@@ -119,7 +95,7 @@ export const DebateDossier: React.FC<Props> = ({ main, guest, title = "ملف ا
   );
 };
 
-export const DEBATE_LAYOUTS: Record<DebateLayoutName, React.FC<Props>> = { orbital: DebateOrbital, dossier: DebateDossier, blocks: DebateBlocks };
+export const DEBATE_LAYOUTS: Record<DebateLayoutName, React.FC<Props>> = { dossier: DebateDossier, blocks: DebateBlocks };
 /** the pasted call shape: <SculptedBlocks07 mainSrc guestSrc title /> (paths relative to public/, or staticFile URLs) */
 export const SculptedBlocks07: React.FC<{ mainSrc: string; guestSrc: string; title?: string }> = ({ mainSrc, guestSrc, title }) => {
   const rel = (s: string) => s.replace(/^.*\/public\//, "").replace(/^\//, "");

@@ -67,9 +67,9 @@ export type MontageSpec = {
   cams?: { from: number; to: number; cx: number }[];
   zooms?: { from: number; to: number; amt?: number }[];
   shake?: { from: number; to: number }[];
-  /** windows where the source recording has a baked-in split (clip left | him right): landscape = two polaroid cards on the decorated base behind a curtain, or the reply model `layout`
-   *  (orbital | dossier | blocks, src/DebateLayouts.tsx); portrait = his slice + the clip as a tilted card at his shoulder (x/w are source px) */
-  splits?: { from: number; to: number; clip: { x: number; w: number }; sheikh: { x: number; w: number }; clipName?: string; faceX?: number; blur?: number; layout?: DebateLayoutName }[];
+  /** windows where the source recording has a baked-in split (clip left | him right): landscape = the reply model `layout` behind a curtain (default "blocks" = الكتل المنحوتة, user 2026-10-29;
+   *  orbital | dossier | blocks, src/DebateLayouts.tsx; "cards" = the two polaroid cards); portrait = his slice + the clip as a tilted card at his shoulder (x/w are source px) */
+  splits?: { from: number; to: number; clip: { x: number; w: number }; sheikh: { x: number; w: number }; clipName?: string; faceX?: number; blur?: number; layout?: DebateLayoutName | "cards" }[];
   /** an audio message added after his video: plays `src` from `from` s (+ voice card with a waveform and cycling photos) */
   tail?: { from: number; to: number; src: string; label: string; photos: string[] };
   /** the colour palette of the one identity (src/brand.ts PALETTES; default steel) */
@@ -247,7 +247,7 @@ export const TailVoice: React.FC<{ tl: NonNullable<MontageSpec["tail"]> }> = ({ 
 export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: number; amt?: number }[]; splits?: Split[] }> = ({ cut, zooms = [], splits = [] }) => {
   const t = useT(0);
   const sp = splits.find((x) => t >= x.from && t < x.to);
-  if (sp?.layout) { const L = DEBATE_LAYOUTS[sp.layout]; return <L at={sp.from} main={{ src: cut, x: sp.sheikh.x, w: sp.sheikh.w }} guest={{ src: cut, x: sp.clip.x, w: sp.clip.w, blur: sp.blur }} guestName={sp.clipName} />; }
+  if (sp && sp.layout !== "cards") { const L = DEBATE_LAYOUTS[sp.layout ?? "blocks"]; return <L at={sp.from} main={{ src: cut, x: sp.sheikh.x, w: sp.sheikh.w }} guest={{ src: cut, x: sp.clip.x, w: sp.clip.w, blur: sp.blur }} guestName={sp.clipName} />; }
   if (sp) return <SplitCards cut={cut} sp={sp} />;
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 0.5);
   const z = zz ? 1 + (zz.amt ?? 0.08) * Math.min(clamp((t - zz.from) / 0.35), clamp((zz.to + 0.5 - t) / 0.45)) : 1;

@@ -60,5 +60,5 @@ fs.writeFileSync(tmp, [v, au, cat].join(";\n"));
 // GPU by default (user rule: work on the NVIDIA card): NVDEC decode + NVENC encode. --cpu falls back to libx264.
 const CPU = rest.includes("--cpu");
 const enc = CPU ? ["-c:v", "libx264", "-preset", "veryfast", "-crf", "15", "-g", "15", "-pix_fmt", "yuv420p"] : ["-c:v", "h264_nvenc", "-preset", "p5", "-rc", "vbr", "-cq", "15", "-b:v", "0", "-g", "15", "-bf", "0", "-pix_fmt", "yuv420p"];
-execFileSync("ffmpeg", ["-hide_banner", "-v", "error", "-y", ...(CPU ? [] : ["-hwaccel", "cuda"]), "-i", input, "-/filter_complex", tmp, "-map", "[v]", "-map", "[a]", "-r", "30", ...enc, "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", path.join(root, "public", `${name}_cut.mp4`)], { stdio: "inherit" });
+execFileSync("ffmpeg", ["-hide_banner", "-v", "error", "-y", "-threads", "4", ...(CPU ? [] : ["-hwaccel", "cuda"]), "-i", input, "-/filter_complex", tmp, "-map", "[v]", "-map", "[a]", "-r", "30", ...enc, "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", path.join(root, "public", `${name}_cut.mp4`)], { stdio: "inherit" });
 console.log("done:", `public/${name}_cut.mp4`);

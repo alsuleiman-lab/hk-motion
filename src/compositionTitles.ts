@@ -44,5 +44,4 @@ export const COMPOSITION_TITLES: Record<string, string> = {
   "JordanInterior": "كلام خطير لوزير الداخلية الأردني",
   "JordanInterior-L": "كلام خطير لوزير الداخلية الأردني (عرضي)",
   "KamliPoetKing": "طرفة الشاعر والملك - سعيد الكملي",
-  "JarBakheelCartoon": "طرفة لجار مع جاره البخيل - الشيخ صالح آل الشيخ",
 };

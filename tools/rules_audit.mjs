@@ -3,6 +3,7 @@
 // This is a targeted guard, not proof that all prose is contradiction-free.
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 const ROOT = process.cwd();
 const read = (file) => fs.readFileSync(path.join(ROOT, file), "utf8");
@@ -46,11 +47,12 @@ check("stale pause exception", !/سكتات?\s*>?\s*0\.45ث|أكبر من 0\.45�
   scan("src"); scan("tools");
   check("no retired elements", hits.length === 0, "A cancelled element is back in the code (" + hits.slice(0, 6).join(", ") + "): delete it and use the approved gallery element (data/retired_elements.json).");
 }
-check("no isolation", /لا عزل للخلفية إطلاقاً/.test(prefs) && /لا عزل للخلفية إطلاقاً/.test(read("MONTAGE_BRIEF.md")) && /لا عزل للخلفية إطلاقاً/.test(hook) && !fs.existsSync(path.join(ROOT, ".claude/skills/background-isolation")) && !activeText.some(({ text }) => /background-isolation|عزل.{0,20}(اختياري|بطلب صريح|غير مفعّل افتراضياً)/.test(text)), "Background isolation is abolished (user 2026-10-27): no opt-in wording, no isolation skill.");
+check("quick isolation only", /العزل السريع/.test(prefs) && /العزل السريع/.test(read("MONTAGE_BRIEF.md")) && /لا عزل للخلفية إطلا/.test(hook) && !fs.existsSync(path.join(ROOT, ".claude/skills/background-isolation")) && !activeText.some(({ text }) => /background-isolation|عزل.{0,20}(اختياري|بطلب صريح|غير مفعّل افتراضياً)/.test(text)), "Only the quick isolation of PREFERENCES.md (user 2026-10-29): reel clip windows and windows where needed, no isolation skill, no isolated hook.");
 check("legacy automatic isolation", !activeText.some(({ text }) => /عزل الخلفية مع شيء خلفه.{0,80}أول 5 ثوانٍ|مرة كل 3 دقائق/.test(text)), "An automatic isolation schedule remains outside the opt-in skill.");
 check("source display layout", !sourceSkills.some((text) => /لوحة المصدر.{0,100}بجانبها بفاصل|الشيخ في بطاقة \*\*بجانبها بفاصل/.test(text)), "A source skill still prescribes the old split-card layout.");
 check("hook non-isolation rules", /لو كُتم الصوت/.test(hook) && /ممنوع الحشو/.test(hook) && /--must/.test(hook) && /✔\/✘/.test(hook), "The hook must retain relevance, no-filler, source-search, and post-build review rules.");
 check("binding hooks installed", (() => { try { const s = read(".claude/settings.json"); return ["UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop"].every((h) => s.includes(h)) && s.includes("tools/hooks/guard.mjs") && fs.existsSync(path.join(ROOT, "tools/hooks/guard.mjs")); } catch { return false; } })(), "The four enforcement hooks (PREFERENCES.md section 0) must be wired in .claude/settings.json to tools/hooks/guard.mjs.");
+check("no stale instructions", spawnSync(process.execPath, [path.join(ROOT, "tools", "rules_lint.mjs")], { cwd: ROOT, encoding: "utf8", windowsHide: true }).status === 0, "A replaced instruction is still written somewhere: run node tools/rules_lint.mjs and fix each line (user 2026-10-29).");
 check("binding contract present", /^## 0\) عقد الالتزام/m.test(prefs) && /عقد الالتزام/.test(read("CLAUDE.md")) && /عقد الالتزام/.test(read("AGENTS.md")), "PREFERENCES.md section 0 and the pointers in CLAUDE.md and AGENTS.md must exist.");
 check(
   "audit inputs present",

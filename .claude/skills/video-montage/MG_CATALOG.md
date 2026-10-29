@@ -1,6 +1,6 @@
-# فهرس قطع الموشن (مولَّد آلياً من src/MG.tsx و src/PortraitKit.tsx — لا تعدّله يدوياً)
+# فهرس قطع الموشن (مولَّد آلياً من src/MG.tsx وPortraitKit وSourceFrames وPaperKit وPaperTear — لا تعدّله يدوياً)
 
-> يُولَّد بـ`node tools/gen_quickref.mjs`. الزمن بالثواني المطلقة ما لم يُذكر؛ كل قطعة تُوضع داخل `<Gfx>`؛ التفاصيل والضوابط الكاملة لكل قطعة في مهارة motion-graphics وأخواتها، وهنا ما يكفي لاستدعائها دون قراءة طويلة. عدد القطع: 48.
+> يُولَّد بـ`node tools/gen_quickref.mjs`. الزمن بالثواني المطلقة ما لم يُذكر؛ كل قطعة تُوضع داخل `<Gfx>`؛ التفاصيل والضوابط الكاملة لكل قطعة في مهارة motion-graphics وأخواتها، وهنا ما يكفي لاستدعائها دون قراءة طويلة. عدد القطع: 59.
 
 ### `MGTheme`
 one colour identity (src/brand.ts, user 2026-10-27): whatever `theme` an older composition passes, the brand (steel) is used
@@ -193,3 +193,47 @@ a plain spring pop-in for a card that is not one of the kit's source moves (left
 ### `FullImage`
 a source picture FILLS the 1080×1920 frame for a frame range (user 2026-10-23: manuscript full-screen) with a slow push and an optional self-drawing marker; sits in the BASE layers (outside <Gfx>) because it deliberately replaces him for those seconds. Put it 
 `props:` src: string; from: number; to: number; origin?: string; marker?: { x: number; y: number; w: number; h: number; at: number }
+
+### `CitationTag`
+the citation tag: book, volume, page on a small identity label with a pin, swinging in from the corner of the source
+`props:` at: number; until?: number; x: number; y: number; book: string; part?: string; page?: string
+
+### `ArticleMock`
+demo page content for the browser frame (an article laid out in the identity)
+`props:` w: number; img: string; title: string
+
+### `Tape`
+a strip of tape
+`props:` x: number; y: number; w?: number; rot?: number
+
+### `NewsClip`
+a newspaper clipping of a real news screenshot: torn edges, the headline above in ink, the source under it, taped on two corners
+`props:` at: number; until?: number; x: number; y: number; w: number; h: number; src: string; headline?: string; source: string; rot?: number
+
+### `TornNote`
+a torn note for the key phrase: cream paper strip with ragged ends, the phrase in Zain, one word underlined by hand in BRAND.mark
+`props:` at: number; until?: number; x: number; y: number; w: number; text: string; size?: number; underline?: number; rot?: number
+
+### `FolderOpen`
+a folder opens and the cited document slides out of it (for a document, a decision, a letter he quotes)
+`props:` at: number; until?: number; x: number; y: number; w: number; h: number; label: string; src: string
+
+### `FoldReveal`
+paper fold: picture A folds down along its middle like a sheet and shows picture B under it (before → after, claim → truth)
+`props:` at: number; until?: number; x: number; y: number; w: number; h: number; a: string; b: string; labelA?: string; labelB?: string
+
+### `WordScraps`
+a title made of torn paper scraps, one word per scrap (Arabic letters keep their joins), each arriving in stop-motion with its own tilt and stock
+`props:` at: number; until?: number; x: number; y: number; text: string; size?: number; gap?: number
+
+### `TornPhoto`
+a photo of the person or place in a torn white border with tape and a hand-written-style name strip
+`props:` at: number; until?: number; x: number; y: number; w: number; h: number; src: string; name?: string; pos?: string; rot?: number
+
+### `PaperGrain`
+paper grain over a paper scene (multiply, faint), so cut-outs and cards read as one sheet of material
+`props:` opacity?: number
+
+### `PaperTear`
+(بلا وصف: مكوّن أساسي)
+`props:` sheet: React.ReactNode; from?: number; to?: number; peak?: number; direction?: Dir; roughness?: number

@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { Player } from "@remotion/player";
 import { LabScene } from "../ElementsLab";
 import { TransitionScene } from "../TransitionsLab";
+import { PALETTES, BRAND_NAMES } from "../brand";
+import type { BrandName } from "../brand";
 
 /**
  * The live elements gallery (user 2026-10-28: «الصفحة تكتب العناصر برمجياً لا صوراً»). Built by tools/gallery_build.mjs into one script.
@@ -22,7 +24,7 @@ const pendingIds = (): Set<string> => { try { return new Set(JSON.parse(localSto
 const setPending = (s: Set<string>) => { try { localStorage.setItem(LSP, JSON.stringify([...s])); } catch { /* blocked */ } };
 
 /** mounts the player only when the card scrolls into view (dozens of players at once would be heavy) */
-const Live: React.FC<{ it: Item }> = ({ it }) => {
+const Live: React.FC<{ it: Item; brand: BrandName }> = ({ it, brand }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [on, setOn] = useState(false);
   useEffect(() => {
@@ -34,8 +36,9 @@ const Live: React.FC<{ it: Item }> = ({ it }) => {
     <div ref={ref} className="stage">
       {on ? (
         <Player
+          key={brand}
           component={it.kind === "transition" ? TransitionScene : LabScene}
-          inputProps={{ id: it.id }}
+          inputProps={{ id: it.id, brand }}
           durationInFrames={90} fps={30} compositionWidth={1920} compositionHeight={1080}
           initialFrame={it.still} controls loop clickToPlay
           style={{ width: "100%" }}
@@ -46,14 +49,14 @@ const Live: React.FC<{ it: Item }> = ({ it }) => {
   );
 };
 
-const Card: React.FC<{ it: Item; n: Note; onSave: (id: string, p: Note) => void }> = ({ it, n, onSave }) => {
+const Card: React.FC<{ it: Item; n: Note; brand: BrandName; onSave: (id: string, p: Note) => void }> = ({ it, n, brand, onSave }) => {
   const [text, setText] = useState(n.note ?? "");
   const [showCode, setShowCode] = useState(false);
   const typing = useRef(false);
   useEffect(() => { if (!typing.current) setText(n.note ?? ""); }, [n.note]);
   return (
     <article className={"card" + (n.status ? " s-" + n.status : "")}>
-      <Live it={it} />
+      <Live it={it} brand={brand} />
       <div className="body">
         <div className="name"><h2>{it.ar}</h2><code>{it.id} · {it.kit}</code></div>
         <p className="where">{it.where}</p>
@@ -81,6 +84,8 @@ const App: React.FC = () => {
   const [group, setGroup] = useState("الكل");
   const [q, setQ] = useState("");
   const [copied, setCopied] = useState(false);
+  const [brand, setBrand] = useState<BrandName>(() => { try { const b = localStorage.getItem("gallery-brand") as BrandName; return BRAND_NAMES.includes(b) ? b : "steel"; } catch { return "steel"; } });
+  const pickBrand = (b: BrandName) => { setBrand(b); try { localStorage.setItem("gallery-brand", b); } catch { /* blocked */ } };
   const dbc = useRef<ReturnType<Db["collection"]> | null>(null);
   const timers = useRef<Record<string, number>>({});
   const notesRef = useRef(notes); notesRef.current = notes;
@@ -149,8 +154,12 @@ const App: React.FC = () => {
         <input type="search" placeholder="بحث بالاسم أو الكود" value={q} onChange={(e) => setQ(e.target.value)} />
         <button type="button" className="theme-btn" onClick={copyAll}>{copied ? "نُسخ ✓" : "نسخ ملاحظاتي"}</button>
       </div>
+      <div className="bar" role="group" aria-label="النمط اللوني">
+        <span>النمط اللوني:</span>
+        {BRAND_NAMES.map((b) => <button key={b} type="button" className="chip" aria-pressed={b === brand} onClick={() => pickBrand(b)}><i style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, marginInlineEnd: 6, verticalAlign: -1, background: PALETTES[b].accent, boxShadow: `inset 0 0 0 3px ${PALETTES[b].base}` }} />{PALETTES[b].label}</button>)}
+      </div>
       <p id="conn" data-ok={conn === "on" ? "1" : "0"} role="status">{connText}</p>
-      <main className="grid">{shown.map((it) => <Card key={it.id} it={it} n={notes[it.id] ?? {}} onSave={onSave} />)}</main>
+      <main className="grid">{shown.map((it) => <Card key={it.id} it={it} n={notes[it.id] ?? {}} brand={brand} onSave={onSave} />)}</main>
       <footer>بُني من الكود في {DATA.built}</footer>
     </>
   );

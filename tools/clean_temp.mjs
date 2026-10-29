@@ -76,7 +76,28 @@ export function runAutoCleanup(verbose = true) {
         sFreed += safeRemove(p);
         sCount++;
       }
+      // the private temps of stills / face_check / frame_audit / renders (run_<kind>_<pid>) are deleted on exit; one left a day later was leaked by a killed process (25 GB on 2026-10-29)
+      else if (d.isDirectory() && /^run_[a-z_]+_\d+$/.test(d.name)) {
+        const p = path.join(sTmp, d.name);
+        try { if (Date.now() - newest(p) < 24 * 3600 * 1000) continue; } catch {}
+        sFreed += safeRemove(p);
+        sCount++;
+      }
     }
+  }
+  // --project <p> (on approval, user 2026-10-29: «لازم تمب لكل مشروع، بعد الاعتماد يحذف كلياً»): the project's whole temp goes — .tmp/<p>, .tmp/<p>_*, its cached stills bundles and render_work/<p>
+  const pi = process.argv.indexOf("--project"), proj = pi > 0 ? process.argv[pi + 1] : null;
+  if (proj && /^[\w.-]+$/.test(proj)) {
+    const hits = [];
+    for (const d of fs.existsSync(sTmp) ? fs.readdirSync(sTmp) : []) if (d === proj || d.startsWith(proj + "_") || d.startsWith(proj + "-")) hits.push(path.join(sTmp, d));
+    const sb = path.join(sTmp, "stills_bundle");
+    for (const d of fs.existsSync(sb) ? fs.readdirSync(sb) : []) if (d.toLowerCase().replace(/[-_]/g, "").startsWith(proj.toLowerCase().replace(/[-_]/g, ""))) hits.push(path.join(sb, d));
+    const rw = path.join(root, "render_work", proj);
+    if (fs.existsSync(rw)) hits.push(rw);
+    let pf = 0;
+    for (const p of hits) pf += safeRemove(p);
+    freed += pf;
+    log(`المشروع ${proj}: حُذف مؤقته كلياً (${hits.length} عنصراً، ${(pf / 1024 / 1024).toFixed(1)} MB)`);
   }
   freed += sFreed;
   if (sCount > 0) log(`Purged ${sCount} temp items from S: .tmp (${(sFreed / 1024 / 1024).toFixed(1)} MB)`);

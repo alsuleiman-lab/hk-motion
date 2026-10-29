@@ -1,6 +1,7 @@
 import React from "react";
 import { T, kufiF, naskhF, useSp, useT } from "./MG";
 import { clamp } from "./PortraitKit";
+import { BRAND, alpha } from "./brand";
 
 /**
  * NameCards — the Sheikh's name tag. Of the ten designs offered (user 2026-10-27) the gallery kept 1 (paper card) and 3 (pinned label) on 2026-10-28; the montage engine draws 1 by default.
@@ -36,8 +37,8 @@ export const NameCard3: React.FC<P> = ({ at, x, y, name = NAME, title = TITLE })
   const s = useSp(at, 12, 170);
   return (
     <Box x={x} y={y} style={{ opacity: clamp(s * 2), transform: `translate(-50%,-50%) rotate(-2deg) scale(${0.7 + 0.3 * s})` }}>
-      <div style={{ position: "relative", background: "#f6f8fa", borderRadius: 20, padding: "22px 44px 20px", boxShadow: "0 16px 30px rgba(0,0,0,.35)", textAlign: "center" }}>
-        <div style={{ position: "absolute", left: "50%", top: -16, width: 80, height: 30, marginLeft: -40, background: "rgba(47,95,148,.92)", transform: "rotate(-5deg)", boxShadow: "0 2px 4px rgba(0,0,0,.25)" }} />
+      <div style={{ position: "relative", background: BRAND.card, borderRadius: 20, padding: "22px 44px 20px", boxShadow: "0 16px 30px rgba(0,0,0,.35)", textAlign: "center" }}>
+        <div style={{ position: "absolute", left: "50%", top: -16, width: 80, height: 30, marginLeft: -40, background: alpha(BRAND.accent, .92), transform: "rotate(-5deg)", boxShadow: "0 2px 4px rgba(0,0,0,.25)" }} />
         <div style={{ fontFamily: naskhF, fontSize: 30, color: T.gray }}>{title}</div>
         <div style={{ fontFamily: naskhF, fontSize: 56, color: T.ink, lineHeight: 1.1 }}>{name}</div>
       </div>

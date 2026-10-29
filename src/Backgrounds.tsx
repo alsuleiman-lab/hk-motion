@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
-import { BRAND } from "./brand";
+import { BRAND, alpha } from "./brand";
 
 /**
  * Decorated video backgrounds (user 2026-10-28: «اريد 10 خلفيات أخرى»; nine dropped in the gallery): dark, calm, never black or plain, in the one identity (src/brand.ts).
@@ -9,12 +9,12 @@ import { BRAND } from "./brand";
 const Base: React.FC<{ children?: React.ReactNode; glow?: string }> = ({ children, glow = "62% 24%" }) => (
   <AbsoluteFill style={{ background: `linear-gradient(170deg,${BRAND.base2} 0%,${BRAND.base} 50%,${BRAND.base3} 100%)`, overflow: "hidden" }}>
     {children}
-    <AbsoluteFill style={{ background: `radial-gradient(ellipse at ${glow}, rgba(61,123,196,.20), transparent 55%)` }} />
+    <AbsoluteFill style={{ background: `radial-gradient(ellipse at ${glow}, ${alpha(BRAND.blue, .20)}, transparent 55%)` }} />
     <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(8,14,24,.55) 100%)" }} />
   </AbsoluteFill>
 );
 const sec = () => useCurrentFrame() / 30;
-const LINE = "rgba(201,212,224,.19)", LINE2 = "rgba(201,212,224,.10)";
+const LINE = alpha(BRAND.light, .19), LINE2 = alpha(BRAND.light, .10);
 
 /** mashrabiya screen with light falling through it */
 export const BgMashrabiya: React.FC = () => {
@@ -33,7 +33,7 @@ export const BgMashrabiya: React.FC = () => {
         </defs>
         <rect width="100%" height="100%" fill="url(#bgMash)" />
       </svg>
-      <AbsoluteFill style={{ background: `linear-gradient(${115 + Math.sin(t * 0.4) * 4}deg, transparent 30%, rgba(201,212,224,.07) 42%, transparent 54%)` }} />
+      <AbsoluteFill style={{ background: `linear-gradient(${115 + Math.sin(t * 0.4) * 4}deg, transparent 30%, ${alpha(BRAND.light, .07)} 42%, transparent 54%)` }} />
     </Base>
   );
 };

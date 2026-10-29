@@ -26,6 +26,10 @@ spans.sort((x, y) => x[0] - y[0]);
 spans = spans.reduce((o, s) => { const l = o[o.length - 1]; if (l && s[0] <= l[1]) l[1] = Math.max(l[1], s[1]); else o.push([...s]); return o; }, []).filter(([a, b]) => b > a);
 if (!spans.length) { console.error("the ranges cover nothing of the cut"); process.exit(1); }
 
+// the removed source ranges are re-derived from the frame-rounded spans, so the map shortens by EXACTLY the frames removed (a few ms of drift per trim would shift every later join away from its click-scan window)
+const exact = spans.map(([f0, f1]) => { const g = M.find((q) => f0 / FPS >= q.n - 1e-6 && f1 / FPS <= q.n + (q.b - q.a) + 1e-6); return g ? [g.a + f0 / FPS - g.n, g.a + f1 / FPS - g.n] : null; });
+if (exact.every(Boolean)) { rem.length = 0; rem.push(...exact); }
+
 // 2) new map
 const ns = [];
 for (const g of M) {

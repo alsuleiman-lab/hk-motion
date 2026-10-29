@@ -32,6 +32,17 @@ let fails = 0;
   if (badTypes.length || badFields.length) fails++;
 }
 
+// 0b) format and quick isolation (user 2026-10-29): a reel is a chosen excerpt ≤ 3 min; `behind` windows need the saved `matte`; `brand` must be one of the 5 palettes
+{
+  const dur = (spec.frames ?? 0) / (spec.fps ?? 30), errs = [];
+  if (spec.kind === "reel" && dur > 180) errs.push(`ريلز طوله ${mm(dur)} (الحد 3:00)`);
+  if ((spec.behind ?? []).length && !spec.matte) errs.push("نوافذ behind بلا matte (node tools/matte_cache.mjs get …)");
+  const pal = fs.readFileSync(path.join("src", "brand.ts"), "utf8").match(/BrandName = ([^;]+);/)?.[1] ?? "";
+  if (spec.brand && !pal.includes(String.fromCharCode(34) + spec.brand + String.fromCharCode(34))) errs.push(`نمط لوني غير معروف «${spec.brand}» (${pal})`);
+  console.log(errs.length ? "✘ الصيغة والعزل: " + errs.join("، ") : `✔ الصيغة: ${spec.kind === "reel" ? "ريلز" : "كامل"} · النمط اللوني: ${spec.brand ?? "steel"}${spec.matte ? " · عزل سريع في " + (spec.behind ?? []).length + " نافذة" : ""}`);
+  if (errs.length) fails++;
+}
+
 const span = (it) => {
   const a = it.at ?? it.from ?? it.oldAt ?? (it.times?.[0]);
   const b = it.until ?? it.to ?? (it.dur != null && a != null ? a + it.dur : null) ?? (a != null ? a + 3 : null);

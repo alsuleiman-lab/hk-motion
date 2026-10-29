@@ -5,6 +5,7 @@ import { DrawIcon } from "./MotionKit";
 import { FONT_TEXT, FONT_TITLE } from "./localFonts";
 import { SFX_LEVELS } from "./sfxConfig";
 import { VSlot, hyBg } from "./hybrid/Slot";
+import { BRAND, alpha } from "./brand";
 
 /** Shared pieces for the Europe-protests videos (portrait + landscape). Times are SECONDS on the cut timeline. */
 export const EU_FPS = 30;
@@ -137,7 +138,7 @@ export const Count: React.FC<{ at: number; to: number; dec?: number; size: numbe
 };
 
 const ClipPin: React.FC<{ left: number }> = ({ left }) => (
-  <div style={{ position: "absolute", left, top: -20, width: 50, height: 32, background: T.red, borderRadius: "6px 6px 2px 2px", boxShadow: "0 3px 0 rgba(0,0,0,.2)" }}><div style={{ margin: "7px auto 0", width: 30, height: 11, background: "#b5412f", borderRadius: 3 }} /></div>
+  <div style={{ position: "absolute", left, top: -20, width: 50, height: 32, background: T.red, borderRadius: "6px 6px 2px 2px", boxShadow: "0 3px 0 rgba(0,0,0,.2)" }}><div style={{ margin: "7px auto 0", width: 30, height: 11, background: BRAND.mark, borderRadius: 3 }} /></div>
 );
 
 /** a paper card that slides in when its word is spoken: icon + label + big number */
@@ -177,7 +178,7 @@ export const Banner: React.FC<{ at: number; x: number; y: number; w: number; tex
   return (
     <div style={{ position: "absolute", left: x, top: y, width: w, transform: `translateY(${(1 - s) * -30}px) scale(${0.96 + 0.04 * s})`, opacity: clamp(s * 2), direction: "rtl", display: "flex", alignItems: "center", gap: 20, background: T.navy, borderRadius: 18, padding: "14px 26px", boxShadow: "0 14px 26px rgba(0,0,0,.28)" }}>
       {flag ? <Flag c={flag} w={104} h={70} /> : null}
-      <div style={{ fontFamily: TITLE, fontWeight: 800, fontSize: size, color: "#f6f8fa", lineHeight: 1.2 }}>{text}</div>
+      <div style={{ fontFamily: TITLE, fontWeight: 800, fontSize: size, color: BRAND.card, lineHeight: 1.2 }}>{text}</div>
     </div>
   );
 };
@@ -193,7 +194,7 @@ export const CompareCards: React.FC<{ at: number; until: number; x: number; y: n
   const card = (left: number, c: { label: string; items: CmpItem[] }, col: string, icon: string, rot: number, from: number) => (
     <div style={{ position: "absolute", left: left + (1 - u) * from, top: y, width: pw, height: h, opacity: u * out, transform: `rotate(${rot + (1 - u) * 3 * Math.sign(rot)}deg) scale(${0.94 + 0.06 * s})`, background: T.card, borderRadius: 14, boxShadow: "0 18px 34px rgba(0,0,0,.26), 0 2px 0 rgba(0,0,0,.08)", direction: "rtl", boxSizing: "border-box", padding: "70px 26px 24px" }}>
       <ClipPin left={pw - 110} />
-      <div style={{ position: "absolute", right: 24, top: 18, background: T.navy, color: "#f6f8fa", fontFamily: TITLE, fontWeight: 800, fontSize: 30, padding: "4px 20px 8px", borderRadius: 12 }}>{c.label}</div>
+      <div style={{ position: "absolute", right: 24, top: 18, background: T.navy, color: BRAND.card, fontFamily: TITLE, fontWeight: 800, fontSize: 30, padding: "4px 20px 8px", borderRadius: 12 }}>{c.label}</div>
       <div style={{ position: "absolute", left: 22, top: 16, width: 52, height: 52, borderRadius: 14, background: col, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <DrawIcon name={icon} p={clamp((t - at) / 0.7)} size={34} color={T.onAccent} sw={2.4} />
       </div>
@@ -272,7 +273,7 @@ export const Sources: React.FC<{ links: { at: number; url: string }[]; x: number
   if (!cur) return null;
   const u = clamp((t - cur.at) / 0.3);
   return (
-    <div style={{ position: "absolute", left: x, bottom, width: "fit-content", maxWidth: w, opacity: u, transform: `translateY(${(1 - u) * 14}px)`, background: "rgba(246,248,250,.94)", borderRight: `7px solid ${T.accent}`, borderRadius: 10, padding: "6px 14px", boxShadow: "0 6px 14px rgba(0,0,0,.2)", direction: "rtl" }}>
+    <div style={{ position: "absolute", left: x, bottom, width: "fit-content", maxWidth: w, opacity: u, transform: `translateY(${(1 - u) * 14}px)`, background: alpha(BRAND.card, .94), borderRight: `7px solid ${T.accent}`, borderRadius: 10, padding: "6px 14px", boxShadow: "0 6px 14px rgba(0,0,0,.2)", direction: "rtl" }}>
       <span style={{ fontFamily: TEXT, fontWeight: 800, fontSize: size, color: T.ink }}>المصدر: </span>
       {/^(https?:\/\/|www\.)|^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(cur.url)
         ? <span style={{ fontFamily: "Space Mono, monospace", fontSize: size - 3, color: T.navy, direction: "ltr", unicodeBidi: "isolate", wordBreak: "break-all", lineHeight: 1.25 }}>{cur.url}</span>

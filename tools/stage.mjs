@@ -8,7 +8,7 @@
 //                                                     are trimmed at their join automatically (up to 4 rounds); audio_gate; only if it passes: one NVENC build
 //                                                     → public/<p>_cut.mp4 and the cut transcript .tmp/<p>/cut_transcript.txt (for timing elements).
 //   node tools/stage.mjs check <p> <CompId> --file src/<X>.tsx --minutes <m> [--skip 0-12,40-55]
-//                                                     typecheck → brand_audit (spec) → mg_usage_audit → coverage_check (spec) → face_fast (spec montage; else face_check) → frame_audit, one after another (never two renders at once).
+//                                                     typecheck → rules_lint → brand_audit (spec) → mg_usage_audit → coverage_check (spec) → face_fast (spec montage; else face_check) → frame_audit, one after another (never two renders at once).
 // Exit code 1 when any step fails; the summary names the step and the log line to read.
 import fs from "node:fs";
 import os from "node:os";
@@ -217,6 +217,7 @@ if (stage === "check") {
   };
   await step("typecheck", "node", ["node_modules/typescript/bin/tsc", "-p", "."], /error TS/);
   // one colour identity (src/brand.ts, user 2026-10-27): the montage's spec carries no colours of its own
+  await step("rules_lint", "node", ["tools/rules_lint.mjs"], /^✘|✔ rules_lint/);
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("brand_audit", "node", ["tools/brand_audit.mjs", "--strict", path.join("data", "specs", `${p}.json`)], /outside the identity|brand OK/);
   await step("mg_usage_audit", "node", ["tools/mg_usage_audit.mjs", file, "--minutes", minutes], /PASS|FAIL|kinds|نوع/i);
   // complete, not just valid (user 2026-10-28): every named thing has its picture, no long empty stretch, the moves are in the spec

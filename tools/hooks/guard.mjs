@@ -53,7 +53,7 @@ if (mode === "prompt") {
   contract.push(`• القواعد والمهارات تُقرأ من المجلد الرئيسي فقط: \`${R}/MONTAGE_BRIEF.md\` و\`${R}/PREFERENCES.md\` و\`${R}/.claude/skills/…\`، لا من نسخة الجلسة في \`.claude/worktrees/\` (قد تكون أقدم)، وأدوات \`tools/\` تُشغَّل من \`${R}\`.`);
   if (/مونتاج|فيديو|رندر|ريندر|غلاف|هوك|موشن|تعليق صامت|render|montage|hook/i.test(p)) {
     // 2026-10-25 (user order): the brief replaces reading PREFERENCES.md in full (that read + the checklist + 4 skill files were ~60k tokens carried through every call)
-    contract.push("• هذا عمل فيديو: اقرأ (لكل فيديو من جديد، ولو قرأتها لفيديو سابق في الجلسة) `MONTAGE_BRIEF.md` (ملزم مثل الأصل، بدل قراءة PREFERENCES.md كاملاً؛ ابحث في الأصل بـGrep عند الحاجة) ← مهارة المرحلة (video-montage/critical-rules.md وworkflow-plan.md لكلمة «مونتاج»). قائمة الفحص في المراجعة النهائية. الأسئلة الأربع بالنقر أول فعل، ومعها `tools/stage.mjs prep` في الخلفية.");
+    contract.push("• هذا عمل فيديو: اقرأ (لكل فيديو من جديد، ولو قرأتها لفيديو سابق في الجلسة) `MONTAGE_BRIEF.md` (ملزم مثل الأصل، بدل قراءة PREFERENCES.md كاملاً؛ ابحث في الأصل بـGrep عند الحاجة) ← مهارة المرحلة (video-montage/critical-rules.md وworkflow-plan.md لكلمة «مونتاج»). قائمة الفحص في المراجعة النهائية. الأسئلة الثلاثة بالنقر أول فعل (العنوان، B-roll، الصيغ)، ومعها `tools/stage.mjs prep` في الخلفية.");
     const b = spawnSync("node", ["tools/brief_check.mjs"], { cwd: ROOT, encoding: "utf8" });
     if (b.status !== 0) contract.push("• تنبيه: " + (b.stdout || "").trim() + " — حتى يُحدَّث الملخّص اقرأ الأقسام المتغيّرة من الأصل.");
   }

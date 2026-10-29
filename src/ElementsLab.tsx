@@ -17,6 +17,10 @@ import { PaperCoverKit } from "./CoverKit";
 import { SplitCards, Curtain, TailVoice } from "./MontageSpec";
 import { NAME_CARDS } from "./NameCards";
 import LAB from "../data/elements_lab.json";
+import { BRAND, applyBrand } from "./brand";
+import type { BrandName } from "./brand";
+import { BrowserFrame, VideoFrame, PostCard, CommentCard, BookPage, CitationTag, ArticleMock } from "./SourceFrames";
+import { NewsClip, TornNote, FolderOpen, FoldReveal, WordScraps, TornPhoto, PaperGrain } from "./PaperKit";
 
 /**
  * ElementsLab — every kit element drawn ALONE on a calm backdrop, one 3-second Sequence each (user 2026-10-27: «العناصر مرسومة ومعها اسمها وأين توضع»).
@@ -49,7 +53,20 @@ const SPEC_E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   VerseWords: { node: <VerseWords words={["مُّحَمَّدٌۭ", "رَّسُولُ", "ٱللَّهِ"]} times={[0.4, 0.9, 1.3]} x={560} y={300} w={800} size={64} title="سُورَةُ الفَتۡحِ" refText="الآية 29" until={2.7} /> },
   ReelVerseFull: { node: <div style={{ position: "absolute", left: 656, top: 0, width: 1080, height: 1920, transform: "scale(0.5625)", transformOrigin: "top left", overflow: "hidden" }}><ReelVerseFull to={2.8} refName="سُورَةُ الفَتۡحِ — الآية 29" lines={[{ words: ["مُّحَمَّدٌۭ", "رَّسُولُ", "ٱللَّهِ"], times: [0.4, 0.9, 1.3] }]} /></div> },
   PaperScene: { node: <PaperScene at={0.1} until={2.9} x={460} y={200} w={1000} h={640} pieces={[{ src: "collage/car.png", at: 0.3, x: 60, y: 160, w: 300, rot: -3, from: "left" }, { src: "collage/robe.png", at: 0.9, x: 380, y: 120, w: 260, rot: 2, from: "top" }, { src: "collage/ant.png", at: 1.5, x: 700, y: 220, w: 240, rot: -2, from: "right" }]} /> },
-  BgFullImage: { node: <><Sil /><div style={{ position: "absolute", left: 0, right: 0, bottom: 120, textAlign: "center", fontFamily: kufiF, fontSize: 46, color: "#f6f8fa", direction: "rtl", textShadow: "0 3px 10px rgba(0,0,0,.6)" }}>«…وقبّة هذا المسجد في القاهرة»</div><FullImage src="people/azharMosque.jpg" from={1} to={3} marker={{ x: 1180, y: 20, w: 560, h: 560, at: 1.5 }} /></> },
+  BrowserFrame: { node: <BrowserFrame at={0.1} x={520} y={70} w={880} h={940} url="www.azhar.eg/news/article-2026" site="الأزهر" scroll={260} until={9}><ArticleMock w={880} img="people/azharMosque.jpg" title="عنوان الخبر كما في الموقع" /></BrowserFrame> },
+  VideoFrame: { node: <VideoFrame at={0.1} x={440} y={150} w={1040} h={680} src="kit_sample_sheikh.mp4" channel="اسم القناة" title="عنوان المقطع المعروض" until={9} /> },
+  PostCard: { node: <PostCard at={0.1} x={560} y={250} w={800} name="اسم الحساب" handle="@account" avatar="broll/kaaba.jpg" text="هذا نص المنشور كما كتبه صاحبه نعرضه هنا بخط الهوية وألوانها" mark={["نص", "المنشور"]} date="12 أكتوبر 2026" /> },
+  CommentCard: { node: <CommentCard at={0.1} x={520} y={380} w={880} name="أحد المشاهدين" avatar="broll/wall1.jpg" text="لماذا لا تذكرون المصدر الذي نقلتم منه هذا الكلام؟" likes={1240} underline={[3, 5]} /> },
+  BookPage: { node: <BookPage at={0.1} x={660} y={50} w={620} h={940} src="cov/ms_bukhari.jpg" line={{ y: 330, h: 70 }} book="صحيح البخاري" part="1" page="45" until={9} /> },
+  CitationTag: { node: <CitationTag at={0.2} x={740} y={480} book="صحيح مسلم" part="2" page="118" /> },
+  NewsClip: { node: <NewsClip at={0.1} x={560} y={110} w={800} h={520} src="people/azharCourt.jpg" headline="عنوان الخبر في الصحيفة" source="اسم الصحيفة، 2026" /> },
+  TornNote: { node: <TornNote at={0.1} x={560} y={430} w={800} text="العبارة المهمة هنا" underline={1} /> },
+  FolderOpen: { node: <FolderOpen at={0.1} x={660} y={250} w={600} h={720} label="الوثيقة" src="cov/ms_bukhari.jpg" /> },
+  FoldReveal: { node: <FoldReveal at={0.1} x={510} y={110} w={900} h={840} a="people/azharCourt.jpg" b="people/azharMosque.jpg" labelA="الادعاء" labelB="الحقيقة" /> },
+  WordScraps: { node: <WordScraps at={0.1} x={180} y={440} text="عنوان القسم من قصاصات" /> },
+  TornPhoto: { node: <TornPhoto at={0.1} x={740} y={150} w={440} h={600} src="people/ibn_uthaymeen.jpg" name="ابن عثيمين" /> },
+  PaperGrain: { node: <><Page /><PaperGrain opacity={0.22} /></> },
+  BgFullImage: { node: <><Sil /><div style={{ position: "absolute", left: 0, right: 0, bottom: 120, textAlign: "center", fontFamily: kufiF, fontSize: 46, color: BRAND.card, direction: "rtl", textShadow: "0 3px 10px rgba(0,0,0,.6)" }}>«…وقبّة هذا المسجد في القاهرة»</div><FullImage src="people/azharMosque.jpg" from={1} to={3} marker={{ x: 1180, y: 20, w: 560, h: 560, at: 1.5 }} /></> },
   BgKh: { node: <KhBg /> },
   BgPaperDark: { node: <PaperBg dark /> },
   BgMashrabiya: { node: React.createElement(BACKGROUNDS.BgMashrabiya) },
@@ -118,7 +135,8 @@ const E: Record<string, { node: React.ReactNode; light?: boolean }> = {
 /** the drawing of one element by id: the same node the studio composition shows */
 export const labNode = (id: string) => E[id] ?? SPEC_E[id] ?? NAME_E[id];
 /** one element alone on its backdrop — the live gallery page plays this in Remotion Player (user 2026-10-28: «الصفحة تكتب العناصر برمجياً لا صوراً») */
-export const LabScene: React.FC<{ id: string }> = ({ id }) => {
+export const LabScene: React.FC<{ id: string; brand?: BrandName }> = ({ id, brand }) => {
+  applyBrand(brand);
   useFonts();
   const e = labNode(id);
   return (

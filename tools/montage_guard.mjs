@@ -90,7 +90,7 @@ if (cmd === "stage") {
   // (composition, component, public assets, tools, render_work, .tmp, titles/dates); exit 1 while anything remains so "approved & cleaned" cannot be claimed early.
   { const reg = readJson(path.join(".tmp", "active_montage.json"), {}); const list = (reg.projects ?? (reg.project ? [reg.project] : [])).filter((p) => p !== project);
     try { if (list.length) fs.writeFileSync(path.join(".tmp", "active_montage.json"), JSON.stringify({ projects: list, startedAt: reg.startedAt })); else fs.unlinkSync(path.join(".tmp", "active_montage.json")); console.log(`✔ أُنهي تسجيل المونتاج «${project}»`); } catch { console.log("لا مونتاج مسجَّل"); } }
-  const cp = (await import("node:child_process")).spawnSync("node", ["tools/clean_temp.mjs", "--approval"], { encoding: "utf8" });
+  const cp = (await import("node:child_process")).spawnSync("node", ["tools/clean_temp.mjs", "--approval", "--project", project], { encoding: "utf8" });
   console.log("— تنظيف المؤقتات (الاعتماد: كل ما لم يُكتب في آخر 3 دقائق، ما لم يعمل رندر) —\n" + ((cp.stdout || "") + (cp.stderr || "")).trim().split("\n").slice(-6).join("\n"));
   const key = project.toLowerCase(), left = [];
   // approval deletes the project's own files (name starts with the project key) in public/, .tmp/, .tmp/gates, render_work/ and tools/; code (src/, Root.tsx, titles) stays for the agent to remove and typecheck

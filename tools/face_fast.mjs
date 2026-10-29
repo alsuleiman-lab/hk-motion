@@ -43,7 +43,8 @@ const fallback = [null, med(1), med(2), med(3), med(4)];
 const boxAt = (t) => { // nearest detection within 2 s (camera fixed), else the median position; faces inside a split's clip half are not his
   const i = Math.round(t * track.fps);
   const sp = (spec.splits ?? []).find((s) => t >= s.from && t < s.to);
-  const inClip = (b) => sp ? (b[1] + b[3] / 2) >= sp.clip.x && (b[1] + b[3] / 2) < sp.clip.x + sp.clip.w : Math.abs((b[1] + b[3] / 2) - (fallback[1] + fallback[3] / 2)) > 350;   // outside a split window his face stays near its usual place: a far box is the guest's clip starting a moment early
+  const oddSize = (b) => b[3] > 1.6 * fallback[3] || b[3] < 0.5 * fallback[3];   // a detection far larger/smaller than his usual face (a false positive on the wall/books) is not his
+  const inClip = (b) => oddSize(b) || (sp ? (b[1] + b[3] / 2) >= sp.clip.x && (b[1] + b[3] / 2) < sp.clip.x + sp.clip.w : Math.abs((b[1] + b[3] / 2) - (fallback[1] + fallback[3] / 2)) > 350);   // outside a split window his face stays near its usual place: a far box is the guest's clip starting a moment early
   const cw = (spec.cams ?? []).find((c) => t >= c.from && t < c.to), w0 = sp ? sp.from : cw ? cw.from : 0, w1 = sp ? sp.to : cw ? cw.to : 1e9;
   const inWin = (k) => k / track.fps >= w0 && k / track.fps < w1;   // his face moves to the right half inside a split window: take detections of the same stretch only
   for (let d = 0; d <= 2 * track.fps; d++) for (const k of [i - d, i + d]) if (track.boxes[k]?.[1] != null && !inClip(track.boxes[k]) && inWin(k)) {

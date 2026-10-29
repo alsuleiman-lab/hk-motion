@@ -1,5 +1,5 @@
 import React from "react";
-import { BRAND_BAR } from "./brand";
+import { BRAND_BAR, alpha, currentStars } from "./brand";
 import { AbsoluteFill, Img, OffthreadVideo, getInputProps, getRemotionEnvironment, spring, staticFile, useCurrentFrame } from "remotion";
 import { PhoneChips, useT, useSp, kufiF, zainF, GFX_ONLY } from "./MG";
 import { Pic } from "./EuKit";
@@ -29,8 +29,8 @@ export const RV: React.FC<{ src: string; style: React.CSSProperties }> = ({ src,
  * All times are SECONDS on the CUT timeline.
  */
 export const PK_FPS = 30;
-export const INK = "#0f2a48";
-export const GOLD = "#2f5f94";
+export const INK = BRAND.navyDeep;
+export const GOLD = BRAND.accent;
 export const clamp = (x: number, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const K = 1920 / 1080; // webcam (1080 high) → portrait frame (1920 high)
 
@@ -39,7 +39,7 @@ export const BAR_WARM: BarTheme = BRAND_BAR;
 
 
 // the default montage background = blue stars (user 2026-10-28: the dotted warm base was dropped in the gallery, KhBg kept)
-export const WarmBase: React.FC = () => <KhBg />;
+export const WarmBase: React.FC = () => { const [a, b, c] = currentStars(); return <KhBg a={a} b={b} c={c} />; };
 
 export const Only: React.FC<{ from: number; to: number; children: React.ReactNode }> = ({ from, to, children }) => {
   const t = useT(0);
@@ -61,10 +61,10 @@ export const Word: React.FC<{ text: string; at: number; until: number; x: number
   size = size * 1.15;
   return (
     <div style={{ position: "absolute", left: x, top: y, transform: `translate(-50%,-50%) translateY(${(1 - p) * size * 0.35}px)`, opacity: p * out, filter: p < 1 ? `blur(${((1 - p) * size * 0.1).toFixed(1)}px)` : undefined, direction: "rtl", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 14 }}>
-      {flag ? <Pic src={flag} style={{ height: size * 0.95, width: size * 0.95, borderRadius: "50%", objectFit: "cover", border: "3px solid #f6f8fa", boxShadow: "0 3px 10px rgba(10,18,30,.6)" }} /> : null}
+      {flag ? <Pic src={flag} style={{ height: size * 0.95, width: size * 0.95, borderRadius: "50%", objectFit: "cover", border: `3px solid ${BRAND.card}`, boxShadow: "0 3px 10px rgba(10,18,30,.6)" }} /> : null}
       <span style={{ position: "relative", display: "inline-block", padding: "0 10px" }}>
-        <span style={{ position: "absolute", right: 0, bottom: gold ? "4%" : "-2%", height: gold ? "58%" : "8%", width: `${sweep * 100}%`, background: gold ? "rgba(47,95,148,.92)" : "rgba(246,239,224,.95)", borderRadius: 8, transform: "skewX(-6deg)" }} />
-        <span style={{ position: "relative", fontFamily: font ?? zainF, fontSize: size, lineHeight: 1.3, color: "#fff", WebkitTextStroke: `${Math.max(5, size * 0.12)}px #16212e`, paintOrder: "stroke fill", textShadow: "0 5px 16px rgba(10,18,30,.75)" }}>{text}</span>
+        <span style={{ position: "absolute", right: 0, bottom: gold ? "4%" : "-2%", height: gold ? "58%" : "8%", width: `${sweep * 100}%`, background: gold ? alpha(BRAND.accent, .92) : "rgba(246,239,224,.95)", borderRadius: 8, transform: "skewX(-6deg)" }} />
+        <span style={{ position: "relative", fontFamily: font ?? zainF, fontSize: size, lineHeight: 1.3, color: "#fff", WebkitTextStroke: `${Math.max(5, size * 0.12)}px ${BRAND.ink}`, paintOrder: "stroke fill", textShadow: "0 5px 16px rgba(10,18,30,.75)" }}>{text}</span>
       </span>
     </div>
   );
@@ -91,7 +91,7 @@ export const SheikhLayers: React.FC<{ cut: string; cams: Cam[]; zooms?: { from: 
   const z = zz ? 1 + (zz.amt ?? 0.08) * Math.min(clamp((t - zz.from) / 0.35), clamp((zz.to + 0.5 - t) / 0.45)) : 1;
   return (
     <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, transform: `scale(${z})`, transformOrigin: `540px ${originY}px` }}>
-      <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: "#16212e" }}>
+      <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: BRAND.ink }}>
         <RV src={staticFile(cut)} style={{ position: "absolute", left: -(cam.cx - 304) * K, top: 0, width: 1920 * K, height: 1920 }} />
       </div>
     </div>
@@ -100,6 +100,7 @@ export const SheikhLayers: React.FC<{ cut: string; cams: Cam[]; zooms?: { from: 
 
 /* ───────── MapRoute — «عند ذكر الانتقال بين البلاد/المدن تُرسم خريطة» (user rule 2026-10-22; own component, Natural Earth outlines in src/levantMap.ts) ───────── */
 import { LEVANT } from "./levantMap";
+import { BRAND } from "./brand";
 export type MapPt = { name: string; lon: number; lat: number; at: number; down?: boolean };
 export type MapLeg = { from: [number, number]; to: [number, number]; at: number; dur?: number; car?: boolean };
 export const MapRoute: React.FC<{
@@ -153,7 +154,7 @@ export const MapRoute: React.FC<{
 /* ───────── Paper motion (user 2026-10-22: «موشن ورقي»): stop-motion paper cut-outs on kraft paper ───────── */
 const SM = 3;                       // stop-motion: the picture updates every 3rd frame
 const gTex = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='.5'/></svg>\")";
-const paperCard = (x: number, y: number, w: number, h: number, pop: number, rot: number): React.CSSProperties => ({ position: "absolute", left: x, top: y, width: w, height: h, borderRadius: 18, overflow: "hidden", border: "6px solid #f6f8fa", background: "#d6dee6", boxShadow: "0 14px 30px rgba(10,18,30,.55)", transform: `rotate(${rot * (1 - pop)}deg) scale(${0.9 + 0.1 * pop})`, opacity: Math.min(1, pop * 2.5) });
+const paperCard = (x: number, y: number, w: number, h: number, pop: number, rot: number): React.CSSProperties => ({ position: "absolute", left: x, top: y, width: w, height: h, borderRadius: 18, overflow: "hidden", border: `6px solid ${BRAND.card}`, background: BRAND.paper2, boxShadow: "0 14px 30px rgba(10,18,30,.55)", transform: `rotate(${rot * (1 - pop)}deg) scale(${0.9 + 0.1 * pop})`, opacity: Math.min(1, pop * 2.5) });
 const Grain: React.FC = () => <div style={{ position: "absolute", inset: 0, backgroundImage: gTex, opacity: 0.22, mixBlendMode: "multiply", pointerEvents: "none" }} />;
 const useStop = () => { const f = useCurrentFrame(); const q = Math.floor(f / SM) * SM; return { q, t: q / PK_FPS, k: Math.round(q / SM) }; };
 
@@ -190,14 +191,14 @@ export const PaperMap: React.FC<{
           const s = (j + 0.5) / 16; if (s > c.e) return null;
           const m = 1 - s, bx = m * m * c.x1 + 2 * m * s * c.mx + s * s * c.x2, by = m * m * c.y1 + 2 * m * s * c.my + s * s * c.y2;
           const ang = Math.atan2(2 * m * (c.my - c.y1) + 2 * s * (c.y2 - c.my), 2 * m * (c.mx - c.x1) + 2 * s * (c.x2 - c.mx)) * 180 / Math.PI;
-          return <rect key={i + "-" + j} x={bx - 9} y={by - 3.5} width={18} height={7} rx={2} fill="#b5412f" stroke="#f6efe0" strokeWidth={1.5} transform={`rotate(${ang} ${bx} ${by})`} />;
+          return <rect key={i + "-" + j} x={bx - 9} y={by - 3.5} width={18} height={7} rx={2} fill={BRAND.mark} stroke="#f6efe0" strokeWidth={1.5} transform={`rotate(${ang} ${bx} ${by})`} />;
         }) : null)}
         {pts.map((p, i) => {
           if (t < p.at) return null;
           const [px, py] = P(p.lon, p.lat), s = clamp((t - p.at) / 0.35), tilt = i % 2 ? 3 : -4;
           return (
             <g key={i} transform={`translate(${px},${py}) scale(${0.6 + 0.4 * s})`} opacity={s} filter="url(#shd)">
-              <circle r={11} fill="#b5412f" stroke="#fff4dc" strokeWidth={4} />
+              <circle r={11} fill={BRAND.mark} stroke="#fff4dc" strokeWidth={4} />
               <g transform={`translate(0,${p.down ? 50 : -34}) rotate(${tilt})`}><rect x={-62} y={-24} width={124} height={44} rx={7} fill="#f6efe0" stroke="#7a5233" strokeWidth={2} /><text x={0} y={9} textAnchor="middle" fontFamily={kufiF} fontSize={32} fill="#35200f" direction="rtl">{p.name}</text></g>
             </g>
           );
@@ -252,7 +253,7 @@ export const Marker: React.FC<{ at: number; x: number; y: number; w: number; h: 
   const f = useCurrentFrame();
   const p = clamp((f / PK_FPS - at) / 0.5);
   if (p <= 0) return null;
-  return <div style={{ position: "absolute", left: `${x * 100}%`, top: `${y * 100}%`, width: `${w * 100}%`, height: `${h * 100}%`, border: "6px solid #b5412f", borderRadius: 28, clipPath: `inset(0 ${100 - p * 100}% 0 0)`, boxShadow: "0 0 18px rgba(181,65,47,.55)" }} />;
+  return <div style={{ position: "absolute", left: `${x * 100}%`, top: `${y * 100}%`, width: `${w * 100}%`, height: `${h * 100}%`, border: `6px solid ${BRAND.mark}`, borderRadius: 28, clipPath: `inset(0 ${100 - p * 100}% 0 0)`, boxShadow: `0 0 18px ${alpha(BRAND.mark, .55)}` }} />;
 };
 
 /** a plain spring pop-in for a card that is not one of the kit's source moves (left-bottom anchored) */
@@ -271,10 +272,10 @@ export const FullImage: React.FC<{ src: string; from: number; to: number; origin
   const k = 1 + 0.12 * clamp((t - from) / (to - from));
   const mp = marker ? clamp((t - marker.at) / 0.5) : 0;
   return (
-    <AbsoluteFill style={{ opacity: o, background: "#f6f8fa", overflow: "hidden" }}>
+    <AbsoluteFill style={{ opacity: o, background: BRAND.card, overflow: "hidden" }}>
       <div style={{ position: "absolute", inset: 0, transform: `scale(${k})`, transformOrigin: origin }}>
         <Pic src={src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        {marker && mp > 0 ? <div style={{ position: "absolute", left: marker.x, top: marker.y, width: marker.w, height: marker.h, border: "7px solid #b5412f", borderRadius: 30, clipPath: `inset(0 ${100 - mp * 100}% 0 0)`, boxShadow: "0 0 20px rgba(181,65,47,.6)" }} /> : null}
+        {marker && mp > 0 ? <div style={{ position: "absolute", left: marker.x, top: marker.y, width: marker.w, height: marker.h, border: `7px solid ${BRAND.mark}`, borderRadius: 30, clipPath: `inset(0 ${100 - mp * 100}% 0 0)`, boxShadow: `0 0 20px ${alpha(BRAND.mark, .6)}` }} /> : null}
       </div>
     </AbsoluteFill>
   );

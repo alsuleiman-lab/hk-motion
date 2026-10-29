@@ -1,4 +1,4 @@
-import { BRAND_BAR } from "./brand";
+import { BRAND_BAR, alpha } from "./brand";
 import React from "react";
 import { AbsoluteFill, Easing, Img, staticFile, useVideoConfig } from "remotion";
 import { GLOW, T, useSp, useT } from "./MG";
@@ -6,6 +6,7 @@ import { DrawIcon } from "./MotionKit";
 import { TEXT, TITLE } from "./EuKit";
 import { FONT_QURAN, QURAN_FONT } from "./localFonts";
 import { type BarTheme } from "./TitleBar";
+import { BRAND } from "./brand";
 
 /**
  * Reusable extras that came out of the «بركة وزير الأوقاف» montage (kept after its approval; the video itself was deleted):
@@ -35,9 +36,9 @@ export const KeyChip: React.FC<{ phrases: { text: string; at: number }[]; x?: nu
 export const StampG: React.FC<{ at: number; x: number; y: number; text: string; size?: number }> = ({ at, x, y, text, size = 58 }) => {
   const s = useSp(at, 7, 260), t = useT(at);
   if (t < 0) return null;
-  return <div style={{ position: "absolute", left: x, top: y, transform: `translate(-50%,0) rotate(-7deg) scale(${2.1 - 1.1 * s})`, opacity: Math.min(1, s * 3), border: "6px solid #b5412f", color: "#b5412f", fontFamily: TITLE, fontWeight: 800, fontSize: size, padding: "2px 24px 10px", borderRadius: 12, background: "rgba(10,26,50,.82)", whiteSpace: "nowrap", direction: "rtl" }}>{text}</div>;
+  return <div style={{ position: "absolute", left: x, top: y, transform: `translate(-50%,0) rotate(-7deg) scale(${2.1 - 1.1 * s})`, opacity: Math.min(1, s * 3), border: `6px solid ${BRAND.mark}`, color: BRAND.mark, fontFamily: TITLE, fontWeight: 800, fontSize: size, padding: "2px 24px 10px", borderRadius: 12, background: "rgba(10,26,50,.82)", whiteSpace: "nowrap", direction: "rtl" }}>{text}</div>;
 };
-export const IconPop: React.FC<{ at: number; x: number; y: number; name: string; size?: number; color?: string }> = ({ at, x, y, name, size = 150, color = "#f6f8fa" }) => {
+export const IconPop: React.FC<{ at: number; x: number; y: number; name: string; size?: number; color?: string }> = ({ at, x, y, name, size = 150, color = BRAND.card }) => {
   const s = useSp(at, 12, 150), t = useT(at);
   if (t < 0) return null;
   return <div style={{ position: "absolute", left: x - size / 2, top: y, opacity: Math.min(1, s * 2) }}><DrawIcon name={name} p={Math.min(1, s)} size={size} color={color} sw={1.5} glow={10} /></div>;
@@ -55,7 +56,7 @@ export const IconCards: React.FC<{ P: Rect; y0: number; items: { icon: string; t
         const left = P.x + 20 + (n - 1 - i) * (cw + gap);
         return (
           <div key={i} style={{ position: "absolute", left, top: P.y + y0 + (1 - k) * 46, width: cw, height: ch, opacity: k, transform: `rotate(${(i % 2 ? 1 : -1) * 1.5 * (1 - k * 0.4)}deg)`, borderRadius: 28, background: "rgba(10,26,50,.78)", border: "2px solid rgba(255,255,255,.28)", boxShadow: "0 16px 34px rgba(0,0,0,.35)", direction: "rtl", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: 18 }}>
-            {round ? <div style={{ width: ch * 0.5, height: ch * 0.5, borderRadius: "50%", background: "rgba(47,95,148,.16)", border: "3px solid #2f5f94", display: "flex", alignItems: "center", justifyContent: "center" }}><DrawIcon name={it.icon} p={Math.min(1, k * 1.4)} size={ch * 0.3} color="#f6f8fa" sw={1.6} glow={8} /></div> : <DrawIcon name={it.icon} p={Math.min(1, k * 1.4)} size={ch * 0.36} color="#f6f8fa" sw={1.6} glow={8} />}
+            {round ? <div style={{ width: ch * 0.5, height: ch * 0.5, borderRadius: "50%", background: alpha(BRAND.accent, .16), border: `3px solid ${BRAND.accent}`, display: "flex", alignItems: "center", justifyContent: "center" }}><DrawIcon name={it.icon} p={Math.min(1, k * 1.4)} size={ch * 0.3} color={BRAND.card} sw={1.6} glow={8} /></div> : <DrawIcon name={it.icon} p={Math.min(1, k * 1.4)} size={ch * 0.36} color={BRAND.card} sw={1.6} glow={8} />}
             <div style={{ fontFamily: TITLE, fontWeight: 800, fontSize: L ? 44 : 34, color: "#fff", textAlign: "center", lineHeight: 1.3 }}>{it.text}</div>
           </div>
         );
@@ -76,10 +77,10 @@ export const FlowNodes: React.FC<{ P: Rect; y0: number; nodes: { icon: string; l
         const ak = ease((t - nd.at) / 0.5);
         return (
           <React.Fragment key={i}>
-            {i > 0 && ak > 0 ? <div style={{ position: "absolute", left: cx + step / 2 - 26, top: P.y + y0 + d / 2 - 26, opacity: ak }}><DrawIcon name="ArrowLeft" p={ak} size={52} color="#2f5f94" sw={2.2} /></div> : null}
+            {i > 0 && ak > 0 ? <div style={{ position: "absolute", left: cx + step / 2 - 26, top: P.y + y0 + d / 2 - 26, opacity: ak }}><DrawIcon name="ArrowLeft" p={ak} size={52} color={BRAND.accent} sw={2.2} /></div> : null}
             {k > 0 ? (
               <div style={{ position: "absolute", left: cx - step / 2, top: P.y + y0 + (1 - k) * 30, width: step, textAlign: "center", opacity: k, direction: "rtl" }}>
-                <div style={{ width: d, height: d, margin: "0 auto", borderRadius: "50%", background: "rgba(10,26,50,.8)", border: "3px solid #2f5f94", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 12px 26px rgba(0,0,0,.35)" }}><DrawIcon name={nd.icon} p={Math.min(1, k * 1.4)} size={d * 0.52} color="#f6f8fa" sw={1.6} glow={8} /></div>
+                <div style={{ width: d, height: d, margin: "0 auto", borderRadius: "50%", background: "rgba(10,26,50,.8)", border: `3px solid ${BRAND.accent}`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 12px 26px rgba(0,0,0,.35)" }}><DrawIcon name={nd.icon} p={Math.min(1, k * 1.4)} size={d * 0.52} color={BRAND.card} sw={1.6} glow={8} /></div>
                 <div style={{ fontFamily: TITLE, fontWeight: 800, fontSize: L ? 40 : 30, color: "#fff", marginTop: 12 }}>{nd.label}</div>
               </div>
             ) : null}
@@ -101,8 +102,8 @@ export const StepBars: React.FC<{ P: Rect; y0: number; h: number; items: { label
         if (k <= 0) return null;
         const hh = h * (0.45 + 0.275 * i) * k, left = P.x + P.w - 60 - (i + 1) * bw - i * gap;
         return (
-          <div key={i} style={{ position: "absolute", left, top: P.y + y0 + h - hh, width: bw, height: hh, borderRadius: "18px 18px 0 0", background: "linear-gradient(180deg,#f6f8fa,#2f5f94)", boxShadow: "0 0 26px rgba(47,95,148,.35)", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 12, direction: "rtl" }}>
-            <span style={{ fontFamily: TITLE, fontWeight: 800, fontSize: 46, color: "#0f2a48", opacity: k }}>{it.label}</span>
+          <div key={i} style={{ position: "absolute", left, top: P.y + y0 + h - hh, width: bw, height: hh, borderRadius: "18px 18px 0 0", background: `linear-gradient(180deg,${BRAND.card},${BRAND.accent})`, boxShadow: `0 0 26px ${alpha(BRAND.accent, .35)}`, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 12, direction: "rtl" }}>
+            <span style={{ fontFamily: TITLE, fontWeight: 800, fontSize: 46, color: BRAND.navyDeep, opacity: k }}>{it.label}</span>
           </div>
         );
       })}
@@ -124,7 +125,7 @@ export const TimedCompare: React.FC<{ at: number; until: number; x: number; y: n
     </div>
   );
   const chip = (cxp: number, label: string, hi: boolean, first: number) => (
-    <div style={{ position: "absolute", left: cxp - 85, top: y - 66, width: 170, textAlign: "center", fontFamily: TITLE, fontWeight: 800, fontSize: 34, padding: "6px 0", borderRadius: 30, background: hi ? GLOW : "rgba(255,255,255,.22)", color: hi ? "#132031" : "#fff", opacity: ease((now - first) / 0.3) * out }}>{label}</div>
+    <div style={{ position: "absolute", left: cxp - 85, top: y - 66, width: 170, textAlign: "center", fontFamily: TITLE, fontWeight: 800, fontSize: 34, padding: "6px 0", borderRadius: 30, background: hi ? GLOW : "rgba(255,255,255,.22)", color: hi ? BRAND.base3 : "#fff", opacity: ease((now - first) / 0.3) * out }}>{label}</div>
   );
   return (
     <>
@@ -186,7 +187,7 @@ export const SourceLabel: React.FC<{ at: number; x: number; y: number; w: number
   const s = useSp(at, 13, 160), t = useT(at);
   if (t < 0 || t > dur) return null;
   return (
-    <div style={{ position: "absolute", left: x, top: y, width: w, opacity: clamp(s * 2), transform: `translateY(${(1 - s) * 10}px)`, background: "rgba(246,248,250,.94)", borderRight: `7px solid ${T.accent}`, borderRadius: 10, padding: "6px 14px", direction: "rtl", fontFamily: TEXT, fontWeight: 800, fontSize: size, color: T.ink, boxShadow: "0 6px 14px rgba(0,0,0,.25)" }}>{text}</div>
+    <div style={{ position: "absolute", left: x, top: y, width: w, opacity: clamp(s * 2), transform: `translateY(${(1 - s) * 10}px)`, background: alpha(BRAND.card, .94), borderRight: `7px solid ${T.accent}`, borderRadius: 10, padding: "6px 14px", direction: "rtl", fontFamily: TEXT, fontWeight: 800, fontSize: size, color: T.ink, boxShadow: "0 6px 14px rgba(0,0,0,.25)" }}>{text}</div>
   );
 };
 
@@ -196,8 +197,8 @@ export const SourceLabel: React.FC<{ at: number; x: number; y: number; w: number
  * ReelVerseFull: reels only — the verse he recites fills the screen, his picture hidden, words at his word times (text from data/quran).
  * ReelPersonInBand: «هذا الشخص» → the person's photo in the writing band, caption under the photo. JordanFlag: SVG flag. */
 const REEL_Q3 = 1346;
-const REEL_NAVY = "#2f5f94";
-const REEL_INK = "#1b2a3d";
+const REEL_NAVY = BRAND.accent;
+const REEL_INK = BRAND.base;
 const QURAN_FAM = FONT_QURAN();
 /** Jordan flag drawn in SVG (black / white / green stripes, red triangle with the seven-pointed white star) */
 export const JordanFlag: React.FC = () => {
@@ -261,7 +262,7 @@ export const ReelBehindCard: React.FC<{ from: number; to: number; side: "left" |
   const bob = Math.sin(t * 1.4) * 6;
   return (
     <div style={{ position: "absolute", left: x, top: y, width: w, height: h, perspective: 1400 }}>
-      <div style={{ position: "absolute", inset: 0, transform: `translateX(${slide}px) translateY(${bob}px) rotateY(${dir * -17}deg) rotateZ(${dir * 1.2}deg)`, transformOrigin: side === "left" ? "left center" : "right center", borderRadius: 24, overflow: "hidden", border: "3px solid rgba(170,225,255,.9)", boxShadow: "0 0 26px rgba(120,200,255,.55), 0 24px 50px rgba(0,0,0,.45)", background: "#132031" }}>
+      <div style={{ position: "absolute", inset: 0, transform: `translateX(${slide}px) translateY(${bob}px) rotateY(${dir * -17}deg) rotateZ(${dir * 1.2}deg)`, transformOrigin: side === "left" ? "left center" : "right center", borderRadius: 24, overflow: "hidden", border: "3px solid rgba(170,225,255,.9)", boxShadow: "0 0 26px rgba(120,200,255,.55), 0 24px 50px rgba(0,0,0,.45)", background: BRAND.base3 }}>
         {children}
       </div>
     </div>

@@ -12,6 +12,9 @@ import { CoverKit, COVER_PALETTES, PaperCoverKit, PAPER_COVER_END } from "./Cove
 import type { CoverProps } from "./CoverKit";
 import { ThumbProOpen, THUMBPRO_END } from "./ThumbPro";
 import type { ThumbProps } from "./ThumbPro";
+import { BRAND, applyBrand } from "./brand";
+import type { BrandName } from "./brand";
+import { MaskedVideo } from "./MaskedVideo";
 
 /**
  * MontageSpec — a montage as DATA (idea of the user, 2026-10-26: «write each element once, copy it from a database, change one place and everything follows»).
@@ -21,7 +24,9 @@ import type { ThumbProps } from "./ThumbPro";
  * ONE spec serves BOTH orientations: the composition's size decides (1080×1920 = portrait, 1920×1080 = landscape). Same items, same seconds; the renderer places each item by the
  * orientation's layout (PORTRAIT / LANDSCAPE in PortraitKit). Item numbers (x, y, w, h) are the PORTRAIT ones; `land` overrides them for landscape (or `skip`), `only` pins an item to one orientation.
  * All times are seconds on the CUT timeline. Portrait layer order (fixed): warm base → [shake] his video → full-screen sources → <Gfx> (title bar, items, cover).
- * Landscape: his whole frame (+ push-ins) → full-screen sources → <Gfx>; no background isolation anywhere.
+ * Landscape: his whole frame (+ push-ins) → full-screen sources → <Gfx>.
+ * Quick isolation (user 2026-10-29): with a saved `matte` of the cut, inside each `behind` window he is drawn again on top (MaskedVideo), so the full-screen picture or the
+ * answered clip sits BETWEEN him and his background. Used in a reel while a clip is shown, and in the full versions only where needed.
  */
 type Mark = { x: number; y: number; w: number; h: number; at: number };
 /** landscape override of one item (any field of the item that is a position/size, plus skip) */
@@ -64,6 +69,14 @@ export type MontageSpec = {
   splits?: { from: number; to: number; clip: { x: number; w: number }; sheikh: { x: number; w: number }; clipName?: string; faceX?: number; blur?: number }[];
   /** an audio message added after his video: plays `src` from `from` s (+ voice card with a waveform and cycling photos) */
   tail?: { from: number; to: number; src: string; label: string; photos: string[] };
+  /** the colour palette of the one identity (src/brand.ts PALETTES; default steel) */
+  brand?: BrandName;
+  /** "full" = the whole video (landscape and/or full portrait, same timeline); "reel" = a chosen excerpt ≤ 3 min, portrait only (hook 10–15 s, full-screen verses) */
+  kind?: "full" | "reel";
+  /** quick isolation: the gray matte of the cut (white = him) from  node tools/matte_cache.mjs get public/<cut> 0 <end>  → { src, startFrom = its offsetFrames } */
+  matte?: { src: string; startFrom?: number };
+  /** windows (cut seconds) where he is drawn over the full-screen pictures and the clip card (needs `matte`) */
+  behind?: { from: number; to: number }[];
   items: SpecItem[];
 };
 
@@ -85,7 +98,7 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
     case "blur":
       return L
         ? <KeyChip key={i} phrases={[{ text: it.text, at: it.at }]} until={it.until} x={ov.x} y={ov.y ?? LANDSCAPE.keyY} size={ov.size ?? 54} theme={bar} />
-        : <Only key={i} from={it.at} to={it.until}><BlurRise at={it.at} times={[it.at, it.at + 0.4]} text={it.text} x={40} w={1000} y={it.y} size={it.size ?? 58} color="#fff" accentColor="#2f5f94" accentWords={it.accentWords ?? []} canvasW={1080} /></Only>;
+        : <Only key={i} from={it.at} to={it.until}><BlurRise at={it.at} times={[it.at, it.at + 0.4]} text={it.text} x={40} w={1000} y={it.y} size={it.size ?? 58} color="#fff" accentColor={BRAND.accent} accentWords={it.accentWords ?? []} canvasW={1080} /></Only>;
     case "nameTag": {   // the old NameTag was dropped in the gallery (2026-10-28): the approved name card 1, or 3 with style "pinned"
       const C = it.style === "pinned" ? NameCard3 : NameCard1;
       return <Only key={i} from={it.at} to={it.at + (it.dur ?? 4)}><C at={it.at} x={L ? ov.x ?? LANDSCAPE.W / 2 : it.x} y={(L ? ov.y ?? LANDSCAPE.nameY : it.y) + 40} /></Only>;
@@ -108,7 +121,7 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
       return (
         <Only key={i} from={it.at} to={it.until}>
           <SourceWalk at={it.at} w={w} h={h} from={{ x: -w - 40, y }} mid={{ x: x - 30, y: y + 5 }} to={{ x, y }} switchAt={0.2} sprint={0.55} impact={false}>
-            <div style={{ position: "relative", width: w, height: h, borderRadius: 14, overflow: "hidden", border: "5px solid #f6f8fa", boxSizing: "border-box" }}>
+            <div style={{ position: "relative", width: w, height: h, borderRadius: 14, overflow: "hidden", border: `5px solid ${BRAND.card}`, boxSizing: "border-box" }}>
               <Pic src={it.src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               {mk ? <Marker at={mk.at - it.at} x={mk.x} y={mk.y} w={mk.w} h={mk.h} /> : null}
             </div>
@@ -129,7 +142,7 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
           <FlashCut at={it.at} x={L ? ov.x ?? G.x : it.x} y={L ? ov.y ?? G.y : it.y} w={w} h={h} beats={it.beats} crops={it.crops}>
             <Pic src={it.src} style={{ width: w, height: h, objectFit: "cover" }} />
           </FlashCut>
-          {it.name ? <div style={{ position: "absolute", left: L ? ov.x ?? G.x : it.x, top: (L ? ov.y ?? G.y : it.y) + h, width: w, height: 48, background: "#0f2a48", color: "#fff", fontFamily: "Noto Kufi Arabic", fontSize: 30, textAlign: "center", direction: "rtl", lineHeight: "48px", whiteSpace: "nowrap", borderRadius: "0 0 10px 10px" }}>{it.name}</div> : null}
+          {it.name ? <div style={{ position: "absolute", left: L ? ov.x ?? G.x : it.x, top: (L ? ov.y ?? G.y : it.y) + h, width: w, height: 48, background: BRAND.navyDeep, color: "#fff", fontFamily: "Noto Kufi Arabic", fontSize: 30, textAlign: "center", direction: "rtl", lineHeight: "48px", whiteSpace: "nowrap", borderRadius: "0 0 10px 10px" }}>{it.name}</div> : null}
         </Only>
       );
     }
@@ -162,11 +175,11 @@ const CARD_BORDER = 14, CARD_STRIP = 56, CARD_H = 800;
 const CropPolaroid: React.FC<{ cut: string; x: number; w: number; name: string; left: number; top: number; rot: number; innerH?: number; blur?: number }> = ({ cut, x, w, name, left, top, rot, innerH = CARD_H, blur }) => {
   const k = innerH / 1080, iw = Math.round(w * k);
   return (
-    <div style={{ position: "absolute", left, top, width: iw + CARD_BORDER * 2, height: innerH + CARD_BORDER * 2 + CARD_STRIP, background: "#f6f8fa", borderRadius: 12, transform: `rotate(${rot}deg)`, boxShadow: "0 14px 34px rgba(0,0,0,.45)" }}>
+    <div style={{ position: "absolute", left, top, width: iw + CARD_BORDER * 2, height: innerH + CARD_BORDER * 2 + CARD_STRIP, background: BRAND.card, borderRadius: 12, transform: `rotate(${rot}deg)`, boxShadow: "0 14px 34px rgba(0,0,0,.45)" }}>
       <div style={{ position: "absolute", left: CARD_BORDER, top: CARD_BORDER, width: iw, height: innerH, overflow: "hidden", background: "#000" }}>
         <RV src={staticFile(cut)} style={{ position: "absolute", left: -x * k, top: 0, width: 1920 * k, height: innerH, ...(blur ? { filter: `blur(${blur}px)` } : {}) }} />
       </div>
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: CARD_STRIP, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", fontFamily: "Noto Kufi Arabic", fontWeight: 800, fontSize: 28, color: "#16212e" }}>{name}</div>
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: CARD_STRIP, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", fontFamily: "Noto Kufi Arabic", fontWeight: 800, fontSize: 28, color: BRAND.ink }}>{name}</div>
     </div>
   );
 };
@@ -189,7 +202,7 @@ export const Curtain: React.FC<{ at: number }> = ({ at }) => {
   if (p < 0 || p > 1) return null;
   const W = 3000;
   return (
-    <div style={{ position: "absolute", top: 0, height: LANDSCAPE.H, width: W, left: LANDSCAPE.W - p * (LANDSCAPE.W + W), overflow: "hidden", borderLeft: "10px solid #2f5f94", borderRight: "10px solid #2f5f94", boxSizing: "border-box" }}>
+    <div style={{ position: "absolute", top: 0, height: LANDSCAPE.H, width: W, left: LANDSCAPE.W - p * (LANDSCAPE.W + W), overflow: "hidden", borderLeft: `10px solid ${BRAND.accent}`, borderRight: `10px solid ${BRAND.accent}`, boxSizing: "border-box" }}>
       <WarmBase />
     </div>
   );
@@ -216,12 +229,12 @@ export const TailVoice: React.FC<{ tl: NonNullable<MontageSpec["tail"]> }> = ({ 
   return (
     <AbsoluteFill>
       <WarmBase />
-      <div style={{ position: "absolute", left, top, width: cw, background: "#f6f8fa", borderRadius: 12, padding: 14, boxSizing: "border-box", transform: "rotate(-1.2deg)", boxShadow: "0 14px 34px rgba(0,0,0,.45)" }}>
-        <div style={{ width: cw - 28, height: ch, overflow: "hidden", background: "#16212e" }}><Pic src={tl.photos[idx]} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
+      <div style={{ position: "absolute", left, top, width: cw, background: BRAND.card, borderRadius: 12, padding: 14, boxSizing: "border-box", transform: "rotate(-1.2deg)", boxShadow: "0 14px 34px rgba(0,0,0,.45)" }}>
+        <div style={{ width: cw - 28, height: ch, overflow: "hidden", background: BRAND.ink }}><Pic src={tl.photos[idx]} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
         <div style={{ height: 120, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-          {bars.map((b, i) => <div key={i} style={{ width: 10, height: 12 + b * 90, borderRadius: 6, background: i % 2 ? "#1b2a3d" : "#132031" }} />)}
+          {bars.map((b, i) => <div key={i} style={{ width: 10, height: 12 + b * 90, borderRadius: 6, background: i % 2 ? BRAND.base : BRAND.base3 }} />)}
         </div>
-        <div style={{ textAlign: "center", direction: "rtl", fontFamily: "Noto Kufi Arabic", fontWeight: 800, fontSize: 34, color: "#16212e", paddingBottom: 6 }}>{tl.label}</div>
+        <div style={{ textAlign: "center", direction: "rtl", fontFamily: "Noto Kufi Arabic", fontWeight: 800, fontSize: 34, color: BRAND.ink, paddingBottom: 6 }}>{tl.label}</div>
       </div>
     </AbsoluteFill>
   );
@@ -235,9 +248,29 @@ export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: nu
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 0.5);
   const z = zz ? 1 + (zz.amt ?? 0.08) * Math.min(clamp((t - zz.from) / 0.35), clamp((zz.to + 0.5 - t) / 0.45)) : 1;
   return (
-    <AbsoluteFill style={{ background: "#1b2a3d", transform: `scale(${z})`, transformOrigin: LANDSCAPE.faceOrigin }}>
+    <AbsoluteFill style={{ background: BRAND.base, transform: `scale(${z})`, transformOrigin: LANDSCAPE.faceOrigin }}>
       <RV src={staticFile(cut)} style={{ position: "absolute", left: 0, top: 0, width: LANDSCAPE.W, height: LANDSCAPE.H }} />
     </AbsoluteFill>
+  );
+};
+
+/** quick isolation: his cut-out (cut + saved matte) with exactly the geometry of his video layer (LandFootage / SheikhLayers), drawn over what sits behind him */
+const MaskedSheikh: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; o: Orient; cams?: MontageSpec["cams"]; zooms?: MontageSpec["zooms"] }> = ({ cut, matte, o, cams, zooms = [] }) => {
+  const t = useT(0);
+  const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 0.5);
+  const z = zz ? 1 + (zz.amt ?? 0.08) * Math.min(clamp((t - zz.from) / 0.35), clamp((zz.to + 0.5 - t) / 0.45)) : 1;
+  if (o === "land") return (
+    <AbsoluteFill style={{ transform: `scale(${z})`, transformOrigin: LANDSCAPE.faceOrigin }}>
+      <MaskedVideo video={cut} matte={matte.src} matteStartFrom={matte.startFrom ?? 0} width={LANDSCAPE.W} height={LANDSCAPE.H} />
+    </AbsoluteFill>
+  );
+  const cs = cams ?? [{ from: 0, to: 9999, cx: 990 }], cam = cs.find((c) => t >= c.from && t < c.to) ?? cs[cs.length - 1], K = 1920 / 1080;
+  return (
+    <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, transform: `scale(${z})`, transformOrigin: "540px 600px", overflow: "hidden" }}>
+      <div style={{ position: "absolute", left: -(cam.cx - 304) * K, top: 0, width: 1920 * K, height: 1920 }}>
+        <MaskedVideo video={cut} matte={matte.src} matteStartFrom={matte.startFrom ?? 0} width={Math.round(1920 * K)} height={1920} />
+      </div>
+    </div>
   );
 };
 
@@ -249,6 +282,7 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
   const f = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const o: Orient = width > height ? "land" : "port";
+  applyBrand(spec.brand);
   FONT_TITLE(); FONT_TEXT();
   const bar = spec.bar ?? BAR_WARM;
   const fulls = spec.items.filter((i): i is Extract<SpecItem, { t: "full" }> => i.t === "full" && (!i.only || i.only === o));
@@ -257,7 +291,7 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
     ? (spec.cut ? <LandFootage cut={spec.cut} zooms={spec.zooms} splits={spec.splits} /> : null)
     : (spec.cut ? <SheikhLayers cut={spec.cut} cams={spec.cams ?? [{ from: 0, to: 9999, cx: 990 }]} zooms={spec.zooms} /> : null);
   return (
-    <AbsoluteFill style={{ background: "#1b2a3d" }}>
+    <AbsoluteFill style={{ background: BRAND.base }}>
       {spec.cut ? <Audio src={staticFile(spec.cut)} volume={0.8} /> : null}
       {o === "port" || !spec.cut ? <WarmBase /> : null}
       <Sequence from={0} durationInFrames={spec.tail ? Math.round(spec.tail.from * 30) : spec.frames}>{spec.shake?.length ? <HandheldShake windows={spec.shake} amp={6} rot={0.4}>{body}</HandheldShake> : body}</Sequence>
@@ -266,6 +300,7 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
       {spec.tail ? <Sequence from={Math.round(spec.tail.from * 30)}><Audio src={staticFile(spec.tail.src)} volume={0.95} /></Sequence> : null}
       {spec.tail ? <TailVoice tl={spec.tail} /> : null}
       {fulls.map((x, i) => <FullImage key={i} src={x.src} from={x.from} to={x.to} origin={o === "land" ? x.land?.origin ?? x.origin : x.origin} marker={o === "land" ? x.land?.marker : x.marker} />)}
+      {spec.cut && spec.matte ? (spec.behind ?? []).map((w, i) => <Only key={i} from={w.from} to={w.to}><MaskedSheikh cut={spec.cut!} matte={spec.matte!} o={o} cams={spec.cams} zooms={spec.zooms} /></Only>) : null}
       <Gfx>
         {spec.items.map((it, i) => renderItem(it, i, o, bar))}
         <TitleBar title={spec.title} theme={bar} bottomHalf={o === "port"} />

@@ -5,6 +5,7 @@ import { Pic, TITLE, TEXT } from "./EuKit";
 import { DrawIcon } from "./MotionKit";
 import { FLOOR, Mosque, PaperDefs, Skyline, Tomb } from "./KhPaper";
 import { Gfx } from "./MG";
+import { BRAND } from "./brand";
 
 /** Pieces of the «تصحيح الحديث بالكشف الصوفي» montage. Everything that is VIDEO or BACKGROUND lives here (outside <Gfx>); overlays are in KashfHadith.tsx. */
 export const FPS = 30;
@@ -370,7 +371,7 @@ export const IllScales: React.FC<{ at?: number }> = ({ at = 0 }) => {
           <rect x="360" y="740" width="380" height="60" fill="#a9552f" />
           <g transform={`rotate(${tilt} 550 230)`}>
             <rect x="130" y="212" width="840" height="36" rx="18" fill="#f3c34a" />
-            <path d="M110 470 Q240 600 370 470Z" fill="#5f9a6a" /><path d="M810 470 Q940 600 1070 470Z" fill="#b5412f" />
+            <path d="M110 470 Q240 600 370 470Z" fill="#5f9a6a" /><path d="M810 470 Q940 600 1070 470Z" fill={BRAND.mark} />
             <path d="M170 400 l30 40 l70 -80" fill="none" stroke="#fff8e6" strokeWidth="14" />
             <path d="M880 380 l80 80 M960 380 l-80 80" fill="none" stroke="#fff8e6" strokeWidth="14" />
           </g>
@@ -501,7 +502,7 @@ export const IllPassport: React.FC = () => (
         <rect x="120" y="260" width="420" height="560" rx="30" fill="#a9552f" transform="rotate(-6 330 540)" />
         <circle cx="320" cy="470" r="90" fill="none" /><path d="M250 470 H390 M320 380 V560" fill="none" />
         <rect x="430" y="380" width="360" height="460" rx="24" fill="#f3e6c4" transform="rotate(5 610 610)" />
-        <circle cx="620" cy="640" r="95" fill="none" stroke="#b5412f" strokeWidth="12" transform="rotate(5 610 610)" /><path d="M560 640 l40 40 l80 -90" fill="none" stroke="#b5412f" strokeWidth="14" transform="rotate(5 610 610)" />
+        <circle cx="620" cy="640" r="95" fill="none" stroke={BRAND.mark} strokeWidth="12" transform="rotate(5 610 610)" /><path d="M560 640 l40 40 l80 -90" fill="none" stroke={BRAND.mark} strokeWidth="14" transform="rotate(5 610 610)" />
         <path d="M640 150 L930 230 L650 260 L560 340 L540 250 L380 230Z" fill="#f3c34a" />
       </g>
     </svg>
@@ -515,7 +516,7 @@ export const IllShelf: React.FC = () => (
         {[0, 1, 2].map((r) => (
           <g key={r} transform={`translate(0 ${r * 270})`}>
             <rect x="20" y="230" width="1060" height="26" fill="#6b4630" />
-            {Array.from({ length: 13 }).map((_, i) => <rect key={i} x={50 + i * 78} y={40 + ((i * 37 + r * 11) % 50)} width={62} height={190 - ((i * 37 + r * 11) % 50)} fill={["#a9552f", "#5d7ea0", "#c9824a", "#8a5a2e", "#3d6a8f", "#b5412f"][(i + r) % 6]} />)}
+            {Array.from({ length: 13 }).map((_, i) => <rect key={i} x={50 + i * 78} y={40 + ((i * 37 + r * 11) % 50)} width={62} height={190 - ((i * 37 + r * 11) % 50)} fill={["#a9552f", "#5d7ea0", "#c9824a", "#8a5a2e", "#3d6a8f", BRAND.mark][(i + r) % 6]} />)}
           </g>
         ))}
       </g>

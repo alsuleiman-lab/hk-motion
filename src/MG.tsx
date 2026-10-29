@@ -12,6 +12,7 @@ import { loadFont as loadZain } from "@remotion/google-fonts/Zain";
  */
 import { THEMES, MGTheme as MGThemeT, MGThemeName } from "./mgThemes";
 import { getInputProps } from "remotion";
+import { BRAND, alpha } from "./brand";
 
 /** Active theme: set by <MGTheme theme="steel"> at render time (a parent renders before its children, so every primitive below reads the right colours). */
 let CUR: MGThemeT = THEMES.steel;
@@ -89,7 +90,7 @@ export const Typewriter: React.FC<{ text: string; at: number; cps?: number; styl
 
 /** Red binder clip on top of a card */
 const Clip: React.FC<{ left?: number }> = ({ left = 60 }) => (
-  <div style={{ position: "absolute", left, top: -22, width: 54, height: 34, background: T.red, borderRadius: "6px 6px 2px 2px", boxShadow: "0 3px 0 rgba(0,0,0,.2)" }}><div style={{ margin: "7px auto 0", width: 34, height: 12, background: "#b5412f", borderRadius: 3 }} /></div>
+  <div style={{ position: "absolute", left, top: -22, width: 54, height: 34, background: T.red, borderRadius: "6px 6px 2px 2px", boxShadow: "0 3px 0 rgba(0,0,0,.2)" }}><div style={{ margin: "7px auto 0", width: 34, height: 12, background: BRAND.mark, borderRadius: 3 }} /></div>
 );
 
 /** Paper note card: slides in from the right (0.33 s, ease-out, fade) and settles with a tiny tilt; header mono label + black tag + typewritten title + grey lines. */
@@ -101,7 +102,7 @@ export const NoteCard: React.FC<{ at: number; x: number; y: number; w: number; h
       {label ? <div style={{ fontFamily: monoF, fontSize: 18, color: T.gray, display: "flex", justifyContent: "space-between", direction: "ltr" }}><span>{label}</span><span>0</span></div> : null}
       {tag ? <div style={{ display: "inline-block", background: T.ink, color: T.card, fontFamily: monoF, fontWeight: 700, fontSize: 18, padding: "2px 10px", margin: "6px 0 0 0", direction: "ltr" }}>{tag}</div> : null}
       {title ? <Typewriter text={title} at={at + 0.25} style={{ fontFamily: naskhF, fontSize: 44, color: T.ink, margin: "8px 0" }} /> : null}
-      {Array.from({ length: lines }).map((_, i) => <div key={i} style={{ height: 8, background: "#d6dee6", borderRadius: 4, margin: "12px 0", width: `${90 - i * 28}%` }} />)}
+      {Array.from({ length: lines }).map((_, i) => <div key={i} style={{ height: 8, background: BRAND.paper2, borderRadius: 4, margin: "12px 0", width: `${90 - i * 28}%` }} />)}
       {children}
     </div>
   );
@@ -118,20 +119,20 @@ export const Cross: React.FC<{ at: number; x: number; y: number; size: number; c
 };
 
 /** Marker highlight sweeping right→left (Arabic reading direction) behind a word. */
-export const Highlight: React.FC<{ at: number; color?: string; children: React.ReactNode; style?: React.CSSProperties }> = ({ at, color = "#b5412f", children, style }) => {
+export const Highlight: React.FC<{ at: number; color?: string; children: React.ReactNode; style?: React.CSSProperties }> = ({ at, color = BRAND.mark, children, style }) => {
   const p = ease(useT(at) / 0.35);
-  return <span style={{ position: "relative", display: "inline-block", padding: "0 8px", ...style }}><span style={{ position: "absolute", right: 0, top: "10%", bottom: "6%", width: `${p * 100}%`, background: color, borderRadius: 4, zIndex: 0 }} /><span style={{ position: "relative", zIndex: 1, color: "#16212e" }}>{children}</span></span>;
+  return <span style={{ position: "relative", display: "inline-block", padding: "0 8px", ...style }}><span style={{ position: "absolute", right: 0, top: "10%", bottom: "6%", width: `${p * 100}%`, background: color, borderRadius: 4, zIndex: 0 }} /><span style={{ position: "relative", zIndex: 1, color: BRAND.ink }}>{children}</span></span>;
 };
 
 /** Rubber stamp that slams in (scale 2.2 → 1 with a bounce and tiny tilt). */
 export const Stamp: React.FC<{ at: number; x: number; y: number; text: string; size?: number; color?: string }> = ({ at, x, y, text, size = 56, color = T.red }) => {
   const s = useSp(at, 7, 260);
   const sc = 2.2 - 1.2 * s;
-  return <div style={{ position: "absolute", left: x, top: y, transform: `rotate(-9deg) scale(${sc})`, opacity: clamp(s * 3), border: `6px solid ${color}`, color, fontFamily: kufiF, fontSize: size, padding: "2px 22px 10px", borderRadius: 10, background: "rgba(246,248,250,.97)" }}>{text}</div>;
+  return <div style={{ position: "absolute", left: x, top: y, transform: `rotate(-9deg) scale(${sc})`, opacity: clamp(s * 3), border: `6px solid ${color}`, color, fontFamily: kufiF, fontSize: size, padding: "2px 22px 10px", borderRadius: 10, background: alpha(BRAND.card, .97) }}>{text}</div>;
 };
 
 /** Bars that grow one after the other (black / red / green in the reference). */
-export const Bars: React.FC<{ at: number; x: number; y: number; w: number; h: number; vals?: number[]; colors?: string[] }> = ({ at, x, y, w, h, vals = [1, 0.62, 0.38], colors = ["#f6f8fa", "#3d7bc4", T.mark] }) => {
+export const Bars: React.FC<{ at: number; x: number; y: number; w: number; h: number; vals?: number[]; colors?: string[] }> = ({ at, x, y, w, h, vals = [1, 0.62, 0.38], colors = [BRAND.card, BRAND.blue, T.mark] }) => {
   const t = useT(at);
   return (
     <div style={{ position: "absolute", left: x, top: y, width: w, height: h, display: "flex", gap: w * 0.12, alignItems: "flex-end", justifyContent: "center" }}>
@@ -162,7 +163,7 @@ export const Clock: React.FC<{ at: number; size: number }> = ({ at, size }) => {
  * Positions are absolute in the composition (works in 1920x1080 and 1080x1920). Colours come from the active theme (T);
  * GLOW/GOLD are the reference's neon cyan and gold used for captions that sit OVER video (never over a face: keep them on the edges).
  * ==================================================================================================================== */
-export const GLOW = "#c9d4e0";
+export const GLOW = BRAND.light;
 const glowShadow = (c = GLOW) => `0 0 8px ${c}, 0 0 22px ${c}aa, 0 2px 4px rgba(0,0,0,.45)`;
 
 /** 3) Neon caption, word by word; a word with `gold` gets the gold gradient + stronger glow. Sits over video (bottom band or flanks). */
@@ -173,7 +174,7 @@ export const GlowCaption: React.FC<{ words: { t: string; at: number; gold?: bool
       {words.map((wd, i) => {
         const u = clamp((t - wd.at) / 0.22);
         if (u <= 0) return null;
-        return <span key={i} style={wd.gold ? { background: T.card, color: T.accent, borderRadius: size * 0.2, padding: `0 ${size * 0.22}px`, boxShadow: "0 8px 20px rgba(0,0,0,.3)", opacity: u, transform: `translateY(${(1 - u) * 14}px)` } : { color: "#f6f8fa", textShadow: glowShadow(), opacity: u, transform: `translateY(${(1 - u) * 14}px)` }}>{wd.t}</span>;
+        return <span key={i} style={wd.gold ? { background: T.card, color: T.accent, borderRadius: size * 0.2, padding: `0 ${size * 0.22}px`, boxShadow: "0 8px 20px rgba(0,0,0,.3)", opacity: u, transform: `translateY(${(1 - u) * 14}px)` } : { color: BRAND.card, textShadow: glowShadow(), opacity: u, transform: `translateY(${(1 - u) * 14}px)` }}>{wd.t}</span>;
       })}
     </div>
   );
@@ -196,8 +197,8 @@ export const DashArc: React.FC<{ at: number; x1: number; y1: number; x2: number;
 export const PinnedPhoto: React.FC<{ at: number; x: number; y: number; w: number; h: number; name: string; sub?: string; rot?: number; children?: React.ReactNode }> = ({ at, x, y, w, h, name, sub, rot = -3, children }) => {
   const s = useSp(at, 12, 170);
   return (
-    <div style={{ position: "absolute", left: x, top: y, width: w, height: h, transform: `rotate(${rot}deg) scale(${0.7 + 0.3 * s})`, opacity: clamp(s * 2), background: "#f6f8fa", padding: 10, boxSizing: "border-box", borderRadius: 26, boxShadow: "0 16px 30px rgba(0,0,0,.35)" }}>
-      <div style={{ position: "absolute", left: w * 0.5 - 34, top: -16, width: 68, height: 30, background: "rgba(47,95,148,.92)", transform: "rotate(-6deg)", boxShadow: "0 2px 4px rgba(0,0,0,.25)" }} />
+    <div style={{ position: "absolute", left: x, top: y, width: w, height: h, transform: `rotate(${rot}deg) scale(${0.7 + 0.3 * s})`, opacity: clamp(s * 2), background: BRAND.card, padding: 10, boxSizing: "border-box", borderRadius: 26, boxShadow: "0 16px 30px rgba(0,0,0,.35)" }}>
+      <div style={{ position: "absolute", left: w * 0.5 - 34, top: -16, width: 68, height: 30, background: alpha(BRAND.accent, .92), transform: "rotate(-6deg)", boxShadow: "0 2px 4px rgba(0,0,0,.25)" }} />
       <div style={{ width: "100%", height: h - (sub ? 100 : 78), background: T.gray, overflow: "hidden", position: "relative", borderRadius: 18 }}>{children}</div>
       <div style={{ position: "absolute", left: 12, right: 12, bottom: 14, textAlign: "center", fontFamily: naskhF, fontSize: 30, color: T.ink, direction: "rtl", lineHeight: 1.25 }}>{name}{sub ? <div style={{ fontSize: 20, color: T.gray }}>{sub}</div> : null}</div>
     </div>
@@ -208,7 +209,7 @@ export const PinnedPhoto: React.FC<{ at: number; x: number; y: number; w: number
 export const TagChip: React.FC<{ at: number; x: number; y: number; text: string; sub?: string; kind?: "orange" | "red" | "cream"; bullet?: boolean; size?: number; cps?: number }> = ({ at, x, y, text, sub, kind = "orange", bullet, size = 46, cps = 20 }) => {
   const t = useT(at);
   if (t < 0) return null;
-  const n = Math.floor(t * cps), bg = kind === "red" ? "#b5412f" : kind === "cream" ? "#f6f8fa" : "#2f5f94", fg = kind === "cream" ? T.ink : "#fff";
+  const n = Math.floor(t * cps), bg = kind === "red" ? BRAND.mark : kind === "cream" ? BRAND.card : BRAND.accent, fg = kind === "cream" ? T.ink : "#fff";
   return (
     <div style={{ position: "absolute", left: x, top: y, direction: "rtl", textAlign: "right" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "flex-end" }}>
@@ -230,7 +231,7 @@ export const GlowCounter: React.FC<{ at: number; x: number; y: number; steps: nu
 };
 
 /** 11) Gold hand-drawn ellipse around a phrase (draws itself) */
-export const EllipseMark: React.FC<{ at: number; x: number; y: number; w: number; h: number; color?: string; sw?: number }> = ({ at, x, y, w, h, color = "#b5412f", sw = 6 }) => {
+export const EllipseMark: React.FC<{ at: number; x: number; y: number; w: number; h: number; color?: string; sw?: number }> = ({ at, x, y, w, h, color = BRAND.mark, sw = 6 }) => {
   const p = ease(useT(at) / 0.5);
   const d = `M${w * 0.5},${h * 0.04} C${w * 0.92},${h * 0.02} ${w * 1.0},${h * 0.7} ${w * 0.55},${h * 0.96} C${w * 0.12},${h * 1.02} ${-w * 0.02},${h * 0.35} ${w * 0.38},${h * 0.08} C${w * 0.5},${h * 0.03} ${w * 0.6},${h * 0.06} ${w * 0.66},${h * 0.12}`;
   return <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ position: "absolute", left: x, top: y, overflow: "visible" }}><path d={d} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" pathLength={1} strokeDasharray={1} strokeDashoffset={1 - p} /></svg>;
@@ -305,7 +306,7 @@ export const TimelineCounter: React.FC<{
         const k = popAt(t - s.t), f = (s.value - v0) / span, cw = Math.min(330, w / stops.length - 16), lift = labelLift ?? 52 + i * Math.round(98 / Math.max(1, stops.length - 2));
         return (
           <div key={i} style={{ position: "absolute", left: clamp(px(f) - cw / 2, x, x + w - cw), top: lineY + lift + (1 - k) * 36, width: cw, textAlign: "center", opacity: clamp(k * 1.6), direction: "rtl", fontFamily: kufiF, color: inkC }}>
-            <div style={{ position: "absolute", left: px(f) - clamp(px(f) - cw / 2, x, x + w - cw) - 1.5, top: -lift + 30, width: 3, height: lift - 32, background: "rgba(246,248,250,.85)", boxShadow: "0 0 6px rgba(0,0,0,.35)" }} />
+            <div style={{ position: "absolute", left: px(f) - clamp(px(f) - cw / 2, x, x + w - cw) - 1.5, top: -lift + 30, width: 3, height: lift - 32, background: alpha(BRAND.card, .85), boxShadow: "0 0 6px rgba(0,0,0,.35)" }} />
             <div style={{ fontSize: 40, lineHeight: 1.15, background: T.card, color: T.ink, borderBottom: "5px solid " + acc, borderRadius: 14, padding: "10px 14px 12px", boxShadow: "0 14px 26px rgba(0,0,0,.26)" }}>
               {s.label}{s.sub ? <div style={{ fontSize: 26, opacity: 0.75, marginTop: 4 }}>{s.sub}</div> : null}
             </div>
@@ -370,10 +371,10 @@ export const TypeBox: React.FC<{ at: number; x: number; y: number; w: number; te
   const typed = text.slice(0, n), done = n >= text.length, blinkOn = n > 0 && !done ? true : Math.floor(t * (done ? 2 : 3)) % 2 === 0;
   return (
     <div style={{ position: "absolute", left: x, top: y + (1 - sp) * 30, width: w, opacity: clamp(sp * 1.4) * out }}>
-      {false ? <div style={{ position: "absolute", top: -64, left: "50%", transform: "translateX(-50%)", padding: "8px 30px 12px", fontFamily: kufiF, fontSize: 36, color: "#f6f8fa", borderRadius: 18, background: T.navy, boxShadow: "0 10px 20px rgba(0,0,0,.28)", whiteSpace: "nowrap", direction: "rtl" }}>{chip}</div> : null}
+      {false ? <div style={{ position: "absolute", top: -64, left: "50%", transform: "translateX(-50%)", padding: "8px 30px 12px", fontFamily: kufiF, fontSize: 36, color: BRAND.card, borderRadius: 18, background: T.navy, boxShadow: "0 10px 20px rgba(0,0,0,.28)", whiteSpace: "nowrap", direction: "rtl" }}>{chip}</div> : null}
       <div style={{ background: "rgba(10,20,40,.6)", border: "2px solid rgba(255,255,255,.28)", borderRadius: 26, padding: "26px 40px 34px", direction: "rtl", boxShadow: "0 18px 40px rgba(0,0,0,.35)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, fontFamily: kufiF, fontSize: 24, color: "rgba(255,255,255,.55)" }}>
-          <span style={{ color: "#f6f8fa", fontSize: 30, fontWeight: 800 }}>{chip ?? title}</span>
+          <span style={{ color: BRAND.card, fontSize: 30, fontWeight: 800 }}>{chip ?? title}</span>
           <span style={{ display: "flex", gap: 8, direction: "ltr" }}>{[0, 1, 2].map((i) => <i key={i} style={{ width: 12, height: 12, borderRadius: 6, background: i === 2 ? GLOW : "rgba(255,255,255,.35)" }} />)}</span>
         </div>
         <div style={{ fontFamily: kufiF, fontSize: size, lineHeight: 1.4, color: "#fff", minHeight: size * 1.4, wordBreak: "keep-all" }}>
@@ -399,7 +400,7 @@ export const FlashCut: React.FC<{
   at: number; x: number; y: number; w: number; h: number;
   crops: { fx: number; fy: number; zoom: number }[]; beats?: number[]; hud?: string; accent?: string; children: React.ReactNode;
 }> = ({ at, x, y, w, h, crops, beats = [1.0, 1.73, 2.33], hud, accent, children }) => {
-  const f = useCurrentFrame(), t = f / FPS - at, acc = accent ?? "#f6f8fa";
+  const f = useCurrentFrame(), t = f / FPS - at, acc = accent ?? BRAND.card;
   if (t < -0.01) return null;
   const idx = beats.filter((b) => t >= b).length, c = crops[Math.min(idx, crops.length - 1)];
   const cl = (v: number, z: number) => clamp(v, 0.5 / z, 1 - 0.5 / z);
@@ -472,7 +473,7 @@ export const ConvergeMerge: React.FC<{
           const pkO = t > at + 0.4 && k < 0.6 ? (1 - Math.abs(cyc - 0.5) * 0.6) * draw : 0;
           return (
             <g key={i}>
-              <path d={d} fill="none" stroke="#f6f8fa" strokeWidth={22} strokeLinecap="butt" pathLength={1} strokeDasharray={`0.0001 ${Math.min(conv0, draw)} ${Math.max(0.0001, draw - conv0)} 2`} />
+              <path d={d} fill="none" stroke={BRAND.card} strokeWidth={22} strokeLinecap="butt" pathLength={1} strokeDasharray={`0.0001 ${Math.min(conv0, draw)} ${Math.max(0.0001, draw - conv0)} 2`} />
               <path d={d} fill="none" stroke={T.navy} strokeWidth={13} strokeLinecap="butt" pathLength={1} strokeDasharray={`0.0001 ${Math.min(conv0, draw)} ${Math.max(0.0001, draw - conv0)} 2`} />
               {pkO > 0 ? <circle cx={X(px)} cy={py} r={7} fill={acc} opacity={pkO} /> : null}
             </g>
@@ -488,7 +489,7 @@ export const ConvergeMerge: React.FC<{
         // paper-card style (same family as EuKit StatRow/Banner): light card, ink Kufi text, accent square, soft shadow, alternating tiny tilt
         return <div key={i} style={{ position: "absolute", left: X(bx), top: by, transform: `translate(-50%,-50%) scale(${Math.max(0, sc)}) rotate(${(i % 2 ? 1 : -1) + (k <= 0 ? Math.sin(t * 12 + i * 2.1) * 0.6 : 0)}deg)`, opacity: o, display: "flex", alignItems: "center", gap: 16, padding: "12px 28px 16px", fontSize: 40, fontWeight: 800, color: T.ink, borderRadius: 14, background: T.card, boxShadow: "0 14px 26px rgba(0,0,0,.26), 0 2px 0 rgba(0,0,0,.08)", whiteSpace: "nowrap" }}><span style={{ width: 18, height: 18, borderRadius: 5, background: acc, flexShrink: 0 }} />{s}</div>;
       })}
-      <div style={{ position: "absolute", left: X(mx), top: my, transform: `translate(-50%,-50%) scale(${(0.7 + 0.3 * badgeK) * (1 + 0.08 * pulse)})`, opacity: badgeK, padding: "18px 34px 24px", borderRadius: 18, background: T.navy, color: "#f6f8fa", fontWeight: 800, border: "5px solid #f6f8fa", boxShadow: "0 14px 26px rgba(0,0,0,.28)", fontSize: 50, whiteSpace: "nowrap" }}>{result}</div>
+      <div style={{ position: "absolute", left: X(mx), top: my, transform: `translate(-50%,-50%) scale(${(0.7 + 0.3 * badgeK) * (1 + 0.08 * pulse)})`, opacity: badgeK, padding: "18px 34px 24px", borderRadius: 18, background: T.navy, color: BRAND.card, fontWeight: 800, border: `5px solid ${BRAND.card}`, boxShadow: "0 14px 26px rgba(0,0,0,.28)", fontSize: 50, whiteSpace: "nowrap" }}>{result}</div>
       {caption ? <div style={{ position: "absolute", left: X(mx), top: my + 110, transform: `translateX(-50%) translateY(${(1 - capK) * 16}px) rotate(-1deg)`, opacity: capK, padding: "10px 30px 14px", borderRadius: 14, background: T.card, color: T.ink, fontWeight: 800, fontSize: 44, whiteSpace: "nowrap", boxShadow: "0 14px 26px rgba(0,0,0,.26)" }}>{caption}</div> : null}
     </div>
   );
@@ -582,7 +583,7 @@ export const PanelToCanvas: React.FC<{
           </div>
         );
       })}
-      {showCursor ? <svg width={34} height={34} viewBox="0 0 24 24" style={{ position: "absolute", left: cx, top: cy, filter: "drop-shadow(0 3px 4px rgba(0,0,0,.5))" }}><path d="M3 2 L3 19 L8 14.5 L11.5 22 L14 21 L10.5 13.5 L17 13.5 Z" fill="#fff" stroke="#132031" strokeWidth={1.4} /></svg> : null}
+      {showCursor ? <svg width={34} height={34} viewBox="0 0 24 24" style={{ position: "absolute", left: cx, top: cy, filter: "drop-shadow(0 3px 4px rgba(0,0,0,.5))" }}><path d="M3 2 L3 19 L8 14.5 L11.5 22 L14 21 L10.5 13.5 L17 13.5 Z" fill="#fff" stroke={BRAND.base3} strokeWidth={1.4} /></svg> : null}
     </>
   );
 };
@@ -609,9 +610,9 @@ export const PhoneChips: React.FC<{
         return <div key={i} style={{ position: "absolute", left: cx - d / 2, top: cy - d / 2, width: d, height: d, borderRadius: "50%", background: rings[i], transform: `scale(${sc})`, boxShadow: "inset 0 3px 0 rgba(255,255,255,.12), 0 0 0 1px rgba(255,255,255,.08)" }} />;
       }) : null}
       {rings.length ? <div style={{ position: "absolute", left: cx - 380, top: cy - 380, width: 760, height: 760, borderRadius: "50%", background: `radial-gradient(circle, ${acc}22, transparent 65%)` }} /> : null}
-      <div style={{ position: "absolute", left: cx - w / 2 - 14, top: cy - h / 2 - 14 + phoneY, width: w + 28, height: h + 28, borderRadius: 78, background: "linear-gradient(145deg,#d6dee6,#8793a1)", boxShadow: `0 ${10 + 30 * rise}px ${20 + 40 * rise}px rgba(0,0,0,.45), 0 4px 8px rgba(0,0,0,.5)` }}>
-        <div style={{ position: "absolute", left: 7, top: 7, right: 7, bottom: 7, borderRadius: 71, background: "#132031" }}>
-          <div style={{ position: "absolute", left: 7, top: 7, right: 7, bottom: 7, borderRadius: 64, overflow: "hidden", background: "#f6f8fa" }}>
+      <div style={{ position: "absolute", left: cx - w / 2 - 14, top: cy - h / 2 - 14 + phoneY, width: w + 28, height: h + 28, borderRadius: 78, background: `linear-gradient(145deg,${BRAND.paper2},${BRAND.gray})`, boxShadow: `0 ${10 + 30 * rise}px ${20 + 40 * rise}px rgba(0,0,0,.45), 0 4px 8px rgba(0,0,0,.5)` }}>
+        <div style={{ position: "absolute", left: 7, top: 7, right: 7, bottom: 7, borderRadius: 71, background: BRAND.base3 }}>
+          <div style={{ position: "absolute", left: 7, top: 7, right: 7, bottom: 7, borderRadius: 64, overflow: "hidden", background: BRAND.card }}>
             <div style={{ position: "absolute", left: 0, top: 0, width: "100%", transform: `translateY(${-scroll * clamp(t / dur)}px)` }}>{screen}</div>
             {notch ? <div style={{ position: "absolute", left: "50%", top: 12, width: 104, height: 30, marginLeft: -52, borderRadius: 16, background: "#000" }} /> : null}
             <div style={{ position: "absolute", inset: 0, borderRadius: 64, background: "linear-gradient(115deg,rgba(255,255,255,.18),transparent 35%)", pointerEvents: "none" }} />
@@ -625,7 +626,7 @@ export const PhoneChips: React.FC<{
         const fl = ease((tt - 0.6) / 0.8) * 8 * Math.sin((tt / dur) * 2 * Math.PI * 2 + i);
         const dir = true ? -1 : 1, base = cx + dir * (w / 2 + 70), edge = base - dir * 28 * (1 - Math.min(1, sp));
         return (
-          <div key={i} style={{ position: "absolute", top: cy + (c.dy ?? (i % 2 ? 110 : -130)) + fl, [true ? "right" : "left"]: true ? 1920 - edge : edge, opacity: clamp(tt / (5 / FPS)), transform: `scale(${0.8 + 0.2 * sp})`, transformOrigin: true ? "right center" : "left center", display: "flex", alignItems: "center", gap: 16, padding: "14px 34px 14px 20px", borderRadius: 60, background: "#fff", color: "#16212e", fontFamily: kufiF, fontSize: 40, direction: "rtl", whiteSpace: "nowrap", boxShadow: "0 14px 34px rgba(0,0,0,.35)" }}>
+          <div key={i} style={{ position: "absolute", top: cy + (c.dy ?? (i % 2 ? 110 : -130)) + fl, [true ? "right" : "left"]: true ? 1920 - edge : edge, opacity: clamp(tt / (5 / FPS)), transform: `scale(${0.8 + 0.2 * sp})`, transformOrigin: true ? "right center" : "left center", display: "flex", alignItems: "center", gap: 16, padding: "14px 34px 14px 20px", borderRadius: 60, background: "#fff", color: BRAND.ink, fontFamily: kufiF, fontSize: 40, direction: "rtl", whiteSpace: "nowrap", boxShadow: "0 14px 34px rgba(0,0,0,.35)" }}>
             <span style={{ width: 46, height: 46, borderRadius: "50%", background: acc, display: "inline-block" }} />
             {c.text}
           </div>
@@ -678,14 +679,14 @@ export const SakugaMove: React.FC<{
   return (
     <>
       {showImpact ? (
-        <AbsoluteFill style={{ background: "#132031" }}>
-          {Array.from({ length: 36 }, (_, i) => <div key={i} style={{ position: "absolute", left: x + w / 2, top: y + h / 2, width: 2200, height: 5 + (i % 3) * 3, background: "#f6f8fa", transformOrigin: "0 50%", transform: `rotate(${i * 10}deg)` }} />)}
+        <AbsoluteFill style={{ background: BRAND.base3 }}>
+          {Array.from({ length: 36 }, (_, i) => <div key={i} style={{ position: "absolute", left: x + w / 2, top: y + h / 2, width: 2200, height: 5 + (i % 3) * 3, background: BRAND.card, transformOrigin: "0 50%", transform: `rotate(${i * 10}deg)` }} />)}
         </AbsoluteFill>
       ) : null}
       {speed > 0.15 ? Array.from({ length: 9 }, (_, i) => <div key={i} style={{ position: "absolute", left: x + (dirX > 0 ? -speed * 300 : w), top: y + 10 + (i / 8) * (h - 20), width: speed * 300, height: 3, background: "rgba(255,255,255,.55)" }} />) : null}
       <div style={{ position: "absolute", left: x, top: y + hop, width: w, height: h, transform: `rotate(${rot}deg) scale(${sx * push}, ${sy * push})`, filter: "drop-shadow(0 18px 30px rgba(0,0,0,.45))" }}>
-        <div style={{ position: "absolute", inset: 0, background: "#f6f8fa", padding: 10, boxSizing: "border-box", borderRadius: 26 }}>
-          <div style={{ position: "absolute", left: w * 0.5 - 34, top: -16, width: 68, height: 30, background: "rgba(47,95,148,.92)", transform: "rotate(-6deg)", boxShadow: "0 2px 4px rgba(0,0,0,.25)", zIndex: 2 }} />
+        <div style={{ position: "absolute", inset: 0, background: BRAND.card, padding: 10, boxSizing: "border-box", borderRadius: 26 }}>
+          <div style={{ position: "absolute", left: w * 0.5 - 34, top: -16, width: 68, height: 30, background: alpha(BRAND.accent, .92), transform: "rotate(-6deg)", boxShadow: "0 2px 4px rgba(0,0,0,.25)", zIndex: 2 }} />
           <div style={{ width: "100%", height: name ? h - 76 : h - 20, overflow: "hidden", position: "relative", borderRadius: 18 }}>{children}</div>
           {name ? <div style={{ position: "absolute", left: 0, right: 0, bottom: 14, textAlign: "center", fontFamily: naskhF, fontSize: 30, color: T.ink, direction: "rtl", lineHeight: 1.15 }}>{name}</div> : null}
         </div>
@@ -742,7 +743,7 @@ export const SpotlightCard: React.FC<{
           </mask>
         </defs>
         <rect width={1920} height={1080} fill={`rgba(10,18,30,${dark * (t >= reseatAt + 0.6 ? 0.55 + 0.45 * (1 - ease((t - reseatAt - 0.6) / 0.8)) : 1)})`} mask={`url(#m${id})`} />
-        {t < lockAt + 0.8 ? <polygon points={`${sx + 420},-60 ${sx + 560},-60 ${sx + 60},${sy} ${sx - 60},${sy}`} fill="rgba(246,248,250,.10)" filter={`url(#bc${id})`} /> : null}
+        {t < lockAt + 0.8 ? <polygon points={`${sx + 420},-60 ${sx + 560},-60 ${sx + 60},${sy} ${sx - 60},${sy}`} fill={alpha(BRAND.card, .10)} filter={`url(#bc${id})`} /> : null}
       </svg>
       <div style={{ position: "absolute", left: card.x, top: card.y - lift + hover, width: card.w, height: card.h, opacity: ease((t - (lockAt + 0.1)) / 0.4), transform: `rotateY(${tilt * rise}deg) scale(${over * hold * press * (1 + 0.02 * rise)})`, boxShadow: `${-14 * rise}px ${(18 + 20 * rise)}px ${30 + 30 * rise}px rgba(0,0,0,.5)${glow ? `, 0 0 ${50 * glow}px rgba(243,217,160,${0.7 * glow})` : ""}`, borderRadius: 24, overflow: "hidden" }}>{children}</div>
       <svg width={1920} height={1080} style={{ position: "absolute", left: 0, top: 0, pointerEvents: "none" }}>
@@ -796,7 +797,7 @@ export const TimelineTravel: React.FC<{
               <div key={k} style={{ position: "absolute", left: wx, top: 0, opacity: inFrame(wx) }}>
                 <div style={{ position: "absolute", left: -9, top: axisY - bandY - 9, width: 18, height: 18, borderRadius: "50%", background: k === i ? acc : "#fff", boxShadow: k === i ? `0 0 18px ${acc}` : "none" }} />
                 <div style={{ position: "absolute", left: -150, top: axisY - bandY + 22, width: 300, textAlign: "center", fontSize: 34, color: acc, opacity: k === i ? 1 : 0 }}>{st.date}</div>
-                <div style={{ position: "absolute", left: -250, top: axisY - bandY - 18, width: 500, transformOrigin: "50% 100%", transform: `translateY(-100%) scaleY(${Math.max(0.001, pop)})`, opacity: clamp(pop * 3), padding: compact ? "8px 20px" : "18px 26px", borderRadius: 22, background: "rgba(246,248,250,.97)", color: "#16212e", textAlign: "center", boxShadow: "0 18px 40px rgba(0,0,0,.4)" }}>
+                <div style={{ position: "absolute", left: -250, top: axisY - bandY - 18, width: 500, transformOrigin: "50% 100%", transform: `translateY(-100%) scaleY(${Math.max(0.001, pop)})`, opacity: clamp(pop * 3), padding: compact ? "8px 20px" : "18px 26px", borderRadius: 22, background: alpha(BRAND.card, .97), color: BRAND.ink, textAlign: "center", boxShadow: "0 18px 40px rgba(0,0,0,.4)" }}>
                   <div style={{ fontSize: compact ? 32 : 42, lineHeight: 1.2 }}>{st.title}</div>
                   {st.sub ? <div style={{ fontSize: compact ? 22 : 26, opacity: 0.7, marginTop: 4 }}>{st.sub}</div> : null}
                 </div>
@@ -867,7 +868,7 @@ export const HandheldShake: React.FC<{ windows: { from: number; to: number }[]; 
  * 31) BrushX — «شطب بفرشاة حمراء» (reference §20). A red hand-brushed X draws itself diagonally over `box` (two strokes, 0.25 s each, slightly translucent, rough edge), holds, then dissolves.
  * Mark a rejected idea/word. NEVER over the speaker's face: give it a `box` on a graphic (a keyword, a photo), not on the face; face_check verifies.
  */
-export const BrushX: React.FC<{ at: number; x: number; y: number; w: number; h: number; until?: number; color?: string }> = ({ at, x, y, w, h, until, color = "#b5412f" }) => {
+export const BrushX: React.FC<{ at: number; x: number; y: number; w: number; h: number; until?: number; color?: string }> = ({ at, x, y, w, h, until, color = BRAND.mark }) => {
   const t = useT(at), id = useId().replace(/:/g, ""), out = until === undefined ? 1 : ease((until - (t + at)) / 0.35);
   if (t < 0 || out <= 0) return null;
   const a = ease(t / 0.25), b = ease((t - 0.25) / 0.25);
@@ -898,30 +899,30 @@ export const CornerTags: React.FC<{ right: string[]; left: string[]; y?: number;
  * Use for «من كذا إلى كذا»: old claim → corrected one, old term → right term. Put it in a side column (never over the face).
  */
 export const RewriteWindow: React.FC<{ x: number; y: number; w: number; h?: number; oldText: string; newText: string; oldAt: number; strikeAt: number; newAt: number; extra?: string; rot?: number; until?: number; accent?: string }> = ({ x, y, w, h = 300, oldText, newText, oldAt, strikeAt, newAt, extra, rot = -1.2, until, accent }) => {
-  const t = useT(0), acc = accent ?? "#b5412f";
+  const t = useT(0), acc = accent ?? BRAND.mark;
   const k = ease((t - (oldAt - 0.35)) / 0.35), out = until === undefined ? 1 : ease((until - t) / 0.3);
   if (t < oldAt - 0.4 || out <= 0) return null;
-  const ink = "#16212e", fs = Math.min(54, w * 0.07);
+  const ink = BRAND.ink, fs = Math.min(54, w * 0.07);
   // reveal by clipping (never slice the string: mixed Arabic/Latin text re-orders while it is typed)
   const rv = (a: number, dur: number, fromRight: boolean): React.CSSProperties => { const p = clamp((t - a) / dur); return { clipPath: fromRight ? `inset(0 0 0 ${(1 - p) * 100}%)` : `inset(0 ${(1 - p) * 100}% 0 0)` }; };
   const strike = ease((t - strikeAt) / 0.28), arrow = ease((t - (strikeAt + 0.15)) / 0.4), nu = t - newAt, hl = ease((nu - 0.3) / 0.35);
   const ay = 52 + fs * 0.65;
   return (
-    <div style={{ position: "absolute", left: x, top: y + (1 - k) * 30, width: w, height: h, opacity: k * out, transform: `rotate(${rot}deg)`, background: "#f6f8fa", borderRadius: 18, boxShadow: "0 22px 50px rgba(0,0,0,.4)", overflow: "hidden", direction: "rtl", fontFamily: kufiF }}>
-      <div style={{ height: 30, background: "#f6f8fa", display: "flex", alignItems: "center", gap: 8, padding: "0 14px" }}>
-        {["#b5412f", "#2f5f94", "#5d8a78"].map((c) => <i key={c} style={{ width: 10, height: 10, borderRadius: 5, background: c }} />)}
-        <i style={{ marginRight: 10, width: 70, height: 16, borderRadius: 4, background: "#b5412f" }} />
+    <div style={{ position: "absolute", left: x, top: y + (1 - k) * 30, width: w, height: h, opacity: k * out, transform: `rotate(${rot}deg)`, background: BRAND.card, borderRadius: 18, boxShadow: "0 22px 50px rgba(0,0,0,.4)", overflow: "hidden", direction: "rtl", fontFamily: kufiF }}>
+      <div style={{ height: 30, background: BRAND.card, display: "flex", alignItems: "center", gap: 8, padding: "0 14px" }}>
+        {[BRAND.mark, BRAND.accent, BRAND.green].map((c) => <i key={c} style={{ width: 10, height: 10, borderRadius: 5, background: c }} />)}
+        <i style={{ marginRight: 10, width: 70, height: 16, borderRadius: 4, background: BRAND.mark }} />
       </div>
       <div style={{ position: "absolute", right: 28, top: 52, fontSize: fs, color: ink, opacity: 1 - 0.45 * strike, whiteSpace: "nowrap" }}>
         <span style={{ display: "inline-block", ...rv(oldAt, 0.5, true) }}>{oldText}</span>
-        <div style={{ position: "absolute", right: 0, top: "52%", width: `${strike * 100}%`, height: 6, background: "#b5412f", borderRadius: 3, transform: "rotate(-2deg)" }} />
+        <div style={{ position: "absolute", right: 0, top: "52%", width: `${strike * 100}%`, height: 6, background: BRAND.mark, borderRadius: 3, transform: "rotate(-2deg)" }} />
       </div>
       <svg width={w} height={h} style={{ position: "absolute", left: 0, top: 0 }}>
         <path d={`M ${w * 0.5} ${ay} L ${w * 0.5 - w * 0.1 * arrow} ${ay}`} stroke={acc} strokeWidth={5} strokeLinecap="round" fill="none" />
         {arrow > 0.9 ? <path d={`M ${w * 0.4 + 12} ${ay - 10} L ${w * 0.4} ${ay} L ${w * 0.4 + 12} ${ay + 10}`} stroke={acc} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" fill="none" /> : null}
       </svg>
       <div style={{ position: "absolute", left: 24, top: 52, fontSize: fs, color: ink, whiteSpace: "nowrap", opacity: clamp(nu * 6) }}>
-        <span style={{ position: "absolute", left: -6, right: -6, top: "12%", bottom: "6%", background: "#f6f8fa", borderRadius: 5, transform: `scaleX(${hl})`, transformOrigin: "left", zIndex: 0 }} />
+        <span style={{ position: "absolute", left: -6, right: -6, top: "12%", bottom: "6%", background: BRAND.card, borderRadius: 5, transform: `scaleX(${hl})`, transformOrigin: "left", zIndex: 0 }} />
         <span style={{ position: "relative", zIndex: 1, display: "inline-block", ...rv(newAt, 0.55, true) }}>{newText}</span>
       </div>
       {extra ? <div style={{ position: "absolute", right: 28, bottom: 26, fontSize: fs * 0.62, color: ink, opacity: k }}>{extra}</div> : null}
@@ -930,7 +931,7 @@ export const RewriteWindow: React.FC<{ x: number; y: number; w: number; h?: numb
 };
 
 /** 34) TiltNote — «ملاحظة مائلة برتقالية» (reference §21): a small saturated note tilted ≈ −3° that pops under a graphic, with a tiny chat-bubble glyph; for a call to action / hint. Pops with overshoot at `at`. */
-export const TiltNote: React.FC<{ at: number; x: number; y: number; w: number; text: string; until?: number; color?: string; rot?: number }> = ({ at, x, y, w, text, until, color = "#b5412f", rot = -3 }) => {
+export const TiltNote: React.FC<{ at: number; x: number; y: number; w: number; text: string; until?: number; color?: string; rot?: number }> = ({ at, x, y, w, text, until, color = BRAND.mark, rot = -3 }) => {
   const t = useT(at), sp = spring({ frame: Math.max(0, Math.round(t * FPS)), fps: FPS, config: { damping: 11, stiffness: 190 } }), out = until === undefined ? 1 : ease((until - (t + at)) / 0.25);
   if (t < 0 || out <= 0) return null;
   return <div style={{ position: "absolute", left: x, top: y, width: w, padding: "14px 22px", boxSizing: "border-box", borderRadius: 14, background: color, color: "#fff", fontFamily: kufiF, fontSize: Math.min(40, w * 0.052), direction: "rtl", whiteSpace: "nowrap", boxShadow: "0 12px 26px rgba(0,0,0,.35)", transform: `rotate(${rot}deg) scale(${0.6 + 0.4 * sp})`, opacity: clamp(sp * 2) * out, display: "flex", alignItems: "center", gap: 12 }}><span style={{ width: 30, height: 24, borderRadius: 12, background: "#fff", opacity: 0.9, flexShrink: 0 }} />{text}</div>;

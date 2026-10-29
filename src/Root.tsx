@@ -50,10 +50,12 @@ import { Clip2TaaddudPortrait, CLIP2_FRAMES, CLIP2_FPS } from "./Clip2TaaddudPor
 import { Clip3SunrisePortrait, CLIP3_FRAMES, CLIP3_FPS } from "./Clip3SunrisePortrait";
 import { Clip4ThronePortrait, CLIP4_FRAMES, CLIP4_FPS } from "./Clip4ThronePortrait";
 import { Clip5TaslamPortrait, CLIP5_FRAMES, CLIP5_FPS } from "./Clip5TaslamPortrait";
+import { JarBakheelCartoon, JAR_TOTAL_FRAMES, JAR_FPS } from "./JarBakheelCartoon";
 
 export const RemotionRoot: React.FC = () => {
   return (
     <ByRecency>
+      <Composition id="JarBakheelCartoon" component={JarBakheelCartoon} durationInFrames={JAR_TOTAL_FRAMES} fps={JAR_FPS} width={1080} height={1920} />
       <Composition id="KamliPoetKing" component={KamliPoetKing} durationInFrames={KAMLI_FRAMES} fps={30} width={1080} height={1920} />
 
       {/* ACTIVE project(s): Livestream Debate Shorts */}

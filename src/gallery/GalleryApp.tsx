@@ -36,7 +36,6 @@ const Live: React.FC<{ it: Item; brand: BrandName }> = ({ it, brand }) => {
     <div ref={ref} className="stage">
       {on ? (
         <Player
-          key={brand}
           component={it.kind === "transition" ? TransitionScene : LabScene}
           inputProps={{ id: it.id, brand }}
           durationInFrames={90} fps={30} compositionWidth={1920} compositionHeight={1080}
@@ -137,6 +136,10 @@ const App: React.FC = () => {
 
   return (
     <>
+      <div className="bar palette-top" role="group" aria-label="النمط اللوني">
+        <span>النمط اللوني:</span>
+        {BRAND_NAMES.map((b) => <button key={b} type="button" className="chip" aria-pressed={b === brand} onClick={() => pickBrand(b)}><i style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, marginInlineEnd: 6, verticalAlign: -1, background: PALETTES[b].accent, boxShadow: `inset 0 0 0 3px ${PALETTES[b].base}` }} />{PALETTES[b].label}</button>)}
+      </div>
       <header>
         <div>
           <h1>معرض عناصر المونتاج</h1>
@@ -153,10 +156,6 @@ const App: React.FC = () => {
         {groups.length > 2 ? groups.map((g) => <button key={g} type="button" className="chip" aria-pressed={g === group} onClick={() => setGroup(g)}>{g}</button>) : null}
         <input type="search" placeholder="بحث بالاسم أو الكود" value={q} onChange={(e) => setQ(e.target.value)} />
         <button type="button" className="theme-btn" onClick={copyAll}>{copied ? "نُسخ ✓" : "نسخ ملاحظاتي"}</button>
-      </div>
-      <div className="bar" role="group" aria-label="النمط اللوني">
-        <span>النمط اللوني:</span>
-        {BRAND_NAMES.map((b) => <button key={b} type="button" className="chip" aria-pressed={b === brand} onClick={() => pickBrand(b)}><i style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, marginInlineEnd: 6, verticalAlign: -1, background: PALETTES[b].accent, boxShadow: `inset 0 0 0 3px ${PALETTES[b].base}` }} />{PALETTES[b].label}</button>)}
       </div>
       <p id="conn" data-ok={conn === "on" ? "1" : "0"} role="status">{connText}</p>
       <main className="grid">{shown.map((it) => <Card key={it.id} it={it} n={notes[it.id] ?? {}} brand={brand} onSave={onSave} />)}</main>

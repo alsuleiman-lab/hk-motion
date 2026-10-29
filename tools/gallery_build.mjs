@@ -85,7 +85,8 @@ const css = oldCss + `
 .code-btn{justify-self:start;font:inherit;font-size:13px;border:1px solid var(--line);background:transparent;color:var(--accent);padding:3px 10px;border-radius:8px;cursor:pointer}
 pre.code{margin:0;max-height:220px;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;color:var(--ink)}
 #conn{margin:-10px 0 18px;font-size:14px;font-weight:700;padding:6px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--drop)}#conn[data-ok="1"]{color:var(--keep)}
-footer{margin-top:28px;color:var(--mute);font-size:13px}`;
+footer{margin-top:28px;color:var(--mute);font-size:13px}
+.palette-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);margin:0 0 10px;padding-block:10px;border-bottom:1px solid var(--line);font-weight:700}`;
 const data = JSON.stringify({ items, built: new Date().toISOString().slice(0, 16).replace("T", " ") }).replace(/</g, "\\u003c");
 const html = `<title>معرض عناصر المونتاج</title>
 <meta name="claude:viewport-fit-sides" content="cover">

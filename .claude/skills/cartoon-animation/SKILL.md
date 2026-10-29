@@ -23,6 +23,8 @@ For code-drawn illustration detail, articulated characters, grounded walking, or
 
 For the user's painted-film quality reference, use [Paint MV: visual direction](references/paint-mv-visual-direction.md): cohesive watercolor rendering, shared character/set design, and action-driven scene connections timed to speech. For cut-paper style or physical bone rigs, use [Papermotion integration](references/papermotion-integration.md) and the project-local `papermotion` skill. Its stateful simulation requires a different frame-export strategy from pure Remotion animation.
 
+For reusable cast designs, use [the local character libraries](references/character-library.md) when their selected style fits the user's reference. The two collections have large-head flat-colour and thin-line designs, with the same motion interface and separate proportions. Do not treat their static PNG poses as completed animation.
+
 ## Plan before building
 
 Use the actual audio and its word-aligned transcript. Do not estimate sentence timing from the written script or reuse approximate timing from an earlier scene. Correct uncertain transcript words by listening, or omit them from displayed captions until verified. Before producing or moving assets, make a compact storyboard with one row per sentence:

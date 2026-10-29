@@ -18,7 +18,15 @@ type Props = { main: DebateSrc; guest: DebateSrc; guestName?: string; title?: st
 const W = LANDSCAPE.W, H = LANDSCAPE.H;
 const K = W / 1450;   // the original's px are drawn on a 1450-wide stage (its enlarged view)
 type Win = { left: number; top: number; width: number };   // fractions of the stage, as in the original CSS
-const box = (w: Win) => ({ x: Math.round(w.left * W), y: Math.round(w.top * H), w: Math.round(w.width * W), h: Math.round((w.width * W * 3) / 4) });
+const ratio = (s: DebateSrc) => s.aspect ?? (s.w ? s.w / 1080 : 16 / 9);
+/** the window is exactly the shown video's size (user 2026-10-29: «الإطار على أبعاد الفيديو المعروض، لا أكبر ولا أصغر»): the video's ratio fitted in the
+ *  original's 4:3 slot (a taller video may grow to 1.4× the slot height), centred on the slot and kept inside the frame */
+const box = (w: Win, s: DebateSrc) => {
+  const r = ratio(s), sw = w.width * W, sh = (sw * 3) / 4, maxH = Math.min(sh * 1.4, H * 0.9);
+  const bw = Math.min(sw, maxH * r), bh = bw / r, m = H * 0.03;
+  const x = Math.min(Math.max(w.left * W + (sw - bw) / 2, m), W - m - bw), y = Math.min(Math.max(w.top * H + (sh - bh) / 2, m), H - m - bh);
+  return { x: Math.round(x), y: Math.round(y), w: Math.round(bw), h: Math.round(bh) };
+};
 
 /** the video whole inside its 4:3 window: a whole video is contained; a column of the baked split is centred at full height */
 const Feed: React.FC<{ s: DebateSrc; w: number; h: number }> = ({ s, w, h }) => {
@@ -35,7 +43,7 @@ const Feed: React.FC<{ s: DebateSrc; w: number; h: number }> = ({ s, w, h }) => 
 const useIn = (at: number, delay = 0) => spring({ frame: useCurrentFrame() - Math.round((at + delay) * 30), fps: 30, config: { damping: 20, mass: 0.7 } });
 /** one 4:3 window: the original `.video` shell (radial dark inside) + its own frame style */
 const Window: React.FC<{ w: Win; s: DebateSrc; p: number; style?: React.CSSProperties }> = ({ w, s, p, style }) => {
-  const b = box(w);
+  const b = box(w, s);
   return (
     <div style={{ position: "absolute", left: b.x, top: b.y, width: b.w, height: b.h, overflow: "hidden", boxSizing: "border-box",
       background: `radial-gradient(ellipse at 60% 40%, ${BRAND.base2}, ${BRAND.base} 65%, ${BRAND.base3})`, opacity: p, ...style,
@@ -67,7 +75,7 @@ export const DebateBlocks: React.FC<Props> = ({ main, guest, title = "الشيخ
 
 /* ── orbital.html: two rings behind, the two windows, the small header tag «CONVERSATION / 02» and the lower name tag */
 export const DebateOrbital: React.FC<Props> = ({ main, guest, title = "محمد بن شمس الدين", at = 0 }) => {
-  const f = useCurrentFrame(), mi = useIn(at), gi = useIn(at, 0.12);
+  const f = useCurrentFrame(), mi = useIn(at), gi = useIn(at, 0.12), mb = box({ left: 0.33, top: 0.06, width: 0.65 }, main);
   const ring = (d: number, i: number) => (
     <div key={i} style={{ position: "absolute", width: d, height: d, left: W * 0.5 - d / 2, top: H * 0.5 - d / 2, borderRadius: "50%", boxSizing: "border-box",
       border: `${i ? 2 : 3}px ${i ? "dashed" : "solid"} ${alpha(BRAND.light, i ? 0.2 : 0.28)}`, transform: `rotate(${(i ? -1 : 1) * f * 0.15}deg)` }}>
@@ -79,12 +87,12 @@ export const DebateOrbital: React.FC<Props> = ({ main, guest, title = "محمد 
       <WarmBase />
       {ring(H * 0.95, 0)}{ring(H * 1.35, 1)}
       <Window w={{ left: 0.33, top: 0.06, width: 0.65 }} s={main} p={mi}
-        style={{ borderRadius: 18 * K, border: `${4 * K}px solid ${BRAND.light}`, boxShadow: `0 0 0 ${10 * K}px ${alpha(BRAND.accent, 0.2)}, 0 ${24 * K}px ${50 * K}px rgba(0,0,0,.6)` }} />
+        style={{ borderRadius: 18 * K, outline: `${4 * K}px solid ${BRAND.light}`, boxShadow: `0 0 0 ${10 * K}px ${alpha(BRAND.accent, 0.2)}, 0 ${24 * K}px ${50 * K}px rgba(0,0,0,.6)` }} />
       <Window w={{ left: 0.02, top: 0.28, width: 0.33 }} s={guest} p={gi}
-        style={{ borderRadius: 18 * K, border: `${4 * K}px solid ${BRAND.accent}`, boxShadow: `0 0 0 ${10 * K}px ${alpha(BRAND.light, 0.12)}, 0 ${20 * K}px ${40 * K}px rgba(0,0,0,.6)` }} />
+        style={{ borderRadius: 18 * K, outline: `${4 * K}px solid ${BRAND.accent}`, boxShadow: `0 0 0 ${10 * K}px ${alpha(BRAND.light, 0.12)}, 0 ${20 * K}px ${40 * K}px rgba(0,0,0,.6)` }} />
       <div style={{ position: "absolute", top: H * 0.05, left: W * 0.02, fontFamily: monoF, fontSize: Math.round(11 * K), letterSpacing: 4, color: alpha(BRAND.light, 0.85),
         border: `1px solid ${alpha(BRAND.light, 0.4)}`, borderRadius: 6, padding: "4px 12px", opacity: mi }}>CONVERSATION / 02</div>
-      <Cap text={title} style={{ top: H * 0.905, right: W * 0.06, color: BRAND.ink, background: BRAND.card, borderRadius: 8, padding: `${4 * K}px ${14 * K}px ${7 * K}px`, opacity: mi }} />
+      <Cap text={title} style={{ top: mb.y + mb.h + 18 * K, right: W - mb.x - mb.w, color: BRAND.ink, background: BRAND.card, borderRadius: 8, padding: `${4 * K}px ${14 * K}px ${7 * K}px`, opacity: mi }} />
     </AbsoluteFill>
   );
 };
@@ -93,18 +101,18 @@ export const DebateOrbital: React.FC<Props> = ({ main, guest, title = "محمد 
 export const DebateDossier: React.FC<Props> = ({ main, guest, title = "ملف النقاش", at = 0 }) => {
   const t = useCurrentFrame() / 30 - at, mi = useIn(at), gi = useIn(at, 0.12);
   const sp = Math.min(1, Math.max(0, (t - 0.6) / 0.15)), st = 2.2 - 1.2 * sp;
-  const g = box({ left: 0.02, top: 0.27, width: 0.34 });
+  const g = box({ left: 0.02, top: 0.27, width: 0.34 }, guest);
   return (
     <AbsoluteFill>
       <WarmBase />
       <div style={{ position: "absolute", left: W * 0.04, top: H * 0.04, width: W * 0.92, height: H * 0.92, background: BRAND.paper, borderRadius: 6, transform: "rotate(-0.8deg)",
         boxShadow: "0 30px 60px rgba(0,0,0,.45)", backgroundImage: `repeating-linear-gradient(0deg, transparent 0 ${22 * K}px, ${alpha(BRAND.ink, 0.08)} ${22 * K}px ${22 * K + 1}px)` }} />
       <Window w={{ left: 0.32, top: 0.07, width: 0.64 }} s={main} p={mi}
-        style={{ transform: "rotate(1.5deg)", border: `${9 * K}px solid ${BRAND.card}`, boxShadow: `0 ${16 * K}px ${26 * K}px ${alpha(BRAND.ink, 0.5)}` }} />
+        style={{ transform: "rotate(1.5deg)", outline: `${9 * K}px solid ${BRAND.card}`, boxShadow: `0 ${16 * K}px ${26 * K}px ${alpha(BRAND.ink, 0.5)}` }} />
       <Window w={{ left: 0.02, top: 0.27, width: 0.34 }} s={guest} p={gi}
-        style={{ transform: "rotate(-5deg)", border: `${9 * K}px solid ${BRAND.card}`, boxShadow: `0 ${12 * K}px ${25 * K}px ${alpha(BRAND.ink, 0.5)}` }} />
+        style={{ transform: "rotate(-5deg)", outline: `${9 * K}px solid ${BRAND.card}`, boxShadow: `0 ${12 * K}px ${25 * K}px ${alpha(BRAND.ink, 0.5)}` }} />
       <div style={{ position: "absolute", left: g.x + g.w * 0.3, top: g.y - 30, width: W * 0.12, height: H * 0.07, background: alpha(BRAND.light, 0.75), transform: "rotate(-12deg)", opacity: gi, zIndex: 5 }} />
-      <div style={{ position: "absolute", left: W * 0.06, bottom: H * 0.1, transform: `rotate(-10deg) scale(${st})`, opacity: sp * 0.9, border: `${4 * K}px solid ${BRAND.mark}`, color: BRAND.mark,
+      <div style={{ position: "absolute", left: W * 0.06, bottom: H * 0.06, transform: `rotate(-10deg) scale(${st})`, opacity: sp * 0.9, border: `${4 * K}px solid ${BRAND.mark}`, color: BRAND.mark,
         borderRadius: 8, padding: `${2 * K}px ${14 * K}px`, fontFamily: monoF, fontWeight: 700, fontSize: Math.round(26 * K), letterSpacing: 3 }}>ON RECORD</div>
       <Cap text={title} style={{ top: H * 0.1, left: W * 0.07, color: BRAND.ink, fontSize: Math.round(22 * K), opacity: mi }} />
     </AbsoluteFill>

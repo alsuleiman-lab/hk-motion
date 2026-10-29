@@ -2,7 +2,7 @@
 // so a montage can start from ONE short file instead of re-reading the long motion-graphics skill (user request 2026-10-22). Re-run after adding/changing a component: node tools/gen_quickref.mjs
 import fs from "node:fs";
 
-const KIT_FILES = ["src/MG.tsx", "src/PortraitKit.tsx", "src/SourceFrames.tsx", "src/PaperKit.tsx", "src/PaperTear.tsx"]; // PortraitKit added 2026-10-26: the shared portrait elements live in the same catalogue
+const KIT_FILES = ["src/MG.tsx", "src/PortraitKit.tsx", "src/SourceFrames.tsx", "src/PaperKit.tsx", "src/PaperTear.tsx", "src/DebateLayouts.tsx"]; // PortraitKit added 2026-10-26: the shared portrait elements live in the same catalogue
 const src = KIT_FILES.map((f) => fs.readFileSync(f, "utf8").split("\r\n").join("\n")).join("\n\n");
 const rows = [];
 // pieces the user rejected that stay in MG.tsx only because src/KashfHadith.tsx still imports them (2026-10-24): never list them
@@ -36,6 +36,6 @@ while ((m = re.exec(src))) {
   rows.push({ name: m[1], doc: doc.slice(0, 260), props: props.length > 330 ? props.slice(0, 330) + " …" : props });
 }
 const body = rows.map((r) => `### \`${r.name}\`\n${r.doc || "(بلا وصف: مكوّن أساسي)"}\n\`props:\` ${r.props}\n`).join("\n");
-const out = `# فهرس قطع الموشن (مولَّد آلياً من src/MG.tsx وPortraitKit وSourceFrames وPaperKit وPaperTear — لا تعدّله يدوياً)\n\n> يُولَّد بـ\`node tools/gen_quickref.mjs\`. الزمن بالثواني المطلقة ما لم يُذكر؛ كل قطعة تُوضع داخل \`<Gfx>\`؛ التفاصيل والضوابط الكاملة لكل قطعة في مهارة motion-graphics وأخواتها، وهنا ما يكفي لاستدعائها دون قراءة طويلة. عدد القطع: ${rows.length}.\n\n${body}`;
+const out = `# فهرس قطع الموشن (مولَّد آلياً من src/MG.tsx وPortraitKit وSourceFrames وPaperKit وPaperTear وDebateLayouts — لا تعدّله يدوياً)\n\n> يُولَّد بـ\`node tools/gen_quickref.mjs\`. الزمن بالثواني المطلقة ما لم يُذكر؛ كل قطعة تُوضع داخل \`<Gfx>\`؛ التفاصيل والضوابط الكاملة لكل قطعة في مهارة motion-graphics وأخواتها، وهنا ما يكفي لاستدعائها دون قراءة طويلة. عدد القطع: ${rows.length}.\n\n${body}`;
 fs.writeFileSync(".claude/skills/video-montage/MG_CATALOG.md", out);
 console.log(`catalogued ${rows.length} components → .claude/skills/video-montage/MG_CATALOG.md (${out.length} chars)`);

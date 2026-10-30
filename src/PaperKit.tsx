@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, random, useCurrentFrame } from "remotion";
+import { AbsoluteFill, random, useCurrentFrame, useVideoConfig } from "remotion";
 import { noise2D } from "@remotion/noise";
 import { kufiF, zainF } from "./MG";
 import { Pic } from "./EuKit";
@@ -76,57 +76,15 @@ export const TornNote: React.FC<{ at: number; until?: number; x: number; y: numb
   );
 };
 
-/** a folder opens and the cited document slides out of it (for a document, a decision, a letter he quotes) */
-export const FolderOpen: React.FC<{ at: number; until?: number; x: number; y: number; w: number; h: number; label: string; src: string }> = ({ at, until, x, y, w, h, label, src }) => {
-  const s = useArrive(at, until, "fo" + label, "bottom", -1), t = useStep();
-  if (!s) return null;
-  const open = easeOut((t - at - 0.4) / 0.5), slide = easeOut((t - at - 0.8) / 0.5);
-  return (
-    <div style={{ position: "absolute", left: x, top: y, width: w, height: h, perspective: 1600, ...s }}>
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: h * 0.82, background: BRAND.accentDeep, borderRadius: "0 14px 14px 14px", filter: shadow }} />
-      <div style={{ position: "absolute", left: w * 0.08, right: w * 0.08, bottom: h * 0.06 + slide * h * 0.3, height: h * 0.66, background: BRAND.card, borderRadius: 6, overflow: "hidden", boxShadow: "0 4px 10px rgba(0,0,0,.25)" }}>
-        <Pic src={src} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
-      </div>
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: h * 0.62, background: BRAND.accent, borderRadius: 14, transformOrigin: "50% 100%", transform: `rotateX(${open * 58}deg)`, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", boxShadow: "0 -4px 14px rgba(0,0,0,.25)" }}>
-        <span style={{ background: BRAND.card, color: BRAND.ink, fontFamily: kufiF, fontSize: 30, padding: "6px 26px 12px", borderRadius: 8 }}>{label}</span>
-      </div>
-      <div style={{ position: "absolute", left: 0, top: h * 0.12, width: w * 0.34, height: h * 0.1, background: BRAND.accentDeep, borderRadius: "14px 14px 0 0" }} />
-    </div>
-  );
-};
-
-/** paper fold: picture A folds down along its middle like a sheet and shows picture B under it (before → after, claim → truth) */
-export const FoldReveal: React.FC<{ at: number; until?: number; x: number; y: number; w: number; h: number; a: string; b: string; labelA?: string; labelB?: string }> = ({ at, until, x, y, w, h, a, b, labelA, labelB }) => {
-  const t = useStep();
-  if (t < at || (until !== undefined && t > until)) return null;
-  const k = easeOut((t - at - 0.6) / 0.6);
-  const tag = (s?: string) => (s ? <span style={{ position: "absolute", right: 16, top: 16, background: BRAND.navy, color: BRAND.card, fontFamily: kufiF, fontSize: 24, padding: "4px 16px 8px", borderRadius: 8, direction: "rtl" }}>{s}</span> : null);
-  const half = (src: string, top: boolean, label?: string) => (
-    <div style={{ position: "absolute", left: 0, top: top ? 0 : h / 2, width: w, height: h / 2, overflow: "hidden" }}>
-      <div style={{ position: "absolute", left: 0, top: top ? 0 : -h / 2, width: w, height: h }}><Pic src={src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />{top ? tag(label) : null}</div>
-    </div>
-  );
-  return (
-    <div style={{ position: "absolute", left: x, top: y, width: w, height: h, perspective: 2200, filter: shadow }}>
-      <div style={{ position: "absolute", inset: 0, border: `12px solid ${BRAND.card}`, borderRadius: 10, overflow: "hidden", boxSizing: "border-box" }}>
-        <div style={{ position: "absolute", inset: 0 }}><Pic src={b} style={{ width: "100%", height: "100%", objectFit: "cover" }} />{tag(labelB)}</div>
-        {half(a, false)}
-      </div>
-      <div style={{ position: "absolute", left: 0, top: 0, width: w, height: h / 2, transformOrigin: "50% 100%", transform: `rotateX(${-k * 180}deg)`, backfaceVisibility: "hidden", border: `12px solid ${BRAND.card}`, borderBottom: "none", boxSizing: "border-box", borderRadius: "10px 10px 0 0", overflow: "hidden" }}>
-        {half(a, true, labelA)}
-        <div style={{ position: "absolute", inset: 0, background: `rgba(0,0,0,${0.35 * k})` }} />
-      </div>
-    </div>
-  );
-};
-
 /** a title made of torn paper scraps, one word per scrap (Arabic letters keep their joins), each arriving in stop-motion with its own tilt and stock */
-export const WordScraps: React.FC<{ at: number; until?: number; x: number; y: number; text: string; size?: number; gap?: number }> = ({ at, until, x, y, text, size = 84, gap = 0.18 }) => {
-  const t = useStep(), f = useCurrentFrame();
+/** without x/y it sits in the writing area (user 2026-10-29): the third quarter of the height, centred across the width */
+export const WordScraps: React.FC<{ at: number; until?: number; x?: number; y?: number; text: string; size?: number; gap?: number }> = ({ at, until, x, y, text, size = 84, gap = 0.18 }) => {
+  const t = useStep(), f = useCurrentFrame(), { width, height } = useVideoConfig();
+  const place: React.CSSProperties = x === undefined || y === undefined ? { left: 0, top: height * 0.5, width, height: height * 0.25, justifyContent: "center", boxSizing: "border-box", padding: `0 ${Math.round(width * 0.05)}px` } : { left: x, top: y };
   if (t < at || (until !== undefined && t > until + 0.3)) return null;
   const stocks = [BRAND.card, BRAND.paper, BRAND.navy, BRAND.accent];
   return (
-    <div style={{ position: "absolute", left: x, top: y, display: "flex", flexDirection: "row-reverse", flexWrap: "wrap", gap: size * 0.3, alignItems: "center" }}>
+    <div style={{ position: "absolute", display: "flex", flexDirection: "row-reverse", flexWrap: "wrap", gap: size * 0.3, alignItems: "center", ...place }}>
       {text.split(" ").map((wd, i) => {
         const a = at + i * gap, inn = easeOut((t - a) / 0.25), out = until === undefined ? 0 : easeOut((t - until) / 0.3);
         if (t < a) return <span key={i} style={{ visibility: "hidden", fontFamily: zainF, fontSize: size, padding: "0 22px" }}>{wd}</span>;

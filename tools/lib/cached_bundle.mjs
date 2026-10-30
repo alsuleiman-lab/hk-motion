@@ -35,7 +35,16 @@ function collectSources(id) {
   if (!m) { console.warn(`[bundle] could not find <Composition id="${id}"> in src/Root.tsx; scanning src/ entirely`); return all(); }
   const comp = m[1];
   const im = root.match(new RegExp(`import\\s*\\{[^}]*\\b${comp}\\b[^}]*\\}\\s*from\\s*["'](\\.[^"']+)["']`));
-  const start = im ? resolveImport(rootFile, im[1]) : null;
+  let start = im ? resolveImport(rootFile, im[1]) : null;
+  // data-spec montage defined in Root.tsx (`const XVideo = () => <MontageFromSpec spec={xSpec …} />`): start at MontageSpec.tsx and add ONLY its own spec
+  // (2026-10-29: the fallback scanned all of src/ + every spec → 65–94k files / up to 19 GB hard-linked on every still, face check and probe)
+  const sm = !start && root.match(new RegExp(`const\\s+${comp}\\b[^\\n]*<MontageFromSpec\\s+spec=\\{([A-Za-z0-9_]+)`));
+  if (sm) {
+    const sj = root.match(new RegExp(`import\\s+${sm[1]}\\s+from\\s*["'](\\.[^"']+\\.json)["']`));
+    const specFile = sj ? resolveImport(rootFile, sj[1]) : null;
+    start = resolveImport(rootFile, "./MontageSpec");
+    if (specFile && start) files.add(specFile);
+  }
   files.delete(rootFile);
   if (!start) { console.warn(`[bundle] could not resolve the file of component ${comp}; scanning src/ entirely`); return all(); }
   const stack = [start];
@@ -43,12 +52,12 @@ function collectSources(id) {
     const f = stack.pop();
     if (files.has(f)) continue;
     files.add(f);
-    for (const x of readSrc(f).matchAll(/(?:from\s+|import\s*\(\s*|import\s+)["'](\.[^"']+)["']/g)) { const r = resolveImport(f, x[1]); if (r && !files.has(r)) stack.push(r); }
+    for (const x of readSrc(f).matchAll(/(?:from\s+|import\s*\(\s*|import\s+)["'](\.[^"']+)["']/g)) { const r = resolveImport(f, x[1]); if (r && !files.has(r) && !/[\\/]data[\\/]specs[\\/]/.test(r)) stack.push(r); }
   }
-  return withSpecs(files);
+  return sm ? files : withSpecs(files);
 }
 
-function neededAssets(id, manifest, manifestOnly = false) {
+export function neededAssets(id, manifest, manifestOnly = false) {
   const rel = new Set();
   const add = (p) => { // p relative to public/ (file or folder)
     const abs = path.join(PUB, p);
@@ -63,11 +72,19 @@ function neededAssets(id, manifest, manifestOnly = false) {
     return [...rel].sort();
   }
   let allPub = null;
+  const sources = collectSources(id);
+  const specText = [...sources].filter((f) => /[\\/]data[\\/]specs[\\/]/.test(f)).map(readSrc).join("\n");
   const prefix = (pre) => { // `kh/alpha_${n}.webm` -> every public file whose path starts with "kh/alpha_"
+    // `fr/${base}/…` (a folder per video): only the folders the montage's own spec names (all projects' extracted frames = 94k files)
+    if (pre.endsWith("/") && specText) {
+      let subs = []; try { subs = fs.readdirSync(path.join(PUB, pre), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name); } catch { /* none */ }
+      for (const d of subs) if (specText.includes(d)) add(pre + d);
+      return;
+    }
     allPub ??= walk(PUB).map((f) => path.relative(PUB, f).replace(/\\/g, "/"));
     for (const f of allPub) if (f.startsWith(pre)) rel.add(f);
   };
-  for (const f of collectSources(id)) {
+  for (const f of sources) {
     const t = readSrc(f);
     for (const m of t.matchAll(/["'`]([^"'`\n$]+?)(\$\{|["'`])/g)) {
       const s = m[1].replace(/^\/+/, "").replace(/^\.\.\/public\//, "");
@@ -83,7 +100,8 @@ function linkInto(destPublic, files) {
   let linked = 0, copied = 0, bytes = 0;
   for (const f of files) {
     const from = path.join(PUB, f), to = path.join(destPublic, f);
-    if (fs.existsSync(to)) continue;
+    // an existing link is reused only while it is still the same file (a re-made asset under the same name must not show the old picture)
+    if (fs.existsSync(to)) { const a = fs.statSync(from), b = fs.statSync(to); if (a.ino === b.ino && a.size === b.size) continue; fs.rmSync(to, { force: true }); }
     fs.mkdirSync(path.dirname(to), { recursive: true });
     try { fs.linkSync(from, to); linked++; } catch { fs.copyFileSync(from, to); copied++; }
     bytes += fs.statSync(from).size;
@@ -104,9 +122,14 @@ export async function cachedServeUrl(id, { manifest = "", tag = "bundle", manife
   const fresh = fs.existsSync(stampFile) && readSrc(stampFile) === stamp && fs.existsSync(path.join(cacheDir, "index.html"));
   if (fresh) console.log(`[${tag}] bundle reused (code unchanged)`);
   else {
+    // keep the hard-linked public/ across a re-bundle (a spec edit re-bundles; re-linking thousands of assets each time cost minutes)
+    const keep = path.join(path.dirname(cacheDir), `.${id}_public_keep`);
+    fs.rmSync(keep, { recursive: true, force: true });
+    try { fs.renameSync(path.join(cacheDir, "public"), keep); } catch { /* first bundle */ }
     fs.rmSync(cacheDir, { recursive: true, force: true });
     fs.mkdirSync(path.dirname(cacheDir), { recursive: true });
     await bundle({ entryPoint: ENTRY, publicDir: emptyPub, outDir: cacheDir, onProgress: () => {} });
+    if (fs.existsSync(keep)) { fs.rmSync(path.join(cacheDir, "public"), { recursive: true, force: true }); fs.renameSync(keep, path.join(cacheDir, "public")); }
     fs.writeFileSync(stampFile, stamp);
     console.log(`[${tag}] bundle built`);
   }

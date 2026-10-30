@@ -8,7 +8,7 @@
 //                                                     are trimmed at their join automatically (up to 4 rounds); audio_gate; only if it passes: one NVENC build
 //                                                     → public/<p>_cut.mp4 and the cut transcript .tmp/<p>/cut_transcript.txt (for timing elements).
 //   node tools/stage.mjs check <p> <CompId> --file src/<X>.tsx --minutes <m> [--skip 0-12,40-55]
-//                                                     typecheck → rules_lint → brand_audit (spec) → mg_usage_audit → coverage_check (spec) → face_fast (spec montage; else face_check) → frame_audit, one after another (never two renders at once).
+//                                                     typecheck → rules_lint → brand_audit (spec) → mg_usage_audit → coverage_check (spec) → grid_plan + grid_sheet (spec montage; else face_check) → frame_audit (old TSX only), one after another (never two renders at once).
 // Exit code 1 when any step fails; the summary names the step and the log line to read.
 import fs from "node:fs";
 import os from "node:os";
@@ -236,8 +236,15 @@ if (stage === "check") {
   })();
   // data-spec montage → the fast geometric check (face track + one gfx-only render, every 0.5 s); old TSX compositions keep face_check.mjs
   const specF = path.join("data", "specs", `${p}.json`);
-  if (fs.existsSync(specF)) await step("face_fast", "node", ["tools/face_fast.mjs", comp, "--spec", specF, "--out", path.join(T, "ff")], /FAIL overlap|PASSED|FAILED/);
+  // data-spec montage: the layout grid (data/layout_grids.json) reserves a place and a time for every element and keeps the face zone (from the face track) free
+  // — computed in a second, no render (user 2026-10-29); then ONE sheet of 3 rendered frames per minute to look at. face_fast stays available by hand.
+  if (fs.existsSync(specF)) {
+    await step("grid_plan", "node", ["tools/grid_plan.mjs", specF, "--o", comp.endsWith("-L") ? "land" : "port"], /^\[|PASSED|FAILED/);
+    await step("grid_sheet", "node", ["tools/grid_sheet.mjs", comp, specF], /→/);
+  }
   else await step("face_check", "node", ["tools/face_check.mjs", comp, ...(faceFrames.length ? ["--frames", faceFrames.join(",")] : ["--step", "90"]), "--out", path.join(T, "fc")], /FAIL overlap|PASSED|FAILED|UNVERIFIED/);
-  await step("frame_audit", "node", ["tools/frame_audit.mjs", comp, ...(opt("skip", "") ? ["--skip", opt("skip", "")] : [])], /plain share|PASSED|FAILED/);
+  // data-spec montage: coverage_check already proves from the spec that nothing is empty > 5 s and the first minute never (seconds, not the 30+ min
+  // two-pass render of the whole video that frame_audit needs); frame_audit stays for old TSX compositions
+  if (!fs.existsSync(specF)) await step("frame_audit", "node", ["tools/frame_audit.mjs", comp, ...(opt("skip", "") ? ["--skip", opt("skip", "")] : [])], /plain share|PASSED|FAILED/);
   finish(failed ? 1 : 0);
 }

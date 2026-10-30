@@ -52,7 +52,8 @@ for (const [kind, names] of Object.entries(KIT)) counts[kind] = names.reduce((n,
 const used = Object.entries(counts).filter(([, n]) => n > 0), need = Math.min(10, Math.max(4, Math.ceil(minutes * 0.8)));
 console.log(`ملفات مفحوصة: ${seen.size} | المدة المفترضة: ${minutes} د | المطلوب: ${need} أنواع مختلفة على الأقل من القطع\n`);
 for (const [k, n] of Object.entries(counts)) console.log(`${n > 0 ? "✔" : "·"} ${k}: ${n}`);
-const over = used.filter(([, n]) => n > 3);
+const EXEMPT = new Set(["عبارة مفتاحية", "اشتراك", "بطاقة اسم"]);   // content/periodic obligations, not decoration (user 2026-10-29: «أنت لا تكتب الكلمات المهمة»): no cap
+const over = used.filter(([k, n]) => n > 3 && !EXEMPT.has(k));
 const ok = used.length >= need && over.length === 0;
 console.log(`\nالأنواع المستعملة: ${used.length}/${need}${over.length ? ` | مفرَط الاستعمال (>3): ${over.map(([k]) => k).join("، ")}` : ""}`);
 console.log(ok ? "✅ تنويع كافٍ." : "✘ ناقص: استعمل أنواعاً أخرى مناسبة للكلام أو خفّف المكرَّر.");

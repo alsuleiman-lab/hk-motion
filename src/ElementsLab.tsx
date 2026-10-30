@@ -3,24 +3,23 @@ import { AbsoluteFill, OffthreadVideo, Sequence, staticFile } from "remotion";
 import {
   Bars, BlurRise, BrushX, Clock, CollageAssemble, ConvergeMerge, CornerTags, DashArc, DimLayer, EllipseMark, FlashCut, GlowCaption, GlowCounter,
   Highlight, MGTheme, NoteCard, PanelToCanvas, PhoneChips, PinnedPhoto,
-  HandheldShake, PaperBg, RewriteWindow, SakugaMove, SpotlightCard, Stamp, Strike, T, TagChip, TiltNote, TimelineCounter, TimelineTravel, TypeBox, kufiF, naskhF,
+  HandheldShake, PaperBg, RewriteWindow, SakugaMove, SpotlightCard, Stamp, Strike, T, TiltNote, TimelineCounter, TimelineTravel, TypeBox, kufiF, naskhF,
 } from "./MG";
 import { Banner, Sources, StatRow, useFonts } from "./EuKit";
 import { MapRoute, Marker, PaperMap, Word } from "./PortraitKit";
 import { KeyChip, VerseWords, ReelVerseFull } from "./MGExtras";
 import { NameTag, Subscribe, Pic } from "./EuKit";
-import { PopCard, BAR_WARM, FullImage, PaperScene } from "./PortraitKit";
-import { KhBg } from "./KhKit";
+import { PopCard, BAR_WARM, FullImage, PaperScene, WarmBase } from "./PortraitKit";
 import { BACKGROUNDS } from "./Backgrounds";
 import { TitleBar } from "./TitleBar";
 import { PaperCoverKit } from "./CoverKit";
-import { SplitCards, Curtain, TailVoice } from "./MontageSpec";
+import { LandFootage, Curtain, TailVoice } from "./MontageSpec";
 import { NAME_CARDS } from "./NameCards";
 import LAB from "../data/elements_lab.json";
 import { BRAND, applyBrand } from "./brand";
 import type { BrandName } from "./brand";
 import { BrowserFrame, VideoFrame, PostCard, CommentCard, BookPage, CitationTag, ArticleMock } from "./SourceFrames";
-import { NewsClip, TornNote, FolderOpen, FoldReveal, WordScraps, TornPhoto, PaperGrain } from "./PaperKit";
+import { NewsClip, TornNote, WordScraps, TornPhoto, PaperGrain } from "./PaperKit";
 import { DebateDossier, DebateBlocks } from "./DebateLayouts";
 
 /**
@@ -42,7 +41,7 @@ const Rec: React.FC<{ style?: React.CSSProperties }> = ({ style }) => (
   <OffthreadVideo src={staticFile(REAL_CUT)} muted style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080, objectFit: "cover", ...style }} />
 );
 /** elements that fill the frame or sit on its edges keep their own layout over his centred recording */
-const KEEP = new Set(["DebateDossier", "DebateBlocks", "ReelVerseFull", "PaperGrain", "CornerTags", "DimLayer", "HandheldShake", "TitleBar", "Subscribe", "SplitCards", "Curtain", "TailVoice", "PaperCover", "PushIn", "NameCard1", "NameCard3", "Banner", "Sources"]);
+const KEEP = new Set(["DebateDossier", "DebateBlocks", "ReelVerseFull", "PaperGrain", "CornerTags", "DimLayer", "HandheldShake", "TitleBar", "Subscribe", "Curtain", "TailVoice", "PaperCover", "PushIn", "NameCard1", "NameCard3", "Banner", "Sources", "PanelToCanvas", "WordScraps"]);
 const keepLayout = (id: string) => id.startsWith("Bg") || KEEP.has(id);
 /** his recording behind the element: centred for full-frame pieces; otherwise pushed right (face ≈ x 1470–1710) over a blurred copy, and the element drawn
  *  at 0.76 in the free left side, as a card sits beside him in a real video */
@@ -73,13 +72,11 @@ const SPEC_E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   CitationTag: { node: <CitationTag at={0.2} x={740} y={480} book="صحيح مسلم" part="2" page="118" /> },
   NewsClip: { node: <NewsClip at={0.1} x={560} y={110} w={800} h={520} src="people/azharCourt.jpg" headline="عنوان الخبر في الصحيفة" source="اسم الصحيفة، 2026" /> },
   TornNote: { node: <TornNote at={0.1} x={560} y={430} w={800} text="العبارة المهمة هنا" underline={1} /> },
-  FolderOpen: { node: <FolderOpen at={0.1} x={660} y={250} w={600} h={720} label="مخطوط البخاري" src="books/bukhari2.jpg" /> },
-  FoldReveal: { node: <FoldReveal at={0.1} x={510} y={110} w={900} h={840} a="people/azharCourt.jpg" b="people/azharMosque.jpg" labelA="الادعاء" labelB="الحقيقة" /> },
-  WordScraps: { node: <WordScraps at={0.1} x={180} y={440} text="عنوان القسم من قصاصات" /> },
+  WordScraps: { node: <WordScraps at={0.1} text="كلام مهم من كلامه" /> },
   TornPhoto: { node: <TornPhoto at={0.1} x={740} y={150} w={440} h={600} src="people/ibn_uthaymeen.jpg" name="ابن عثيمين" /> },
   PaperGrain: { node: <><Page /><PaperGrain opacity={0.22} /></> },
   BgFullImage: { node: <><div style={{ position: "absolute", left: 0, right: 0, bottom: 120, textAlign: "center", fontFamily: kufiF, fontSize: 46, color: BRAND.card, direction: "rtl", textShadow: "0 3px 10px rgba(0,0,0,.6)" }}>«…وقبّة هذا المسجد في القاهرة»</div><FullImage src="people/azharMosque.jpg" from={1} to={3} marker={{ x: 1180, y: 20, w: 560, h: 560, at: 1.5 }} /></> },
-  BgKh: { node: <KhBg /> },
+  BgKh: { node: <WarmBase /> },
   BgPaperDark: { node: <PaperBg dark /> },
   BgMashrabiya: { node: React.createElement(BACKGROUNDS.BgMashrabiya) },
   TitleBar: { node: <TitleBar title="عنوان الحلقة في الشريط" theme={BAR_WARM} /> },
@@ -91,10 +88,9 @@ const SPEC_E: Record<string, { node: React.ReactNode; light?: boolean }> = {
       <div style={{ position: "relative", width: 600, height: 400, borderRadius: 14, overflow: "hidden", border: "5px solid #f6efe0", boxSizing: "border-box" }}><Pic src="people/azharMosque.jpg" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
     </SakugaMove>) },
   PopCard: { node: <PopCard at={0.1} x={700} y={240}><div style={{ width: 520, height: 600, borderRadius: 14, overflow: "hidden", border: "5px solid #f6efe0", position: "relative" }}><Real src="people/azharMosque.jpg" /></div></PopCard> },
-  SplitCards: { node: <SplitCards cut="kit_sample_sheikh.mp4" sp={SPLIT} /> },
-  DebateDossier: { node: <DebateDossier at={0.1} main={{ src: "kit_sample_sheikh.mp4" }} guest={{ src: "gallery_opp_clip.mp4", aspect: 544 / 720 }} /> },
+  DebateDossier: { node: <DebateDossier at={0.1} url="www.azhar.eg/news/article-2026" main={{ src: "kit_sample_sheikh.mp4" }} guest={{ src: "gallery_opp_clip.mp4", aspect: 544 / 720 }} /> },
   DebateBlocks: { node: <DebateBlocks at={0.1} main={{ src: "kit_sample_sheikh.mp4" }} guest={{ src: "gallery_opp_clip.mp4", aspect: 544 / 720 }} /> },
-  Curtain: { node: <><SplitCards cut="kit_sample_sheikh.mp4" sp={SPLIT} /><Curtain at={2.58} /></> },
+  Curtain: { node: <><LandFootage cut="kit_sample_sheikh.mp4" splits={[SPLIT]} /><Curtain at={2.58} /></> },
   TailVoice: { node: <TailVoice tl={{ from: 0, to: 99, src: "", label: "رسالة صوتية من …", photos: ["people/azharMosque.jpg", "people/azharCourt.jpg"] }} /> },
   PaperCover: { node: <PaperCoverKit format="landscape" line1="عنوان الغلاف" line2="سطر تحت العنوان" /> },
   PushIn: { node: (
@@ -109,12 +105,11 @@ const NAME_E: Record<string, { node: React.ReactNode }> = Object.fromEntries(Obj
 ]));
 const E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   StatRow: { node: <><Banner at={0.1} x={560} y={170} w={800} text="إيطاليا: ضيق المعيشة" size={48} flag="it" /><StatRow at={0.4} countAt={0.6} x={560} y={330} w={800} h={170} icon="Banknote" label="بند فيه رقم (2024)" sub="سطر صغير يوضّح" to={322} unit="مليون يورو" rot={-1} big={84} flag="fr" /><StatRow at={0.8} x={560} y={530} w={800} h={150} icon="Wallet" label="والبند الثاني من كلامه" rot={1} /></> },
-  Banner: { node: <Banner at={0.1} x={460} y={440} w={1000} text="أين تذهب الأموال؟" size={64} /> },
+  Banner: { node: <Banner at={0.1} text="أين تذهب الأموال؟" /> },
   Stamp: { node: <Stamp at={0.2} x={640} y={440} text="والشعوب تغلي" size={96} /> },
   Sources: { node: <Sources x={360} bottom={420} w={1200} size={26} links={[{ at: 0.1, url: "https://example.org/source-of-the-figure" }]} /> },
   BlurRise: { node: <BlurRise at={0.1} text="عبارة مفتاحية من كلامه" x={260} w={1400} y={440} size={100} /> },
   TypeBox: { node: <TypeBox at={0.1} x={440} y={380} w={1040} text="جملة مقتبسة تُكتب حرفاً حرفاً" title="اقتباس" chip="الفكرة" cps={20} size={56} /> },
-  TagChip: { node: <><TagChip at={0.1} x={700} y={380} text="عبارة مفتاحية" kind="orange" bullet /><TagChip at={0.4} x={1100} y={380} text="تصنيف" kind="red" /><TagChip at={0.7} x={900} y={560} text="كلمة" sub="(سطر صغير تحتها)" kind="cream" /></> },
   Highlight: { node: <div style={{ position: "absolute", left: 460, top: 440, width: 1000, textAlign: "center", fontFamily: kufiF, fontSize: 84, color: "#fff", direction: "rtl" }}>جملة فيها <Highlight at={0.1}>كلمة مهمة</Highlight> مظلَّلة</div> },
   TimelineCounter: { node: <TimelineCounter at={0.1} x={260} y={380} w={1400} unit="سنة" stops={[{ t: 0, value: 0, label: "البداية" }, { t: 1.2, value: 40, label: "محطة" }, { t: 2.2, value: 60, label: "النهاية" }]} size={110} /> },
   GlowCounter: { node: <GlowCounter at={0.1} x={700} y={400} steps={[4, 23, 36]} stepDur={0.6} size={190} /> },

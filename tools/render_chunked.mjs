@@ -37,7 +37,7 @@ const frames = (f) => Number(probe(f, "v:nb_frames")) || 0;
 const secs = (f) => Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", f]).toString());
 
 const T0 = Date.now();
-const cached = process.env.RENDER_CACHED === "1";
+const cached = process.env.RENDER_CACHED !== "0";   // default: the cached hard-link bundle (user 2026-10-29: the full public/ copy cost 15 min); RENDER_CACHED=0 forces the old full copy
 const serveUrl = cached
   ? (await cachedServeUrl(id, { tag: "render" })).serveUrl
   : await bundle({ entryPoint: path.resolve("src/index.ts"), outDir: path.resolve(`render_work/chunked_bundle_${id}`), onProgress: () => {} });

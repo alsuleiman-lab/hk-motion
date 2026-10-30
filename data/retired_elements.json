@@ -23,7 +23,11 @@
     "TrPush",
     "TrZoomFade",
     "TrPageTurn",
-    "DebateOrbital"
+    "DebateOrbital",
+    "FolderOpen",
+    "FoldReveal",
+    "TagChip",
+    "SplitCards"
   ],
   "itemTypes": [
     "neon",

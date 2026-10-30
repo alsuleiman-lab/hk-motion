@@ -7,6 +7,7 @@
 // 4) overlap = share of the zone covered by drawn pixels (alpha); > thr (0.8 %) = FAIL. No second render, so no false alarm from a push-in
 //    or a video frame that differs between two renders. Skipped by design: the cover (first 51 frames), full-screen sources, the closing audio card.
 import { cachedServeUrl, privateTemp } from "./lib/cached_bundle.mjs";
+import { writePass } from "./lib/pass_stamp.mjs";
 privateTemp("facefast");
 const { openBrowser, renderFrames, selectComposition } = await import("@remotion/renderer");
 import { spawnSync } from "node:child_process";
@@ -40,9 +41,11 @@ const track = JSON.parse(fs.readFileSync(trackF, "utf8"));
 const found = track.boxes.filter((b) => b[1] != null);
 const med = (k) => found.map((b) => b[k]).sort((a, b) => a - b)[found.length >> 1];
 const fallback = [null, med(1), med(2), med(3), med(4)];
+// `solos` (MontageSpec SoloLand, 2026-10-29): a baked-split recording shown as HIS slice only → the left half counts as «clip» for the detections, his slice is mapped with the SoloLand geometry
+const splitAt = (t) => { const sp = (spec.splits ?? []).find((s) => t >= s.from && t < s.to); if (sp) return sp; const so = (spec.solos ?? []).find((s) => t >= s.from && t < s.to); return so ? { ...so, clip: { x: 0, w: so.sheikh.x }, solo: true } : undefined; };
 const boxAt = (t) => { // nearest detection within 2 s (camera fixed), else the median position; faces inside a split's clip half are not his
   const i = Math.round(t * track.fps);
-  const sp = (spec.splits ?? []).find((s) => t >= s.from && t < s.to);
+  const sp = splitAt(t);
   const oddSize = (b) => b[3] > 1.6 * fallback[3] || b[3] < 0.5 * fallback[3];   // a detection far larger/smaller than his usual face (a false positive on the wall/books) is not his
   const inClip = (b) => oddSize(b) || (sp ? (b[1] + b[3] / 2) >= sp.clip.x && (b[1] + b[3] / 2) < sp.clip.x + sp.clip.w : Math.abs((b[1] + b[3] / 2) - (fallback[1] + fallback[3] / 2)) > 350);   // outside a split window his face stays near its usual place: a far box is the guest's clip starting a moment early
   const cw = (spec.cams ?? []).find((c) => t >= c.from && t < c.to), w0 = sp ? sp.from : cw ? cw.from : 0, w1 = sp ? sp.to : cw ? cw.to : 1e9;
@@ -63,20 +66,26 @@ const CARD_BORDER = 14, CARD_H = 800;
 const zoneAt = (t, land, W, H) => {
   const [, x, y, w, h] = boxAt(t);
   let z0 = [x - 0.08 * w, y - 0.38 * h], z1 = [x + 1.08 * w, y + 1.9 * h];   // face + hair + beard (as face_check.py)
-  const sp = (spec.splits ?? []).find((s) => t >= s.from && t < s.to);
+  const sp = splitAt(t);
   let map;
-  if (land && sp) {   // SplitCards: his column [sheikh.x, +w) in the right-hand polaroid at height CARD_H
+  if (land && sp?.solo) {   // SoloLand: his slice scaled, right-aligned (centred inside `center` windows), container push-in about 50% 28%
+    const sc = sp.scale ?? 1, w = sp.sheikh.w * sc, h = H * sc, centered = (sp.center ?? []).some((c) => t >= c.from && t < c.to);
+    const left = sp.align === "right" && !centered ? W - w : (W - w) / 2, top = Math.min(0, H - h) / 2, zm = zoomAt(t), cx0 = w / 2, cy0 = 0.28 * h;
+    map = ([px, py]) => [left + cx0 + ((px - sp.sheikh.x) * sc - cx0) * zm, top + cy0 + (py * sc - cy0) * zm];
+  } else if (land && sp) {   // reply layouts (DebateLayouts): his column [sheikh.x, +w) in the right-hand polaroid at height CARD_H
     const k = CARD_H / 1080, cw = Math.round(sp.clip.w * k) + CARD_BORDER * 2, sw = Math.round(sp.sheikh.w * k) + CARD_BORDER * 2, gap = 110;
     const x0 = Math.round((W - (cw + sw + gap)) / 2), left = x0 + cw + gap + CARD_BORDER, top = 60 + CARD_BORDER;
     map = ([px, py]) => [left + (px - sp.sheikh.x) * k, top + py * k];
   } else if (land) {  // whole frame, push-in about faceOrigin 51.6% 30.5%
     const z = zoomAt(t), ox = 0.516 * W, oy = 0.305 * H;
-    map = ([px, py]) => [ox + (px * W / 1920 - ox) * z, oy + (py * H / 1080 - oy) * z];
+    const bw = (spec.behind ?? []).find((b) => b.dx !== undefined && t >= b.from && t < b.to), dx = bw ? bw.dx : 0;   // isolated and shifted right inside a `behind` window
+    map = ([px, py]) => [ox + (px * W / 1920 - ox) * z + dx, oy + (py * H / 1080 - oy) * z];
   } else {            // portrait: 608-px slice around cam.cx scaled to 1920 high, push-in about 540,600
     const cams = spec.cams ?? [{ from: 0, to: 9999, cx: 990 }];
     const cam = cams.find((c) => t >= c.from && t < c.to) ?? cams[cams.length - 1];
     const K = 1920 / 1080, z = zoomAt(t);
-    map = ([px, py]) => { const X = (px - (cam.cx - 304)) * K, Y = py * K; return [540 + (X - 540) * z, 600 + (Y - 600) * z]; };
+    const pw = (spec.psplits ?? []).find((q) => t >= q.from - 0.01 && t <= q.to + 0.4), pk = pw ? Math.min(clamp((t - pw.from) / 0.4), clamp((pw.to + 0.4 - t) / 0.4)) : 0, ps = 1 + ((pw?.s ?? 0.66) - 1) * pk;   // portrait split screen: his video shrinks to the top (scale about 50% 0%)
+    map = ([px, py]) => { const X = (px - (cam.cx - 304)) * K, Y = py * K, x1 = 540 + (X - 540) * z, y1 = 600 + (Y - 600) * z; return [540 + (x1 - 540) * ps, y1 * ps]; };
   }
   const pad = (spec.shake ?? []).some((s) => t >= s.from && t <= s.to) ? 8 : 0;   // HandheldShake amplitude
   const [a, b] = [map(z0), map(z1)];
@@ -97,7 +106,8 @@ const skip = (fr) => {
   return null;
 };
 const frames = [];
-for (let fr = 3; fr < comp.durationInFrames; fr += step) if (!skip(fr)) frames.push(fr);
+const RANGES = (opt("range", "") || "").split(",").filter(Boolean).map((r) => r.split("-").map(Number));   // --range a-b,c-d (seconds): check only the edited spans (edit-as-one-block rule)
+for (let fr = 3; fr < comp.durationInFrames; fr += step) if (!skip(fr) && (!RANGES.length || RANGES.some(([a, b]) => fr / fps >= a && fr / fps <= b))) frames.push(fr);
 const browser = await openBrowser("chrome", { chromiumOptions: { gl: "angle" } });
 await renderFrames({
   composition: comp, serveUrl, inputProps: { gfxOnly: true }, imageFormat: "png", scale: SC, frameRange: [3, comp.durationInFrames - 1], everyNthFrame: step, outputDir: null,
@@ -121,5 +131,5 @@ jobs.forEach((j, k) => {
 });
 const secs = ((Date.now() - t0) / 1000).toFixed(1);
 console.log(`\n${fails ? `FAILED: ${fails} frame(s) have graphics over the face/hair/beard — move them and re-run.` : missing ? `FAILED: ${missing} still(s) not rendered — re-run.` : `PASSED (${jobs.length} frames every ${step} frames, ${((jobs.length * step) / fps / 60).toFixed(1)} min checked)`} in ${secs} s (track ${(lap.track / 1000).toFixed(1)} s${fs.existsSync(trackF) ? "" : ""}, render ${(lap.render / 1000).toFixed(1)} s)`);
-if (!fails && !missing) fs.rmSync(outDir, { recursive: true, force: true });
+if (!fails && !missing) { fs.rmSync(outDir, { recursive: true, force: true }); writePass("face_fast", id, specF); }
 process.exit(fails || missing ? 1 : 0);

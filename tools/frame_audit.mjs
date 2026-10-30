@@ -1,5 +1,5 @@
 // "Is the montage doing any work?" audit — MANDATORY before showing a video (user 2026-10-19: «المونتاج ضعيف، لا عمل فيه»).
-//   node tools/frame_audit.mjs <CompositionId> [--step 3] [--max 12] [--skip 0-60,300-330] [--props '{}']
+//   node tools/frame_audit.mjs <CompositionId> [--step 2] [--max 5] [--skip 0-60,300-330] [--props '{}']
 // Renders every <step> seconds twice (normal, and with hideGfx) and measures how many pixels the <Gfx> layer changes.
 // A frame with < 1.5% changed pixels = "plain" (talking head with nothing designed on it). FAIL if plain frames run longer than --max seconds.
 // --skip ranges (seconds) are excluded when the BASE layer itself is designed (baked intro, designed clip scenes).
@@ -11,7 +11,7 @@ import fs from "node:fs";
 import path from "node:path";
 const argv = process.argv.slice(2), id = argv[0];
 const opt = (n, d) => (argv.includes("--" + n) ? argv[argv.indexOf("--" + n) + 1] : d);
-const step = Number(opt("step", 3)), maxPlain = Number(opt("max", 12)), props = JSON.parse(opt("props", "{}"));
+const step = Number(opt("step", 2)), maxPlain = Number(opt("max", 5)), props = JSON.parse(opt("props", "{}"));
 const skips = opt("skip", "").split(",").filter(Boolean).map((r) => r.split("-").map(Number));
 const out = ".tmp/audit"; fs.mkdirSync(out, { recursive: true });
 const PY = "C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe";
@@ -43,5 +43,7 @@ for (const r of rows) { if (r.plain) { run = run ?? { from: r.t, to: r.t }; run.
 const plainShare = rows.filter((r) => r.plain).length / rows.filter((r) => !r.skipped).length;
 console.log(rows.map((r) => `${r.t.toFixed(0)}s:${r.skipped ? "skip" : r.plain ? "PLAIN" : "ok"}`).join(" "));
 console.log(`plain share ${(plainShare * 100).toFixed(0)}%, longest plain stretch ${worst.len}s (${worst.from?.toFixed?.(0)}s–${worst.to?.toFixed?.(0)}s), limit ${maxPlain}s`);
+const firstPlain = rows.filter((r) => r.plain && r.t < 60);
+if (firstPlain.length) { console.log(`FAILED: first minute must never be plain — plain at ${firstPlain.map((r) => r.t.toFixed(0) + "s").join(", ")}`); process.exit(1); }
 if (worst.len > maxPlain) { console.log("FAILED: add motion graphics / written elements to the plain stretch, then re-run."); process.exit(1); }
 console.log("PASSED");

@@ -2,6 +2,9 @@ import React from "react";
 import { Composition, Folder } from "remotion";
 import { SHOW_ARCHIVE } from "./archive";
 import { ByRecency } from "./ByRecency";
+import { FamilyStickCast } from "./FamilyStickCast";
+import { AbuKhattEid, EID_FRAMES } from "./AbuKhattEid";
+import { DodoFamilyCast } from "./DodoFamilyCast";
 import { JuhaStory15, JUHA_STORY_FRAMES } from "./JuhaStory15";
 import { KamliPoetKing, KAMLI_FRAMES } from "./KamliPoetKing";
 import { SakugaDemo, SpotDemo, TravelDemo, SAKUGA_DEMO_FRAMES, SPOT_DEMO_FRAMES, TRAVEL_DEMO_FRAMES, CollageDemo, CollageDemoL, COLLAGE_DEMO_FRAMES } from "./SourceMovesDemo";
@@ -36,6 +39,7 @@ import { DeedatKafirunShort, KAFIRUN_FPS, KAFIRUN_TOTAL_FRAMES } from "./quran/D
 import { JuhaInshallah15, JUHA_15S_FPS, JUHA_15S_FRAMES } from "./juha/JuhaInshallah15";
 import { CartoonEndScreen } from "./juha/CartoonEndScreen";
 import { JnCoverL, JnCoverP } from "./JnCover";
+import { Duel2, DUEL2_FRAMES } from "./DuelHeritage";
 import { ThumbDuelL, ThumbDuelP, ThumbEvidenceL, ThumbWordL, ThumbWordP } from "./ThumbPro";
 import { MontageFromSpec } from "./MontageSpec";
 import type { MontageSpec } from "./MontageSpec";
@@ -44,6 +48,14 @@ import { BidahCartoon, BIDAH_TOTAL_FRAMES, BIDAH_FPS } from "./BidahCartoon";
 const SpecDemo: React.FC = () => <MontageFromSpec spec={demoSpec as unknown as MontageSpec} />;
 import jordanSpec from "../data/specs/JordanInterior.json";
 const JordanInteriorVideo: React.FC = () => <MontageFromSpec spec={jordanSpec as unknown as MontageSpec} />;
+import zaynabSpec from "../data/specs/zaynab_shrine.json";
+const ZaynabShrineVideo: React.FC = () => <MontageFromSpec spec={zaynabSpec as unknown as MontageSpec} />;
+import zaynabShrinesSpec from "../data/specs/zaynab_shrines.json";
+const ZaynabShrinesVideo: React.FC = () => <MontageFromSpec spec={zaynabShrinesSpec as unknown as MontageSpec} />;
+import allahTahtSpec from "../data/specs/allah_taht.json";
+const AllahTahtVideo: React.FC = () => <MontageFromSpec spec={allahTahtSpec as unknown as MontageSpec} />;
+import allahTahtReelSpec from "../data/specs/allah_taht_reel.json";
+const AllahTahtReelVideo: React.FC = () => <MontageFromSpec spec={allahTahtReelSpec as unknown as MontageSpec} />;
 
 import { Clip1SunPortrait, CLIP1_FRAMES, CLIP1_FPS } from "./Clip1SunPortrait";
 import { Clip2TaaddudPortrait, CLIP2_FRAMES, CLIP2_FPS } from "./Clip2TaaddudPortrait";
@@ -51,9 +63,16 @@ import { Clip3SunrisePortrait, CLIP3_FRAMES, CLIP3_FPS } from "./Clip3SunrisePor
 import { Clip4ThronePortrait, CLIP4_FRAMES, CLIP4_FPS } from "./Clip4ThronePortrait";
 import { Clip5TaslamPortrait, CLIP5_FRAMES, CLIP5_FPS } from "./Clip5TaslamPortrait";
 
+
+
 export const RemotionRoot: React.FC = () => {
   return (
     <ByRecency>
+      <Composition id="AbuKhattEid" component={AbuKhattEid} durationInFrames={EID_FRAMES} fps={30} width={1080} height={1920} />
+      <Composition id="FamilyStickCast" component={FamilyStickCast} durationInFrames={180} fps={30} width={1080} height={1920} />
+      <Composition id="DodoFamilyCast" component={DodoFamilyCast} durationInFrames={180} fps={30} width={1080} height={1920} />
+
+
       <Composition id="KamliPoetKing" component={KamliPoetKing} durationInFrames={KAMLI_FRAMES} fps={30} width={1080} height={1920} />
 
       {/* ACTIVE project(s): Livestream Debate Shorts */}
@@ -68,6 +87,12 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="Spec-Demo-L" component={SpecDemo} durationInFrames={demoSpec.frames} fps={30} width={1920} height={1080} />
       <Composition id="JordanInterior" component={JordanInteriorVideo} durationInFrames={jordanSpec.frames} fps={30} width={1080} height={1920} />
       <Composition id="JordanInterior-L" component={JordanInteriorVideo} durationInFrames={jordanSpec.frames} fps={30} width={1920} height={1080} />
+      <Composition id="ZaynabShrine" component={ZaynabShrineVideo} durationInFrames={zaynabSpec.frames} fps={30} width={1080} height={1920} />
+      <Composition id="ZaynabShrine-L" component={ZaynabShrineVideo} durationInFrames={zaynabSpec.frames} fps={30} width={1920} height={1080} />
+      <Composition id="ZaynabShrines" component={ZaynabShrinesVideo} durationInFrames={zaynabShrinesSpec.frames} fps={30} width={1080} height={1920} />
+      <Composition id="ZaynabShrines-L" component={ZaynabShrinesVideo} durationInFrames={zaynabShrinesSpec.frames} fps={30} width={1920} height={1080} />
+      <Composition id="AllahTaht-L" component={AllahTahtVideo} durationInFrames={allahTahtSpec.frames} fps={30} width={1920} height={1080} />
+      <Composition id="AllahTahtReel" component={AllahTahtReelVideo} durationInFrames={allahTahtReelSpec.frames} fps={30} width={1080} height={1920} />
       <Composition id="JuhaInshallah15" component={JuhaInshallah15} durationInFrames={JUHA_15S_FRAMES} fps={JUHA_15S_FPS} width={1080} height={1920} />
       <Composition id="CartoonOutro" component={CartoonEndScreen} durationInFrames={90} fps={30} width={1080} height={1920} />
       <Composition id="DeedatMasadShort" component={DeedatMasadShort} durationInFrames={MASAD_TOTAL_FRAMES} fps={MASAD_FPS} width={1080} height={1920} />
@@ -87,6 +112,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="IbnBaz-Paper-Cover-Landscape-Open" component={IbnBazPaperCoverLandscape} durationInFrames={5389} fps={30} width={1920} height={1080} defaultProps={{introReveal:true}} />
       <Composition id="Jn-Cover-L" component={JnCoverL} durationInFrames={60} fps={30} width={1920} height={1080} />
       <Composition id="Jn-Cover-P" component={JnCoverP} durationInFrames={60} fps={30} width={1080} height={1920} />
+      <Composition id="Duel2" component={Duel2} durationInFrames={DUEL2_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="ThumbPro-Duel-L" component={ThumbDuelL} durationInFrames={30} fps={30} width={1920} height={1080} />
       <Composition id="ThumbPro-Word-L" component={ThumbWordL} durationInFrames={30} fps={30} width={1920} height={1080} />
       <Composition id="ThumbPro-Evidence-L" component={ThumbEvidenceL} durationInFrames={30} fps={30} width={1920} height={1080} />

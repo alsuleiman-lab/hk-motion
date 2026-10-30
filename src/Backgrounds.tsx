@@ -10,15 +10,14 @@ const Base: React.FC<{ children?: React.ReactNode; glow?: string }> = ({ childre
   <AbsoluteFill style={{ background: `linear-gradient(170deg,${BRAND.base2} 0%,${BRAND.base} 50%,${BRAND.base3} 100%)`, overflow: "hidden" }}>
     {children}
     <AbsoluteFill style={{ background: `radial-gradient(ellipse at ${glow}, ${alpha(BRAND.blue, .20)}, transparent 55%)` }} />
-    <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(8,14,24,.55) 100%)" }} />
+    <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 50%, transparent 55%, ${alpha(BRAND.base3, .85)} 100%)` }} />
   </AbsoluteFill>
 );
 const sec = () => useCurrentFrame() / 30;
-const LINE = alpha(BRAND.light, .19), LINE2 = alpha(BRAND.light, .10);
 
 /** mashrabiya screen with light falling through it */
 export const BgMashrabiya: React.FC = () => {
-  const t = sec();
+  const t = sec(), LINE = alpha(BRAND.light, .19), LINE2 = alpha(BRAND.light, .10);   // read per frame so the palette applies
   return (
     <Base glow="75% 18%">
       <svg width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>

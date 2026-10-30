@@ -10,7 +10,7 @@
 
 @AGENTS.md
 
-**المهارات:** للمونتاج `video-montage`، وللموشن `motion-graphics`، وللغلاف `thumbnail-design`، وللتعليق الصامت `silent-reaction`، **وكلمة «مونتاج ورقي» = `paper-montage`** (صوت فقط + قصاصات ورقية، طولي). بعد كل بناء `node tools/stage.mjs check …` (typecheck + mg_usage_audit + face_fast/face_check + frame_audit) قبل العرض.
+**المهارات:** للمونتاج `video-montage`، وللموشن `motion-graphics`، وللغلاف `thumbnail-design`، وللتعليق الصامت `silent-reaction`، **وكلمة «مونتاج ورقي» = `paper-montage`** (صوت فقط + قصاصات ورقية، طولي). بعد كل بناء `node tools/stage.mjs check …` (typecheck + mg_usage_audit + coverage_check + face_fast؛ face_check/frame_audit للتركيبات القديمة) قبل العرض.
 
 **بعد إتمام أي فيديو:** «هل تعتمده؟» بالنقر فتُنفَّذ قواعد الاعتماد والحذف (`PREFERENCES.md` القسم 2)، وفي أول الرد عند الانتهاء «✅ انتهيتُ من المونتاج» + رابط المشاهدة.
 

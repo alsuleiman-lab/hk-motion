@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { AbsoluteFill, Audio, continueRender, delayRender, Sequence, interpolate, staticFile } from "remotion";
+import { AbsoluteFill, Audio, continueRender, delayRender, Sequence, interpolate, staticFile, useVideoConfig } from "remotion";
 import { T, useSp, useT } from "./MG";
 import { DrawIcon } from "./MotionKit";
 import { FONT_TEXT, FONT_TITLE } from "./localFonts";
@@ -172,13 +172,18 @@ export const StatRow: React.FC<{ at: number; x: number; y: number; w: number; h?
   );
 };
 
-/** title banner for a written scene (typewriter feel via reveal) */
-export const Banner: React.FC<{ at: number; x: number; y: number; w: number; text: string; flag?: FlagCode; size?: number }> = ({ at, x, y, w, text, flag, size = 60 }) => {
-  const s = useSp(at, 15, 170);
+/** title banner for a written scene (typewriter feel via reveal). Without x/y/w it is a band across the whole width filling the fourth fifth of the height (user 2026-10-29);
+ *  with them it is the compact title card above a column of StatRow cards */
+export const Banner: React.FC<{ at: number; x?: number; y?: number; w?: number; text: string; flag?: FlagCode; size?: number }> = ({ at, x, y, w, text, flag, size }) => {
+  const s = useSp(at, 15, 170), { width, height } = useVideoConfig();
+  const band = x === undefined || y === undefined || w === undefined, bh = height * 0.2, fs = size ?? (band ? Math.round(Math.min(bh * 0.4, width * 0.075)) : 60);
+  const box: React.CSSProperties = band
+    ? { left: 0, top: height * 0.6, width, height: bh, justifyContent: "center", borderRadius: 0, padding: "0 60px", boxSizing: "border-box" }
+    : { left: x, top: y, width: w, borderRadius: 18, padding: "14px 26px" };
   return (
-    <div style={{ position: "absolute", left: x, top: y, width: w, transform: `translateY(${(1 - s) * -30}px) scale(${0.96 + 0.04 * s})`, opacity: clamp(s * 2), direction: "rtl", display: "flex", alignItems: "center", gap: 20, background: T.navy, borderRadius: 18, padding: "14px 26px", boxShadow: "0 14px 26px rgba(0,0,0,.28)" }}>
+    <div style={{ position: "absolute", ...box, transform: `translateY(${(1 - s) * -30}px) scale(${0.96 + 0.04 * s})`, opacity: clamp(s * 2), direction: "rtl", display: "flex", alignItems: "center", gap: 20, background: T.navy, boxShadow: "0 14px 26px rgba(0,0,0,.28)" }}>
       {flag ? <Flag c={flag} w={104} h={70} /> : null}
-      <div style={{ fontFamily: TITLE, fontWeight: 800, fontSize: size, color: BRAND.card, lineHeight: 1.2 }}>{text}</div>
+      <div style={{ fontFamily: TITLE, fontWeight: 800, fontSize: fs, color: BRAND.card, lineHeight: 1.2 }}>{text}</div>
     </div>
   );
 };

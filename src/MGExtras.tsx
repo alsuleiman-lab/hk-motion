@@ -148,15 +148,15 @@ export const VerseWords: React.FC<{ words: string[]; times: number[]; x: number;
   const k = Math.min(ease((t - times[0] + 0.25) / 0.35), until === undefined ? 1 : ease((until - t) / 0.3));
   if (k <= 0) return null;
   return (
-    <div style={{ position: "absolute", left: x, top: y + (1 - k) * 24, width: w, opacity: k, ...cardBox, padding: "22px 36px 30px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, fontFamily: TITLE, fontWeight: 800, fontSize: 26, color: GLOW }}>
+    <div style={{ position: "absolute", left: x, top: y + (1 - k) * 24, width: w, opacity: k, ...cardBox, background: alpha(BRAND.base, 0.86), border: `2px solid ${alpha(BRAND.light, 0.4)}`, padding: "22px 36px 30px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, fontFamily: `"${QURAN_FONT}", ${TITLE}`, fontWeight: 400, fontSize: 34, color: BRAND.light }}>
         <span>{title}</span>
-        <span style={{ color: "rgba(255,255,255,.55)", fontFamily: TEXT, fontWeight: 700, fontSize: 24 }}>{refText}</span>
+        <span style={{ color: alpha(BRAND.light, 0.75), fontFamily: TEXT, fontWeight: 700, fontSize: 24 }}>{refText}</span>
       </div>
-      <div style={{ fontFamily: `"${QURAN_FONT}", ${TEXT}`, fontWeight: 400, fontSize: size * 1.12, lineHeight: 1.9, color: "#fff", textAlign: "center", textShadow: "0 2px 8px rgba(0,0,0,.4)" }}>
+      <div style={{ fontFamily: `"${QURAN_FONT}", ${TEXT}`, fontWeight: 400, fontSize: size * 1.12, lineHeight: 1.9, color: BRAND.card, textAlign: "center", textShadow: "0 2px 8px rgba(0,0,0,.4)" }}>
         {words.map((wd, i) => {
           const u = clamp((t - times[i]) / 0.28);
-          return <span key={i} style={{ display: "inline-block", margin: "0 7px", opacity: u, transform: `translateY(${(1 - u) * 14}px)`, color: i < words.length && u > 0 && u < 1 ? "#ffe9a0" : "#fff" }}>{wd}</span>;
+          return <span key={i} style={{ display: "inline-block", margin: "0 7px", opacity: u, transform: `translateY(${(1 - u) * 14}px)`, color: i < words.length && u > 0 && u < 1 ? BRAND.light : BRAND.card }}>{wd}</span>;
         })}
       </div>
     </div>
@@ -277,21 +277,21 @@ export const ReelVerseFull: React.FC<{ to: number; refName: string; lines: { wor
   if (t < from || t >= to) return null;
   const words = lines.flatMap((l) => l.words.map((w, i) => ({ w, at: l.times[i] })));
   return (
-    <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 45%, #1d3a5e 0%, #0e2036 60%, #08142a 100%)" }}>
+    <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 45%, ${BRAND.base2} 0%, ${BRAND.base} 60%, ${BRAND.base3} 100%)` }}>
       <svg width="1080" height="1920" style={{ position: "absolute", inset: 0, opacity: 0.13 }}>
-        <defs><pattern id="aw-star" width="120" height="120" patternUnits="userSpaceOnUse"><path d="M60 8l14 38 38 14-38 14-14 38-14-38-38-14 38-14z" fill="none" stroke="#d9b66a" strokeWidth="2" /><circle cx="60" cy="60" r="9" fill="none" stroke="#d9b66a" strokeWidth="2" /></pattern></defs>
+        <defs><pattern id="aw-star" width="120" height="120" patternUnits="userSpaceOnUse"><path d="M60 8l14 38 38 14-38 14-14 38-14-38-38-14 38-14z" fill="none" stroke={BRAND.light} strokeWidth="2" /><circle cx="60" cy="60" r="9" fill="none" stroke={BRAND.light} strokeWidth="2" /></pattern></defs>
         <rect width="1080" height="1920" fill="url(#aw-star)" />
       </svg>
-      <div style={{ position: "absolute", left: 60, right: 60, top: 300, bottom: 300, border: "3px solid rgba(217,182,106,.55)", borderRadius: 34 }} />
-      <div style={{ position: "absolute", left: 0, right: 0, top: 370, textAlign: "center", fontFamily: TITLE, fontWeight: 800, fontSize: 44, color: "#d9b66a", direction: "rtl" }}>{refName}</div>
+      <div style={{ position: "absolute", left: 60, right: 60, top: 300, bottom: 300, border: `3px solid ${alpha(BRAND.light, 0.55)}`, borderRadius: 34 }} />
+      <div style={{ position: "absolute", left: 0, right: 0, top: 370, textAlign: "center", fontFamily: `"${QURAN_FONT}", ${TITLE}`, fontWeight: 400, fontSize: 52, color: BRAND.light, direction: "rtl" }}>{refName}</div>
       <div style={{ position: "absolute", left: 100, right: 100, top: 480, bottom: 380, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl" }}>
-        <div style={{ fontFamily: QURAN_FAM, fontSize: size, lineHeight: 1.9, color: "#fbf3dc", textAlign: "center" }}>
+        <div style={{ fontFamily: QURAN_FAM, fontSize: size, lineHeight: 1.9, color: BRAND.card, textAlign: "center" }}>
           {words.map((x, i) => {
             const p = clamp((t - x.at) / 0.25);
             const w = <span style={{ opacity: 0.12 + 0.88 * p, display: "inline-block", transform: `translateY(${(1 - p) * 14}px)` }}>{x.w}</span>;
             return (
               <span key={i} style={{ whiteSpace: "nowrap", margin: "0 6px" }}>
-                {i === 0 ? <span style={{ color: "#d9b66a" }}>﴿ </span> : null}{w}{i === words.length - 1 ? <span style={{ color: "#d9b66a" }}> ﴾</span> : null}
+                {i === 0 ? <span style={{ color: BRAND.light }}>﴿ </span> : null}{w}{i === words.length - 1 ? <span style={{ color: BRAND.light }}> ﴾</span> : null}
               </span>
             );
           })}

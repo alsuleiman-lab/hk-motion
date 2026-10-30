@@ -5,18 +5,20 @@ import { LabScene } from "../ElementsLab";
 import { TransitionScene } from "../TransitionsLab";
 import { PALETTES, BRAND_NAMES } from "../brand";
 import type { BrandName } from "../brand";
+import { GridTab } from "./GridTab";
+import type { GridEmbed } from "./GridTab";
 
 /**
  * The live elements gallery (user 2026-10-28: «الصفحة تكتب العناصر برمجياً لا صوراً»). Built by tools/gallery_build.mjs into one script.
  * Every card plays the SAME component the montage uses (LabScene / TransitionScene) in Remotion Player, shows the code line that draws it,
  * and keeps the user's keep/change/drop mark + note in the page's db (collection "notes", doc id = element id), with a local copy.
  */
-type Section = "bg" | "element" | "move" | "transition";
-type Item = { id: string; kind: "element" | "transition"; section: Section; ar: string; kit: string; group: string; where: string; note: string; code: string; still: number };
-type Note = { status?: string; note?: string; request?: string };
+type Section = "bg" | "transition" | "move" | "text" | "image" | "grid";
+type Item = { id: string; kind: "element" | "transition"; section: Section; ar: string; kit: string; group: string; where: string; note: string; code: string; still: number; places?: string };
+type Note = { status?: string; note?: string; request?: string; when?: string };
 type Db = { collection: (p: string) => { doc: (id: string) => { set: (d: Record<string, unknown>) => Promise<void> }; onSnapshot: (n: (s: { docs: { id: string; data: () => Record<string, unknown> | undefined }[] }) => void, e?: () => void) => () => void } };
 
-const DATA: { items: Item[]; built: string } = JSON.parse(document.getElementById("gallery-data")!.textContent!);
+const DATA: { items: Item[]; built: string; grid?: GridEmbed } = JSON.parse(document.getElementById("gallery-data")!.textContent!);
 const LABEL: Record<string, string> = { keep: "أبقِه", change: "عدّله", drop: "احذفه" };
 const LS = "elements-notes-v1", LSP = "elements-notes-pending-v1";   // local copy, and the ids edited but not yet saved to the db
 const readLocal = (): Record<string, Note> => { try { return JSON.parse(localStorage.getItem(LS) || "{}"); } catch { return {}; } };
@@ -50,15 +52,23 @@ const Live: React.FC<{ it: Item; brand: BrandName }> = ({ it, brand }) => {
 
 const Card: React.FC<{ it: Item; n: Note; brand: BrandName; onSave: (id: string, p: Note) => void }> = ({ it, n, brand, onSave }) => {
   const [text, setText] = useState(n.note ?? "");
+  const [when, setWhen] = useState(n.when ?? it.where);
+  const typingW = useRef(false);
+  useEffect(() => { if (!typingW.current) setWhen(n.when ?? it.where); }, [n.when, it.where]);
   const [showCode, setShowCode] = useState(false);
   const typing = useRef(false);
   useEffect(() => { if (!typing.current) setText(n.note ?? ""); }, [n.note]);
   return (
-    <article className={"card" + (n.status ? " s-" + n.status : "")}>
+    <article id={"card-" + it.id} className={"card" + (n.status ? " s-" + n.status : "")}>
       <Live it={it} brand={brand} />
       <div className="body">
         <div className="name"><h2>{it.ar}</h2><code>{it.id} · {it.kit}</code></div>
-        <p className="where">{it.where}</p>
+        <label className="whenlbl">متى تستخدمه (عدّل النص كما تريد)
+          <textarea className="when" value={when} aria-label={"متى يُستعمل " + it.ar}
+            onFocus={() => { typingW.current = true; }} onBlur={() => { typingW.current = false; }}
+            onChange={(e) => { setWhen(e.target.value); onSave(it.id, { when: e.target.value }); }} />
+        </label>
+        {it.places ? <p className="where"><b>أين يوضع في الشبكة:</b> {it.places}</p> : null}
         {it.note ? <p className="note">{it.note}</p> : null}
         <button type="button" className="code-btn" aria-expanded={showCode} onClick={() => setShowCode(!showCode)}>{showCode ? "إخفاء الكود" : "الكود الذي يرسمه"}</button>
         {showCode ? <pre className="code" dir="ltr">{it.code}</pre> : null}
@@ -78,7 +88,7 @@ const Card: React.FC<{ it: Item; n: Note; brand: BrandName; onSave: (id: string,
 
 const App: React.FC = () => {
   const [notes, setNotes] = useState<Record<string, Note>>(readLocal);
-  const [conn, setConn] = useState<"wait" | "on" | "off" | "fail">("wait");
+  const [conn, setConn] = useState<"wait" | "on" | "local" | "off" | "fail">("wait");
   const [tab, setTab] = useState<Section>("bg");
   const [group, setGroup] = useState("الكل");
   const [q, setQ] = useState("");
@@ -89,12 +99,23 @@ const App: React.FC = () => {
   const timers = useRef<Record<string, number>>({});
   const notesRef = useRef(notes); notesRef.current = notes;
 
+  const local = useRef(false);   // served by tools/gallery_serve.mjs: notes go to data/gallery_notes.json, which Claude reads
   const push = (id: string) => {
+    if (local.current) {
+      window.clearTimeout(timers.current[id]);
+      timers.current[id] = window.setTimeout(() => {
+        const v = notesRef.current[id] ?? {};
+        fetch("/api/notes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status: v.status ?? "", note: v.note ?? "", ...(v.request ? { request: v.request } : {}), ...(v.when !== undefined ? { when: v.when } : {}) }) })
+          .then((r) => { if (!r.ok) throw new Error(); const s = pendingIds(); s.delete(id); setPending(s); })
+          .catch(() => setConn("fail"));
+      }, 500);
+      return;
+    }
     const c = dbc.current; if (!c) return;
     window.clearTimeout(timers.current[id]);
     timers.current[id] = window.setTimeout(() => {
       const v = notesRef.current[id] ?? {};
-      c.doc(id).set({ status: v.status ?? "", note: v.note ?? "", ...(v.request ? { request: v.request } : {}), at: Date.now() })
+      c.doc(id).set({ status: v.status ?? "", note: v.note ?? "", ...(v.request ? { request: v.request } : {}), ...(v.when !== undefined ? { when: v.when } : {}), at: Date.now() })
         .then(() => { const s = pendingIds(); s.delete(id); setPending(s); })
         .catch(() => setConn("fail"));
     }, 500);
@@ -108,31 +129,41 @@ const App: React.FC = () => {
   useEffect(() => {
     let off: (() => void) | undefined;
     const w = window as unknown as { claude?: { use?: (n: string) => Promise<unknown> } };
+    /** no claude.ai db: try the local server (tools/gallery_serve.mjs) — its file is the record; what was edited offline is pushed up */
+    const goLocal = () => fetch("/api/notes").then((r) => { if (!r.ok) throw new Error(); return r.json(); }).then((srv: Record<string, Note>) => {
+      local.current = true; setConn("local");
+      const pend = pendingIds();
+      setNotes((cur) => { const nx = { ...cur }; for (const [id, v] of Object.entries(srv)) if (!pend.has(id)) nx[id] = { status: String(v.status ?? ""), note: String(v.note ?? ""), request: v.request ? String(v.request) : undefined, when: v.when !== undefined ? String(v.when) : undefined }; return nx; });
+      for (const id of pend) push(id);
+    }).catch(() => setConn("off"));
     (w.claude?.use ? w.claude.use("db") : Promise.resolve(null)).then((db) => {
-      if (!db) { setConn("off"); return; }
+      if (!db) { goLocal(); return; }
       dbc.current = (db as Db).collection("notes");
       setConn("on");
       for (const id of pendingIds()) push(id);   // only what was edited while offline; the db is the record for everything else
       off = dbc.current.onSnapshot((snap) => {
         setNotes((cur) => {
           const nx = { ...cur };
-          for (const d of snap.docs) { const v = d.data() ?? {}; nx[d.id] = { status: String(v.status ?? ""), note: String(v.note ?? ""), request: v.request ? String(v.request) : undefined }; }
+          for (const d of snap.docs) { const v = d.data() ?? {}; nx[d.id] = { status: String(v.status ?? ""), note: String(v.note ?? ""), request: v.request ? String(v.request) : undefined, when: v.when !== undefined ? String(v.when) : undefined }; }
           return nx;
         });
       }, () => setConn("fail"));
-    }).catch(() => setConn("off"));
+    }).catch(() => goLocal());
     return () => off?.();
   }, []);
 
+  const [goId, setGoId] = useState("");
+  const goTo = (id: string) => { const it = DATA.items.find((i) => i.id === id); if (!it) return; setTab(it.section); setGroup("الكل"); setQ(""); setGoId(id); };
+  useEffect(() => { if (!goId) return; const el = document.getElementById("card-" + goId); if (el) { el.scrollIntoView({ block: "center" }); el.classList.add("flash"); window.setTimeout(() => el.classList.remove("flash"), 2200); setGoId(""); } }, [goId, tab]);
   const items = DATA.items.filter((i) => i.section === tab);
   const groups = useMemo(() => ["الكل", ...new Set(items.map((i) => i.group))], [tab]);
   const shown = items.filter((i) => (group === "الكل" || i.group === group) && (!q || (i.ar + " " + i.id).toLowerCase().includes(q.toLowerCase())));
   const count = (s: string) => DATA.items.filter((i) => notes[i.id]?.status === s).length;
   const copyAll = () => {
-    const txt = DATA.items.filter((i) => notes[i.id]?.status || notes[i.id]?.note).map((i) => `${i.id} (${i.ar}): ${LABEL[notes[i.id].status ?? ""] ?? "-"}${notes[i.id].note ? " — " + notes[i.id].note : ""}`).join("\n") || "لا ملاحظات بعد";
+    const txt = DATA.items.filter((i) => notes[i.id]?.status || notes[i.id]?.note || notes[i.id]?.when).map((i) => `${i.id} (${i.ar}): ${LABEL[notes[i.id].status ?? ""] ?? "-"}${notes[i.id].note ? " — " + notes[i.id].note : ""}${notes[i.id].when ? " | متى يُستعمل: " + notes[i.id].when : ""}`).join("\n") || "لا ملاحظات بعد";
     (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }, () => window.prompt("انسخ ملاحظاتك:", txt));
   };
-  const connText = { wait: "جارٍ الاتصال بقاعدة الملاحظات…", on: "متصل: كل علامة وملاحظة تُحفظ ويقرؤها كلود", off: "غير متصل (افتح الصفحة داخل claude.ai) — ملاحظاتك تُحفظ في هذا المتصفح؛ اضغط «نسخ ملاحظاتي» وألصقها في المحادثة", fail: "تعذّر الحفظ عند كلود — ملاحظاتك في هذا المتصفح؛ اضغط «نسخ ملاحظاتي» وألصقها في المحادثة" }[conn];
+  const connText = { wait: "جارٍ الاتصال بقاعدة الملاحظات…", on: "متصل: كل علامة وملاحظة تُحفظ ويقرؤها كلود", local: "متصل بالجهاز: كل علامة وملاحظة تُحفظ في data/gallery_notes.json ويقرؤها كلود", off: "غير متصل (افتح الصفحة داخل claude.ai) — ملاحظاتك تُحفظ في هذا المتصفح؛ اضغط «نسخ ملاحظاتي» وألصقها في المحادثة", fail: "تعذّر الحفظ عند كلود — ملاحظاتك في هذا المتصفح؛ اضغط «نسخ ملاحظاتي» وألصقها في المحادثة" }[conn];
 
   return (
     <>
@@ -148,17 +179,18 @@ const App: React.FC = () => {
         <div className="tally"><span>للإبقاء <b>{count("keep")}</b></span><span>للتعديل <b>{count("change")}</b></span><span>للحذف <b>{count("drop")}</b></span></div>
       </header>
       <nav className="tabs" role="tablist">
-        {([["bg", "1 الخلفيات"], ["element", "2 العناصر"], ["move", "3 الحركات"], ["transition", "4 الانتقالات"]] as const).map(([k, l]) => (
-          <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => { setTab(k); setGroup("الكل"); }}>{l} <b>{DATA.items.filter((i) => i.section === k).length}</b></button>
+        {([["bg", "1 الخلفيات"], ["transition", "2 الانتقالات"], ["move", "3 أساليب الحركة"], ["text", "4 عناصر الكتابة"], ["image", "5 عناصر الصور"], ["grid", "6 الشبكة"]] as const).map(([k, l]) => (
+          <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => { setTab(k); setGroup("الكل"); }}>{l} {k === "grid" ? null : <b>{DATA.items.filter((i) => i.section === k).length}</b>}</button>
         ))}
       </nav>
-      <div className="bar">
+      <div className="bar" style={tab === "grid" ? { display: "none" } : undefined}>
         {groups.length > 2 ? groups.map((g) => <button key={g} type="button" className="chip" aria-pressed={g === group} onClick={() => setGroup(g)}>{g}</button>) : null}
         <input type="search" placeholder="بحث بالاسم أو الكود" value={q} onChange={(e) => setQ(e.target.value)} />
         <button type="button" className="theme-btn" onClick={copyAll}>{copied ? "نُسخ ✓" : "نسخ ملاحظاتي"}</button>
       </div>
-      <p id="conn" data-ok={conn === "on" ? "1" : "0"} role="status">{connText}</p>
-      <main className="grid">{shown.map((it) => <Card key={it.id} it={it} n={notes[it.id] ?? {}} brand={brand} onSave={onSave} />)}</main>
+      <p id="conn" data-ok={conn === "on" || conn === "local" ? "1" : "0"} role="status">{connText}</p>
+      {DATA.grid ? <GridTab g={DATA.grid} active={tab === "grid"} onGo={goTo} /> : null}
+      <main className="grid" style={tab === "grid" ? { display: "none" } : undefined}>{shown.map((it) => <Card key={it.id} it={it} n={notes[it.id] ?? {}} brand={brand} onSave={onSave} />)}</main>
       <footer>بُني من الكود في {DATA.built}</footer>
     </>
   );

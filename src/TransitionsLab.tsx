@@ -3,7 +3,7 @@ import { AbsoluteFill, Img, OffthreadVideo, staticFile, useCurrentFrame } from "
 import { HandheldShake, MGTheme, useT } from "./MG";
 import { useFonts } from "./EuKit";
 import { PaperCoverKit, PAPER_COVER_END } from "./CoverKit";
-import { Curtain, LandFootage, SplitCards } from "./MontageSpec";
+import { Curtain, LandFootage } from "./MontageSpec";
 import { BRAND, applyBrand } from "./brand";
 import type { BrandName } from "./brand";
 import { TrAccentWipe, TrDoors, TrSection } from "./Transitions";
@@ -29,8 +29,8 @@ const Switch: React.FC<{ at: number; a: React.ReactNode; b: React.ReactNode }> =
 const Cover: React.FC = () => (useCurrentFrame() < PAPER_COVER_END ? <PaperCoverKit format="landscape" line1="عنوان الغلاف" line2="سطر تحت العنوان" /> : null);
 
 export const TRANSITIONS: Record<string, { ar: string; where: string; kit: string; node: React.ReactNode }> = {
-  Curtain: { ar: "الستارة بين التخطيطين", kit: "MontageSpec", where: "عند كل تبديل بين إطاره الكامل وبطاقتي نصف الشاشة: لوح بالخلفية المزخرفة يعبر ويتبدّل التخطيط خلفه.",
-    node: <><Switch at={SWITCH} a={<SceneA />} b={<SplitCards cut={CUT} sp={SPLIT} />} /><Curtain at={SWITCH} /></> },
+  Curtain: { ar: "الستارة بين التخطيطين", kit: "MontageSpec", where: "عند كل تبديل بين إطاره الكامل وتخطيط الرد (الكتل المنحوتة): لوح بالخلفية المزخرفة يعبر ويتبدّل التخطيط خلفه.",
+    node: <><Switch at={SWITCH} a={<SceneA />} b={<LandFootage cut={CUT} splits={[SPLIT]} />} /><Curtain at={SWITCH} /></> },
   PaperCover: { ar: "الغلاف الورقي يتمزق", kit: "CoverKit", where: "افتتاح كل فيديو: الغلاف أول 3 إطارات ثم يتمزق الورق حتى الإطار 51 فيظهر التسجيل.",
     node: <><SceneA /><Cover /></> },
   PushIn: { ar: "تقريب الوجه", kit: "MontageSpec", where: "مرة في كل نافذة 3 دقائق عند كلام مهم: تقريب ناعم نحو وجهه ثم عودة.",

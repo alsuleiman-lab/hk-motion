@@ -1,6 +1,6 @@
 # فهرس قطع الموشن (مولَّد آلياً من src/MG.tsx وPortraitKit وSourceFrames وPaperKit وPaperTear وDebateLayouts — لا تعدّله يدوياً)
 
-> يُولَّد بـ`node tools/gen_quickref.mjs`. الزمن بالثواني المطلقة ما لم يُذكر؛ كل قطعة تُوضع داخل `<Gfx>`؛ التفاصيل والضوابط الكاملة لكل قطعة في مهارة motion-graphics وأخواتها، وهنا ما يكفي لاستدعائها دون قراءة طويلة. عدد القطع: 60.
+> يُولَّد بـ`node tools/gen_quickref.mjs`. الزمن بالثواني المطلقة ما لم يُذكر؛ كل قطعة تُوضع داخل `<Gfx>`؛ التفاصيل والضوابط الكاملة لكل قطعة في مهارة motion-graphics وأخواتها، وهنا ما يكفي لاستدعائها دون قراءة طويلة. عدد القطع: 59.
 
 ### `MGTheme`
 one colour identity (src/brand.ts, user 2026-10-27): whatever `theme` an older composition passes, the brand (steel) is used
@@ -61,10 +61,6 @@ A clock whose hands spin fast then ease (reference: the "24 hours" polaroid). */
 ### `PinnedPhoto`
 Photo card pinned with a yellow tape strip, name underneath.
 `props:` at: number; x: number; y: number; w: number; h: number; name: string; sub?: string; rot?: number; children?: React.ReactNode
-
-### `TagChip`
-Typed tag chip: orange (key phrase), red (classification), gold (word); optional ◆ bullet and a small parenthetical line under it.
-`props:` at: number; x: number; y: number; text: string; sub?: string; kind?: "orange" | "red" | "cream"; bullet?: boolean; size?: number; cps?: number
 
 ### `GlowCounter`
 10a) Glowing gold counter that passes through intermediate values (e.g. 4 → 23 → 36).
@@ -186,8 +182,16 @@ Paper scene: a kraft card where described people/objects (faceless silhouettes) 
 a hand-drawn red marker box that draws itself over a region of a card (relative 0..1 coordinates, placed inside the card)
 `props:` at: number; x: number; y: number; w: number; h: number
 
+### `FamilyTree`
+a hand-drawn red marker box that draws itself over a region of a card (relative 0..1 coordinates, placed inside the card) */ export const Marker: React.FC<{ at: number; x: number; y: number; w: number; h: number }> = ({ at, x, y, w, h }) => { const f = useCurr
+`props:` from: number; until: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number; nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number
+
+### `TreeFx`
+a hand-drawn red marker box that draws itself over a region of a card (relative 0..1 coordinates, placed inside the card) */ export const Marker: React.FC<{ at: number; x: number; y: number; w: number; h: number }> = ({ at, x, y, w, h }) => { const f = useCurr
+`props:` from: number; until: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number; nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number; titleSize?: number
+
 ### `PopCard`
-a plain spring pop-in for a card that is not one of the kit's source moves (left-bottom anchored)
+his isolated cut-out shrunk into a corner (user 2026-10-29, the paper map): the face point `face` of the 1920×1080 frame moves to (cx, cy) and the frame scales to `scale` between `shrinkAt` and +0.6 s
 `props:` at: number; x: number; y: number; children: React.ReactNode
 
 ### `FullImage`
@@ -213,14 +217,6 @@ a newspaper clipping of a real news screenshot: torn edges, the headline above i
 ### `TornNote`
 a torn note for the key phrase: cream paper strip with ragged ends, the phrase in Zain, one word underlined by hand in BRAND.mark
 `props:` at: number; until?: number; x: number; y: number; w: number; text: string; size?: number; underline?: number; rot?: number
-
-### `FolderOpen`
-a folder opens and the cited document slides out of it (for a document, a decision, a letter he quotes)
-`props:` at: number; until?: number; x: number; y: number; w: number; h: number; label: string; src: string
-
-### `FoldReveal`
-paper fold: picture A folds down along its middle like a sheet and shows picture B under it (before → after, claim → truth)
-`props:` at: number; until?: number; x: number; y: number; w: number; h: number; a: string; b: string; labelA?: string; labelB?: string
 
 ### `WordScraps`
 a title made of torn paper scraps, one word per scrap (Arabic letters keep their joins), each arriving in stop-motion with its own tilt and stock

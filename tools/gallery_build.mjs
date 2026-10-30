@@ -71,10 +71,50 @@ const elements = lab.filter((m) => !tIds.has(m.id)).map((m) => ({
   code: /^NameCard\d+$/.test(m.id) ? `<${m.id} at={0.2} x={960} y={880} />   // src/NameCards.tsx` : cut("src/ElementsLab.tsx", m.id),
 }));
 for (const t of transitions) { const m = lab.find((x) => x.id === t.id); if (m?.note) t.note = m.note; }
-// four sections (user 2026-10-28): backgrounds · elements over the video · moves of the video · transitions (scene↔scene, cover→scene)
-const MOVES = new Set(["PushIn", "HandheldShake", "FlashCut", "SakugaMove", "SpotlightCard", "TimelineTravel"]);
-const SECTION_OF = (it) => (it.group === "خلفيات" ? "bg" : MOVES.has(it.id) ? "move" : it.kind === "transition" || ["Curtain", "PaperCover"].includes(it.id) ? "transition" : "element");
-const items = [...elements, ...transitions].map((it) => ({ ...it, section: SECTION_OF(it) }));
+// sections (user 2026-10-30): 1 backgrounds · 2 transitions (scene↔scene) · 3 motion styles (an element whose character is its movement, text or not) · 4 text/number elements · 5 picture/source elements · 6 the grid
+const IN = (s) => new Set(s.split(/\s+/));
+const BG = IN("BgFullImage BgKh BgPaperDark BgMashrabiya PaperGrain");
+const MOVES = IN("PushIn HandheldShake FlashCut SakugaMove SpotlightCard TimelineTravel ConvergeMerge PanelToCanvas DashArc FoldReveal CollageAssemble DimLayer PhoneChips");
+const IMAGES = IN("PaperScene BrowserFrame VideoFrame PostCard CommentCard BookPage NewsClip FolderOpen TornPhoto PinnedPhoto MapRoute PaperMap PhotoFrame PopCard SplitCards TailVoice DebateDossier DebateBlocks");
+const SECTION_OF = (it) => (BG.has(it.id) ? "bg" : it.kind === "transition" || ["Curtain", "PaperCover"].includes(it.id) ? "transition" : MOVES.has(it.id) ? "move" : IMAGES.has(it.id) ? "image" : "text");
+// where each kind of the grid (data/layout_grids.json "kinds") is drawn by which gallery elements (approximate: one kind covers several)
+const KIND_ELEMENTS = {
+  key: IN("Word BlurRise GlowCaption TornNote WordScraps TypeBox"),
+  photo: IN("PinnedPhoto PopCard TornPhoto NewsClip FlashCut PhoneChips PaperScene RewriteWindow BrowserFrame PostCard CommentCard BookPage FolderOpen PhotoFrame VideoFrame"),
+  list: IN("StatRow"), solo: IN("NameCard1 NameCard3 Subscribe"),
+  exclusive: IN("VerseWords ReelVerseFull MapRoute PaperMap TimelineTravel PanelToCanvas FoldReveal"),
+  ignore: IN("Sources CitationTag PaperCover"),
+};
+const GRIDS = JSON.parse(fs.readFileSync("data/layout_grids.json", "utf8"));
+const MODE_AR = { normal: "عادي", source: "مصدر معروض", solo: "أنا وحدي", half: "نصف الشاشة" }, OR_AR = { land: "عرضي", port: "طولي" };
+const placesOf = (id) => {
+  const ks = Object.keys(KIND_ELEMENTS).filter((k) => KIND_ELEMENTS[k].has(id));
+  if (!ks.length) return "";
+  if (ks.includes("exclusive")) return "تحجز المحتوى كله في وقتها (لا عنصر معها).";
+  if (ks.includes("ignore")) return "على حافة الإطار، لا تحجز خانة.";
+  const out = [];
+  for (const o of ["land", "port"]) for (const m of Object.keys(MODE_AR)) {
+    const slots = Object.entries(GRIDS[o]?.[m]?.slots ?? {}).filter(([, s]) => s.kinds.some((k) => ks.includes(k))).map(([n]) => n);
+    if (slots.length) out.push(`${OR_AR[o]}/${MODE_AR[m]}: ${slots.join("، ")}`);
+  }
+  return out.join(" · ");
+};
+const items = [...elements, ...transitions].map((it) => ({ ...it, section: SECTION_OF(it), places: placesOf(it.id) }));
+
+// the grid page (tools/grid_page.mjs) embedded as the 6th tab: css / body / script split from tools/grid_page.html, data from its build
+spawnSync("node", ["tools/grid_page.mjs"], { stdio: "inherit", windowsHide: true });
+const gdata = JSON.parse(fs.readFileSync("scratch/grid_site/data.json", "utf8"));
+gdata.clip = "grid_clip.mp4"; fs.copyFileSync("scratch/grid_site/clip.mp4", path.join(OUT, "grid_clip.mp4"));
+gdata.kindEls = Object.fromEntries(Object.entries(KIND_ELEMENTS).map(([k, s]) => [k, [...s]]));
+gdata.elNames = Object.fromEntries(items.map((i) => [i.id, i.ar]));
+const GH = fs.readFileSync("tools/grid_page.html", "utf8").replace(/\r\n/g, "\n");
+const gcss = GH.match(/<style>([\s\S]*?)<\/style>/)[1]
+  .replace(/:root:not\(\[data-theme="light"\]\)/g, ":host").replace(/:root\[data-theme="dark"\]/g, ':host-context([data-theme="dark"])').replace(/:root \{/g, ":host {")
+  .replace(/\nbody \{[^}]*\}/, "\n.gbody { background: var(--bg); color: var(--ink); font-family: var(--f-body); direction: rtl; padding: 14px; border-radius: 12px; }")
+  .replace(/\nh1 \{[^}]*\}/, "").replace(/\n\.lede \{[^}]*\}/, "");
+const gbody = GH.slice(GH.indexOf("</style>") + 8, GH.indexOf("<script>")).replace(/<header>[\s\S]*?<\/header>/, '<p class="small" style="margin:0 0 6px">لكل وضع شاشة خانات ثابتة. الأحمر منطقة وجهك ولحيتك من تتبّع وجهك في التسجيل. في كل خانة أسماء العناصر التي تُوضع فيها؛ انقر اسماً لتنتقل إلى بطاقته. عدّل الخانة بالسحب ثم «احفظ».</p>');
+const gscript = GH.slice(GH.indexOf("<script>") + 8, GH.indexOf("</script>")).replace("const DATA = /*GRID_DATA*/null;", "");
+const grid = { css: gcss, body: gbody, script: gscript, data: gdata };
 
 // ── 4) the page: the old gallery's look + tabs, live stages and code blocks
 const oldCss = fs.readFileSync("tools/elements_page.mjs", "utf8").match(/<style>([\s\S]*?)<\/style>/)[1];
@@ -85,9 +125,10 @@ const css = oldCss + `
 .code-btn{justify-self:start;font:inherit;font-size:13px;border:1px solid var(--line);background:transparent;color:var(--accent);padding:3px 10px;border-radius:8px;cursor:pointer}
 pre.code{margin:0;max-height:220px;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;color:var(--ink)}
 #conn{margin:-10px 0 18px;font-size:14px;font-weight:700;padding:6px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--drop)}#conn[data-ok="1"]{color:var(--keep)}
+textarea.when{width:100%;box-sizing:border-box;min-height:64px;font:inherit;font-size:14px;line-height:1.55;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);resize:vertical;margin-top:4px}.whenlbl{display:block;font-size:13px;font-weight:700;color:var(--mute)}.card.flash{box-shadow:0 0 0 4px var(--accent)}
 footer{margin-top:28px;color:var(--mute);font-size:13px}
 .palette-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);margin:0 0 10px;padding-block:10px;border-bottom:1px solid var(--line);font-weight:700}`;
-const data = JSON.stringify({ items, built: new Date().toISOString().slice(0, 16).replace("T", " ") }).replace(/</g, "\\u003c");
+const data = JSON.stringify({ items, grid, built: new Date().toISOString().slice(0, 16).replace("T", " ") }).replace(/</g, "\\u003c");
 const html = `<title>معرض عناصر المونتاج</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Noto+Kufi+Arabic:wght@600;800&display=swap">
@@ -99,6 +140,6 @@ const html = `<title>معرض عناصر المونتاج</title>
 `;
 fs.writeFileSync(path.join(OUT, "index.html"), html);
 const js = fs.statSync(path.join(OUT, "gallery.js")).size;
-console.log(`gallery: ${["bg", "element", "move", "transition"].map((s) => s + " " + items.filter((i) => i.section === s).length).join(" · ")} · gallery.js ${(js / 1048576).toFixed(2)} MB · ${assets.size} assets ${(bytes / 1048576).toFixed(1)} MB · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+console.log(`gallery: ${["bg", "transition", "move", "text", "image"].map((s) => s + " " + items.filter((i) => i.section === s).length).join(" · ")} · gallery.js ${(js / 1048576).toFixed(2)} MB · ${assets.size} assets ${(bytes / 1048576).toFixed(1)} MB · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 if (skipped.length) console.log(`skipped prefixes: ${skipped.join(" · ")}`);
 console.log(`files: ${["gallery.js", ...[...assets].map((a) => a.replace(/\.(webm|mov)$/i, ".mp4"))].join(" ")}`);

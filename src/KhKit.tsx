@@ -5,7 +5,7 @@ import { Pic, TITLE, TEXT } from "./EuKit";
 import { DrawIcon } from "./MotionKit";
 import { FLOOR, Mosque, PaperDefs, Skyline, Tomb } from "./KhPaper";
 import { Gfx } from "./MG";
-import { BRAND } from "./brand";
+import { BRAND, currentStars } from "./brand";
 
 /** Pieces of the «تصحيح الحديث بالكشف الصوفي» montage. Everything that is VIDEO or BACKGROUND lives here (outside <Gfx>); overlays are in KashfHadith.tsx. */
 export const FPS = 30;
@@ -41,8 +41,8 @@ export const CropView: React.FC<{ crop: Crop; scale: number; from: number; style
 const STAR = `<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'><g fill='none' stroke='#f3e3c0' stroke-width='1.6'><path d='M70 8 L84 40 L116 26 L102 58 L134 70 L102 82 L116 114 L84 100 L70 132 L56 100 L24 114 L38 82 L6 70 L38 58 L24 26 L56 40 Z'/><circle cx='70' cy='70' r='14'/></g></svg>`;
 
 /** decorated calm-blue background (never black / plain): gradient + slowly drifting star lattice + vignette */
-export const KhBg: React.FC<{ a?: string; b?: string; c?: string; star?: number }> = ({ a = "#2f5578", b = "#3d6a8f", c = "#5a4332", star = 0.16 }) => {
-  const f = useCurrentFrame();
+export const KhBg: React.FC<{ a?: string; b?: string; c?: string; star?: number }> = ({ a: a0, b: b0, c: c0, star = 0.16 }) => {
+  const f = useCurrentFrame(), [da, db, dc] = currentStars(), a = a0 ?? da, b = b0 ?? db, c = c0 ?? dc;   // default colours follow the video's palette
   return (
     <AbsoluteFill>
       <AbsoluteFill style={{ background: `linear-gradient(135deg, ${a}, ${b} 52%, ${c})` }} />

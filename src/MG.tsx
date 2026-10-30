@@ -12,7 +12,7 @@ import { loadFont as loadZain } from "@remotion/google-fonts/Zain";
  */
 import { THEMES, MGTheme as MGThemeT, MGThemeName } from "./mgThemes";
 import { getInputProps } from "remotion";
-import { BRAND, alpha } from "./brand";
+import { BRAND, RED, alpha } from "./brand";
 
 /** Active theme: set by <MGTheme theme="steel"> at render time (a parent renders before its children, so every primitive below reads the right colours). */
 let CUR: MGThemeT = THEMES.steel;
@@ -125,7 +125,7 @@ export const Highlight: React.FC<{ at: number; color?: string; children: React.R
 };
 
 /** Rubber stamp that slams in (scale 2.2 → 1 with a bounce and tiny tilt). */
-export const Stamp: React.FC<{ at: number; x: number; y: number; text: string; size?: number; color?: string }> = ({ at, x, y, text, size = 56, color = T.red }) => {
+export const Stamp: React.FC<{ at: number; x: number; y: number; text: string; size?: number; color?: string }> = ({ at, x, y, text, size = 56, color = RED }) => {   // the stamp is always the fixed red, whatever the palette
   const s = useSp(at, 7, 260);
   const sc = 2.2 - 1.2 * s;
   return <div style={{ position: "absolute", left: x, top: y, transform: `rotate(-9deg) scale(${sc})`, opacity: clamp(s * 3), border: `6px solid ${color}`, color, fontFamily: kufiF, fontSize: size, padding: "2px 22px 10px", borderRadius: 10, background: alpha(BRAND.card, .97) }}>{text}</div>;
@@ -205,22 +205,6 @@ export const PinnedPhoto: React.FC<{ at: number; x: number; y: number; w: number
   );
 };
 
-/** 6) Typed tag chip: orange (key phrase), red (classification), gold (word); optional ◆ bullet and a small parenthetical line under it. */
-export const TagChip: React.FC<{ at: number; x: number; y: number; text: string; sub?: string; kind?: "orange" | "red" | "cream"; bullet?: boolean; size?: number; cps?: number }> = ({ at, x, y, text, sub, kind = "orange", bullet, size = 46, cps = 20 }) => {
-  const t = useT(at);
-  if (t < 0) return null;
-  const n = Math.floor(t * cps), bg = kind === "red" ? BRAND.mark : kind === "cream" ? BRAND.card : BRAND.accent, fg = kind === "cream" ? T.ink : "#fff";
-  return (
-    <div style={{ position: "absolute", left: x, top: y, direction: "rtl", textAlign: "right" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "flex-end" }}>
-        <span style={{ background: bg, color: fg, fontFamily: kufiF, fontSize: size, padding: "2px 22px 10px", borderRadius: 8, whiteSpace: "nowrap", boxShadow: "0 6px 0 rgba(0,0,0,.14)" }}>{text.slice(0, n)}</span>
-        {bullet ? <span style={{ color: "#fff", fontSize: size * 0.6, textShadow: glowShadow("#fff") }}>◆</span> : null}
-      </div>
-      {sub && n >= text.length ? <div style={{ fontFamily: naskhF, fontSize: size * 0.5, color: "#fff", marginTop: 8, display: "inline-block", padding: "4px 16px 6px", borderRadius: 10, background: "rgba(24,16,8,.82)", boxShadow: "0 6px 16px rgba(0,0,0,.35)", opacity: clamp((t - text.length / cps) / 0.3) }}>{`(( ${sub} ))`}</div> : null}
-    </div>
-  );
-};
-
 /** 10a) Glowing gold counter that passes through intermediate values (e.g. 4 → 23 → 36). */
 export const GlowCounter: React.FC<{ at: number; x: number; y: number; steps: number[]; stepDur?: number; hold?: number; suffix?: string; size?: number }> = ({ at, x, y, steps, stepDur = 0.55, hold = 0.2, suffix = "", size = 150 }) => {
   const t = useT(at);
@@ -231,7 +215,7 @@ export const GlowCounter: React.FC<{ at: number; x: number; y: number; steps: nu
 };
 
 /** 11) Gold hand-drawn ellipse around a phrase (draws itself) */
-export const EllipseMark: React.FC<{ at: number; x: number; y: number; w: number; h: number; color?: string; sw?: number }> = ({ at, x, y, w, h, color = BRAND.mark, sw = 6 }) => {
+export const EllipseMark: React.FC<{ at: number; x: number; y: number; w: number; h: number; color?: string; sw?: number }> = ({ at, x, y, w, h, color = RED, sw = 6 }) => {
   const p = ease(useT(at) / 0.5);
   const d = `M${w * 0.5},${h * 0.04} C${w * 0.92},${h * 0.02} ${w * 1.0},${h * 0.7} ${w * 0.55},${h * 0.96} C${w * 0.12},${h * 1.02} ${-w * 0.02},${h * 0.35} ${w * 0.38},${h * 0.08} C${w * 0.5},${h * 0.03} ${w * 0.6},${h * 0.06} ${w * 0.66},${h * 0.12}`;
   return <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ position: "absolute", left: x, top: y, overflow: "visible" }}><path d={d} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" pathLength={1} strokeDasharray={1} strokeDashoffset={1 - p} /></svg>;
@@ -868,7 +852,7 @@ export const HandheldShake: React.FC<{ windows: { from: number; to: number }[]; 
  * 31) BrushX — «شطب بفرشاة حمراء» (reference §20). A red hand-brushed X draws itself diagonally over `box` (two strokes, 0.25 s each, slightly translucent, rough edge), holds, then dissolves.
  * Mark a rejected idea/word. NEVER over the speaker's face: give it a `box` on a graphic (a keyword, a photo), not on the face; face_check verifies.
  */
-export const BrushX: React.FC<{ at: number; x: number; y: number; w: number; h: number; until?: number; color?: string }> = ({ at, x, y, w, h, until, color = BRAND.mark }) => {
+export const BrushX: React.FC<{ at: number; x: number; y: number; w: number; h: number; until?: number; color?: string }> = ({ at, x, y, w, h, until, color = RED }) => {
   const t = useT(at), id = useId().replace(/:/g, ""), out = until === undefined ? 1 : ease((until - (t + at)) / 0.35);
   if (t < 0 || out <= 0) return null;
   const a = ease(t / 0.25), b = ease((t - 0.25) / 0.25);

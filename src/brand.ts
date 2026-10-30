@@ -24,6 +24,8 @@ export type BrandTokens = {
   base3: string;
 };
 export type BrandName = "steel" | "olive" | "maroon" | "kraft" | "teal";
+/** the red pen: a fixed red in every palette (BrushX, EllipseMark, Marker) — marks that deny or point never take the palette's `mark` */
+export const RED = "#d12b2b";
 
 /** the five palettes: same tokens, same roles; all calm and dark-based, never black, never pink/purple/neon */
 export const PALETTES: Record<BrandName, BrandTokens & { label: string }> = {

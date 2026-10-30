@@ -1,7 +1,7 @@
 import React from "react";
-import { BRAND_BAR, alpha, currentStars } from "./brand";
-import { AbsoluteFill, Img, OffthreadVideo, getInputProps, getRemotionEnvironment, spring, staticFile, useCurrentFrame } from "remotion";
-import { PhoneChips, useT, useSp, kufiF, zainF, GFX_ONLY } from "./MG";
+import { BRAND_BAR, RED, alpha, currentStars } from "./brand";
+import { AbsoluteFill, Img, OffthreadVideo, Sequence, getInputProps, getRemotionEnvironment, spring, staticFile, useCurrentFrame } from "remotion";
+import { PhoneChips, useT, useSp, kufiF, zainF, naskhF, GFX_ONLY } from "./MG";
 import { Pic } from "./EuKit";
 import { KhBg } from "./KhKit";
 import { SafeVideo } from "./SafeMedia";
@@ -161,8 +161,8 @@ const useStop = () => { const f = useCurrentFrame(); const q = Math.floor(f / SM
 /** Paper map: torn paper country on kraft paper, paper name tags, a dashed paper road and a paper car that drives between the two cities in stop-motion */
 export const PaperMap: React.FC<{
   at: number; until: number; x: number; y: number; w: number; h: number; center: [number, number]; spanLat: number;
-  highlight?: string[]; pts?: MapPt[]; legs?: MapLeg[]; carSrc?: string;
-}> = ({ at, until, x, y, w, h, center, spanLat, highlight = ["SYR"], pts = [], legs = [], carSrc = "collage/car.png" }) => {
+  highlight?: string[]; pts?: MapPt[]; legs?: MapLeg[]; carSrc?: string; carW?: number;
+}> = ({ at, until, x, y, w, h, center, spanLat, highlight = ["SYR"], pts = [], legs = [], carSrc = "collage/car.png", carW = 140 }) => {
   const { t, k } = useStop();
   if (t < at || t > until) return null;
   const pop = clamp((t - at) / 0.35), out = clamp((until - t) / 0.3);
@@ -205,7 +205,7 @@ export const PaperMap: React.FC<{
         })}
       </svg>
       {car.map((c, i) => c ? (
-        <Pic key={i} src={carSrc} style={{ position: "absolute", left: c.px - 70, top: c.py - 40 + (k % 2 ? -3 : 3), width: 140, transform: `rotate(${k % 2 ? 4 : -4}deg) scaleX(${c.dx >= 0 ? -1 : 1})`, filter: "drop-shadow(3px 6px 4px rgba(40,24,10,.55))" }} />
+        <Pic key={i} src={carSrc} style={{ position: "absolute", left: c.px - carW / 2, top: c.py - carW * 0.3 + (k % 2 ? -3 : 3), width: carW, opacity: Math.max(0, Math.min(1, 1 - (t - c.l.at - (c.l.dur ?? 1.2) - 0.4) / 0.5)), transform: `rotate(${k % 2 ? 4 : -4}deg) scaleX(${c.dx >= 0 ? -1 : 1})`, filter: "drop-shadow(3px 6px 4px rgba(40,24,10,.55))" }} />
       ) : null)}
     </div>
   );
@@ -253,8 +253,144 @@ export const Marker: React.FC<{ at: number; x: number; y: number; w: number; h: 
   const f = useCurrentFrame();
   const p = clamp((f / PK_FPS - at) / 0.5);
   if (p <= 0) return null;
-  return <div style={{ position: "absolute", left: `${x * 100}%`, top: `${y * 100}%`, width: `${w * 100}%`, height: `${h * 100}%`, border: `6px solid ${BRAND.mark}`, borderRadius: 28, clipPath: `inset(0 ${100 - p * 100}% 0 0)`, boxShadow: `0 0 18px ${alpha(BRAND.mark, .55)}` }} />;
+  return <div style={{ position: "absolute", left: `${x * 100}%`, top: `${y * 100}%`, width: `${w * 100}%`, height: `${h * 100}%`, border: `6px solid ${RED}`, borderRadius: 28, clipPath: `inset(0 ${100 - p * 100}% 0 0)`, boxShadow: `0 0 18px ${alpha(RED, .55)}` }} />;
 };
+
+/* ───────── FamilyTree (user 2026-10-29, «ارسم مخطط نسب… كل ما أذكر واحد ضيفه على الشجرة»): paper card with name tags that pop at the second each person is named,
+   couple lines and child branches that draw themselves; dashed = a mother who is not the wife of the first line / a disputed claim ───────── */
+export type TreeNode = { id: string; label: string; sub?: string; at: number; px: number; py: number; tone?: "gold" | "red" | "ink" };
+export type TreeLink = { a: string; b?: string; to?: string; at: number; dashed?: boolean };
+export const FamilyTree: React.FC<{
+  from: number; until: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number;
+  nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number;
+}> = ({ from, until, x, y, w, h, title, titleAt, nodes, links, nodeW = 230, nodeH = 70, font = 32 }) => {
+  const t = useT(0);
+  if (t < from || t > until) return null;
+  const pop = clamp((t - from) / 0.4), out = clamp((until - t) / 0.35);
+  const top = Math.round(h * 0.12), ah = h - top - 16;
+  const C = (id: string): [number, number] => { const n = nodes.find((q) => q.id === id)!; return [n.px * w, top + n.py * ah]; };
+  const toneC = (tn?: string) => (tn === "red" ? BRAND.mark : tn === "gold" ? BRAND.accent : BRAND.navy);
+  return (
+    <div style={{ ...paperCard(x, y, w, h, pop, -1.5), opacity: out * Math.min(1, pop * 2.5), background: BRAND.card }}>
+      <Grain />
+      <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: top, background: BRAND.navyDeep, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", fontFamily: kufiF, fontWeight: 800, fontSize: Math.round(top * 0.5), opacity: clamp((t - (titleAt ?? from)) / 0.3) }}>{title}</div>
+      <svg width={w} height={h} style={{ position: "absolute", left: 0, top: 0 }}>
+        {links.map((l, i) => {
+          const g = clamp((t - l.at) / 0.7);
+          if (g <= 0) return null;
+          const [ax, ay] = C(l.a);
+          let d: string;
+          if (l.to) {
+            const [sx, sy] = l.b ? (() => { const [bx, by] = C(l.b!); return [(ax + bx) / 2, (ay + by) / 2]; })() : [ax, ay + nodeH / 2];
+            const [tx, ty] = C(l.to), my = (sy + ty - nodeH / 2) / 2;
+            d = `M${sx},${sy} V${my} H${tx} V${ty - nodeH / 2}`;
+          } else { const [bx, by] = C(l.b!); d = `M${ax},${ay} L${bx},${by}`; }
+          return <path key={i} d={d} fill="none" stroke={l.dashed ? BRAND.gray : BRAND.navy} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray={l.dashed ? "0.02 0.02" : `${g} 1`} strokeDashoffset={0} opacity={l.dashed ? g : 1} />;
+        })}
+      </svg>
+      {nodes.map((n) => {
+        const s = clamp((t - n.at) / 0.4);
+        if (s <= 0) return null;
+        const [cx, cy] = C(n.id), e = 1 - Math.pow(1 - s, 3), c = toneC(n.tone), fresh = t - n.at < 1.6;
+        return (
+          <div key={n.id} style={{ position: "absolute", left: cx - nodeW / 2, top: cy - nodeH / 2, width: nodeW, height: nodeH, boxSizing: "border-box", borderRadius: 14, background: "#fff", border: `5px solid ${c}`, boxShadow: fresh ? `0 0 0 6px ${alpha(c, 0.25)}, 0 8px 16px rgba(10,18,30,.35)` : "0 8px 16px rgba(10,18,30,.35)", transform: `scale(${0.6 + 0.4 * e}) rotate(${(1 - e) * (n.px > 0.5 ? 6 : -6)}deg)`, opacity: e, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", direction: "rtl", fontFamily: kufiF, fontWeight: 800, color: BRAND.ink, fontSize: font, lineHeight: 1.1, textAlign: "center" }}>
+            <div>{n.label}</div>
+            {n.sub ? <div style={{ fontSize: Math.round(font * 0.6), fontWeight: 600, color: BRAND.gray }}>{n.sub}</div> : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+/* ───────── TreeFx — the stronger family tree (user 2026-10-29: «شيء أقوى من حيث الموشن جرافيك، ولا تضعها داخل إطار»): no card; it is drawn straight on the decorated base
+   (MontageSpec puts the base under it and him isolated over it). Branches draw with a glowing head, every person arrives with an overshoot, a pulse ring and sparks, the newest
+   node glows, dashed branches (a disputed mother / a claim) keep flowing. Absolute frame coordinates: x,y,w,h = the region of the tree. ───────── */
+export const TreeFx: React.FC<{
+  from: number; until: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number;
+  nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number; titleSize?: number; skin?: "parchment";
+}> = ({ from, until, x, y, w, h, title, titleAt, nodes, links, nodeW = 232, nodeH = 70, font = 28, titleSize = 52, skin }) => {
+  const PCH = skin === "parchment";
+  const t = useT(0);
+  if (t < from || t > until) return null;
+  const out = clamp((until - t) / 0.4), top = Math.round(h * 0.12), ah = h - top - 8;
+  const P = (id: string): [number, number] => { const n = nodes.find((q) => q.id === id)!; return [x + n.px * w, y + top + n.py * ah]; };
+  const back = (u: number) => { const c1 = 1.9; const v = clamp(u) - 1; return clamp(u) >= 1 ? 1 : 1 + (c1 + 1) * v * v * v + c1 * v * v; };
+  const toneC = (tn?: string) => (tn === "red" ? BRAND.mark : tn === "gold" ? BRAND.accent : BRAND.navy);
+  const tAt = titleAt ?? from + 0.2, tp = clamp((t - tAt) / 0.5);
+  const polyLen = (ps: [number, number][]) => ps.slice(1).reduce((s, p, i) => s + Math.hypot(p[0] - ps[i][0], p[1] - ps[i][1]), 0);
+  const ptAt = (ps: [number, number][], d: number): [number, number] => { let r = d; for (let i = 1; i < ps.length; i++) { const l = Math.hypot(ps[i][0] - ps[i - 1][0], ps[i][1] - ps[i - 1][1]); if (r <= l) { const k = l ? r / l : 0; return [ps[i - 1][0] + (ps[i][0] - ps[i - 1][0]) * k, ps[i - 1][1] + (ps[i][1] - ps[i - 1][1]) * k]; } r -= l; } return ps[ps.length - 1]; };
+  return (
+    <AbsoluteFill style={{ opacity: out, pointerEvents: "none" }}>
+      <div style={{ position: "absolute", left: x, top: y, width: w, textAlign: "center", direction: "rtl", fontFamily: kufiF, fontWeight: 800, fontSize: titleSize, color: PCH ? BRAND.navyDeep : BRAND.card, textShadow: PCH ? `0 2px 0 ${alpha(BRAND.card, 0.7)}` : "0 4px 14px rgba(0,0,0,.55)", opacity: tp, transform: `translateY(${(1 - tp) * -24}px)` }}>
+        {title}
+        <div style={{ margin: "6px auto 0", height: 6, width: `${tp * 70}%`, borderRadius: 3, background: PCH ? BRAND.navy : BRAND.mark, boxShadow: PCH ? "none" : `0 0 14px ${BRAND.mark}` }} />
+      </div>
+      <svg style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", overflow: "visible" }}>
+        {links.map((l, i) => {
+          const g = clamp((t - l.at) / 0.9);
+          if (g <= 0) return null;
+          const [ax, ay] = P(l.a);
+          let ps: [number, number][];
+          if (l.to) {
+            const [sx, sy] = l.b ? (() => { const [bx, by] = P(l.b!); return [(ax + bx) / 2, (ay + by) / 2] as [number, number]; })() : ([ax, ay + nodeH / 2] as [number, number]);
+            const [tx, ty] = P(l.to), my = (sy + ty - nodeH / 2) / 2;
+            ps = [[sx, sy], [sx, my], [tx, my], [tx, ty - nodeH / 2]];
+          } else { const [bx, by] = P(l.b!); ps = [[ax, ay], [bx, by]]; }
+          const L = polyLen(ps), e = 1 - Math.pow(1 - g, 3), d = ps.map((p, k) => `${k ? "L" : "M"}${p[0]},${p[1]}`).join("");
+          const [hx, hy] = ptAt(ps, L * e);
+          const col = PCH ? BRAND.navy : l.dashed ? BRAND.light : BRAND.card;
+          return (
+            <g key={i}>
+              <path d={d} fill="none" stroke={col} strokeOpacity={PCH ? 0 : 0.28} strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={l.dashed ? "2 22" : `${e * L} ${L}`} opacity={l.dashed ? g : 1} />
+              <path d={d} fill="none" stroke={col} strokeWidth={l.dashed ? 5 : 7} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={l.dashed ? "16 14" : `${e * L} ${L}`} strokeDashoffset={l.dashed ? -t * 46 : 0} opacity={l.dashed ? g : 1} />
+              {g < 1 ? <circle cx={hx} cy={hy} r={PCH ? 8 : 12} fill={BRAND.mark} stroke={PCH ? BRAND.card : BRAND.card} strokeWidth={3} /> : null}
+              {PCH && g >= 0.98 ? (() => { const [ex, ey] = ps[ps.length - 1], [px2, py2] = ps[ps.length - 2], ang = (Math.atan2(ey - py2, ex - px2) * 180) / Math.PI; return <polygon points="0,0 -16,-8 -16,8" fill={BRAND.navy} transform={`translate(${ex},${ey}) rotate(${ang})`} />; })() : null}
+            </g>
+          );
+        })}
+      </svg>
+      {nodes.map((n) => {
+        const age = t - n.at;
+        if (age < 0) return null;
+        const u = clamp(age / 0.55), s = back(u), c = toneC(n.tone), fresh = age < 1.7 ? 1 - age / 1.7 : 0;
+        const [cx, cy] = P(n.id);
+        const ring = clamp(age / 0.7);
+        return (
+          <React.Fragment key={n.id}>
+            {ring < 1 ? <div style={{ position: "absolute", left: cx - nodeW / 2, top: cy - nodeH / 2, width: nodeW, height: nodeH, borderRadius: 20, border: `5px solid ${BRAND.mark}`, opacity: 1 - ring, transform: `scale(${1 + ring * 0.9})`, boxSizing: "border-box" }} /> : null}
+            {Array.from({ length: 8 }, (_, k) => { const a = (k / 8) * Math.PI * 2, r = 40 + ring * 90, o = 1 - ring; return o > 0 ? <div key={k} style={{ position: "absolute", left: cx + Math.cos(a) * (nodeW / 2 + r * 0.6) - 6, top: cy + Math.sin(a) * (nodeH / 2 + r * 0.6) - 6, width: 12, height: 12, borderRadius: 6, background: k % 2 ? BRAND.card : BRAND.mark, opacity: o }} /> : null; })}
+            {PCH ? <div style={{ position: "absolute", left: cx - nodeW / 2, top: cy - nodeH / 2, width: nodeW, height: nodeH, transform: `scale(${Math.max(0, s)}) rotate(${(1 - u) * (n.px > 0.5 ? 9 : -9)}deg)`, filter: `drop-shadow(0 6px 8px ${alpha(BRAND.navyDeep, 0.5)})${fresh > 0 ? ` drop-shadow(0 0 ${8 + fresh * 22}px ${alpha(BRAND.accent, 0.4 + fresh * 0.5)})` : ""}` }}>
+              <div style={{ position: "absolute", inset: 0, background: n.tone === "red" ? BRAND.mark : BRAND.navy, clipPath: "polygon(0 50%, 5% 0, 95% 0, 100% 50%, 95% 100%, 5% 100%)" }} />
+              <div style={{ position: "absolute", inset: 5, background: BRAND.card, clipPath: "polygon(0 50%, 5% 0, 95% 0, 100% 50%, 95% 100%, 5% 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", direction: "rtl", fontFamily: naskhF, fontWeight: 700, color: BRAND.ink, fontSize: font, lineHeight: 1.15, textAlign: "center", padding: "0 18px", boxSizing: "border-box" }}>
+                <div>{n.label}</div>
+                {n.sub ? <div style={{ fontSize: Math.round(font * 0.66), fontWeight: 500, color: BRAND.accentDeep }}>{n.sub}</div> : null}
+              </div>
+            </div> : null}
+            {!PCH ? <div style={{ position: "absolute", left: cx - nodeW / 2, top: cy - nodeH / 2, width: nodeW, height: nodeH, boxSizing: "border-box", borderRadius: 18, background: BRAND.card, border: `6px solid ${c}`, boxShadow: `0 10px 22px rgba(0,0,0,.45), 0 0 ${10 + fresh * 34}px ${alpha(c, 0.35 + fresh * 0.5)}`, transform: `scale(${Math.max(0, s)}) rotate(${(1 - u) * (n.px > 0.5 ? 9 : -9)}deg)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", direction: "rtl", fontFamily: kufiF, fontWeight: 800, color: BRAND.ink, fontSize: font, lineHeight: 1.1, textAlign: "center" }}>
+              <div>{n.label}</div>
+              {n.sub ? <div style={{ fontSize: Math.round(font * 0.66), fontWeight: 700, color: c }}>{n.sub}</div> : null}
+            </div> : null}
+          </React.Fragment>
+        );
+      })}
+    </AbsoluteFill>
+  );
+};
+
+/** old-manuscript parchment with a double ornamental border and corner knots — the backdrop of the user's reference family tree (2026-10-29, «مثال») */
+export const Parchment: React.FC = () => (
+  <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 45%, ${BRAND.card} 0%, ${BRAND.paper} 55%, ${BRAND.paper2} 100%)` }}>
+    <Grain />
+    <AbsoluteFill style={{ boxShadow: `inset 0 0 160px ${alpha(BRAND.navy, 0.4)}` }} />
+    <div style={{ position: "absolute", inset: 18, border: `10px solid ${BRAND.navy}`, borderRadius: 6 }} />
+    <div style={{ position: "absolute", inset: 38, border: `3px solid ${BRAND.accent}`, borderRadius: 4 }} />
+    {[[18, 18], [18, -1], [-1, 18], [-1, -1]].map(([l, tp], i) => <div key={i} style={{ position: "absolute", [l < 0 ? "right" : "left"]: 6, [tp < 0 ? "bottom" : "top"]: 6, width: 64, height: 64, border: `6px solid ${BRAND.navy}`, transform: "rotate(45deg) scale(.72)", background: BRAND.accent, boxShadow: `inset 0 0 0 6px ${BRAND.accentDeep}` }} />)}
+  </AbsoluteFill>
+);
+
+/** his isolated cut-out shrunk into a corner (user 2026-10-29, the paper map): the face point `face` of the 1920×1080 frame moves to (cx, cy) and the frame scales to `scale` between `shrinkAt` and +0.6 s */
+export const miniEase = (t: number, a: number) => { const p = clamp((t - a) / 0.6); return p * p * (3 - 2 * p); };
 
 /** a plain spring pop-in for a card that is not one of the kit's source moves (left-bottom anchored) */
 export const PopCard: React.FC<{ at: number; x: number; y: number; children: React.ReactNode }> = ({ at, x, y, children }) => {
@@ -274,8 +410,10 @@ export const FullImage: React.FC<{ src: string; from: number; to: number; origin
   return (
     <AbsoluteFill style={{ opacity: o, background: BRAND.card, overflow: "hidden" }}>
       <div style={{ position: "absolute", inset: 0, transform: `scale(${k})`, transformOrigin: origin }}>
-        <Pic src={src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        {marker && mp > 0 ? <div style={{ position: "absolute", left: marker.x, top: marker.y, width: marker.w, height: marker.h, border: `7px solid ${BRAND.mark}`, borderRadius: 30, clipPath: `inset(0 ${100 - mp * 100}% 0 0)`, boxShadow: `0 0 20px ${alpha(BRAND.mark, .6)}` }} /> : null}
+        {/\.mp4$/i.test(src)
+          ? <Sequence from={Math.round(from * PK_FPS)}>{getRemotionEnvironment().isRendering ? <OffthreadVideo src={staticFile(src)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <SafeVideo src={staticFile(src)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</Sequence>
+          : <Pic src={src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+        {marker && mp > 0 ? <div style={{ position: "absolute", left: marker.x, top: marker.y, width: marker.w, height: marker.h, border: `7px solid ${RED}`, borderRadius: 30, clipPath: `inset(0 ${100 - mp * 100}% 0 0)`, boxShadow: `0 0 20px ${alpha(RED, .6)}` }} /> : null}
       </div>
     </AbsoluteFill>
   );

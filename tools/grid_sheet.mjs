@@ -1,0 +1,30 @@
+// Proof that the grid works: 2–3 scattered frames of every minute rendered small and tiled into ONE sheet to look at (user 2026-10-29).
+//   node tools/grid_sheet.mjs <CompositionId> data/specs/<p>.json [--per-min 3] [--scale 0.25]
+// Each sample moves to the middle of the nearest element (±8 s) so the sheet shows the slots in use, not empty moments. → .tmp/<p>/grid_sheet_<Id>.jpg
+import fs from "node:fs"; import path from "node:path"; import { spawnSync } from "node:child_process";
+
+const argv = process.argv.slice(2);
+const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1]; };
+const [id, specF] = argv.filter((a) => !a.startsWith("--") && !/^\d/.test(a));
+if (!id || !specF) { console.error("usage: node tools/grid_sheet.mjs <CompositionId> data/specs/<p>.json [--per-min 3] [--scale 0.25]"); process.exit(2); }
+const spec = JSON.parse(fs.readFileSync(specF, "utf8"));
+const per = Number(opt("per-min", 3)), scale = opt("scale", "0.25"), fps = spec.fps ?? 30, dur = spec.frames / fps;
+const mids = spec.items.filter((it) => it.t !== "cover" && it.t !== "credit").map((it) => { const a = it.at ?? it.from ?? it.times?.[0], b = it.until ?? it.to ?? (a != null ? a + 3 : null); return a == null ? null : (a + b) / 2; }).filter((m) => m != null);
+const pts = [];
+for (let m = 0; m * 60 < dur; m++) for (let k = 0; k < per; k++) {
+  let t = m * 60 + ((k + 0.5) * 60) / per;
+  if (t > dur - 1) continue;
+  const near = mids.reduce((best, x) => (Math.abs(x - t) < Math.abs(best - t) ? x : best), Infinity);
+  if (Math.abs(near - t) <= 8) t = near;
+  pts.push(`s${String(pts.length).padStart(3, "0")}:${Math.round(t * fps)}`);
+}
+const T = path.join(".tmp", spec.id), out = path.join(T, "grid_sheet_" + id), sheet = path.join(T, `grid_sheet_${id}.jpg`);
+fs.rmSync(out, { recursive: true, force: true }); fs.mkdirSync(out, { recursive: true });
+const r = spawnSync("node", ["tools/stills.mjs", id, out, ...pts, "--scale", scale], { stdio: ["ignore", "ignore", "inherit"] });
+if (r.status !== 0) { console.error("stills failed"); process.exit(1); }
+const cols = 6, rows = Math.ceil(pts.length / cols);
+const f = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-framerate", "1", "-i", path.join(out, "s%03d.png"), "-vf", `tile=${cols}x${rows}:padding=6:color=white`, "-frames:v", "1", "-q:v", "3", sheet], { encoding: "utf8" });
+if (f.status !== 0) { console.error(f.stderr); process.exit(1); }
+fs.rmSync(out, { recursive: true, force: true });
+console.log(`${pts.length} إطاراً (${per}/دقيقة) → ${sheet}`);
+console.log("الترتيب من اليسار، صفاً صفاً: " + pts.map((p) => { const s = Number(p.split(":")[1]) / fps; return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`; }).join(" "));

@@ -4,7 +4,7 @@ usage: python tools/bleep_words.py <project> <out.wav> [--sample a-b,c-d]   (أ�
 import json, re, sys, wave
 import numpy as np
 
-PATTERN = r"إره|ارها|إرها|داعش|دواعش|تفجير|تفجّر|انتحاري|انتحارية|متفجر"   # أضف هنا ما يماثلها
+PATTERN = r"إره|ارها|إرها|داعش|دواعش|تفجير|تفجّر|انتحاري|انتحارية|متفجر|مجزر"   # أضف هنا ما يماثلها (مجزرة: تعليمة المستخدم 2026-10-29)
 SR, FREQ, GAIN, FADE = 48000, 880, 0.16, 0.012
 
 p, out = sys.argv[1], sys.argv[2]

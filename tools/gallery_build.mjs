@@ -1,6 +1,6 @@
 // Builds the LIVE elements gallery (user 2026-10-28: «الصفحة تكتب العناصر برمجياً لا صوراً؛ أي تعديل يكون في الكود»).
 //   node tools/gallery_build.mjs   →  scratch/gallery_site/{index.html, gallery.js, <assets>}   then publish index.html with the Artifact tool
-//                                     (same url: https://claude.ai/artifact/Mumqxi3XUMEgf2LUmLtDT8, files = everything else in the folder)
+//                                     (the reference is the local page: node tools/gallery_serve.mjs → http://localhost:5601; a claude.ai copy is view-only and per account)
 // The page runs the montage's own components (src/ElementsLab.tsx → LabScene, src/TransitionsLab.tsx → TransitionScene) in Remotion Player,
 // so editing MG.tsx / EuKit.tsx / MontageSpec.tsx and rebuilding changes the page and the montage together. Names/places come from
 // data/elements_lab.json and TRANSITIONS; the code line under each card is cut from those source files.
@@ -74,15 +74,15 @@ for (const t of transitions) { const m = lab.find((x) => x.id === t.id); if (m?.
 // sections (user 2026-10-30): 1 backgrounds · 2 transitions (scene↔scene) · 3 motion styles (an element whose character is its movement, text or not) · 4 text/number elements · 5 picture/source elements · 6 the grid
 const IN = (s) => new Set(s.split(/\s+/));
 const BG = IN("BgFullImage BgKh BgPaperDark BgMashrabiya PaperGrain");
-const MOVES = IN("PushIn HandheldShake FlashCut SakugaMove SpotlightCard TimelineTravel ConvergeMerge PanelToCanvas DashArc FoldReveal CollageAssemble DimLayer PhoneChips");
-const IMAGES = IN("PaperScene BrowserFrame VideoFrame PostCard CommentCard BookPage NewsClip FolderOpen TornPhoto PinnedPhoto MapRoute PaperMap PhotoFrame PopCard SplitCards TailVoice DebateDossier DebateBlocks");
+const MOVES = IN("PushIn HandheldShake FlashCut SakugaMove SpotlightCard TimelineTravel ConvergeMerge PanelToCanvas DashArc CollageAssemble DimLayer PhoneChips");
+const IMAGES = IN("PaperScene BrowserFrame VideoFrame PostCard CommentCard BookPage NewsClip TornPhoto PinnedPhoto MapRoute PaperMap PhotoFrame PopCard TailVoice DebateDossier DebateBlocks");
 const SECTION_OF = (it) => (BG.has(it.id) ? "bg" : it.kind === "transition" || ["Curtain", "PaperCover"].includes(it.id) ? "transition" : MOVES.has(it.id) ? "move" : IMAGES.has(it.id) ? "image" : "text");
 // where each kind of the grid (data/layout_grids.json "kinds") is drawn by which gallery elements (approximate: one kind covers several)
 const KIND_ELEMENTS = {
   key: IN("Word BlurRise GlowCaption TornNote WordScraps TypeBox"),
-  photo: IN("PinnedPhoto PopCard TornPhoto NewsClip FlashCut PhoneChips PaperScene RewriteWindow BrowserFrame PostCard CommentCard BookPage FolderOpen PhotoFrame VideoFrame"),
+  photo: IN("PinnedPhoto PopCard TornPhoto NewsClip FlashCut PhoneChips PaperScene RewriteWindow BrowserFrame PostCard CommentCard BookPage PhotoFrame VideoFrame"),
   list: IN("StatRow"), solo: IN("NameCard1 NameCard3 Subscribe"),
-  exclusive: IN("VerseWords ReelVerseFull MapRoute PaperMap TimelineTravel PanelToCanvas FoldReveal"),
+  exclusive: IN("VerseWords ReelVerseFull MapRoute PaperMap TimelineTravel PanelToCanvas"),
   ignore: IN("Sources CitationTag PaperCover"),
 };
 const GRIDS = JSON.parse(fs.readFileSync("data/layout_grids.json", "utf8"));

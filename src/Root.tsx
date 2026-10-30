@@ -52,6 +52,8 @@ import zaynabShrinesSpec from "../data/specs/zaynab_shrines.json";
 const ZaynabShrinesVideo: React.FC = () => <MontageFromSpec spec={zaynabShrinesSpec as unknown as MontageSpec} />;
 import allahTahtSpec from "../data/specs/allah_taht.json";
 const AllahTahtVideo: React.FC = () => <MontageFromSpec spec={allahTahtSpec as unknown as MontageSpec} />;
+import shouldersSpec from "../data/specs/ShouldersPrayer.json";
+const ShouldersPrayerVideo: React.FC = () => <MontageFromSpec spec={shouldersSpec as unknown as MontageSpec} />;
 import allahTahtReelSpec from "../data/specs/allah_taht_reel.json";
 const AllahTahtReelVideo: React.FC = () => <MontageFromSpec spec={allahTahtReelSpec as unknown as MontageSpec} />;
 
@@ -88,7 +90,8 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="ZaynabShrines" component={ZaynabShrinesVideo} durationInFrames={zaynabShrinesSpec.frames} fps={30} width={1080} height={1920} />
       <Composition id="ZaynabShrines-L" component={ZaynabShrinesVideo} durationInFrames={zaynabShrinesSpec.frames} fps={30} width={1920} height={1080} />
       <Composition id="AllahTaht-L" component={AllahTahtVideo} durationInFrames={allahTahtSpec.frames} fps={30} width={1920} height={1080} />
-      <Composition id="AllahTahtReel" component={AllahTahtReelVideo} durationInFrames={allahTahtReelSpec.frames} fps={30} width={1080} height={1920} />
+      <Composition id="ShouldersPrayer" component={ShouldersPrayerVideo} durationInFrames={shouldersSpec.frames} fps={30} width={1080} height={1920} />
+      <Composition id="AllahTahtReel"component={AllahTahtReelVideo} durationInFrames={allahTahtReelSpec.frames} fps={30} width={1080} height={1920} />
       <Composition id="JuhaInshallah15" component={JuhaInshallah15} durationInFrames={JUHA_15S_FRAMES} fps={JUHA_15S_FPS} width={1080} height={1920} />
       <Composition id="CartoonOutro" component={CartoonEndScreen} durationInFrames={90} fps={30} width={1080} height={1920} />
       <Composition id="DeedatMasadShort" component={DeedatMasadShort} durationInFrames={MASAD_TOTAL_FRAMES} fps={MASAD_FPS} width={1080} height={1920} />

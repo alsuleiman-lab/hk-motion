@@ -5,7 +5,7 @@ import { FONT_TITLE } from './localFonts';
 import {CartoonGfx as Gfx, AmountCard} from './cartoon/StoryCards';
 import { CartoonCaptions } from './cartoon/CartoonCaptions';
 import { PaperDefs, PalaceSet, Throne, LedgerDesk, OfficeChair, smooth, unit } from './cartoon/PalacePaper';
-import {cast as dodoCast,characterMarkup,poseAt,type Motion,type Expression,type V,type SpeechInterval} from '../cartoon_projects/dodo_family/rig';
+import {cast as dodoCast,characterMarkup,poseAt,type Motion,type V,type SpeechInterval} from '../cartoon_projects/dodo_family/rig';
 import plan from '../data/cartoon/kamli_poet_king_storyboard.json';
 import words from '../data/cartoon/kamli_poet_king_words.json';
 

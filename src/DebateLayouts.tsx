@@ -6,7 +6,7 @@ import { BRAND, alpha } from "./brand";
 import { Tape, tornClip } from "./PaperKit";
 
 /**
- * DebateLayouts — only the reply models the user chose (2026-10-29): «الكتل المنحوتة» (default) (s07 of creative_4x3_gallery.html) and dossier.html,
+ * DebateLayouts — only the reply models the user chose (2026-10-29): dossier.html (default, user 2026-10-30) and «الكتل المنحوتة» (s07 of creative_4x3_gallery.html),
  * on the original's geometry («نوافذ 4:3 كبيرة، لوحة إخراج 16:9»): his window (main) 4:3 at ≈ 65 % of the width on the right, the answered clip (guest) 4:3
  * at ≈ 33 % on the left, each video whole inside its window (contain). Only the original's own decor and words; colours from BRAND, and the decorated base
  * under the original's background shapes (no plain background).

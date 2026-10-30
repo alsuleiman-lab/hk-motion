@@ -12,8 +12,8 @@ const sleeper = {...cast[1], name:'النائم', cloth:'#d6bd92'};
 type Role = 'friend'|'bilal'|'sleeper';
 const wordCues = captions as {startMs:number;endMs:number;text:string;pageBreakAfter?:boolean}[];
 const speech:Record<Role,SpeechInterval[]> = {
-  friend:[{from:0,to:2.1},{from:3.82,to:6.28},{from:11.92,to:12.56},{from:13.78,to:15.32},{from:15.567,to:16.58}],
-  bilal:[{from:2.1,to:3.82},{from:6.28,to:11.92},{from:12.56,to:13.78}],
+  friend:[{from:0,to:2.1},{from:3.82,to:6.28},{from:11.92,to:12.56},{from:13.78,to:13.833333},{from:15.567,to:16.58}],
+  bilal:[{from:2.1,to:3.82},{from:6.28,to:11.92},{from:12.56,to:13.78},{from:13.833333,to:15.4}],
   sleeper:[],
 };
 const captionsPages = wordCues.reduce<{words:typeof wordCues;start:number;end:number}[]>((pages,w)=>{
@@ -25,7 +25,7 @@ const captionsPages = wordCues.reduce<{words:typeof wordCues;start:number;end:nu
 },[]).filter(p=>p.words.length);
 const smoothStep=(value:number)=>{const u=Math.max(0,Math.min(1,value));return u*u*(3-2*u);};
 
-const CounterCard:React.FC<{x:number;y:number;scale?:number;name:string;good:number;bad:number;accent:string;frame:number}> = ({x,y,scale=1,name,good,bad,accent,frame})=>{
+const CounterCard:React.FC<{x:number;y:number;scale?:number;name:string;good:number;bad:number;accent:string;goodTrend:'up'|'down'|'still';badTrend:'up'|'down'|'still';frame:number}> = ({x,y,scale=1,name,good,bad,accent,goodTrend,badTrend,frame})=>{
   const pop=Math.max(0,1-(frame%90)/18);
   return <g transform={`translate(${x} ${y}) scale(${scale})`} style={{filter:'drop-shadow(0 9px 7px rgba(64,52,39,.15))'}}>
     <rect x="-185" y="-12" width="370" height="168" rx="34" fill="#fffdf8" stroke="#302920" strokeWidth="6"/>
@@ -33,9 +33,11 @@ const CounterCard:React.FC<{x:number;y:number;scale?:number;name:string;good:num
     <text x="0" y="29" textAnchor="middle" direction="rtl" fontSize="31" fontWeight="800" fill="#302920">{name}</text>
     <circle cx="-126" cy="87" r="16" fill="#39815b"/><path d="M-134 87l6 7 13-16" fill="none" stroke="white" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
     <text x="-60" y="97" textAnchor="middle" direction="rtl" fontSize="27" fontWeight="700" fill="#27332b">حسنات</text>
+    {goodTrend!=='still'&&<path d={goodTrend==='up'?'M5 85L15 69L25 85Z':'M5 77L15 93L25 77Z'} fill={goodTrend==='up'?'#256e47':'#a83e38'}/>} 
     <text x="138" y="99" textAnchor="end" fontSize="38" fontWeight="900" fill="#256e47">{good}</text>
     <circle cx="-126" cy="132" r="16" fill="#b94e46"/><path d="M-132 126l12 12m0-12l-12 12" stroke="white" strokeWidth="4.5" strokeLinecap="round"/>
     <text x="-60" y="142" textAnchor="middle" direction="rtl" fontSize="27" fontWeight="700" fill="#392d2b">سيئات</text>
+    {badTrend!=='still'&&<path d={badTrend==='up'?'M5 138L15 122L25 138Z':'M5 120L15 136L25 120Z'} fill="#a83e38"/>}
     <text x="138" y="144" textAnchor="end" fontSize="38" fontWeight="900" fill="#a83e38" transform={`translate(0 ${pop*3})`}>{bad}</text>
   </g>;
 };
@@ -51,8 +53,9 @@ const DodoActor:React.FC<{role:Role;frame:number;scale:number}> = ({role,frame,s
   const expression:Expression=isSleeper||sleeping?'smile':questions?'surprised':challenges?'curious':(role==='bilal'&&t>=3.82&&t<6.28?'angry':'smile');
   const motion:Motion=isSleeper?'idle':'sit';
   const mouthOpen=interval?speechAt(local,[{from:0,to:interval.to-interval.from}]).mouthOpen:undefined;
-  const pose=characterMarkup(actor,t,motion,{expression,mouthOpen:interval?mouthOpen:undefined,speech:interval?[{from:0,to:interval.to-interval.from}]:[],openHands:questions,idPrefix:`deeds-${role}`});
-  const x=role==='friend'?190:role==='bilal'?460:1000;
+  const look=role==='friend'&&t>=3.82&&t<6.28?{x:1,y:-3}:role==='bilal'&&t>=6.28&&t<6.9?{x:0,y:-3}:undefined;
+  const pose=characterMarkup(actor,t,motion,{expression,mouthOpen:interval?mouthOpen:undefined,speech:interval?[{from:0,to:interval.to-interval.from}]:[],openHands:questions,look,idPrefix:`deeds-${role}`});
+  const x=role==='friend'?190:role==='bilal'?460:915;
   const y=isSleeper?1230:1500;
   const s=isSleeper?scale*.68:scale;
   return <g transform={`translate(${x} ${y}) ${isSleeper?'rotate(-90) ':''}scale(${s})`}>
@@ -79,12 +82,12 @@ export const DeedsCounterDodo:React.FC=()=>{
   const friendGood=base-Math.max(0,frame-Math.round(3.82*fps));
   const friendSin=base;
   const currentPage=captionsPages.find(p=>t>=p.start&&t<p.end+0.02);
-  const focusSpans:[number,number,number][]=[[3.82,6.28,190],[6.28,11.92,460],[13.78,16.58,190]];
+  const focusSpans:[number,number,number][]=[[3.82,6.28,190],[6.28,11.92,460],[13.833333,15.4,460],[15.567,16.58,190]];
   let focus=0,focusX=190;
   for(const [from,to,x] of focusSpans){const amount=smoothStep((t-from)/.38)*(1-smoothStep((t-(to-.38))/.38));if(amount>focus){focus=amount;focusX=x;}}
-  const zoom=1+.15*focus,tx=focus*(540-zoom*focusX),ty=focus*(960-zoom*1280);
+  const zoom=1+.12*focus,tx=focus*(540-zoom*focusX),ty=focus*(960-zoom*1280);
   return <AbsoluteFill style={{background:palette.paper,fontFamily:'Almarai, sans-serif'}}>
-    <Audio src={staticFile('aqmv_dodo1030/audio_v1.wav')}/>
+    <Audio src={staticFile('aqmv_dodo1030/audio_green_pitch_v1.wav')}/>
     <svg width="100%" height="100%" viewBox="0 0 1080 1920" style={{position:'absolute',inset:0}}>
       <defs>
         <pattern id="deeds-paper" width="56" height="56" patternUnits="userSpaceOnUse"><circle cx="8" cy="8" r="1.2" fill="#bda985" opacity=".2"/><path d="M0 55.5H56" stroke="#fffdf8" strokeOpacity=".24"/></pattern>
@@ -130,12 +133,12 @@ export const DeedsCounterDodo:React.FC=()=>{
         <path d="M70 1332Q70 1284 124 1284H590Q642 1284 642 1332V1518H70Z" fill="url(#couch-fabric)" stroke="#354e49" strokeWidth="10"/>
         <path d="M107 1310Q107 1298 132 1298H330V1412H108Z" fill="#718b81" stroke="#a4b5a8" strokeWidth="5"/>
         <path d="M344 1298H580Q606 1298 606 1322V1412H344Z" fill="#718b81" stroke="#a4b5a8" strokeWidth="5"/>
-        <rect x="83" y="1399" width="545" height="94" rx="27" fill="#a0b1a3" stroke="#354e49" strokeWidth="7"/>
-        <path d="M356 1405V1486" stroke="#71877d" strokeWidth="5"/>
+        <rect x="83" y="1434" width="545" height="82" rx="27" fill="#a0b1a3" stroke="#354e49" strokeWidth="7"/>
+        <path d="M356 1441V1506" stroke="#71877d" strokeWidth="5"/>
         <path d="M97 1515L108 1550M611 1515L602 1550" stroke="#5d4630" strokeWidth="13" strokeLinecap="round"/>
       </g>
       {/* Separate sofa for the sleeping adult. */}
-      <g filter="drop-shadow(0 12px 12px rgba(46,37,26,.17))">
+      <g opacity={1-smoothStep((t-6.0)/.28)} filter="drop-shadow(0 12px 12px rgba(46,37,26,.17))">
         <path d="M672 1168Q672 1127 718 1127H1044Q1070 1127 1070 1165V1374H672Z" fill="url(#sofa-sleeper)" stroke="#5d4935" strokeWidth="9"/>
         <path d="M692 1180H1050V1271H692Z" fill="#aa8d68" stroke="#c3a981" strokeWidth="5"/>
         <path d="M684 1285H1057V1357Q1057 1372 1040 1372H704Q684 1372 684 1352Z" fill="#d7bd94" stroke="#7b6043" strokeWidth="6"/>
@@ -163,12 +166,12 @@ export const DeedsCounterDodo:React.FC=()=>{
         {t<3.3&&(()=>{const u=Math.max(0,Math.min(1,(t-2.35)/.78)),x=890+(526-890)*u,y=1245+(1070-1245)*u;return <g transform={`translate(${x} ${y}) rotate(${-12+12*u})`}><rect x="-42" y="-28" width="84" height="56" rx="7" fill="#d8c69e" stroke="#534838" strokeWidth="6"/><path d="M0 -26V25M-34 -12h23M10 -12h23" stroke="#827358" strokeWidth="3"/></g>;})()}
         </g>
       </g>}
-      <CounterCard x={190} y={1020} scale={.70} name="الأزرق" good={friendGood} bad={friendSin} accent="#9db6a4" frame={frame}/>
-      <CounterCard x={460} y={1020} scale={.70} name="بلال" good={bilalGood} bad={bilalSin} accent="#9db6a4" frame={frame}/>
-      <CounterCard x={805} y={1000} scale={.70} name="النائم" good={base} bad={base} accent="#d4c2a3" frame={frame}/>
+      <CounterCard x={190} y={1050} scale={.70} name="الأزرق" good={friendGood} bad={friendSin} accent="#9db6a4" goodTrend={t>=3.82?'down':'still'} badTrend="still" frame={frame}/>
+      <CounterCard x={460} y={1050} scale={.70} name="بلال" good={bilalGood} bad={bilalSin} accent="#9db6a4" goodTrend="up" badTrend="down" frame={frame}/>
+      <g opacity={1-smoothStep((t-6.0)/.28)}><CounterCard x={735} y={1030} scale={.70} name="النائم" good={base} bad={base} accent="#d4c2a3" goodTrend="still" badTrend="still" frame={frame}/></g>
       <DodoActor role="friend" frame={frame} scale={.90}/>
       <DodoActor role="bilal" frame={frame} scale={.90}/>
-      <DodoActor role="sleeper" frame={frame} scale={.90}/>
+      <g opacity={1-smoothStep((t-6.0)/.28)}><DodoActor role="sleeper" frame={frame} scale={.90}/></g>
       </g>
       {currentPage&&<g>
         <rect x="74" y="148" width="932" height="116" rx="30" fill="#fffdf8" stroke="#302920" strokeWidth="5" opacity=".98"/>

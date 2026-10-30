@@ -43,24 +43,10 @@ const REAL_CUT = "kit_sample_sheikh.mp4";
 const Rec: React.FC<{ style?: React.CSSProperties }> = ({ style }) => (
   <OffthreadVideo src={staticFile(REAL_CUT)} muted style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080, objectFit: "cover", ...style }} />
 );
-/** elements that fill the frame or sit on its edges keep their own layout over his centred recording */
-const KEEP = new Set(["DebateDossier", "DebateBlocks", "ReelVerseFull", "PaperGrain", "CornerTags", "DimLayer", "HandheldShake", "TitleBar", "Subscribe", "Curtain", "TailVoice", "PaperCover", "PushIn", "NameCard1", "NameCard3", "Banner", "Sources", "PanelToCanvas", "WordScraps"]);
-const keepLayout = (id: string) => id.startsWith("Bg") || KEEP.has(id);
-/** his recording behind the element: centred for full-frame pieces; otherwise pushed right (face ≈ x 1470–1710) over a blurred copy, and the element drawn
- *  at 0.76 in the free left side, as a card sits beside him in a real video */
-const Stage: React.FC<{ id: string; children: React.ReactNode }> = ({ id, children }) =>
-  keepLayout(id) ? (
-    <><AbsoluteFill style={{ background: BRAND.base }}><Rec /></AbsoluteFill>{children}</>
-  ) : (
-    <>
-      <AbsoluteFill style={{ background: BRAND.base }}>
-        <Rec style={{ filter: "blur(26px) brightness(.5)", transform: "scale(1.12)" }} />
-        <Rec style={{ transform: "translateX(600px)", WebkitMaskImage: "linear-gradient(90deg, transparent 0, #000 300px)", maskImage: "linear-gradient(90deg, transparent 0, #000 300px)" }} />
-      </AbsoluteFill>
-      <AbsoluteFill style={{ transform: "translateX(30px) scale(0.76)", transformOrigin: "0 50%" }}>{children}</AbsoluteFill>
-    </>
-  );
-
+/** his real frame behind the element, never shifted, blurred or scaled: the screen is not split here (only verses and hadiths split it — user 2026-10-30) */
+const Stage: React.FC<{ id: string; children: React.ReactNode }> = ({ children }) => (
+  <><AbsoluteFill style={{ background: BRAND.base }}><Rec /></AbsoluteFill>{children}</>
+);
 /** the montage engine's own pieces (src/MontageSpec.tsx), shown alone like the rest (user 2026-10-27: «استخدمت أموراً من خارجها، أضفها لأراها هنا») */
 const SPLIT = { from: 0, to: 99, clip: { x: 140, w: 632 }, sheikh: { x: 772, w: 1148 }, clipName: "اسم المقطع المعروض" };
 const SPEC_E: Record<string, { node: React.ReactNode; light?: boolean }> = {

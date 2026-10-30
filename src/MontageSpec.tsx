@@ -52,7 +52,7 @@ export type SpecItem = Common & (
   | { t: "subscribe"; at: number; x: number; y: number; dur?: number }
   | { t: "verse"; words: string[]; times: number[]; title: string; refText: string; x: number; y: number; w: number; size?: number; until?: number }
   /** a column of written cards (EU-Protests style): dark `Banner` title + one `StatRow` card per spoken item; placed by the orientation's layout (no x/y) */
-  | { t: "rows"; from: number; to: number; y0?: number; step?: number; rowH?: number; title?: { at: number; text: string }; rows: { at: number; label: string; sub?: string; icon?: string; photo?: string }[] }
+  | { t: "rows"; from: number; to: number; y0?: number; step?: number; rowH?: number; pin?: { x: number; w: number }; title?:{ at: number; text: string }; rows: { at: number; label: string; sub?: string; icon?: string; photo?: string }[] }
   /** a scholar he quotes: polaroid with the name in the white band (empty side of his frame; portrait: below the beard) */
   | { t: "scholar"; src: string; name: string; sub?: string; at: number; until?: number; x?: number; y?: number; w?: number; h?: number; pos?: string }
   /** the cover drawn over everything at the start (skill thumbnail-design). DEFAULT style "paper" (user 2026-10-27) = PaperCoverKit: newsprint sheet, 3 still frames, then the
@@ -85,7 +85,7 @@ export type MontageSpec = {
   cams?: { from: number; to: number; cx: number }[];
   zooms?: { from: number; to: number; amt?: number }[];
   shake?: { from: number; to: number }[];
-  /** windows where the source recording has a baked-in split (clip left | him right): landscape = the reply model `layout` behind a curtain (default "blocks" = الكتل المنحوتة, user 2026-10-29;
+  /** windows where the source recording has a baked-in split (clip left | him right): landscape = the reply model `layout` behind a curtain (default "dossier" = الملف, user 2026-10-30;
    *  blocks | dossier, src/DebateLayouts.tsx;); portrait = his slice + the clip as a tilted card at his shoulder (x/w are source px) */
   splits?: { from: number; to: number; clip: { x: number; w: number }; sheikh: { x: number; w: number }; clipName?: string; clipUrl?: string; faceX?: number; blur?: number; layout?: DebateLayoutName; card?: { left: number; top: number; rot: number; innerH: number } }[];
   /** an audio message added after his video: plays `src` from `from` s (+ voice card with a waveform and cycling photos) */
@@ -187,7 +187,7 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
       return (
         <Only key={i} from={it.from} to={it.to}>
           {titled && it.title ? <Banner at={it.title.at} x={g.x} y={g.bannerY} w={g.w} text={it.title.text} size={g.bannerSize} /> : null}
-          {it.rows.map((r, n) => <StatRow key={n} at={r.at} x={g.x} y={rowY(n)} w={g.w} h={rowH} icon={r.icon ?? "Quote"} label={r.label} sub={r.sub} photo={r.photo} rot={n % 2 ? 1 : -1} />)}
+          {it.rows.map((r, n) => <StatRow key={n} at={r.at} x={!L && it.pin ? it.pin.x : g.x} y={rowY(n)} w={!L && it.pin ? it.pin.w : g.w} h={rowH} icon={r.icon ?? "Quote"} label={r.label} sub={r.sub} photo={r.photo} rot={n % 2 ? 1 : -1} />)}
         </Only>
       );
     }
@@ -314,7 +314,7 @@ export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: nu
   const sh = shifts.find((s) => t >= s.from && t <= s.to + 0.4);
   const dx = sh ? sh.dx * Math.min(clamp((t - sh.from) / 0.4), clamp((sh.to + 0.4 - t) / 0.4)) : 0;
   const sp = splits.find((x) => t >= x.from && t < x.to);
-  if (sp) { const L = DEBATE_LAYOUTS[sp.layout ?? "blocks"]; return <L at={sp.from} main={{ src: cut, x: sp.sheikh.x, w: sp.sheikh.w }} guest={{ src: cut, x: sp.clip.x, w: sp.clip.w, blur: sp.blur }} guestName={sp.clipName} url={sp.clipUrl} />; }
+  if (sp) { const L = DEBATE_LAYOUTS[sp.layout ?? "dossier"]; return <L at={sp.from} main={{ src: cut, x: sp.sheikh.x, w: sp.sheikh.w }} guest={{ src: cut, x: sp.clip.x, w: sp.clip.w, blur: sp.blur }} guestName={sp.clipName} url={sp.clipUrl} />; }
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 0.5);
   const z = zz ? 1 + (zz.amt ?? 0.08) * ease(Math.min(clamp((t - zz.from) / 0.6), clamp((zz.to + 0.5 - t) / 0.7))) : 1;
   return (
@@ -378,7 +378,7 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
       {o === "port" || !spec.cut ? <WarmBase /> : null}
       <Sequence from={0} durationInFrames={spec.tail ? Math.round(spec.tail.from * 30) : spec.frames}>{(() => { const b2 = o === "port" && spec.psplits?.length ? <PortSplit windows={spec.psplits}>{body}</PortSplit> : body; return spec.shake?.length ? <HandheldShake windows={spec.shake} amp={6} rot={0.4}>{b2}</HandheldShake> : b2; })()}</Sequence>
       {o === "port" && spec.psplits?.length ? <PortPanel windows={spec.psplits} /> : null}
-      {o === "port" ? (spec.splits ?? []).map((sp, i) => spec.cut ? <PortraitClipCard key={i} cut={spec.cut} sp={cover && cover.style !== "kit" ? { ...sp, from: Math.max(sp.from, 35 / 30) } : sp} /> : null) : null}
+      {o === "port" ? (spec.splits ?? []).map((sp, i) => spec.cut ? <PortraitClipCard key={i} cut={spec.cut} sp={cover && cover.style !== "kit" ? { ...sp, from: Math.max(sp.from, (cover.style === "pro" ? THUMBPRO_END : PAPER_COVER_END) / 30) } : sp} /> : null) : null}
       {o === "land" ? (spec.splits ?? []).map((sp, i) => <Curtain key={i} at={sp.to} />) : null}
       {o === "land" && spec.cut ? (spec.solos ?? []).map((sp, i) => <SoloLand key={"so" + i} cut={spec.cut!} sp={sp} zooms={spec.zooms} />) : null}
       {o === "land" ? (spec.solos ?? []).flatMap((sp, i) => [<Curtain key={"ca" + i} at={sp.from} />, <Curtain key={"cb" + i} at={sp.to} />, ...(sp.center ?? []).flatMap((c, j) => [<Curtain key={"cc" + i + j} at={c.from} />, <Curtain key={"cd" + i + j} at={c.to} />])]) : null}

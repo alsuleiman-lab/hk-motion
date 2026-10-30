@@ -172,7 +172,7 @@ phone with a playing clip (the clip file shares the cut's time base). Default: b
 
 ### `PaperMap`
 Paper map: torn paper country on kraft paper, paper name tags, a dashed paper road and a paper car that drives between the two cities in stop-motion
-`props:` at: number; until: number; x: number; y: number; w: number; h: number; center: [number, number]; spanLat: number; highlight?: string[]; pts?: MapPt[]; legs?: MapLeg[]; carSrc?: string
+`props:` at: number; until: number; x: number; y: number; w: number; h: number; center: [number, number]; spanLat: number; highlight?: string[]; pts?: MapPt[]; legs?: MapLeg[]; carSrc?: string; carW?: number
 
 ### `PaperScene`
 Paper scene: a kraft card where described people/objects (faceless silhouettes) slide in one after another, stop-motion, e.g. a sheikh seated beside a made-up woman
@@ -188,7 +188,7 @@ a hand-drawn red marker box that draws itself over a region of a card (relative 
 
 ### `TreeFx`
 a hand-drawn red marker box that draws itself over a region of a card (relative 0..1 coordinates, placed inside the card) */ export const Marker: React.FC<{ at: number; x: number; y: number; w: number; h: number }> = ({ at, x, y, w, h }) => { const f = useCurr
-`props:` from: number; until: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number; nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number; titleSize?: number
+`props:` from: number; until: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number; nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number; titleSize?: number; skin?: "parchment"
 
 ### `PopCard`
 his isolated cut-out shrunk into a corner (user 2026-10-29, the paper map): the face point `face` of the 1920×1080 frame moves to (cx, cy) and the frame scales to `scale` between `shrinkAt` and +0.6 s
@@ -220,7 +220,7 @@ a torn note for the key phrase: cream paper strip with ragged ends, the phrase i
 
 ### `WordScraps`
 a title made of torn paper scraps, one word per scrap (Arabic letters keep their joins), each arriving in stop-motion with its own tilt and stock
-`props:` at: number; until?: number; x: number; y: number; text: string; size?: number; gap?: number
+`props:` at: number; until?: number; x?: number; y?: number; text: string; size?: number; gap?: number
 
 ### `TornPhoto`
 a photo of the person or place in a torn white border with tape and a hand-written-style name strip

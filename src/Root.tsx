@@ -4,6 +4,7 @@ import { SHOW_ARCHIVE } from "./archive";
 import { ByRecency } from "./ByRecency";
 import { FamilyStickCast } from "./FamilyStickCast";
 import { DodoFamilyCast } from "./DodoFamilyCast";
+import { DeedsCounterDodo, DEEDS_FRAMES } from "./DeedsCounterDodo";
 import { JuhaStory15, JUHA_STORY_FRAMES } from "./JuhaStory15";
 import { KamliPoetKing, KAMLI_FRAMES } from "./KamliPoetKing";
 import { SakugaDemo, SpotDemo, TravelDemo, SAKUGA_DEMO_FRAMES, SPOT_DEMO_FRAMES, TRAVEL_DEMO_FRAMES, CollageDemo, CollageDemoL, COLLAGE_DEMO_FRAMES } from "./SourceMovesDemo";
@@ -67,6 +68,7 @@ export const RemotionRoot: React.FC = () => {
     <ByRecency>
       <Composition id="FamilyStickCast" component={FamilyStickCast} durationInFrames={180} fps={30} width={1080} height={1920} />
       <Composition id="DodoFamilyCast" component={DodoFamilyCast} durationInFrames={180} fps={30} width={1080} height={1920} />
+      <Composition id="DeedsCounterDodo" component={DeedsCounterDodo} durationInFrames={DEEDS_FRAMES} fps={30} width={1080} height={1920} />
 
 
       <Composition id="KamliPoetKing" component={KamliPoetKing} durationInFrames={KAMLI_FRAMES} fps={30} width={1080} height={1920} />

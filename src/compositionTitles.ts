@@ -51,4 +51,6 @@ export const COMPOSITION_TITLES: Record<string, string> = {
   "Duel2": "أي دين من عند الله",
   "ZaynabShrines": "مقامات السيدة زينب وحقيقتها",
   "ZaynabShrines-L": "مقامات السيدة زينب وحقيقتها (عرضي)",
+  "DeedsCounterDodo": "الحسنات والسيئات — عائلة دودو",
+  "ShouldersPrayer": "هل يجب تغطية الكتفين في الصلاة للرجال؟",
 };

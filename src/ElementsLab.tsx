@@ -16,6 +16,7 @@ import { BACKGROUNDS } from "./Backgrounds";
 import { TitleBar } from "./TitleBar";
 import { PaperCoverKit } from "./CoverKit";
 import { LandFootage, Curtain, TailVoice } from "./MontageSpec";
+import { realScene } from "./RealLab";
 import { NAME_CARDS } from "./NameCards";
 import LAB from "../data/elements_lab.json";
 import { BRAND, applyBrand } from "./brand";
@@ -149,7 +150,8 @@ export const labNode = (id: string) => E[id] ?? SPEC_E[id] ?? NAME_E[id];
 export const LabScene: React.FC<{ id: string; brand?: BrandName }> = ({ id, brand }) => {
   applyBrand(brand);
   useFonts();
-  const e = labNode(id);
+  const e = labNode(id), real = realScene(id, brand);
+  if (real) return <AbsoluteFill style={{ overflow: "hidden" }}>{real}</AbsoluteFill>;
   return (
     <MGTheme theme="steel">
       <AbsoluteFill style={{ overflow: "hidden" }}>
@@ -165,7 +167,8 @@ export const ElementsLab: React.FC = () => {
     <MGTheme theme="steel">
       <AbsoluteFill>
         {LAB.map((m, i) => {
-          const e = E[m.id] ?? SPEC_E[m.id] ?? NAME_E[m.id];
+          const e = E[m.id] ?? SPEC_E[m.id] ?? NAME_E[m.id], real = realScene(m.id);
+          if (real) return <Sequence key={m.id} from={i * LAB_LEN} durationInFrames={LAB_LEN} layout="none"><AbsoluteFill style={{ overflow: "hidden" }}>{real}</AbsoluteFill></Sequence>;
           return (
             <Sequence key={m.id} from={i * LAB_LEN} durationInFrames={LAB_LEN} layout="none">
               <AbsoluteFill style={{ overflow: "hidden" }}>

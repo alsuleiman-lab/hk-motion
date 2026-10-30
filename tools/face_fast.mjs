@@ -5,7 +5,7 @@
 //    LANDSCAPE.faceOrigin, split polaroid cards; portrait 608-px camera slice ×1920/1080 + push-in about 540,600)
 // 3) the composition is rendered ONCE with inputProps {gfxOnly:true}: only <Gfx> overlays on a transparent page, no video decoded
 // 4) overlap = share of the zone covered by drawn pixels (alpha); > thr (0.8 %) = FAIL. No second render, so no false alarm from a push-in
-//    or a video frame that differs between two renders. Skipped by design: the cover (first 51 frames), full-screen sources, the closing audio card.
+//    or a video frame that differs between two renders. Skipped by design: the cover (first 35 frames), full-screen sources, the closing audio card.
 import { cachedServeUrl, privateTemp } from "./lib/cached_bundle.mjs";
 import { writePass } from "./lib/pass_stamp.mjs";
 privateTemp("facefast");
@@ -99,7 +99,7 @@ const land = comp.width > comp.height, o = land ? "land" : "port";
 const fps = comp.fps;
 const skip = (fr) => {
   const t = fr / fps, cover = spec.items.find((i) => i.t === "cover" && (!i.only || i.only === o));
-  if (cover && fr < (["paper", "pro"].includes(cover.style ?? "paper") ? 51 : cover.frames ?? 3)) return "cover";
+  if (cover && fr < (["paper", "pro"].includes(cover.style ?? "paper") ? 35 : cover.frames ?? 3)) return "cover";
   if (spec.items.some((i) => i.t === "full" && (!i.only || i.only === o) && t >= i.from && t <= i.to)) return "full-screen source";
   if (!land && spec.items.some((i) => i.t === "verse" && (!i.only || i.only === o) && t >= i.times[0] - 1.2 && t <= (i.until ?? i.times[i.times.length - 1] + 1.2))) return "verse (his picture is hidden by design, full-screen opaque still)";
   if (spec.tail && t >= spec.tail.from) return "closing audio card";

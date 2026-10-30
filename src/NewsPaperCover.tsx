@@ -40,7 +40,7 @@ export const Newsprint: React.FC<{ w: number; h: number; seed?: number }> = ({ w
  * and the halves pull away over the recording (PaperTear, adapted from Motionstash «Paper Tear Wipe», MIT). `sheet` = what is torn (default plain newsprint;
  * the covers pass the whole cover); frames before `from` = one whole sheet (thumbnail, no seam). `order` and `n` belonged to the old strip tear and are ignored.
  */
-export const NewsTearOpen: React.FC<{ w: number; h: number; from?: number; to?: number; n?: number; order?: number[]; sheet?: React.ReactNode }> = ({ w, h, from = 3, to = 51, sheet }) =>
+export const NewsTearOpen: React.FC<{ w: number; h: number; from?: number; to?: number; n?: number; order?: number[]; sheet?: React.ReactNode }> = ({ w, h, from = 3, to = 35, sheet }) =>
   <PaperTear from={from} to={to} sheet={sheet ?? <Newsprint w={w} h={h} />} />;
 
 /** torn cream paper strip with dark ink text (the key phrase sits on paper, not on a grey print strip) */

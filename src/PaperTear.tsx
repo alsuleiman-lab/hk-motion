@@ -68,7 +68,7 @@ const rigidStyle = (r: Rigid, ex = 0, ey = 0): React.CSSProperties => ({
   transformOrigin: `${fx(r.Q.x)}px ${fx(r.Q.y)}px`,
 });
 
-export const PaperTear: React.FC<{ sheet: React.ReactNode; from?: number; to?: number; peak?: number; direction?: Dir; roughness?: number }> = ({ sheet, from = 3, to = 51, peak = 0.4, direction = "diagonal", roughness = 0.6 }) => {
+export const PaperTear: React.FC<{ sheet: React.ReactNode; from?: number; to?: number; peak?: number; direction?: Dir; roughness?: number }> = ({ sheet, from = 3, to = 35, peak = 0.4, direction = "diagonal", roughness = 0.6 }) => {
   const { width: w, height: h } = useVideoConfig();
   const uid = `ptw${React.useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const f = useCurrentFrame() - from, T = to - from;

@@ -143,7 +143,7 @@ export const ThumbWordP: React.FC = () => <ThumbPro format="portrait" layout="wo
  * frames 0–2 = the ThumbPro cover (the thumbnail); from frame 3 the cover itself is torn into paper strips that are pulled off
  * by NewsTearOpen (the whole cover rips in two and the halves pull away), revealing the video. Nothing from THUMBPRO_END on.
  */
-export const THUMBPRO_END = 51;
+export const THUMBPRO_END = 35;
 export const ThumbProOpen: React.FC<ThumbProps & { tearOrder?: number[] }> = ({ tearOrder, ...p }) => {
   const P = p.format === "portrait";
   return <NewsTearOpen w={P ? 1080 : 1920} h={P ? 1920 : 1080} to={THUMBPRO_END} order={tearOrder ?? (P ? [1, 2, 3, 0, 4] : [2, 3, 1, 4, 0])} sheet={<ThumbPro {...p} />} />;

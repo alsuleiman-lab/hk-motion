@@ -7,7 +7,7 @@ import { BRAND, alpha } from "./brand";
  * Each one = the brand base gradient + one pattern that drifts slowly + a soft vignette. Usage: <BgMashrabiya /> as the first layer of a scene.
  */
 const Base: React.FC<{ children?: React.ReactNode; glow?: string }> = ({ children, glow = "62% 24%" }) => (
-  <AbsoluteFill style={{ background: `linear-gradient(170deg,${BRAND.base2} 0%,${BRAND.base} 50%,${BRAND.base3} 100%)`, overflow: "hidden" }}>
+  <AbsoluteFill style={{ background: `linear-gradient(170deg,${BRAND.navy} 0%,${BRAND.navy} 50%,${BRAND.navyDeep} 100%)`, overflow: "hidden" }}>
     {children}
     <AbsoluteFill style={{ background: `radial-gradient(ellipse at ${glow}, ${alpha(BRAND.blue, .20)}, transparent 55%)` }} />
     <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 50%, transparent 55%, ${alpha(BRAND.base3, .85)} 100%)` }} />

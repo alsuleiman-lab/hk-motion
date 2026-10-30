@@ -9,7 +9,9 @@ import { Banner, Sources, StatRow, useFonts } from "./EuKit";
 import { MapRoute, Marker, PaperMap, Word } from "./PortraitKit";
 import { KeyChip, VerseWords, ReelVerseFull } from "./MGExtras";
 import { NameTag, Subscribe, Pic } from "./EuKit";
-import { PopCard, BAR_WARM, FullImage, PaperScene, WarmBase } from "./PortraitKit";
+import { PopCard, BAR_WARM, FullImage, PaperScene} from "./PortraitKit";
+import { KhBg } from "./KhKit";
+import { MaskedVideo } from "./MaskedVideo";
 import { BACKGROUNDS } from "./Backgrounds";
 import { TitleBar } from "./TitleBar";
 import { PaperCoverKit } from "./CoverKit";
@@ -75,8 +77,8 @@ const SPEC_E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   WordScraps: { node: <WordScraps at={0.1} text="كلام مهم من كلامه" /> },
   TornPhoto: { node: <TornPhoto at={0.1} x={740} y={150} w={440} h={600} src="people/ibn_uthaymeen.jpg" name="ابن عثيمين" /> },
   PaperGrain: { node: <><Page /><PaperGrain opacity={0.22} /></> },
-  BgFullImage: { node: <><div style={{ position: "absolute", left: 0, right: 0, bottom: 120, textAlign: "center", fontFamily: kufiF, fontSize: 46, color: BRAND.card, direction: "rtl", textShadow: "0 3px 10px rgba(0,0,0,.6)" }}>«…وقبّة هذا المسجد في القاهرة»</div><FullImage src="people/azharMosque.jpg" from={1} to={3} marker={{ x: 1180, y: 20, w: 560, h: 560, at: 1.5 }} /></> },
-  BgKh: { node: <WarmBase /> },
+  BgFullImage: { node: <><FullImage src="people/azharMosque.jpg" from={1} to={3} marker={{ x: 1180, y: 20, w: 560, h: 560, at: 1.5 }} /><MaskedVideo video="kit_sample_sheikh.mp4" matte="kit_sample_sheikh_matte.mp4" width={1920} height={1080} /><div style={{ position: "absolute", left: 0, right: 0, bottom: 120, textAlign: "center", fontFamily: kufiF, fontSize: 46, color: BRAND.card, direction: "rtl", textShadow: "0 3px 10px rgba(0,0,0,.6)" }}>«…وقبّة هذا المسجد في القاهرة»</div></> },
+  BgKh: { node: <KhBg a={BRAND.navy} b={BRAND.navy} c={BRAND.navyDeep} /> },
   BgPaperDark: { node: <PaperBg dark /> },
   BgMashrabiya: { node: React.createElement(BACKGROUNDS.BgMashrabiya) },
   TitleBar: { node: <TitleBar title="عنوان الحلقة في الشريط" theme={BAR_WARM} /> },

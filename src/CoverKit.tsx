@@ -95,7 +95,7 @@ export const KitP4: React.FC = () => <CoverKit format="portrait" palette={STEEL}
  * pull away over his recording (NewsTearOpen → PaperTear, user 2026-10-28). Renders nothing from frame PAPER_COVER_END on.
  * `tearOrder` belonged to the old strip tear and is ignored.
  */
-export const PAPER_COVER_END = 51;
+export const PAPER_COVER_END = 35;   // ×1.5 faster tear (user 2026-10-30): was 51
 export const PaperCoverKit: React.FC<CoverProps & { tearOrder?: number[] }> = ({ format, palette = STEEL, line1, line2, sheikh = "cov/sheikh_t268.png", opp = "cov/zayed.png", sheikhClip, book, bookPos, sheikhPos, oppPos, oppClip, bookBox, headBottom, headSize, headlinePos }) => {
   const frame = useCurrentFrame();
   const portrait = format === "portrait";

@@ -56,9 +56,9 @@ export type SpecItem = Common & (
   /** a scholar he quotes: polaroid with the name in the white band (empty side of his frame; portrait: below the beard) */
   | { t: "scholar"; src: string; name: string; sub?: string; at: number; until?: number; x?: number; y?: number; w?: number; h?: number; pos?: string }
   /** the cover drawn over everything at the start (skill thumbnail-design). DEFAULT style "paper" (user 2026-10-27) = PaperCoverKit: newsprint sheet, 3 still frames, then the
-   *  elements fly out and the sheet tears off in stop-motion until frame 51 (`tearOrder` overrides the face-first strip order). style "kit" = the old CoverKit for `frames` (default 3). `kitLand` overrides `kit` in landscape */
+   *  elements fly out and the sheet tears off in stop-motion until frame 35 (`tearOrder` overrides the face-first strip order). style "kit" = the old CoverKit for `frames` (default 3). `kitLand` overrides `kit` in landscape */
   | { t: "cover"; style?: "paper" | "kit"; tearOrder?: number[]; frames?: number; palette?: keyof typeof COVER_PALETTES; kit: Omit<CoverProps, "format" | "palette">; kitLand?: Partial<Omit<CoverProps, "format" | "palette">> }
-  /** style "pro" (user 2026-10-28) = ThumbPro cover (duel / word / evidence, skill thumbnail-design) for frames 0–2, then the cover itself tears into paper strips (stop-motion) until frame 51; `proLand` overrides `pro` in landscape */
+  /** style "pro" (user 2026-10-28) = ThumbPro cover (duel / word / evidence, skill thumbnail-design) for frames 0–2, then the cover itself tears into paper strips (stop-motion) until frame 35; `proLand` overrides `pro` in landscape */
   | { t: "cover"; style: "pro"; tearOrder?: number[]; pro: Omit<ThumbProps, "format">; proLand?: Partial<Omit<ThumbProps, "format">> }
   /** family tree on a paper card (user 2026-10-29): landscape = left half of a split screen (his frame slides right through `shifts`), portrait = card under the beard; node/link positions are relative (0..1) */
   | { t: "tree"; from: number; to: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number; nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number }
@@ -214,6 +214,8 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
 };
 
 
+/** push-in easing: smoothstep, no constant-speed ramp (user 2026-10-30: «فيه رجفة») */
+const ease = (x: number) => x * x * (3 - 2 * x);
 type Split = NonNullable<MontageSpec["splits"]>[number];
 const CARD_BORDER = 14, CARD_STRIP = 56, CARD_H = 800;
 /** one polaroid card showing the source-pixel column [x, x+w) of the cut at height CARD_H */
@@ -230,7 +232,7 @@ const CropPolaroid: React.FC<{ cut: string; x: number; w: number; name: string; 
 };
 /** landscape: only his slice of a baked-split recording, centred on the decorated base (the clip beside him is never shown) */
 const SoloLand: React.FC<{ cut: string; sp: NonNullable<MontageSpec["solos"]>[number]; zooms?: MontageSpec["zooms"] }> = ({ cut, sp, zooms = [] }) => {
-  const t = useT(0), zz = zooms.find((q) => t >= q.from - 0.01 && t <= q.to + 0.5), zm = zz ? 1 + (zz.amt ?? 0.08) * Math.min(clamp((t - zz.from) / 0.35), clamp((zz.to + 0.5 - t) / 0.45)) : 1, s = sp.scale ?? 1, w = sp.sheikh.w * s, h = LANDSCAPE.H * s, centered = (sp.center ?? []).some((c) => t >= c.from && t < c.to);
+  const t = useT(0), zz = zooms.find((q) => t >= q.from - 0.01 && t <= q.to + 0.5), zm = zz ? 1 + (zz.amt ?? 0.08) * ease(Math.min(clamp((t - zz.from) / 0.6), clamp((zz.to + 0.5 - t) / 0.7))) : 1, s = sp.scale ?? 1, w = sp.sheikh.w * s, h = LANDSCAPE.H * s, centered = (sp.center ?? []).some((c) => t >= c.from && t < c.to);
   return (
     <Only from={sp.from} to={sp.to}>
       <AbsoluteFill>
@@ -314,7 +316,7 @@ export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: nu
   const sp = splits.find((x) => t >= x.from && t < x.to);
   if (sp) { const L = DEBATE_LAYOUTS[sp.layout ?? "blocks"]; return <L at={sp.from} main={{ src: cut, x: sp.sheikh.x, w: sp.sheikh.w }} guest={{ src: cut, x: sp.clip.x, w: sp.clip.w, blur: sp.blur }} guestName={sp.clipName} url={sp.clipUrl} />; }
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 0.5);
-  const z = zz ? 1 + (zz.amt ?? 0.08) * Math.min(clamp((t - zz.from) / 0.35), clamp((zz.to + 0.5 - t) / 0.45)) : 1;
+  const z = zz ? 1 + (zz.amt ?? 0.08) * ease(Math.min(clamp((t - zz.from) / 0.6), clamp((zz.to + 0.5 - t) / 0.7))) : 1;
   return (
     <AbsoluteFill style={{ background: BRAND.base, transform: `translateX(${dx}px) scale(${z})`, transformOrigin: LANDSCAPE.faceOrigin }}>
       <RV src={staticFile(cut)} style={{ position: "absolute", left: 0, top: 0, width: LANDSCAPE.W, height: LANDSCAPE.H }} />
@@ -327,7 +329,7 @@ const MaskedSheikh: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matt
   const t = from + useCurrentFrame() / 30;     // inside a Sequence that starts at `from`
   const vStart = Math.round(from * 30), mStart = (matte.startFrom ?? 0) + Math.round((from - (matte.start ?? 0)) * 30);
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 0.5);
-  const z = zz ? 1 + (zz.amt ?? 0.08) * Math.min(clamp((t - zz.from) / 0.35), clamp((zz.to + 0.5 - t) / 0.45)) : 1;
+  const z = zz ? 1 + (zz.amt ?? 0.08) * ease(Math.min(clamp((t - zz.from) / 0.6), clamp((zz.to + 0.5 - t) / 0.7))) : 1;
   if (o === "land") return (
     <AbsoluteFill style={{ transform: `translateX(${dx}px) scale(${z})`, transformOrigin: LANDSCAPE.faceOrigin }}>
       <MaskedVideo video={cut} matte={matte.src} videoStartFrom={vStart} matteStartFrom={mStart} width={LANDSCAPE.W} height={LANDSCAPE.H} />
@@ -376,7 +378,7 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
       {o === "port" || !spec.cut ? <WarmBase /> : null}
       <Sequence from={0} durationInFrames={spec.tail ? Math.round(spec.tail.from * 30) : spec.frames}>{(() => { const b2 = o === "port" && spec.psplits?.length ? <PortSplit windows={spec.psplits}>{body}</PortSplit> : body; return spec.shake?.length ? <HandheldShake windows={spec.shake} amp={6} rot={0.4}>{b2}</HandheldShake> : b2; })()}</Sequence>
       {o === "port" && spec.psplits?.length ? <PortPanel windows={spec.psplits} /> : null}
-      {o === "port" ? (spec.splits ?? []).map((sp, i) => spec.cut ? <PortraitClipCard key={i} cut={spec.cut} sp={cover && cover.style !== "kit" ? { ...sp, from: Math.max(sp.from, 51 / 30) } : sp} /> : null) : null}
+      {o === "port" ? (spec.splits ?? []).map((sp, i) => spec.cut ? <PortraitClipCard key={i} cut={spec.cut} sp={cover && cover.style !== "kit" ? { ...sp, from: Math.max(sp.from, 35 / 30) } : sp} /> : null) : null}
       {o === "land" ? (spec.splits ?? []).map((sp, i) => <Curtain key={i} at={sp.to} />) : null}
       {o === "land" && spec.cut ? (spec.solos ?? []).map((sp, i) => <SoloLand key={"so" + i} cut={spec.cut!} sp={sp} zooms={spec.zooms} />) : null}
       {o === "land" ? (spec.solos ?? []).flatMap((sp, i) => [<Curtain key={"ca" + i} at={sp.from} />, <Curtain key={"cb" + i} at={sp.to} />, ...(sp.center ?? []).flatMap((c, j) => [<Curtain key={"cc" + i + j} at={c.from} />, <Curtain key={"cd" + i + j} at={c.to} />])]) : null}

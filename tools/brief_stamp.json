@@ -1,9 +1,9 @@
 {
- "stamped": "2026-10-29T23:17:45.734Z",
- "brief": "c9f67cb9b1bc7918a50eb2fe3e8c61ce407d3768",
+ "stamped": "2026-10-30T09:13:08.977Z",
+ "brief": "1702a9da2098d8b8464de4b43e4584a0acb27c49",
  "sources": {
-  "PREFERENCES.md": "59a32af5b1a888303939e08432e340b8df10716c",
-  "WORKFLOW_CHECKLIST.md": "849c8c05a1fe565141893721caf5a956ae0ad583",
+  "PREFERENCES.md": "c1bba2f51c0edcdde4de23f31beb93413c2f148e",
+  "WORKFLOW_CHECKLIST.md": "0e2213d70b66f6f8d7c4f82312f7377529eb1753",
   ".claude/skills/video-montage/critical-rules.md": "9d58987777ff8eb675e911ddb799d555f550dd31",
   ".claude/skills/video-montage/SKILL.md": "2cf799faba5fda46328118c8ead59d9c11860b95"
  }

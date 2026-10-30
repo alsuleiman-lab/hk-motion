@@ -238,7 +238,11 @@ let lastW = 0;
 new ResizeObserver(() => { const w = $("stage").clientWidth; if (w && w !== lastW) { lastW = w; render(); } }).observe($("stage"));
 
 $("save").onclick = async () => {
-  if (!db) { $("status").textContent = "الحفظ غير متاح هنا: انسخ الكود من اللوحة"; return; }
+  if (!db) {   // served by tools/gallery_serve.mjs: saved to data/gallery_grid_saved.json
+    try { const r = await fetch("/api/grid", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ grids: JSON.stringify(grids), notes: JSON.stringify(notes) }) }); if (!r.ok) throw new Error(); dirty = false; $("status").textContent = "حُفظ في data/gallery_grid_saved.json"; $("status").className = "status"; }
+    catch { $("status").textContent = "الحفظ غير متاح هنا: انسخ الكود من اللوحة"; }
+    return;
+  }
   $("status").textContent = "يحفظ…";
   try { await db.doc("grids/current").set({ grids: JSON.stringify(grids), notes: JSON.stringify(notes), savedAt: new Date().toISOString(), base: DATA.builtAt }); dirty = false; $("status").textContent = "حُفظ. أطبّقه في الكود عند طلبك"; $("status").className = "status"; }
   catch (err) { $("status").textContent = "لم يُحفظ: " + (err?.message ?? err); }
@@ -247,7 +251,10 @@ $("save").onclick = async () => {
 render();
 (async () => {
   db = await window.claude?.use?.("db").catch(() => null) ?? null;
-  if (!db) return;
+  if (!db) {
+    try { const r = await fetch("/api/grid"); if (r.ok) { const d = await r.json(); if (d.grids && !dirty) { grids = JSON.parse(d.grids); notes = JSON.parse(d.notes || "{}"); $("status").textContent = "آخر نسخة محفوظة محلياً"; render(); } } } catch {}
+    return;
+  }
   try {
     const snap = await db.doc("grids/current").get();
     if (snap.exists && !dirty) { const d = snap.data(); if (d.base === DATA.builtAt || d.savedAt > DATA.builtAt) { grids = JSON.parse(d.grids); notes = JSON.parse(d.notes || "{}"); $("status").textContent = "آخر نسخة محفوظة (" + new Date(d.savedAt).toLocaleString("ar") + ")"; render(); } }

@@ -3,7 +3,6 @@ import { Composition, Folder } from "remotion";
 import { SHOW_ARCHIVE } from "./archive";
 import { ByRecency } from "./ByRecency";
 import { FamilyStickCast } from "./FamilyStickCast";
-import { AbuKhattEid, EID_FRAMES } from "./AbuKhattEid";
 import { DodoFamilyCast } from "./DodoFamilyCast";
 import { JuhaStory15, JUHA_STORY_FRAMES } from "./JuhaStory15";
 import { KamliPoetKing, KAMLI_FRAMES } from "./KamliPoetKing";
@@ -46,8 +45,6 @@ import type { MontageSpec } from "./MontageSpec";
 import demoSpec from "../data/specs/demo.json";
 import { BidahCartoon, BIDAH_TOTAL_FRAMES, BIDAH_FPS } from "./BidahCartoon";
 const SpecDemo: React.FC = () => <MontageFromSpec spec={demoSpec as unknown as MontageSpec} />;
-import jordanSpec from "../data/specs/JordanInterior.json";
-const JordanInteriorVideo: React.FC = () => <MontageFromSpec spec={jordanSpec as unknown as MontageSpec} />;
 import zaynabSpec from "../data/specs/zaynab_shrine.json";
 const ZaynabShrineVideo: React.FC = () => <MontageFromSpec spec={zaynabSpec as unknown as MontageSpec} />;
 import zaynabShrinesSpec from "../data/specs/zaynab_shrines.json";
@@ -68,7 +65,6 @@ import { Clip5TaslamPortrait, CLIP5_FRAMES, CLIP5_FPS } from "./Clip5TaslamPortr
 export const RemotionRoot: React.FC = () => {
   return (
     <ByRecency>
-      <Composition id="AbuKhattEid" component={AbuKhattEid} durationInFrames={EID_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="FamilyStickCast" component={FamilyStickCast} durationInFrames={180} fps={30} width={1080} height={1920} />
       <Composition id="DodoFamilyCast" component={DodoFamilyCast} durationInFrames={180} fps={30} width={1080} height={1920} />
 
@@ -85,8 +81,6 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="BidahCartoon" component={BidahCartoon} durationInFrames={BIDAH_TOTAL_FRAMES} fps={BIDAH_FPS} width={1080} height={1920} />
       <Composition id="Spec-Demo" component={SpecDemo} durationInFrames={demoSpec.frames} fps={30} width={1080} height={1920} />
       <Composition id="Spec-Demo-L" component={SpecDemo} durationInFrames={demoSpec.frames} fps={30} width={1920} height={1080} />
-      <Composition id="JordanInterior" component={JordanInteriorVideo} durationInFrames={jordanSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="JordanInterior-L" component={JordanInteriorVideo} durationInFrames={jordanSpec.frames} fps={30} width={1920} height={1080} />
       <Composition id="ZaynabShrine" component={ZaynabShrineVideo} durationInFrames={zaynabSpec.frames} fps={30} width={1080} height={1920} />
       <Composition id="ZaynabShrine-L" component={ZaynabShrineVideo} durationInFrames={zaynabSpec.frames} fps={30} width={1920} height={1080} />
       <Composition id="ZaynabShrines" component={ZaynabShrinesVideo} durationInFrames={zaynabShrinesSpec.frames} fps={30} width={1080} height={1920} />

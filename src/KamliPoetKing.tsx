@@ -4,13 +4,45 @@ import { CARTOON_PALETTE as B } from './cartoon/palette';
 import { FONT_TITLE } from './localFonts';
 import {CartoonGfx as Gfx, AmountCard} from './cartoon/StoryCards';
 import { CartoonCaptions } from './cartoon/CartoonCaptions';
-import { PaperActor, PaperDefs, PalaceSet, Throne, LedgerDesk, OfficeChair, ContactPalm, elbow, handAngle, smooth, unit, type Point, type Pose, type PaperRole } from './cartoon/PalacePaper';
+import { PaperDefs, PalaceSet, Throne, LedgerDesk, OfficeChair, smooth, unit } from './cartoon/PalacePaper';
+import {cast as dodoCast,characterMarkup,poseAt,type Motion,type Expression,type V,type SpeechInterval} from '../cartoon_projects/dodo_family/rig';
 import plan from '../data/cartoon/kamli_poet_king_storyboard.json';
 import words from '../data/cartoon/kamli_poet_king_words.json';
 
 export const KAMLI_FRAMES = 1569;
 const DIR='kamli_poet_king/';
-const contactAngle=(wrist:Point)=>handAngle(elbow([-75,-431],wrist,104,112,1),wrist);
+const STORY_SCALE=1.25;
+type StoryRole='king'|'poet'|'minister';
+type StoryPose='rest'|'praise'|'joy'|'order'|'ask'|'explain'|'complain'|'yes'|'deny';
+type ActorProps={role:StoryRole;x:number;y:number;scale:number;pose?:StoryPose;speech?:number;progress?:number;scroll?:boolean;scrollOpen?:number;flip?:boolean;seated?:boolean;leftHand?:[number,number];rightHand?:[number,number];headTilt?:number;walk?:number;stride?:number};
+const dodoById=(id:string)=>dodoCast.find(c=>c.id===id)!;
+const MINISTER={...dodoById('uncle'),id:'minister',name:'الوزير',cloth:'#9babc0',description:'وزير بأسلوب دودو'};
+const storyCast:Record<StoryRole,typeof dodoCast[number]>={king:dodoById('father'),poet:dodoById('uncle'),minister:MINISTER};
+const motionFor=(p:StoryPose):Motion=>({rest:'idle',praise:'explain',joy:'wave',order:'point',ask:'listen',explain:'explain',complain:'angry',yes:'talk',deny:'angry'}[p] as Motion);
+const armTo=(pose:ReturnType<typeof poseAt>,j:number,target:V)=>{
+  const a=pose.shoulders[j],dx=target.x-a.x,dy=target.y-a.y,raw=Math.hypot(dx,dy),d=Math.max(.2,Math.min(145.9,raw)),ux=dx/(raw||1),uy=dy/(raw||1),along=d/2,h=Math.sqrt(Math.max(0,73*73-along*along)),bend=j===0?-1:1;
+  pose.wrists[j]={x:a.x+ux*d,y:a.y+uy*d};pose.elbows[j]={x:a.x+ux*along-uy*h*bend,y:a.y+uy*along+ux*h*bend};
+};
+const DodoActor:React.FC<ActorProps>=({role,x,y,scale,pose='rest',speech=0,progress=0,scroll=false,scrollOpen=0,flip=false,seated=false,leftHand,rightHand,headTilt=0,walk=0,stride=28})=>{
+  const t=useCurrentFrame()/30,c=storyCast[role],beat=plan.beats.find(b=>t>=b.from&&t<b.to),intervals:SpeechInterval[]=beat?.speaker===role?words.filter(w=>w.s>=beat.from&&w.s<beat.to).map(w=>({from:w.s,to:w.e})):[],motion:Motion=seated?'sit':walk?'walk':pose==='ask'&&intervals.length?'talk':motionFor(pose);
+  const p=poseAt(t,motion,intervals);p.rootX=0;
+  if(pose==='joy'){
+    const bounce=Math.max(0,Math.sin(progress*Math.PI*4));p.dy=-10*bounce;p.angle=headTilt+4*Math.sin(progress*Math.PI*4);
+    armTo(p,0,{x:-116,y:-302});armTo(p,1,{x:116,y:-302});
+  }else if(headTilt)p.angle=headTilt;
+  const custom=(j:number,h?:[number,number])=>{if(!h)return;const factor=c.height;armTo(p,j,{x:h[0]/factor,y:h[1]/factor});};
+  if(pose!=='joy'){custom(0,leftHand);custom(1,rightHand);}
+  const isSpeaking=beat?.speaker===role&&intervals.some(w=>t>=w.from&&t<w.to),current=intervals.find(w=>t>=w.from&&t<w.to),mouth=isSpeaking?Math.min(1,.28+.72*Math.abs(Math.sin((t-(current?.from??t))*15))):undefined;
+  const html=characterMarkup(c,t,motion,{flip,pose:p,expression:(pose==='complain'||pose==='deny')?'angry':pose==='ask'?'curious':pose==='joy'?'happy':'smile',mouthOpen:mouth,openHands:pose==='joy',showSeat:false,speech:intervals,look:role==='king'?{x:-3,y:1}:role==='poet'?{x:3,y:1}:{x:0,y:1},idPrefix:`kamli-${role}`});
+  const crown=role==='king'?<path d="M-50 -352L-43 -390L-17 -369L0 -403L20 -368L45 -390L51 -352Z" fill={B.goldLight} stroke={B.ink} strokeWidth="7"/>:null;
+  const cape=role==='king'?<path d="M-52 -199Q0 -222 52 -199L78 -25Q0 10 -78 -25Z" fill={B.woodDeep} stroke={B.ink} strokeWidth="7" opacity=".9"/>:null;
+  const scrollMark=role==='poet'&&scroll?<g transform={`translate(94 -172) rotate(-12)`} opacity={.45+.55*scrollOpen}><rect x="-17" y="-51" width="34" height="103" rx="15" fill={B.card} stroke={B.ink} strokeWidth="5"/><path d="M-8-22H8M-8-5H8M-8 12H8" stroke={B.wood} strokeWidth="3"/></g>:null;
+  return <g transform={`translate(${x} ${y}) scale(${STORY_SCALE})`} data-dodo-role={role} data-talking={isSpeaking?'true':'false'}>
+    {cape}
+    <g dangerouslySetInnerHTML={{__html:html}}/>
+    {crown}{scrollMark}
+  </g>;
+};
 
 // One restrained hand accent at spaced phrase onsets; never a per-syllable twitch.
 export function voicePulse(t:number, from:number, to:number):number {
@@ -31,8 +63,8 @@ const Shot:React.FC<{index:number;t:number}> = ({index,t}) => {
   const pulse=voicePulse(t,index===2?6.453:beat.from,beat.to);
   const speak=(role:string)=>beat.speaker===role?pulse:0;
   const kind=(beat.environment==='office'?'office':beat.environment==='corridor'?'corridor':'palace') as 'office'|'corridor'|'palace';
-  const actor=(role:PaperRole,x:number,y:number,scale:number,pose:Pose='rest',extra:Partial<React.ComponentProps<typeof PaperActor>>={})=><PaperActor role={role} x={x} y={y} scale={scale} pose={pose} speech={speak(role)} progress={progress} scroll={role==='poet'&&index>0} scrollOpen={0} {...extra}/>;
-  const king=(x=715,sc=1.18,pose:Pose='rest',extra:Partial<React.ComponentProps<typeof PaperActor>>={})=><><Throne x={x} y={1510} scale={sc}/>{actor('king',x,1510,sc,pose,{flip:true,seated:true,...extra})}</>;
+  const actor=(role:StoryRole,x:number,y:number,scale:number,pose:StoryPose='rest',extra:Partial<ActorProps>={})=><DodoActor role={role} x={x} y={y} scale={scale} pose={pose} speech={speak(role)} progress={progress} scroll={role==='poet'&&index>0} scrollOpen={0} {...extra}/>;
+  const king=(x=715,_sc=1.18,pose:StoryPose='rest',extra:Partial<ActorProps>={})=><><Throne x={x} y={1510} scale={STORY_SCALE}/>{actor('king',x,1420,STORY_SCALE,pose,{flip:true,seated:true,...extra})}</>;
   let people:React.ReactNode;
   switch(index){
     case 0: {
@@ -43,14 +75,14 @@ const Shot:React.FC<{index:number;t:number}> = ({index,t}) => {
       const open=unit(local/.85);
       people=<>{king(790,1.04)}{actor('poet',350,1670,1.42,'praise',{scroll:true,scrollOpen:open,leftHand:[125-133*smooth(open),-388],headTilt:8*smooth(local/.5)})}</>;break;
     }
-    case 2:people=<>{actor('minister',210,1650,.98,'rest')}{king(680,1.4,'order',{headTilt:7*smooth(local/.5)})}</>;break;
+    case 2:people=<>{actor('minister',210,1650,1.2,'rest')}{king(680,1.4,'order',{headTilt:7*smooth(local/.5)})}</>;break;
     case 3:{
       const open=1-smooth((local-.25)/.7),release=smooth((local-1)/.4);
       const lead=111-133*smooth(open);
       people=<>{actor('poet',520,1680,1.72,'joy',{progress:unit(local/duration),scroll:true,scrollOpen:open,rightHand:[125,-305],leftHand:[lead+(-157-lead)*release,-313-122*release],headTilt:11*(1-smooth((local-.5)/.7))})}</>;break;
     }
     case 4:people=<>{actor('poet',240,1710,1.06,'rest',{progress:.8})}{king(710,1.3,'ask')}</>;break;
-    case 5:people=<>{actor('minister',210,1680,.95)}{king(700,1.45,'order')}</>;break;
+    case 5:people=<>{actor('minister',210,1680,1.2)}{king(700,1.45,'order')}</>;break;
     case 6:people=<>{actor('poet',540,1665,1.63,'joy',{progress:unit(local/duration)})}</>;break;
     case 7:people=<>{actor('poet',265,1720,1.12,'rest',{flip:true,progress:.8})}{king(740,1.2,'ask')}</>;break;
     case 8:people=king(600,1.55,'order');break;
@@ -59,18 +91,18 @@ const Shot:React.FC<{index:number;t:number}> = ({index,t}) => {
       people=actor('poet',x,1640,1.3,'rest',{walk:(x-230)/134,stride:33});break;
     }
     case 10:{
-      const hand:[number,number]=[(800-875)/1.05,(1143-1500)/1.05];
-      people=<><OfficeChair x={800} y={1500} scale={1.05}/>{actor('minister',800,1500,1.05,'rest',{flip:true,seated:true,leftHand:hand})}{actor('poet',310,1700,1.37,'ask')}<LedgerDesk/><ContactPalm x={800} y={1500} scale={1.05} at={hand} angle={contactAngle(hand)}/></>;break;
+      const hand:[number,number]=[-48,-125];
+      people=<><OfficeChair x={800} y={1500} scale={STORY_SCALE}/>{actor('minister',800,1361,STORY_SCALE,'rest',{flip:true,seated:true,leftHand:hand})}{actor('poet',310,1700,STORY_SCALE,'ask')}<LedgerDesk/></>;break;
     }
     case 11:{
-      const hand:[number,number]=[(745-875)/1.47,(1143-1535)/1.47];
-      people=<><OfficeChair x={745} y={1535} scale={1.47}/>{actor('minister',745,1535,1.47,'ask',{flip:true,seated:true,leftHand:hand})}<LedgerDesk/><ContactPalm x={745} y={1535} scale={1.47} at={hand} angle={contactAngle(hand)}/></>;break;
+      const hand:[number,number]=[(745-875)/STORY_SCALE,(1143-1311)/STORY_SCALE];
+      people=<><OfficeChair x={745} y={1450} scale={STORY_SCALE}/>{actor('minister',745,1311,STORY_SCALE,'ask',{flip:true,seated:true,leftHand:hand})}<LedgerDesk/></>;break;
     }
     case 12:people=<>{actor('poet',385,1690,1.55,'explain')}<LedgerDesk/></>;break;
     case 13:{
       const close=smooth(local/.6), angle=close*Math.PI;
-      const hand:[number,number]=[(745-(765+110*Math.cos(angle)))/1.47,((1143-60*Math.sin(angle))-1535)/1.47];
-      people=<><OfficeChair x={745} y={1535} scale={1.47}/>{actor('minister',745,1535,1.47,'deny',{flip:true,seated:true,leftHand:hand})}<LedgerDesk closed={close}/><ContactPalm x={745} y={1535} scale={1.47} at={hand} angle={contactAngle(hand)}/></>;break;
+      const hand:[number,number]=[(745-(765+110*Math.cos(angle)))/STORY_SCALE,((1143-60*Math.sin(angle))-1311)/STORY_SCALE];
+      people=<><OfficeChair x={745} y={1450} scale={STORY_SCALE}/>{actor('minister',745,1311,STORY_SCALE,'deny',{flip:true,seated:true,leftHand:hand})}<LedgerDesk closed={close}/></>;break;
     }
     case 14: {
       const u=smooth(local/duration), x=820-480*u;
@@ -107,16 +139,13 @@ const Shot:React.FC<{index:number;t:number}> = ({index,t}) => {
 
 const Opening:React.FC<{f:number}> = ({f}) => {
   if(f>=53)return null;
-  const q=Math.floor(f/3)*3;
-  return <>
-    {Array.from({length:5},(_,i)=>{
-      const order=[1,0,2,4,3].indexOf(i), u=smooth((q-3-order*4)/25), exit=(i%2?-1:1)*1280*u;
-      return <div key={i} style={{position:'absolute',inset:0,transform:`translate(${exit}px,${-200*u}px) rotate(${(i-2)*u*5}deg)`,clipPath:`polygon(${i*20}% 0, ${(i+1)*20}% 0, ${(i+1)*20}% 100%, ${i*20}% 100%)`,filter:`drop-shadow(7px 12px 7px ${B.ink}66)`}}>
-        <Img src={staticFile(DIR+'cover_colour_v1.svg')} style={{width:1080,height:1920}}/>
-        <Img src={staticFile(DIR+'saeed_kamli_commons_v1.jpg')} style={{position:'absolute',left:0,top:235,width:1080,height:607.5,objectFit:'contain'}}/>
-      </div>;
-    })}
-  </>;
+  const q=Math.floor(f/3)*3,u=smooth((q-3)/25);
+  return <svg width="1080" height="1920" viewBox="0 0 1080 1920" style={{position:'absolute',inset:0}}>
+    <PaperDefs/><PalaceSet kind="palace" side={-1}/><Throne x={790} y={1510} scale={STORY_SCALE}/>
+    <DodoActor role="king" x={790} y={1420} scale={STORY_SCALE} pose="ask" flip seated/>
+    <DodoActor role="poet" x={180+150*u} y={1660} scale={STORY_SCALE} pose="rest" scroll scrollOpen={u}/>
+    <path d="M0 1780H1080" stroke={B.woodDeep} strokeWidth="8" opacity=".28"/>
+  </svg>;
 };
 
 export const KamliPoetKing:React.FC = () => {
@@ -131,7 +160,6 @@ export const KamliPoetKing:React.FC = () => {
       <AmountCard at={16.4} until={17.6} amount="٥٠٬٠٠٠"/>
       <AmountCard at={24.373} until={25.053} amount="١٠٠٬٠٠٠"/>
       <Opening f={f}/>
-      {f<53&&<div style={{position:'absolute',left:300,top:1430-1600*smooth((f-3)/35),width:480,padding:'10px 20px 18px',borderRadius:12,background:B.card,color:B.ink,fontFamily:FONT_TITLE(),fontSize:52,fontWeight:800,textAlign:'center'}}>سعيد الكملي</div>}
       <CartoonCaptions />
     </Gfx>
   </AbsoluteFill>;

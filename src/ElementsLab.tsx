@@ -24,7 +24,7 @@ import type { BrandName } from "./brand";
 import { BrowserFrame, VideoFrame, PostCard, CommentCard, BookPage, CitationTag, ArticleMock } from "./SourceFrames";
 import { NewsClip, TornNote, WordScraps, TornPhoto, PaperGrain } from "./PaperKit";
 import { DebateDossier, DebateBlocks } from "./DebateLayouts";
-import { GALLERY_CUT } from "./galleryCut";
+import { GALLERY_CUT, GALLERY_MATTE } from "./galleryCut";
 
 /**
  * ElementsLab — every kit element drawn ALONE on a calm backdrop, one 3-second Sequence each (user 2026-10-27: «العناصر مرسومة ومعها اسمها وأين توضع»).
@@ -47,11 +47,13 @@ const Rec: React.FC<{ style?: React.CSSProperties }> = ({ style }) => (
 const Stage: React.FC<{ id: string; children: React.ReactNode }> = ({ children }) => (
   <><AbsoluteFill style={{ background: BRAND.base }}><Rec /></AbsoluteFill>{children}</>
 );
+/** the stars background in the dark paper colour of the palette, read at render time so it follows the colour pattern (user 2026-10-30: «ألوانها تتغير مع النمط اللوني») */
+const BgKhLive: React.FC<{ brand?: BrandName }> = () => <KhBg a={BRAND.navy} b={BRAND.navy} c={BRAND.navyDeep} />;
 /** the montage engine's own pieces (src/MontageSpec.tsx), shown alone like the rest (user 2026-10-27: «استخدمت أموراً من خارجها، أضفها لأراها هنا») */
 const SPLIT = { from: 0, to: 99, clip: { x: 140, w: 632 }, sheikh: { x: 772, w: 1148 }, clipName: "اسم المقطع المعروض" };
 const SPEC_E: Record<string, { node: React.ReactNode; light?: boolean }> = {
-  VerseWords: { node: <VerseWords words={["مُّحَمَّدٌۭ", "رَّسُولُ", "ٱللَّهِ"]} times={[0.4, 0.9, 1.3]} x={560} y={300} w={800} size={64} title="سُورَةُ الفَتۡحِ" refText="الآية 29" until={2.7} /> },
-  ReelVerseFull: { node: <div style={{ position: "absolute", left: 656, top: 0, width: 1080, height: 1920, transform: "scale(0.5625)", transformOrigin: "top left", overflow: "hidden" }}><ReelVerseFull to={2.8} refName="سُورَةُ الفَتۡحِ — الآية 29" lines={[{ words: ["مُّحَمَّدٌۭ", "رَّسُولُ", "ٱللَّهِ"], times: [0.4, 0.9, 1.3] }]} /></div> },
+  VerseWords: { node: <VerseWords words={["مُّحَمَّدٌ", "رَّسُولُ", "ٱللَّهِ"]} times={[0.4, 0.9, 1.3]} x={560} y={300} w={800} size={64} title="سُورَةُ الفَتۡحِ" refText="الآية 29" until={2.7} /> },
+  ReelVerseFull: { node: <div style={{ position: "absolute", left: 656, top: 0, width: 1080, height: 1920, transform: "scale(0.5625)", transformOrigin: "top left", overflow: "hidden" }}><ReelVerseFull to={2.8} refName="سُورَةُ الفَتۡحِ — الآية 29" lines={[{ words: ["مُّحَمَّدٌ", "رَّسُولُ", "ٱللَّهِ"], times: [0.4, 0.9, 1.3] }]} /></div> },
   PaperScene: { node: <PaperScene at={0.1} until={2.9} x={460} y={200} w={1000} h={640} pieces={[{ src: "collage/car.png", at: 0.3, x: 60, y: 160, w: 300, rot: -3, from: "left" }, { src: "collage/robe.png", at: 0.9, x: 380, y: 120, w: 260, rot: 2, from: "top" }, { src: "collage/ant.png", at: 1.5, x: 700, y: 220, w: 240, rot: -2, from: "right" }]} /> },
   BrowserFrame: { node: <BrowserFrame at={0.1} x={520} y={70} w={880} h={940} url="www.azhar.eg/news/article-2026" site="الأزهر" scroll={260} until={9}><ArticleMock w={880} img="people/azharMosque.jpg" title="عنوان الخبر كما في الموقع" /></BrowserFrame> },
   VideoFrame: { node: <VideoFrame at={0.1} x={700} y={110} w={600} h={860} src="gallery_opp_clip.mp4" channel="المقطع المردود عليه" title="مقطع من البث" until={9} /> },
@@ -64,8 +66,8 @@ const SPEC_E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   WordScraps: { node: <WordScraps at={0.1} text="كلام مهم من كلامه" /> },
   TornPhoto: { node: <TornPhoto at={0.1} x={740} y={150} w={440} h={600} src="people/ibn_uthaymeen.jpg" name="ابن عثيمين" /> },
   PaperGrain: { node: <><Page /><PaperGrain opacity={0.22} /></> },
-  BgFullImage: { node: <><FullImage src="people/azharMosque.jpg" from={1} to={3} marker={{ x: 1180, y: 20, w: 560, h: 560, at: 1.5 }} /><MaskedVideo video="kit_sample_sheikh.mp4" matte="kit_sample_sheikh_matte.mp4" width={1920} height={1080} /><div style={{ position: "absolute", left: 0, right: 0, bottom: 120, textAlign: "center", fontFamily: kufiF, fontSize: 46, color: BRAND.card, direction: "rtl", textShadow: "0 3px 10px rgba(0,0,0,.6)" }}>«…وقبّة هذا المسجد في القاهرة»</div></> },
-  BgKh: { node: <KhBg a={BRAND.navy} b={BRAND.navy} c={BRAND.navyDeep} /> },
+  BgFullImage: { node: <><FullImage src="people/azharMosque.jpg" from={1} to={3} marker={{ x: 1180, y: 20, w: 560, h: 560, at: 1.5 }} /><MaskedVideo video={GALLERY_CUT} matte={GALLERY_MATTE} width={1920} height={1080} /><div style={{ position: "absolute", left: 0, right: 0, bottom: 120, textAlign: "center", fontFamily: kufiF, fontSize: 46, color: BRAND.card, direction: "rtl", textShadow: "0 3px 10px rgba(0,0,0,.6)" }}>«…وقبّة هذا المسجد في القاهرة»</div></> },
+  BgKh: { node: <BgKhLive /> },
   BgPaperDark: { node: <PaperBg dark /> },
   BgMashrabiya: { node: React.createElement(BACKGROUNDS.BgMashrabiya) },
   TitleBar: { node: <TitleBar title="عنوان الحلقة في الشريط" theme={BAR_WARM} /> },
@@ -135,7 +137,7 @@ export const labNode = (id: string) => E[id] ?? SPEC_E[id] ?? NAME_E[id];
 export const LabScene: React.FC<{ id: string; brand?: BrandName; dx?: number; dy?: number }> = ({ id, brand, dx = 0, dy = 0 }) => {
   applyBrand(brand);
   useFonts();
-  const e = labNode(id), real = realScene(id, brand, dx, dy);
+  const e = id === "BgKh" ? { node: <BgKhLive brand={brand} /> } : labNode(id), real = realScene(id, brand, dx, dy);   // BgKh takes `brand` so a palette change re-renders it (an unchanged element is skipped)
   if (real) return <AbsoluteFill style={{ overflow: "hidden" }}>{real}</AbsoluteFill>;
   return (
     <MGTheme theme="steel">

@@ -64,9 +64,10 @@ export const TornNote: React.FC<{ at: number; until?: number; x: number; y: numb
   const s = useArrive(at, until, "tn" + text, "bottom", rot), t = useStep();
   if (!s) return null;
   // the note grows with its text: a phrase longer than one line gets one more line of height per wrap (user 2026-10-30: «العبارة غير ظاهرة لأن صندوقها أصغر منها»)
+  // + a bigger white base again (side ×1.8, height ×3.2: user 2026-10-31 «كبّر القاعدة البيضاء قليلاً لإضافة هوامش للخط»)
   // + a white side margin of one text height on each side PLUS the ragged ends' depth (tornClip amp 12 → up to 24 px), so the letters never reach the tear
   //   (user 2026-10-30: «لا يوجد هامش للخط»، «لابد من هامش ابيض قبل التعرج»)
-  const pad = Math.round(size * 1.5), lines = Math.max(1, Math.ceil(text.replace(/[ً-ٰٟۖ-ۭ]/g, "").length / Math.max(1, Math.floor((w - 2 * pad) / (size * 0.52))))), h = Math.round(size * 2.7 + (lines - 1) * size * 1.1), u = easeOut((t - at - 0.5) / 0.4);
+  const pad = Math.round(size * 1.8), lines = Math.max(1, Math.ceil(text.replace(/[ً-ٰٟۖ-ۭ]/g, "").length / Math.max(1, Math.floor((w - 2 * pad) / (size * 0.52))))), h = Math.round(size * 3.2 + (lines - 1) * size * 1.2), u = easeOut((t - at - 0.5) / 0.4);
   return (
     <div style={{ position: "absolute", left: x, top: y, width: w, height: h, filter: shadow, ...s }}>
       <div style={{ position: "absolute", inset: 0, background: BRAND.card, clipPath: tornClip(w, h, "tn" + text, 12, 18), display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", padding: `0 ${pad}px`, boxSizing: "border-box" }}>

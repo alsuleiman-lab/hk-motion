@@ -10,7 +10,7 @@ import { GALLERY_CUT } from "./galleryCut";
  * decorated base for the written items), title bar and source line are exactly what a video gets. No screen split here: it is only for verses and hadiths (user 2026-10-30); every item sits where the normal-mode grid puts it (data/layout_grids.json).
  */
 const A = 0.1, U = 2.9;
-type R = { item: SpecItem | SpecItem[] };
+type R = { item: SpecItem | SpecItem[]; spec?: Partial<MontageSpec> };   // `spec`: the screen mode around the item (verses and hadiths only: his window shifted right, the card on the left half)
 const LEFT_SOURCE: SpecItem = { t: "credit", text: "المصدر: اسم الموقع — 29/10/2026", from: 0.3, to: U };
 const REAL: Record<string, R> = {
   Word: { item: { t: "word", text: "١٠ ملايين دولار تبرُّع", at: A, until: U, x: 720, y: 1450, size: 56, tone: "gold", land: { x: 300, y: 870, size: 52 } } },
@@ -24,7 +24,7 @@ const REAL: Record<string, R> = {
   NameCard1: { item: { t: "nameTag", at: 0.2, x: 540, y: 1535, dur: 2.4 } },
   NameCard3: { item: { t: "nameTag", at: 0.2, x: 540, y: 1535, dur: 2.4, style: "pinned" } },
   Subscribe: { item: { t: "subscribe", at: 0.2, x: 540, y: 1530, dur: 2.5 } },
-  VerseWords: { item: { t: "verse", words: ["مُّحَمَّدٌۭ", "رَّسُولُ", "ٱللَّهِ"], times: [0.4, 0.9, 1.3], title: "سُورَةُ الفَتۡحِ", refText: "الآية 29", x: 90, y: 700, w: 900, size: 62, until: U } },
+  VerseWords: { item: { t: "verse", words: ["مُّحَمَّدٌ", "رَّسُولُ", "ٱللَّهِ"], times: [0.4, 0.9, 1.3], title: "سُورَةُ الفَتۡحِ", refText: "الآية 29", x: 90, y: 700, w: 900, size: 56, until: U, land: { x: 40, y: 150, w: 860, size: 54 } } as SpecItem, spec: { shifts: [{ from: 0, to: 3, dx: 430 }] } },
   RewriteWindow: { item: { t: "rewrite", x: 90, y: 1345, w: 900, oldText: "العبارة القديمة", newText: "العبارة الأحسن", oldAt: A + 0.4, strikeAt: 0.9, newAt: 1.4, until: U, land: { x: 40, y: 200, w: 640 } } },
   StatRow: { item: { t: "rows", from: A, to: U, y0: 1040, step: 160, rowH: 140, title: { at: A, text: "من كلام أحد المعمّمين" }, rows: [{ at: 0.4, label: "البند الأول من كلامه", icon: "Quote" }, { at: 1.1, label: "البند الثاني من كلامه", icon: "Quote" }] } },
   Sources: { item: { t: "credit", text: "https://example.org/source-of-the-figure", from: A, to: U } },
@@ -43,6 +43,7 @@ export const realScene = (id: string, brand?: BrandName, dx = 0, dy = 0): React.
   const r = REAL[id]; if (!r) return null;
   const spec = {
     id: "gallery_" + id, title: "عنوان الفيديو", frames: 90, brand, cut: GALLERY_CUT,
+    ...(r.spec ?? {}),
     items: (Array.isArray(r.item) ? r.item : [r.item]).map((o, i) => (i === 0 ? shift(o, dx, dy) : o)),
   } as unknown as MontageSpec;
   return <MontageFromSpec spec={spec} />;

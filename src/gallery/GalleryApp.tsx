@@ -160,7 +160,8 @@ const App: React.FC = () => {
   const pref = (k: string, d: string) => { try { return localStorage.getItem(k) || d; } catch { return d; } };
   const remember = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* blocked */ } };
   const [o, setO] = useState<Orient>(() => (pref("gallery-orient", "land") === "port" ? "port" : "land"));
-  const [tab, setTab] = useState<Section>(() => (["bg", "transition", "move", "text", "image", "grid"].includes(pref("gallery-tab", "text")) ? pref("gallery-tab", "text") as Section : "text"));
+  // the page always opens on a list of cards (the grids tab is not remembered)
+  const [tab, setTab] = useState<Section>(() => (["bg", "transition", "move", "text", "image"].includes(pref("gallery-tab", "text")) ? pref("gallery-tab", "text") as Section : "text"));
   const [q, setQ] = useState("");
   const [copied, setCopied] = useState(false);
   const [brand, setBrand] = useState<BrandName>(() => { const b = pref("gallery-brand", "steel") as BrandName; return BRAND_NAMES.includes(b) ? b : "steel"; });

@@ -16,6 +16,14 @@ const spec = JSON.parse(fs.readFileSync(specF, "utf8"));
 const G = JSON.parse(fs.readFileSync(path.join("data", "layout_grids.json"), "utf8"));
 const kindOf = {}; for (const [k, ts] of Object.entries(G.kinds)) for (const t of ts) kindOf[t] = k;
 const zoneAt = faceZoner(spec);
+// the landscape title bar (src/TitleBar.tsx): right 34, bottom 24, its width follows the title (380–900), ≈ 110 px with the credit line under it — nothing may sit under it
+const TITLE_BAR = [Math.round(1920 - 34 - Math.min(900, Math.max(380, String(spec.title ?? "").length * 14 + 180))), 1080 - 24 - 110, 1886, 1056];
+// each element belongs to ONE screen mode (user 2026-10-31; data/elements_lab.json `mode`): a half-screen element (his key word, the opponent's words)
+// used while the screen is not split is an error — e.g. the key-word chip over his whole frame (allah_taht 4:22, «لماذا يُستخدم هذا في وضع الشاشة الكاملة؟»)
+const LAB_MODE = Object.fromEntries(JSON.parse(fs.readFileSync(path.join("data", "elements_lab.json"), "utf8")).map((m) => [m.id, m]));
+const ELEMENT_OF = { word: "Word", blur: "BlurRise" };   // the half-screen-only elements the user named (his key word, the opponent's words)
+const MODE_AR = { full: "ملء الشاشة", half: "نصف الشاشة", iso: "عزل الخلفية" };
+const wrongMode = (it, o, mode) => { const m = LAB_MODE[ELEMENT_OF[it.t]]; if (!m || (m.orient && m.orient !== "both" && m.orient !== o)) return null; return m.mode !== mode ? `${m.ar} (${ELEMENT_OF[it.t]}) عنصر ${MODE_AR[m.mode]} وهو هنا في ${MODE_AR[mode]}` : null; };
 const mm = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const inW = (ws, t) => (ws ?? []).some((w) => t >= w.from && t < w.to);
 
@@ -99,7 +107,7 @@ function snap(it, o, r, box) {
   const w = r[2] - r[0], h = r[3] - r[1], k = Math.min(1, (box[2] - box[0]) / w, (box[3] - box[1]) / h);
   const nx = Math.round(box[0] + ((box[2] - box[0]) - w * k) / 2), ny = Math.round(box[1]);
   const tgt = o === "land" ? (it.land ??= {}) : it;
-  if (it.t === "torn") { if (o === "land") tgt.x = Math.round(nx + (w * k) / 2); tgt.y = ny; return; }
+  if (it.t === "torn") { if (o === "land") tgt.x = Math.round(nx + (w * k) / 2); tgt.y = ny; if (k < 1) tgt.size = Math.round((o === "land" ? it.land?.size ?? 60 : it.size ?? 52) * k); return; }   // a note too wide for the slot gets a smaller font (its width follows the text)
   if (it.t === "scraps") { tgt.y = ny; return; }
   if (it.t === "nameTag") { tgt.x = Math.round(box[0] + (box[2] - box[0]) / 2); tgt.y = ny - 40; return; }
   tgt.x = nx; tgt.y = ny;
@@ -120,6 +128,8 @@ for (const o of orients) {
   const big = items.filter((x) => x.k === "exclusive" || x.k === "solo");
   for (const x of items) {
     const [a, b] = x.s, mode = modeAt(a + 0.05, o), label = `${x.it.t}#${x.i} ${mm(a)}–${mm(b)}`;
+    const wm = wrongMode(x.it, o, mode); if (wm) fails.push(`${label}: ${wm}`);
+    if (o === "land" && x.k !== "exclusive") { const rb = rectOf(x.it, o); if (rb && inter(rb, TITLE_BAR) > 0) fails.push(`${label}: تحت شريط العنوان (${rb.map(Math.round).join(",")} ∩ ${TITLE_BAR.join(",")})`); }
     if (x.k === "exclusive" || x.k === "solo") {
       const clash = items.filter((y) => y !== x && y.k !== "exclusive" && y.s[0] < b - 0.1 && y.s[1] > a + 0.1);
       if (x.k === "solo" && x.it.t === "nameTag" && clash.length) fails.push(`${label}: بطاقة الاسم مع ${clash.map((y) => y.it.t + "#" + y.i).join("+")}`);

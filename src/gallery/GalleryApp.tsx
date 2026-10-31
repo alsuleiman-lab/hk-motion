@@ -57,6 +57,7 @@ const Live: React.FC<{ it: Item; o: Orient; brand: BrandName; pos: Place; gridOn
   const [on, setOn] = useState(false);
   const [hot, setHot] = useState("");
   const drag = useRef<{ x: number; y: number; dx: number; dy: number } | null>(null);
+  const last = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => {
     const el = ref.current; if (!el) return;
     const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { setOn(true); io.disconnect(); } }, { rootMargin: "300px" });
@@ -68,10 +69,11 @@ const Live: React.FC<{ it: Item; o: Orient; brand: BrandName; pos: Place; gridOn
   const slotAt = (x: number, y: number) => slots.find(([, v]) => x >= v.rect[0] && x <= v.rect[2] && y >= v.rect[1] && y <= v.rect[3])?.[0] ?? "";
   const pct = (v: number, D: number) => (v / D * 100) + "%";
   const z = faceZone(o, it.mode), cur = pos.slot ?? it.slot[o];
-  // an element with its own grid slot snaps to the slot it is dropped in; an engine-placed (or whole-frame) one moves freely
+  // dropped in ANOTHER slot → a slotted element moves into it; anywhere else (its own slot too, e.g. the single portrait band) it keeps the free offset
+  // (user 2026-10-31: «ما وجدت أني أستطيع أغيّر شيئاً في الطولي»)
   const drop = (x: number, y: number, d: { x: number; y: number; dx: number; dy: number }): Place => {
     const s = slotAt(x, y);
-    if (!engine && s) return { slot: s, dx: 0, dy: 0 };
+    if (!engine && s && s !== cur) return { slot: s, dx: 0, dy: 0 };
     return { slot: pos.slot, dx: d.dx + x - d.x, dy: d.dy + y - d.y };
   };
   return (
@@ -88,9 +90,13 @@ const Live: React.FC<{ it: Item; o: Orient; brand: BrandName; pos: Place; gridOn
       ) : null}
       {gridOn ? (
         <div className="gridlayer" aria-label="وضع الشبكة: اسحب العنصر إلى خانة"
-          onPointerDown={(e) => { const q = at(e); drag.current = { x: q.x, y: q.y, dx: pos.dx, dy: pos.dy }; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); }}
-          onPointerMove={(e) => { const q = at(e); setHot(slotAt(q.x, q.y)); const d = drag.current; if (d && engine) onMove({ slot: pos.slot, dx: d.dx + q.x - d.x, dy: d.dy + q.y - d.y }, false); }}
-          onPointerUp={(e) => { const q = at(e), d = drag.current; drag.current = null; if (d) onMove(drop(q.x, q.y, d), true); }}>
+          // a real mouse drag over the slot labels started a text selection / native drag, which cancels the pointer (user 2026-10-31: «ما استطعت أغير بالسحب»)
+          onDragStart={(e) => e.preventDefault()}
+          onPointerDown={(e) => { e.preventDefault(); const q = at(e); drag.current = { x: q.x, y: q.y, dx: pos.dx, dy: pos.dy }; last.current = q; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); }}
+          // the element follows the pointer while dragging; on release a slotted element snaps into the slot under the pointer
+          onPointerMove={(e) => { const q = at(e); setHot(slotAt(q.x, q.y)); const d = drag.current; if (!d) return; last.current = q; onMove({ slot: pos.slot, dx: d.dx + q.x - d.x, dy: d.dy + q.y - d.y }, false); }}
+          onPointerUp={(e) => { const q = at(e), d = drag.current; drag.current = null; if (d) onMove(drop(q.x, q.y, d), true); }}
+          onPointerCancel={() => { const q = last.current, d = drag.current; drag.current = null; if (d && q) onMove(drop(q.x, q.y, d), true); }}>
           {slots.map(([name, v]) => (
             <div key={name} className={"slot" + (hot === name ? " hot" : "") + (cur === name ? " cur" : "")} style={{ left: pct(v.rect[0], W(o)), top: pct(v.rect[1], H(o)), width: pct(v.rect[2] - v.rect[0], W(o)), height: pct(v.rect[3] - v.rect[1], H(o)) }}>
               <b>{name}</b><i>{v.kinds.join(" · ")}</i>

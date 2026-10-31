@@ -102,7 +102,10 @@ const placesOf = (id) => {
 const items = [...elements, ...transitions].map((it) => ({ ...it, section: SECTION_OF(it), places: placesOf(it.id) }));
 
 // the grid page (tools/grid_page.mjs) embedded as the 6th tab: css / body / script split from tools/grid_page.html, data from its build
-spawnSync("node", ["tools/grid_page.mjs"], { stdio: "inherit", windowsHide: true });
+// the grid tab and the face zone drawn in each card's grid mode come from the gallery's real frame (his silent recording, src/galleryCut.ts)
+fs.mkdirSync("scratch", { recursive: true });
+fs.writeFileSync("scratch/gallery_spec.json", JSON.stringify({ cut: "gallery_silent_clip.mp4", cams: [], zooms: [], behind: [], shake: [], splits: [], solos: [] }));
+spawnSync("node", ["tools/grid_page.mjs", "scratch/gallery_spec.json", "--at", "0"], { stdio: "inherit", windowsHide: true });
 const gdata = JSON.parse(fs.readFileSync("scratch/grid_site/data.json", "utf8"));
 gdata.clip = "grid_clip.mp4"; fs.copyFileSync("scratch/grid_site/clip.mp4", path.join(OUT, "grid_clip.mp4"));
 gdata.kindEls = Object.fromEntries(Object.entries(KIND_ELEMENTS).map(([k, s]) => [k, [...s]]));
@@ -127,7 +130,7 @@ pre.code{margin:0;max-height:220px;overflow:auto;background:var(--bg);border:1px
 #conn{margin:-10px 0 18px;font-size:14px;font-weight:700;padding:6px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--drop)}#conn[data-ok="1"]{color:var(--keep)}
 textarea.when{width:100%;box-sizing:border-box;min-height:64px;font:inherit;font-size:14px;line-height:1.55;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);resize:vertical;margin-top:4px}.whenlbl{display:block;font-size:13px;font-weight:700;color:var(--mute)}.card.flash{box-shadow:0 0 0 4px var(--accent)}
 footer{margin-top:28px;color:var(--mute);font-size:13px}
-.palette-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);margin:0 0 10px;padding-block:10px;border-bottom:1px solid var(--line);font-weight:700}`;
+.gridbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 14px 0}.gridbar .code-btn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}.gridlayer{position:absolute;inset:0;cursor:grab;touch-action:none;outline:3px solid var(--accent)}.gridlayer:active{cursor:grabbing}.gridlayer .slot{position:absolute;box-sizing:border-box;border:2px dashed rgba(255,255,255,.85);background:rgba(80,160,255,.16);color:#fff;font-size:13px;display:flex;flex-direction:column;padding:4px 8px;pointer-events:none;direction:rtl}.gridlayer .slot.hot{background:rgba(255,200,60,.35);border-color:#ffc83c}.gridlayer .slot i{font-style:normal;opacity:.8;font-size:11px}.gridlayer b{background:none;color:#fff;padding:0;font-size:13px}.gridlayer .face{position:absolute;box-sizing:border-box;border:2px solid #ff4d4d;background:rgba(255,60,60,.14);color:#fff;font-size:13px;padding:3px 6px;pointer-events:none;direction:rtl}.palette-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);margin:0 0 10px;padding-block:10px;border-bottom:1px solid var(--line);font-weight:700}`;
 const data = JSON.stringify({ items, grid, built: new Date().toISOString().slice(0, 16).replace("T", " ") }).replace(/</g, "\\u003c");
 const html = `<title>معرض عناصر المونتاج</title>
 <meta name="claude:viewport-fit-sides" content="cover">

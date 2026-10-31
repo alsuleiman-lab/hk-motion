@@ -13,7 +13,7 @@ const readNotes = () => { try { return JSON.parse(fs.readFileSync(NOTES, "utf8")
 
 if (process.argv.includes("--notes")) {
   const n = readNotes(), L = { keep: "أبقِه", change: "عدّله", drop: "احذفه" };
-  const rows = Object.entries(n).filter(([, v]) => v.status || v.note || v.when).map(([id, v]) => `${id}: ${L[v.status] ?? "-"}${v.note ? " — " + v.note : ""}${v.request ? " [طلب: " + v.request + "]" : ""}${v.when ? " | متى يُستعمل: " + v.when : ""}`);
+  const rows = Object.entries(n).filter(([, v]) => v.status || v.note || v.when || v.place?.dx || v.place?.dy).map(([id, v]) => `${id}: ${L[v.status] ?? "-"}${v.note ? " — " + v.note : ""}${v.request ? " [طلب: " + v.request + "]" : ""}${v.when ? " | متى يُستعمل: " + v.when : ""}${v.place && (v.place.dx || v.place.dy) ? " | مكانه: إزاحة " + Math.round(v.place.dx) + "," + Math.round(v.place.dy) + (v.place.slot ? " خانة " + v.place.slot + " (" + (v.place.mode ?? "normal") + ")" : "") : ""}`);
   if (fs.existsSync(GRID)) rows.push("الشبكة: محفوظة في data/gallery_grid_saved.json (" + JSON.parse(fs.readFileSync(GRID, "utf8")).savedAt + ")");
   console.log(rows.length ? rows.join("\n") : "لا ملاحظات بعد");
   process.exit(0);

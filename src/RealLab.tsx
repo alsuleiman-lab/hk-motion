@@ -2,6 +2,7 @@ import React from "react";
 import { MontageFromSpec } from "./MontageSpec";
 import type { MontageSpec, SpecItem } from "./MontageSpec";
 import type { BrandName } from "./brand";
+import { GALLERY_CUT } from "./galleryCut";
 
 /**
  * RealLab — the gallery draws an element through the montage engine itself (user 2026-10-30: «أريد شيء حقيقي فعلاً … بالمونتاج فريم حقيقي لي»):
@@ -25,17 +26,24 @@ const REAL: Record<string, R> = {
   Subscribe: { item: { t: "subscribe", at: 0.2, x: 540, y: 1530, dur: 2.5 } },
   VerseWords: { item: { t: "verse", words: ["مُّحَمَّدٌۭ", "رَّسُولُ", "ٱللَّهِ"], times: [0.4, 0.9, 1.3], title: "سُورَةُ الفَتۡحِ", refText: "الآية 29", x: 90, y: 700, w: 900, size: 62, until: U } },
   RewriteWindow: { item: { t: "rewrite", x: 90, y: 1345, w: 900, oldText: "العبارة القديمة", newText: "العبارة الأحسن", oldAt: A + 0.4, strikeAt: 0.9, newAt: 1.4, until: U, land: { x: 40, y: 200, w: 640 } } },
-  Banner: { item: { t: "rows", from: A, to: U, y0: 1040, step: 160, rowH: 140, title: { at: A, text: "من كلام أحد المعمّمين" }, rows: [{ at: 0.4, label: "البند الأول من كلامه", icon: "Quote" }, { at: 1.1, label: "البند الثاني من كلامه", icon: "Quote" }] } },
   StatRow: { item: { t: "rows", from: A, to: U, y0: 1040, step: 160, rowH: 140, title: { at: A, text: "من كلام أحد المعمّمين" }, rows: [{ at: 0.4, label: "البند الأول من كلامه", icon: "Quote" }, { at: 1.1, label: "البند الثاني من كلامه", icon: "Quote" }] } },
   Sources: { item: { t: "credit", text: "https://example.org/source-of-the-figure", from: A, to: U } },
 };
 
 export const hasReal = (id: string) => id in REAL;
-export const realScene = (id: string, brand?: BrandName): React.ReactNode => {
+/** gallery grid mode: the item moves by (dx, dy) through the same x / y / y0 fields (and the landscape override `land`) a real spec uses; his window stays */
+const shift = (o: SpecItem, dx: number, dy: number): SpecItem => {
+  if (!dx && !dy) return o;
+  const mv = (q: Record<string, unknown>) => { const n = { ...q }; for (const [k, d] of [["x", dx], ["y", dy], ["y0", dy]] as const) if (typeof n[k] === "number") n[k] = (n[k] as number) + d; return n; };
+  const n = mv(o as unknown as Record<string, unknown>);
+  if (n.land && typeof n.land === "object") n.land = mv(n.land as Record<string, unknown>);
+  return n as unknown as SpecItem;
+};
+export const realScene = (id: string, brand?: BrandName, dx = 0, dy = 0): React.ReactNode => {
   const r = REAL[id]; if (!r) return null;
   const spec = {
-    id: "gallery_" + id, title: "عنوان الفيديو", frames: 90, brand, cut: "kit_sample_sheikh.mp4",
-    items: Array.isArray(r.item) ? r.item : [r.item],
+    id: "gallery_" + id, title: "عنوان الفيديو", frames: 90, brand, cut: GALLERY_CUT,
+    items: (Array.isArray(r.item) ? r.item : [r.item]).map((o, i) => (i === 0 ? shift(o, dx, dy) : o)),
   } as unknown as MontageSpec;
   return <MontageFromSpec spec={spec} />;
 };

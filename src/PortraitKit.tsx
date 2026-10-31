@@ -220,8 +220,7 @@ export const PaperScene: React.FC<{
   if (t < at || t > until) return null;
   const pop = clamp((t - at) / 0.3), out = clamp((until - t) / 0.3);
   return (
-    <div style={{ ...paperCard(x, y, w, h, pop, 2), opacity: out * Math.min(1, pop * 2.5) }}>
-      <Grain />
+    <div style={{ position: "absolute", left: x, top: y, width: w, height: h, opacity: out * Math.min(1, pop * 2.5) }}>   {/* no paper card behind the pieces (user 2026-10-30: «لا يلزم وجود بطاقة خلفية») */}
       {pieces.map((p, i) => {
         const g = clamp((t - p.at) / 0.55);
         if (g <= 0) return null;

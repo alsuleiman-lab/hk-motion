@@ -7,7 +7,7 @@ import {
 } from "./MG";
 import { Banner, Sources, StatRow, useFonts } from "./EuKit";
 import { MapRoute, Marker, PaperMap, Word } from "./PortraitKit";
-import { KeyChip, VerseWords, ReelVerseFull } from "./MGExtras";
+import { VerseWords, ReelVerseFull } from "./MGExtras";
 import { NameTag, Subscribe, Pic } from "./EuKit";
 import { PopCard, BAR_WARM, FullImage, PaperScene} from "./PortraitKit";
 import { KhBg } from "./KhKit";
@@ -24,6 +24,7 @@ import type { BrandName } from "./brand";
 import { BrowserFrame, VideoFrame, PostCard, CommentCard, BookPage, CitationTag, ArticleMock } from "./SourceFrames";
 import { NewsClip, TornNote, WordScraps, TornPhoto, PaperGrain } from "./PaperKit";
 import { DebateDossier, DebateBlocks } from "./DebateLayouts";
+import { GALLERY_CUT } from "./galleryCut";
 
 /**
  * ElementsLab — every kit element drawn ALONE on a calm backdrop, one 3-second Sequence each (user 2026-10-27: «العناصر مرسومة ومعها اسمها وأين توضع»).
@@ -39,9 +40,8 @@ const Real: React.FC<{ src: string; pos?: string }> = ({ src, pos = "50% 25%" })
 const Page: React.FC = () => (
   <AbsoluteFill style={{ background: "#efe6d0" }}><Real src="books/bukhari2.jpg" pos="50% 35%" /></AbsoluteFill>
 );
-const REAL_CUT = "kit_sample_sheikh.mp4";
 const Rec: React.FC<{ style?: React.CSSProperties }> = ({ style }) => (
-  <OffthreadVideo src={staticFile(REAL_CUT)} muted style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080, objectFit: "cover", ...style }} />
+  <OffthreadVideo src={staticFile(GALLERY_CUT)} muted style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080, objectFit: "cover", ...style }} />
 );
 /** his real frame behind the element, never shifted, blurred or scaled: the screen is not split here (only verses and hadiths split it — user 2026-10-30) */
 const Stage: React.FC<{ id: string; children: React.ReactNode }> = ({ children }) => (
@@ -69,7 +69,6 @@ const SPEC_E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   BgPaperDark: { node: <PaperBg dark /> },
   BgMashrabiya: { node: React.createElement(BACKGROUNDS.BgMashrabiya) },
   TitleBar: { node: <TitleBar title="عنوان الحلقة في الشريط" theme={BAR_WARM} /> },
-  KeyChip: { node: <KeyChip phrases={[{ text: "عبارة مفتاحية من كلامه", at: 0.1 }]} theme={BAR_WARM} size={54} /> },
   NameTag: { node: <NameTag at={0.1} x={960} y={880} dur={9} /> },
   Subscribe: { node: <Subscribe at={0.1} x={960} y={420} /> },
   PhotoFrame: { node: (
@@ -77,24 +76,23 @@ const SPEC_E: Record<string, { node: React.ReactNode; light?: boolean }> = {
       <div style={{ position: "relative", width: 600, height: 400, borderRadius: 14, overflow: "hidden", border: "5px solid #f6efe0", boxSizing: "border-box" }}><Pic src="people/azharMosque.jpg" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
     </SakugaMove>) },
   PopCard: { node: <PopCard at={0.1} x={700} y={240}><div style={{ width: 520, height: 600, borderRadius: 14, overflow: "hidden", border: "5px solid #f6efe0", position: "relative" }}><Real src="people/azharMosque.jpg" /></div></PopCard> },
-  DebateDossier: { node: <DebateDossier at={0.1} url="www.azhar.eg/news/article-2026" main={{ src: "kit_sample_sheikh.mp4" }} guest={{ src: "gallery_opp_clip.mp4", aspect: 544 / 720 }} /> },
-  DebateBlocks: { node: <DebateBlocks at={0.1} main={{ src: "kit_sample_sheikh.mp4" }} guest={{ src: "gallery_opp_clip.mp4", aspect: 544 / 720 }} /> },
-  Curtain: { node: <><LandFootage cut="kit_sample_sheikh.mp4" splits={[SPLIT]} /><Curtain at={2.58} /></> },
+  DebateDossier: { node: <DebateDossier at={0.1} url="www.azhar.eg/news/article-2026" main={{ src: GALLERY_CUT }} guest={{ src: "gallery_opp_clip.mp4", aspect: 544 / 720 }} /> },
+  DebateBlocks: { node: <DebateBlocks at={0.1} main={{ src: GALLERY_CUT }} guest={{ src: "gallery_opp_clip.mp4", aspect: 544 / 720 }} /> },
+  Curtain: { node: <><LandFootage cut={GALLERY_CUT} splits={[SPLIT]} /><Curtain at={2.58} /></> },
   TailVoice: { node: <TailVoice tl={{ from: 0, to: 99, src: "", label: "رسالة صوتية من …", photos: ["people/azharMosque.jpg", "people/azharCourt.jpg"] }} /> },
   PaperCover: { node: <PaperCoverKit format="landscape" line1="عنوان الغلاف" line2="سطر تحت العنوان" /> },
   PushIn: { node: (
     <AbsoluteFill style={{ transform: "scale(1.08)", transformOrigin: "51.6% 30.5%" }}>
-      <OffthreadVideo src={staticFile("kit_sample_sheikh.mp4")} muted style={{ width: 1920, height: 1080 }} />
+      <OffthreadVideo src={staticFile(GALLERY_CUT)} muted style={{ width: 1920, height: 1080 }} />
     </AbsoluteFill>) },
 };
 /** the ten name-tag designs (src/NameCards.tsx), each over a real frame at the name-tag line under the chin */
 const NAME_E: Record<string, { node: React.ReactNode }> = Object.fromEntries(Object.entries(NAME_CARDS).map(([id, C]) => [
   id,
-  { node: <><OffthreadVideo src={staticFile("kit_sample_sheikh.mp4")} muted style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080 }} /><C at={0.2} x={960} y={880} /></> },
+  { node: <><OffthreadVideo src={staticFile(GALLERY_CUT)} muted style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080 }} /><C at={0.2} x={960} y={880} /></> },
 ]));
 const E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   StatRow: { node: <><Banner at={0.1} x={560} y={170} w={800} text="إيطاليا: ضيق المعيشة" size={48} flag="it" /><StatRow at={0.4} countAt={0.6} x={560} y={330} w={800} h={170} icon="Banknote" label="بند فيه رقم (2024)" sub="سطر صغير يوضّح" to={322} unit="مليون يورو" rot={-1} big={84} flag="fr" /><StatRow at={0.8} x={560} y={530} w={800} h={150} icon="Wallet" label="والبند الثاني من كلامه" rot={1} /></> },
-  Banner: { node: <Banner at={0.1} text="أين تذهب الأموال؟" /> },
   Stamp: { node: <Stamp at={0.2} x={640} y={440} text="والشعوب تغلي" size={96} /> },
   Sources: { node: <Sources x={360} bottom={420} w={1200} size={26} links={[{ at: 0.1, url: "https://example.org/source-of-the-figure" }]} /> },
   BlurRise: { node: <BlurRise at={0.1} text="عبارة مفتاحية من كلامه" x={260} w={1400} y={440} size={100} /> },
@@ -127,21 +125,22 @@ const E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   DimLayer: { light: true, node: <><AbsoluteFill style={{ background: "linear-gradient(120deg,#d9a35b,#6fb0d6)" }} /><DimLayer at={0.1} amount={0.62} blur={6} x={160} y={160} w={900} h={760} r={24} /><div style={{ position: "absolute", left: 220, top: 420, width: 780, textAlign: "center", fontFamily: kufiF, fontSize: 80, color: "#fff" }}>رسم واضح فوق التعتيم</div></> },
   MapRoute: { node: <MapRoute at={0.1} until={3} x={460} y={140} w={1000} h={800} center={[36, 38]} spanLat={10} highlight={["Syria"]} pts={[{ name: "دمشق", lon: 36.3, lat: 33.5, at: 0.3 }, { name: "حلب", lon: 37.2, lat: 36.2, at: 0.7 }]} legs={[{ from: [36.3, 33.5], to: [37.2, 36.2], at: 1.0, dur: 1 }]} /> },
   PaperMap: { node: <PaperMap at={0.1} until={3} x={460} y={140} w={1000} h={800} center={[36, 38]} spanLat={10} highlight={["Syria"]} pts={[{ name: "دمشق", lon: 36.3, lat: 33.5, at: 0.3 }, { name: "حلب", lon: 37.2, lat: 36.2, at: 0.7 }]} legs={[{ from: [36.3, 33.5], to: [37.2, 36.2], at: 1.0, dur: 1, car: true }]} /> },
-  HandheldShake: { node: <HandheldShake windows={[{ from: 0.2, to: 2.8 }]} amp={6} rot={0.4}><OffthreadVideo src={staticFile("kit_sample_sheikh.mp4")} muted /></HandheldShake> },
+  HandheldShake: { node: <HandheldShake windows={[{ from: 0.2, to: 2.8 }]} amp={6} rot={0.4}><OffthreadVideo src={staticFile(GALLERY_CUT)} muted /></HandheldShake> },
 };
 
 /** the drawing of one element by id: the same node the studio composition shows */
 export const labNode = (id: string) => E[id] ?? SPEC_E[id] ?? NAME_E[id];
 /** one element alone on its backdrop — the live gallery page plays this in Remotion Player (user 2026-10-28: «الصفحة تكتب العناصر برمجياً لا صوراً») */
-export const LabScene: React.FC<{ id: string; brand?: BrandName }> = ({ id, brand }) => {
+/** `dx`/`dy` (gallery grid mode, 1920x1080 pixels) move the element, never his recording behind it */
+export const LabScene: React.FC<{ id: string; brand?: BrandName; dx?: number; dy?: number }> = ({ id, brand, dx = 0, dy = 0 }) => {
   applyBrand(brand);
   useFonts();
-  const e = labNode(id), real = realScene(id, brand);
+  const e = labNode(id), real = realScene(id, brand, dx, dy);
   if (real) return <AbsoluteFill style={{ overflow: "hidden" }}>{real}</AbsoluteFill>;
   return (
     <MGTheme theme="steel">
       <AbsoluteFill style={{ overflow: "hidden" }}>
-        <Stage id={id}>{e ? e.node : null}</Stage>
+        <Stage id={id}>{e ? (dx || dy ? <div style={{ position: "absolute", inset: 0, transform: `translate(${dx}px, ${dy}px)` }}>{e.node}</div> : e.node) : null}</Stage>
       </AbsoluteFill>
     </MGTheme>
   );

@@ -46,13 +46,13 @@ export const Tape: React.FC<{ x: number; y: number; w?: number; rot?: number }> 
 export const NewsClip: React.FC<{ at: number; until?: number; x: number; y: number; w: number; h: number; src: string; headline?: string; source: string; rot?: number }> = ({ at, until, x, y, w, h, src, headline, source, rot = -2 }) => {
   const s = useArrive(at, until, "nc" + src, "left", rot);
   if (!s) return null;
-  const head = headline ? 92 : 0, foot = 50, H = h + head + foot;
+  const head = headline ? 108 : 0, foot = 64, H = h + head + foot;   // wider paper margins around the headline, picture and credit (user 2026-10-30: «كبر الهوامش»)
   return (
     <div style={{ position: "absolute", left: x, top: y, width: w, height: H, filter: shadow, ...s }}>
       <div style={{ position: "absolute", inset: 0, background: BRAND.card, clipPath: tornClip(w, H, "nc" + src, 8), direction: "rtl" }}>
-        {headline ? <div style={{ position: "absolute", left: 28, right: 28, top: 22, fontFamily: kufiF, fontSize: 34, color: BRAND.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", borderBottom: `3px double ${BRAND.ink}`, paddingBottom: 8 }}>{headline}</div> : null}
-        <div style={{ position: "absolute", left: 24, right: 24, top: head + 14, height: h - 14, overflow: "hidden" }}><Pic src={src} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(.25) contrast(1.05)" }} /></div>
-        <div style={{ position: "absolute", left: 28, right: 28, bottom: 14, fontFamily: "Almarai", fontWeight: 800, fontSize: 20, color: BRAND.gray }}>المصدر: {source}</div>
+        {headline ? <div style={{ position: "absolute", left: 44, right: 44, top: 32, fontFamily: kufiF, fontSize: 34, color: BRAND.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", borderBottom: `3px double ${BRAND.ink}`, paddingBottom: 8 }}>{headline}</div> : null}
+        <div style={{ position: "absolute", left: 40, right: 40, top: head + 14, height: h - 14, overflow: "hidden" }}><Pic src={src} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(.25) contrast(1.05)" }} /></div>
+        <div style={{ position: "absolute", left: 44, right: 44, bottom: 22, fontFamily: "Almarai", fontWeight: 800, fontSize: 20, color: BRAND.gray }}>المصدر: {source}</div>
       </div>
       <Tape x={-30} y={-6} rot={-28} /><Tape x={w - 90} y={H - 30} rot={-24} />
     </div>
@@ -63,11 +63,14 @@ export const NewsClip: React.FC<{ at: number; until?: number; x: number; y: numb
 export const TornNote: React.FC<{ at: number; until?: number; x: number; y: number; w: number; text: string; size?: number; underline?: number; rot?: number }> = ({ at, until, x, y, w, text, size = 72, underline, rot = 1.5 }) => {
   const s = useArrive(at, until, "tn" + text, "bottom", rot), t = useStep();
   if (!s) return null;
-  const h = Math.round(size * 1.9), u = easeOut((t - at - 0.5) / 0.4);
+  // the note grows with its text: a phrase longer than one line gets one more line of height per wrap (user 2026-10-30: «العبارة غير ظاهرة لأن صندوقها أصغر منها»)
+  // + a white side margin of one text height on each side PLUS the ragged ends' depth (tornClip amp 12 → up to 24 px), so the letters never reach the tear
+  //   (user 2026-10-30: «لا يوجد هامش للخط»، «لابد من هامش ابيض قبل التعرج»)
+  const pad = Math.round(size * 1.5), lines = Math.max(1, Math.ceil(text.replace(/[ً-ٰٟۖ-ۭ]/g, "").length / Math.max(1, Math.floor((w - 2 * pad) / (size * 0.52))))), h = Math.round(size * 2.7 + (lines - 1) * size * 1.1), u = easeOut((t - at - 0.5) / 0.4);
   return (
     <div style={{ position: "absolute", left: x, top: y, width: w, height: h, filter: shadow, ...s }}>
-      <div style={{ position: "absolute", inset: 0, background: BRAND.card, clipPath: tornClip(w, h, "tn" + text, 12, 18), display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl" }}>
-        <span style={{ fontFamily: zainF, fontSize: size, color: BRAND.ink, lineHeight: 1 }}>
+      <div style={{ position: "absolute", inset: 0, background: BRAND.card, clipPath: tornClip(w, h, "tn" + text, 12, 18), display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", padding: `0 ${pad}px`, boxSizing: "border-box" }}>
+        <span style={{ fontFamily: zainF, fontSize: size, color: BRAND.ink, lineHeight: 1, textAlign: "center" }}>
           {text.split(" ").map((wd, i) => <span key={i} style={i === underline ? { backgroundImage: `linear-gradient(${BRAND.mark},${BRAND.mark})`, backgroundSize: `${u * 100}% 7px`, backgroundPosition: "right bottom", backgroundRepeat: "no-repeat", paddingBottom: 6 } : undefined}>{wd} </span>)}
         </span>
       </div>
@@ -77,10 +80,10 @@ export const TornNote: React.FC<{ at: number; until?: number; x: number; y: numb
 };
 
 /** a title made of torn paper scraps, one word per scrap (Arabic letters keep their joins), each arriving in stop-motion with its own tilt and stock */
-/** without x/y it sits in the writing area (user 2026-10-29): the third quarter of the height, centred across the width */
+/** without x it is centred across the width (user 2026-10-29); without y too it sits in the writing area: the third quarter of the height */
 export const WordScraps: React.FC<{ at: number; until?: number; x?: number; y?: number; text: string; size?: number; gap?: number }> = ({ at, until, x, y, text, size = 84, gap = 0.18 }) => {
   const t = useStep(), f = useCurrentFrame(), { width, height } = useVideoConfig();
-  const place: React.CSSProperties = x === undefined || y === undefined ? { left: 0, top: height * 0.5, width, height: height * 0.25, justifyContent: "center", boxSizing: "border-box", padding: `0 ${Math.round(width * 0.05)}px` } : { left: x, top: y };
+  const place: React.CSSProperties = x === undefined ? { left: 0, top: y ?? height * 0.5, width, ...(y === undefined ? { height: height * 0.25 } : {}), justifyContent: "center", boxSizing: "border-box", padding: `0 ${Math.round(width * 0.05)}px` } : { left: x, top: y ?? height * 0.5 };
   if (t < at || (until !== undefined && t > until + 0.3)) return null;
   const stocks = [BRAND.card, BRAND.paper, BRAND.navy, BRAND.accent];
   return (

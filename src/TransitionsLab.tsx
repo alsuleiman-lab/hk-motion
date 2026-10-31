@@ -8,13 +8,14 @@ import { BRAND, applyBrand } from "./brand";
 import type { BrandName } from "./brand";
 import { TrAccentWipe, TrDoors, TrSection } from "./Transitions";
 import { PaperTear } from "./PaperTear";
+import { GALLERY_CUT } from "./galleryCut";
 
 /**
  * TransitionsLab — every transition and camera move of the montage, played between two real photos (the scene-to-scene ones) or on his recording (the camera moves, the curtain, the cover),
  * with the same components and values the engine uses. The live gallery page (tools/gallery_build.mjs) plays these in Remotion Player
  * (user 2026-10-28: «فرّق بين الأشكال والانتقالات واكتبها برمجياً»). Each scene is 90 frames (3 s); the switch is at 1.5 s.
  */
-const CUT = "kit_sample_sheikh.mp4";
+const CUT = GALLERY_CUT;
 const SWITCH = 1.5;
 const SPLIT = { from: 0, to: 99, clip: { x: 140, w: 632 }, sheikh: { x: 772, w: 1148 }, clipName: "اسم المقطع المعروض" };
 
@@ -40,7 +41,7 @@ export const TRANSITIONS: Record<string, { ar: string; where: string; kit: strin
   TrAccentWipe: { ar: "مسح بشريط التمييز", kit: "Transitions", where: "شريط مائل بلون التمييز يعبر من اليمين ويكشف المشهد الجديد خلفه.",
     node: <TrAccentWipe at={SWITCH - 0.4} dur={0.75} a={<PhotoA />} b={<PhotoB />} /> },
   TrPaperTear: { ar: "تمزيق الورق بين مشهدين", kit: "Transitions", where: "المشهد يتمزق بخط ممزق خشن الألياف وينفصل نصفاه عن المشهد التالي (الحركة نفسها التي تفتح الغلاف).",
-    node: <><PhotoB /><PaperTear from={Math.round((SWITCH - 0.5) * 30)} to={Math.round((SWITCH + 0.5) * 30)} sheet={<PhotoA />} /></> },
+    node: <><PhotoB /><PaperTear from={Math.round((SWITCH - 0.33) * 30)} to={Math.round((SWITCH + 0.33) * 30)} sheet={<PhotoA />} /></> },
   TrDoors: { ar: "البابان المزخرفان", kit: "Transitions", where: "نصفا الخلفية المزخرفة ينغلقان على شق بلون التمييز ثم ينفتحان على المشهد الجديد.",
     node: <TrDoors at={SWITCH - 0.5} dur={1.0} a={<PhotoA />} b={<PhotoB />} /> },
   TrSection: { ar: "بطاقة القسم", kit: "Transitions", where: "عند تغيير الموضوع: الخلفية المزخرفة تصعد وعليها عنوان القسم الجديد، ثم ترتفع عن المشهد التالي.",

@@ -235,8 +235,7 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
 
 
 /** push-in easing: smoothstep, no constant-speed ramp (user 2026-10-30: «فيه رجفة») */
-/** the push-in curve: zero speed AND zero acceleration at both ends, so the zoom neither kicks in nor stops with a visible tremor (user 2026-10-30: «فيه رجفة وهذا غلط») */
-const ease5 = (x: number) => x * x * x * (x * (6 * x - 15) + 10);
+const ease = (x: number) => x * x * (3 - 2 * x);
 type Split = NonNullable<MontageSpec["splits"]>[number];
 const CARD_BORDER = 14, CARD_STRIP = 56, CARD_H = 800;
 /** one polaroid card showing the source-pixel column [x, x+w) of the cut at height CARD_H */
@@ -253,7 +252,7 @@ const CropPolaroid: React.FC<{ cut: string; x: number; w: number; y?: number; h?
 };
 /** landscape: only his slice of a baked-split recording, centred on the decorated base (the clip beside him is never shown) */
 const SoloLand: React.FC<{ cut: string; sp: NonNullable<MontageSpec["solos"]>[number]; zooms?: MontageSpec["zooms"] }> = ({ cut, sp, zooms = [] }) => {
-  const t = useT(0), zz = zooms.find((q) => t >= q.from - 0.01 && t <= q.to + 0.5), zm = zz ? 1 + (zz.amt ?? 0.08) * ease5(Math.min(clamp((t - zz.from) / 0.6), clamp((zz.to + 0.5 - t) / 0.7))) : 1, s = sp.scale ?? 1, w = sp.sheikh.w * s, h = LANDSCAPE.H * s, centered = (sp.center ?? []).some((c) => t >= c.from && t < c.to);
+  const t = useT(0), zz = zooms.find((q) => t >= q.from - 0.01 && t <= q.to + 0.5), zm = zz ? 1 + (zz.amt ?? 0.08) * ease(Math.min(clamp((t - zz.from) / 0.6), clamp((zz.to + 0.5 - t) / 0.7))) : 1, s = sp.scale ?? 1, w = sp.sheikh.w * s, h = LANDSCAPE.H * s, centered = (sp.center ?? []).some((c) => t >= c.from && t < c.to);
   return (
     <Only from={sp.from} to={sp.to}>
       <AbsoluteFill>
@@ -337,7 +336,7 @@ export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: nu
   const sp = splits.find((x) => t >= x.from && t < x.to);
   if (sp) { const L = DEBATE_LAYOUTS[sp.layout ?? "dossier"]; return <L at={sp.from} main={{ src: cut, x: sp.sheikh.x, w: sp.sheikh.w }} guest={{ src: cut, x: sp.clip.x, w: sp.clip.w, y: sp.clip.y, h: sp.clip.h, blur: sp.blur }} guestName={sp.clipName} url={sp.clipUrl} />; }
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 0.5);
-  const z = zz ? 1 + (zz.amt ?? 0.08) * ease5(Math.min(clamp((t - zz.from) / 0.6), clamp((zz.to + 0.5 - t) / 0.7))) : 1;
+  const z = zz ? 1 + (zz.amt ?? 0.08) * ease(Math.min(clamp((t - zz.from) / 0.6), clamp((zz.to + 0.5 - t) / 0.7))) : 1;
   return (
     <AbsoluteFill style={{ background: BRAND.base, transform: `translate3d(${dx}px, 0, 0) scale(${Math.round(z * 10000) / 10000})`, willChange: "transform", transformOrigin: LANDSCAPE.faceOrigin }}>
       <RV src={staticFile(cut)} style={{ position: "absolute", left: 0, top: 0, width: LANDSCAPE.W, height: LANDSCAPE.H }} />
@@ -350,7 +349,7 @@ const MaskedSheikh: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matt
   const t = from + useCurrentFrame() / 30;     // inside a Sequence that starts at `from`
   const vStart = Math.round(from * 30), mStart = (matte.startFrom ?? 0) + Math.round((from - (matte.start ?? 0)) * 30);
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 0.5);
-  const z = zz ? 1 + (zz.amt ?? 0.08) * ease5(Math.min(clamp((t - zz.from) / 0.6), clamp((zz.to + 0.5 - t) / 0.7))) : 1;
+  const z = zz ? 1 + (zz.amt ?? 0.08) * ease(Math.min(clamp((t - zz.from) / 0.6), clamp((zz.to + 0.5 - t) / 0.7))) : 1;
   if (o === "land") return (
     <AbsoluteFill style={{ transform: `translate3d(${dx}px, 0, 0) scale(${Math.round(z * 10000) / 10000})`, willChange: "transform", transformOrigin: LANDSCAPE.faceOrigin }}>
       <MaskedVideo video={cut} matte={matte.src} videoStartFrom={vStart} matteStartFrom={mStart} width={LANDSCAPE.W} height={LANDSCAPE.H} />

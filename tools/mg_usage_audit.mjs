@@ -9,7 +9,6 @@ const KIT = {
   "عدّاد/خط زمني": ["TimelineCounter", "TimelineTravel"],
   "تحويل مشترك": ["MorphBox"],
   "صندوق كتابة": ["TypeBox"],
-  "تعتيم": ["DimLayer"],
   "ومضات تقريب": ["FlashCut"],
   "التقاء مصادر": ["ConvergeMerge"],
   "ظهور ضبابي": ["BlurRise"],

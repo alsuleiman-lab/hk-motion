@@ -1,6 +1,6 @@
 // Layout grid: every element has a reserved place AND time (user 2026-10-29: «كل عنصر له مكان محجوز ووقت… ما راح يكون عنصرين بنفس الوقت في نفس المكان»).
 //   node tools/grid_plan.mjs data/specs/<p>.json [--o port|land] [--write]
-// For each orientation and screen mode (data/layout_grids.json: normal / source / solo / half) the item gets the first slot of its kind that is free for its
+// For each orientation and screen mode (data/layout_grids.json: full / half / iso) the item gets the first slot of its kind that is free for its
 // whole time; the slot is trimmed away from his face + beard, computed from the cached face track (tools/lib/face_zone.mjs) — no rendering, seconds not minutes.
 // Checks (exit 1): an item over the face zone, two items in the same place at the same time, a small item while a big (exclusive) one or a name card is up.
 // --write moves the simple items (torn, scholar, pic, crop, flash, news) into their slot in the spec; the table goes to .tmp/<p>/grid.md.
@@ -19,13 +19,13 @@ const zoneAt = faceZoner(spec);
 const mm = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const inW = (ws, t) => (ws ?? []).some((w) => t >= w.from && t < w.to);
 
-const modeAt = (t, o) => o === "land"
-  ? (inW(spec.splits, t) ? "source" : inW(spec.solos, t) ? "solo" : (spec.behind ?? []).some((b) => b.dx !== undefined && t >= b.from && t < b.to) || inW(spec.shifts, t) ? "half" : "normal")
-  : (inW(spec.psplits, t) ? "half" : inW(spec.splits, t) ? "source" : "normal");
+// three screen modes (user 2026-10-31): half = a source shown beside him (splits / psplits / his window shifted for a panel); iso = his background isolated with something behind him; full = the rest
+const modeAt = (t, o) => (inW(spec.splits, t) || (o === "port" && inW(spec.psplits, t)) || (o === "land" && (inW(spec.shifts, t) || (spec.behind ?? []).some((b) => b.dx !== undefined && t >= b.from && t < b.to))) ? "half"
+  : (spec.behind ?? []).some((b) => b.dx === undefined && t >= b.from && t < b.to) ? "iso" : "full");
 
 const spanOf = (it) => {
   if (it.t === "nameTag") return [it.at, it.at + (it.dur ?? 4)];
-  if (it.t === "scholar") return [it.at, it.until ?? it.at + 6];
+  if (it.t === "scholar" || it.t === "tphoto") return [it.at, it.until ?? it.at + 6];
   if (it.t === "rewrite") return [it.oldAt - 0.4, it.until ?? it.newAt + 8];
   if (it.t === "verse") return [it.times[0], it.until ?? it.times[it.times.length - 1] + 1.2];
   const a = it.at ?? it.from, b = it.until ?? it.to ?? (it.dur != null ? a + it.dur : a + 3);
@@ -48,13 +48,24 @@ const rectOf = (it, o) => {
       return [x0, y, x0 + w, y + s * 1.9];
     }
     case "torn": {
-      const size = L ? ov.size ?? 60 : it.size ?? 52, w = Math.min(L ? 1000 : 960, Math.max(380, Math.round(len(it.text) * size * 0.5 + 140)));
-      const x = L ? (ov.x !== undefined ? ov.x - w / 2 : (1920 - w) / 2) : it.right ? 1040 - w : (1080 - w) / 2, y = L ? ov.y ?? 850 : it.y ?? 1420;
-      return [x, y, x + w, y + size * 2.4];
+      const size = L ? ov.size ?? 60 : it.size ?? 52, w = Math.min(L ? 1000 : 960, Math.max(380, Math.round(len(it.text) * size * 0.5 + 3.6 * size + 70)));   // TornNote padding 1.8 × size on each side (+ tear depth)
+      const x = L ? (ov.x !== undefined ? ov.x - w / 2 : (1920 - w) / 2) : it.right ? 1040 - w : (1080 - w) / 2, y = L ? ov.y ?? 850 : it.y ?? 1470;
+      const lines = Math.max(1, Math.ceil(len(it.text) / Math.max(1, Math.floor((w - 3.6 * size) / (size * 0.52)))));   // same wrap estimate as TornNote
+      return [x, y, x + w, y + size * 3.2 + (lines - 1) * size * 1.2];
     }
     case "nameTag": { const cx = L ? ov.x ?? 960 : it.x ?? 540, y = (L ? ov.y ?? 880 : it.y) + 40; return [cx - 300, y, cx + 300, y + 130]; }
     case "subscribe": { const x = P("x", 330), y = P("y", 720); return [x, y, x + 560, y + 150]; }
-    case "scholar": { const x = L ? ov.x ?? 1500 : it.x ?? 40, y = L ? ov.y ?? 200 : it.y ?? 1360, w = it.w ?? 300, h = (it.h ?? 370) + 78; return [x, y, x + w, y + h]; }
+    case "scholar": case "tphoto": { const x = L ? ov.x ?? 1500 : it.x ?? 40, y = L ? ov.y ?? 200 : it.y ?? 1360, w = it.w ?? 300, h = (it.h ?? 370) + 78; return [x, y, x + w, y + h]; }
+    case "scraps": {   // one scrap per word (size × 0.8 per letter + 70), wrapped on 90 % of the width, centred
+      const size = L ? ov.size ?? 50 : it.size ?? 36, Wd = L ? 1920 : 1080, y = L ? ov.y ?? 845 : it.y ?? 1330, ws = String(it.text).split(" "), gap = size * 0.3;
+      const widths = ws.map((wd) => size * 0.8 * len(wd) + 70); let rows = 1, cur = 0;
+      for (const w of widths) { if (cur && cur + gap + w > Wd * 0.9) { rows++; cur = w; } else cur += (cur ? gap : 0) + w; }
+      const w = Math.min(Wd * 0.9, widths.reduce((a, b) => a + b, 0) + gap * (ws.length - 1));
+      return [(Wd - w) / 2, y, (Wd + w) / 2, y + rows * size * 1.45 + (rows - 1) * gap];
+    }
+    case "clock": { const size = L ? ov.size ?? 360 : it.size ?? 300, x = L ? ov.x ?? 140 : it.x ?? 60, y = L ? ov.y ?? 300 : it.y ?? 1330; return [x, y, x + size, y + size]; }
+    case "flag": { const w = it.w ?? 220, x = L ? ov.x ?? 1500 : it.x ?? 60, y = L ? ov.y ?? 200 : it.y ?? 1360; return [x, y, x + w, y + w * 0.67]; }
+    case "arc": { const a = it.a, b = it.b, bot = Math.max(a.y + (a.h ?? 380), b.y + (b.h ?? 380)); return [Math.min(a.x, b.x), Math.min(a.y, b.y), Math.max(a.x + (a.w ?? 300), b.x + (b.w ?? 300)), bot + 60 + 110 + 20]; }   // the arc sags under the photos (DashArc under)
     case "pic": { const x = P("x", 40), y = P("y", 150), w = P("w", 600), h = L ? ov.h ?? Math.round((it.h * w) / it.w) : it.h; return [x, y, x + w, y + h]; }
     case "crop": { const x = P("x", 40), y = P("y", 150), w = P("w", 600), h = Math.round(((w - 20) / it.crop.w) * it.crop.h) + 78; return [x, y, x + w, y + h]; }
     case "flash": { const x = P("x", 40), y = P("y", 150), w = P("w", 600), h = L ? ov.h ?? Math.round((it.h * w) / it.w) : it.h; return [x, y, x + w, y + h + (it.name ? 48 : 0)]; }
@@ -83,15 +94,18 @@ const trim = (s, z) => {
 };
 
 // snap an item into a box: keep its size when it fits (else scale it down), centred horizontally, at the top of the box; each type's own position fields
-const SNAP = new Set(["torn", "scholar", "pic", "crop", "flash", "news", "scene", "rewrite", "nameTag", "subscribe"]);
+const SNAP = new Set(["torn", "scraps", "tphoto", "clock", "flag", "scholar", "pic", "crop", "flash", "news", "scene", "rewrite", "nameTag", "subscribe"]);
 function snap(it, o, r, box) {
   const w = r[2] - r[0], h = r[3] - r[1], k = Math.min(1, (box[2] - box[0]) / w, (box[3] - box[1]) / h);
   const nx = Math.round(box[0] + ((box[2] - box[0]) - w * k) / 2), ny = Math.round(box[1]);
   const tgt = o === "land" ? (it.land ??= {}) : it;
   if (it.t === "torn") { if (o === "land") tgt.x = Math.round(nx + (w * k) / 2); tgt.y = ny; return; }
+  if (it.t === "scraps") { tgt.y = ny; return; }
   if (it.t === "nameTag") { tgt.x = Math.round(box[0] + (box[2] - box[0]) / 2); tgt.y = ny - 40; return; }
   tgt.x = nx; tgt.y = ny;
-  if (k < 1 && it.t === "scholar") { it.w = Math.round((it.w ?? 300) * k); it.h = Math.round((it.h ?? 370) * k); }
+  if (k < 1 && it.t === "clock") tgt.size = Math.round((it.t === "clock" && (o === "land" ? it.land?.size : it.size) ? (o === "land" ? it.land.size : it.size) : o === "land" ? 360 : 300) * k);
+  else if (k < 1 && it.t === "flag") it.w = Math.round((it.w ?? 220) * k);
+  else if (k < 1 && (it.t === "scholar" || it.t === "tphoto")) { it.w = Math.round((it.w ?? 300) * k); it.h = Math.round((it.h ?? 370) * k); }
   else if (k < 1 && ["pic", "crop", "flash", "news"].includes(it.t)) tgt.w = Math.round(w * k);
 }
 

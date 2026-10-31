@@ -1,13 +1,13 @@
 import React from "react";
-import { AbsoluteFill, Img, OffthreadVideo, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Img, OffthreadVideo, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { HandheldShake, MGTheme, useT } from "./MG";
 import { useFonts } from "./EuKit";
 import { PaperCoverKit, PAPER_COVER_END } from "./CoverKit";
 import { Curtain, LandFootage } from "./MontageSpec";
+import { DebateDossier } from "./DebateLayouts";
 import { BRAND, applyBrand } from "./brand";
 import type { BrandName } from "./brand";
-import { TrAccentWipe, TrDoors, TrSection } from "./Transitions";
-import { PaperTear } from "./PaperTear";
+import { TrSection } from "./Transitions";
 import { GALLERY_CUT } from "./galleryCut";
 
 /**
@@ -17,12 +17,15 @@ import { GALLERY_CUT } from "./galleryCut";
  */
 const CUT = GALLERY_CUT;
 const SWITCH = 1.5;
-const SPLIT = { from: 0, to: 99, clip: { x: 140, w: 632 }, sheikh: { x: 772, w: 1148 }, clipName: "اسم المقطع المعروض" };
 
 /** scene A: his recording, full frame */
-const SceneA: React.FC = () => <OffthreadVideo src={staticFile(CUT)} muted style={{ width: 1920, height: 1080 }} />;
+const SceneA: React.FC = () => {   // portrait: the same crop around his face as the gallery's portrait stage (src/ElementsLab.tsx)
+  const { width, height } = useVideoConfig();
+  if (width > height) return <OffthreadVideo src={staticFile(CUT)} muted style={{ width: 1920, height: 1080 }} />;
+  return <OffthreadVideo src={staticFile(CUT)} muted style={{ position: "absolute", top: 0, left: Math.round(540 - 966 * (1920 / 1080)), width: Math.round(1920 * (1920 / 1080)), height: 1920 }} />;
+};
 /** two real photos to judge a scene-to-scene transition by (user 2026-10-28: «جيب صورتين لتجريب الانتقالات»): the Azhar courtyard, then a mosque dome */
-const Photo: React.FC<{ src: string }> = ({ src }) => <Img src={staticFile(src)} style={{ width: 1920, height: 1080, objectFit: "cover" }} />;
+const Photo: React.FC<{ src: string }> = ({ src }) => { const { width, height } = useVideoConfig(); return <Img src={staticFile(src)} style={{ width, height, objectFit: "cover" }} />; };
 const PhotoA: React.FC = () => <Photo src="people/azharCourt.jpg" />;
 const PhotoB: React.FC = () => <Photo src="people/azharMosque.jpg" />;
 /** A before `at`, B after */
@@ -31,19 +34,13 @@ const Cover: React.FC = () => (useCurrentFrame() < PAPER_COVER_END ? <PaperCover
 
 export const TRANSITIONS: Record<string, { ar: string; where: string; kit: string; node: React.ReactNode }> = {
   Curtain: { ar: "الستارة بين التخطيطين", kit: "MontageSpec", where: "عند كل تبديل بين إطاره الكامل وتخطيط الرد (الكتل المنحوتة): لوح بالخلفية المزخرفة يعبر ويتبدّل التخطيط خلفه.",
-    node: <><Switch at={SWITCH} a={<SceneA />} b={<LandFootage cut={CUT} splits={[SPLIT]} />} /><Curtain at={SWITCH} /></> },
+    node: <><Switch at={SWITCH} a={<SceneA />} b={<DebateDossier at={SWITCH} main={{ src: CUT }} guest={{ src: "gallery_opp_clip.mp4", aspect: 544 / 720 }} />} /><Curtain at={SWITCH} /></> },
   PaperCover: { ar: "الغلاف الورقي يتمزق", kit: "CoverKit", where: "افتتاح كل فيديو: الغلاف أول 3 إطارات ثم يتمزق الورق حتى الإطار 35 فيظهر التسجيل.",
     node: <><SceneA /><Cover /></> },
   PushIn: { ar: "تقريب الوجه", kit: "MontageSpec", where: "مرة كل 2 دقائق عند كلام مهم: تقريب ناعم نحو وجهه ثم عودة بعد انتهاء الكلام المهم.",
     node: <LandFootage cut={CUT} zooms={[{ from: 0.4, to: 1.9, amt: 0.08 }]} /> },
   HandheldShake: { ar: "اهتزاز كاميرا اليد", kit: "MG", where: "فقط أثناء الجملة الاعتراضية أو التهكمية: يهزّ لقطته كأنها كاميرا محمولة.",
     node: <HandheldShake windows={[{ from: 0.2, to: 2.8 }]} amp={6} rot={0.4}><SceneA /></HandheldShake> },
-  TrAccentWipe: { ar: "مسح بشريط التمييز", kit: "Transitions", where: "شريط مائل بلون التمييز يعبر من اليمين ويكشف المشهد الجديد خلفه.",
-    node: <TrAccentWipe at={SWITCH - 0.4} dur={0.75} a={<PhotoA />} b={<PhotoB />} /> },
-  TrPaperTear: { ar: "تمزيق الورق بين مشهدين", kit: "Transitions", where: "المشهد يتمزق بخط ممزق خشن الألياف وينفصل نصفاه عن المشهد التالي (الحركة نفسها التي تفتح الغلاف).",
-    node: <><PhotoB /><PaperTear from={Math.round((SWITCH - 0.33) * 30)} to={Math.round((SWITCH + 0.33) * 30)} sheet={<PhotoA />} /></> },
-  TrDoors: { ar: "البابان المزخرفان", kit: "Transitions", where: "نصفا الخلفية المزخرفة ينغلقان على شق بلون التمييز ثم ينفتحان على المشهد الجديد.",
-    node: <TrDoors at={SWITCH - 0.5} dur={1.0} a={<PhotoA />} b={<PhotoB />} /> },
   TrSection: { ar: "بطاقة القسم", kit: "Transitions", where: "عند تغيير الموضوع: الخلفية المزخرفة تصعد وعليها عنوان القسم الجديد، ثم ترتفع عن المشهد التالي.",
     node: <TrSection at={SWITCH - 0.9} dur={1.8} title="عنوان القسم التالي" sub="الجزء الثاني" a={<PhotoA />} b={<PhotoB />} /> },
 };

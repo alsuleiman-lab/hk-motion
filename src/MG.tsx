@@ -181,10 +181,11 @@ export const GlowCaption: React.FC<{ words: { t: string; at: number; gold?: bool
 };
 
 /** 4a) Dashed arc that draws itself between two points (links two pinned photos). */
-export const DashArc: React.FC<{ at: number; x1: number; y1: number; x2: number; y2: number; lift?: number; dur?: number; color?: string; sw?: number }> = ({ at, x1, y1, x2, y2, lift = 140, dur = 0.7, color = "#fff", sw = 4 }) => {
+/** `under`: the arc sags below the lower end instead of rising over the top (user 2026-10-31: «اجعل الخط من تحت لحيتي») */
+export const DashArc: React.FC<{ at: number; x1: number; y1: number; x2: number; y2: number; under?: boolean; lift?: number; dur?: number; color?: string; sw?: number }> = ({ at, x1, y1, x2, y2, under, lift = 140, dur = 0.7, color = "#fff", sw = 4 }) => {
   const id = useId().replace(/:/g, "");
   const p = ease(useT(at) / dur);
-  const d = `M${x1},${y1} Q${(x1 + x2) / 2},${Math.min(y1, y2) - lift} ${x2},${y2}`;
+  const d = `M${x1},${y1} Q${(x1 + x2) / 2},${under ? Math.max(y1, y2) + lift : Math.min(y1, y2) - lift} ${x2},${y2}`;
   return (
     <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, overflow: "visible", pointerEvents: "none" }}>
       <mask id={id}><path d={d} stroke="#fff" strokeWidth={sw + 6} fill="none" pathLength={1} strokeDasharray={1} strokeDashoffset={1 - p} /></mask>
@@ -367,17 +368,6 @@ export const TypeBox: React.FC<{ at: number; x: number; y: number; w: number; te
       </div>
     </div>
   );
-};
-
-/**
- * 17) DimLayer — «تعتيم»: darkens the video underneath by `amount` (0–1) over the whole frame or a rectangle, fading in/out (0.4 s), so graphics drawn AFTER it (timeline, counter,
- * comparison…) read clearly above it. Place it before the graphic in the tree. RULE: it must not sit over the Sheikh's face/beard — dim only the source/background video, or a
- * rectangle that excludes his card; tools/face_check.mjs will flag a dim that covers the face. `blur` (px) optionally softens what is behind.
- */
-export const DimLayer: React.FC<{ at: number; until?: number; amount?: number; blur?: number; x?: number; y?: number; w?: number; h?: number; r?: number }> = ({ at, until, amount = 0.55, blur = 0, x = 0, y = 0, w = 1920, h = 1080, r = 0 }) => {
-  const t = useT(at), k = Math.min(ease(t / 0.4), until === undefined ? 1 : ease((until - (t + at)) / 0.4));
-  if (k <= 0) return null;
-  return <div style={{ position: "absolute", left: x, top: y, width: w, height: h, borderRadius: r, background: `rgba(6,12,24,${amount * k})`, backdropFilter: blur ? `blur(${blur * k}px)` : undefined }} />;
 };
 
 export const FlashCut: React.FC<{
@@ -768,7 +758,7 @@ export const TimelineTravel: React.FC<{
   const ticks: number[] = []; for (let k = Math.floor((cam - 1100) / 70); k <= Math.ceil((cam + 1100) / 70); k++) ticks.push(k * 70);
   return (
     <>
-      <div style={{ position: "absolute", left: 0, top: bandY, width: W, height: H - bandY, background: `rgba(6,12,24,${dim * vis})` }} />
+      <div style={{ position: "absolute", left: 0, top: bandY, width: W, height: H - bandY, background: `linear-gradient(to bottom, rgba(6,12,24,0), rgba(6,12,24,${dim * vis}) 45%)` }} />   {/* shade fades in from the top of the band (user 2026-10-31) */}
       <div style={{ position: "absolute", left: 0, top: bandY, width: W, height: H - bandY, opacity: vis, overflow: "hidden", direction: "rtl", fontFamily: kufiF, color: "#fff", filter: speed > 0.4 ? `blur(${Math.min(5, speed * 1.6).toFixed(1)}px)` : undefined }}>
         <div style={{ position: "absolute", left: 0, top: axisY - bandY - 2, width: W, height: 7, borderRadius: 4, background: "rgba(255,255,255,.55)" }} />
         {ticks.map((wx) => <div key={wx} style={{ position: "absolute", left: px(wx), top: axisY - bandY - 8, width: 2, height: 16, background: "rgba(255,255,255,.28)" }} />)}

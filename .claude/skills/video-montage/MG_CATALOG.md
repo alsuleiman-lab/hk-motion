@@ -86,10 +86,6 @@ ONE number is the single source: the counter, the needle, the filled line and th
 A card with three dots and a small corner title; a blinking cursor shows first, then the sentence is typed character by character (`cps` chars/s). An optional chip above names the idea. Use for a quoted sentence / verse / a question being "asked". Set `at` = t
 `props:` at: number; x: number; y: number; w: number; text: string; title?: string; chip?: string; cps?: number; size?: number; until?: number
 
-### `DimLayer`
-DimLayer — «تعتيم»: darkens the video underneath by `amount` (0–1) over the whole frame or a rectangle, fading in/out (0.4 s), so graphics drawn AFTER it (timeline, counter, comparison…) read clearly above it. Place it before the graphic in the tree. RULE: it 
-`props:` at: number; until?: number; amount?: number; blur?: number; x?: number; y?: number; w?: number; h?: number; r?: number
-
 ### `FlashCut`
 (بلا وصف: مكوّن أساسي)
 `props:` at: number; x: number; y: number; w: number; h: number; crops: { fx: number; fy: number; zoom: number }[]; beats?: number[]; hud?: string; accent?: string; children: React.ReactNode

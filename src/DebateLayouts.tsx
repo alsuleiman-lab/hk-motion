@@ -12,14 +12,14 @@ import { Tape, tornClip } from "./PaperKit";
  * under the original's background shapes (no plain background).
  * A source is either a whole video (`src`) or a source-pixel column of the baked split (`src` + `x`/`w`).
  */
-export type DebateSrc = { src: string; x?: number; w?: number; aspect?: number; blur?: number };
+export type DebateSrc = { src: string; x?: number; w?: number; y?: number; h?: number; aspect?: number; blur?: number };
 export type DebateLayoutName = "dossier" | "blocks";
 type Props = { main: DebateSrc; guest: DebateSrc; guestName?: string; title?: string; url?: string; at?: number };
 
 const W = LANDSCAPE.W, H = LANDSCAPE.H;
 const K = W / 1450;   // the original's px are drawn on a 1450-wide stage (its enlarged view)
 type Win = { left: number; top: number; width: number; mid?: number };   // `mid` = the vertical centre of the window as a fraction of the height (overrides `top`)   // fractions of the stage, as in the original CSS
-const ratio = (s: DebateSrc) => s.aspect ?? (s.w ? s.w / 1080 : 16 / 9);
+const ratio = (s: DebateSrc) => s.aspect ?? (s.w ? s.w / (s.h ?? 1080) : 16 / 9);
 /** the window is exactly the shown video's size (user 2026-10-29: «الإطار على أبعاد الفيديو المعروض، لا أكبر ولا أصغر»): the video's ratio fitted in the
  *  original's 4:3 slot (a taller video may grow to 1.4× the slot height), centred on the slot and kept inside the frame */
 const box = (w: Win, s: DebateSrc) => {
@@ -33,10 +33,10 @@ const box = (w: Win, s: DebateSrc) => {
 const Feed: React.FC<{ s: DebateSrc; w: number; h: number }> = ({ s, w, h }) => {
   const f = s.blur ? { filter: `blur(${s.blur}px)` } : {};
   if (s.w === undefined) return <RV src={staticFile(s.src)} style={{ position: "absolute", inset: 0, width: w, height: h, objectFit: "contain", ...f }} />;
-  const k = Math.min(h / 1080, w / s.w), vw = s.w * k, vh = 1080 * k;
+  const ch = s.h ?? 1080, k = Math.min(h / ch, w / s.w), vw = s.w * k, vh = ch * k;
   return (
     <div style={{ position: "absolute", left: (w - vw) / 2, top: (h - vh) / 2, width: vw, height: vh, overflow: "hidden" }}>
-      <RV src={staticFile(s.src)} style={{ position: "absolute", left: -(s.x ?? 0) * k, top: 0, width: 1920 * k, height: vh, ...f }} />
+      <RV src={staticFile(s.src)} style={{ position: "absolute", left: -(s.x ?? 0) * k, top: -(s.y ?? 0) * k, width: 1920 * k, height: 1080 * k, ...f }} />
     </div>
   );
 };
@@ -100,7 +100,7 @@ export const DebateDossier: React.FC<Props> = ({ main, guest, title = "مصدر"
         <div style={{ position: "absolute", inset: 0, background: BRAND.paper, clipPath: tornClip(W * 0.92, H * 0.92, "dossier-sheet", 11, 34),
           backgroundImage: `repeating-linear-gradient(0deg, transparent 0 ${22 * K}px, ${alpha(BRAND.ink, 0.08)} ${22 * K}px ${22 * K + 1}px)` }} />
       </div>
-      <TornWindow w={{ left: 0.36, top: 0.07, width: 0.62 }} s={main} seed="dossier-main"
+      <TornWindow w={{ left: 0.34, top: 0.05, width: 0.64 }} s={main} seed="dossier-main"
         transform={(b) => {
           const s0 = Math.min(W / b.w, H / b.h);
           return `translate(${(1 - mi) * (W / 2 - (b.x + b.w / 2))}px, ${(1 - mi) * (H / 2 - (b.y + b.h / 2))}px) rotate(${1.5 * mi}deg) scale(${1 + (s0 - 1) * (1 - mi)})`;

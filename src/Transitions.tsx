@@ -14,44 +14,6 @@ const inOut = (x: number) => { const u = clamp(x); return u < 0.5 ? 4 * u * u * 
 const useP = (at: number, dur: number) => clamp((useT() - at) / dur);
 const Fill: React.FC<{ style?: React.CSSProperties; children?: React.ReactNode }> = ({ style, children }) => <AbsoluteFill style={style}>{children}</AbsoluteFill>;
 
-/** accent wipe: a slanted band in the accent colour sweeps from right to left and uncovers the new scene behind it */
-export const TrAccentWipe: React.FC<Tr> = ({ at, dur = 0.75, a, b }) => {
-  const { width: W, height: H } = useVideoConfig();
-  const p = useP(at, dur), e = inOut(p), k = H * 0.2, band = 54;
-  if (p <= 0) return <Fill>{a}</Fill>;
-  if (p >= 1) return <Fill>{b}</Fill>;
-  const x = W + k + band - e * (W + 2 * k + 2 * band);   // the band's left edge at the top
-  return (
-    <>
-      <Fill>{a}</Fill>
-      <Fill style={{ clipPath: `polygon(${x + band}px 0, ${W + 2 * k}px 0, ${W + 2 * k}px ${H}px, ${x + band - k}px ${H}px)` }}>{b}</Fill>
-      <div style={{ position: "absolute", inset: 0, background: BRAND.accent, clipPath: `polygon(${x}px 0, ${x + band}px 0, ${x + band - k}px ${H}px, ${x - k}px ${H}px)` }} />
-      <div style={{ position: "absolute", inset: 0, background: BRAND.card, clipPath: `polygon(${x + band}px 0, ${x + band + 6}px 0, ${x + band + 6 - k}px ${H}px, ${x + band - k}px ${H}px)` }} />
-    </>
-  );
-};
-
-/** the decorated doors: two halves of the decorated base close from the sides, meet at an accent seam, and open on the new scene */
-export const TrDoors: React.FC<Tr> = ({ at, dur = 1.0, a, b }) => {
-  const { width: W } = useVideoConfig();
-  const p = useP(at, dur);
-  if (p <= 0) return <Fill>{a}</Fill>;
-  if (p >= 1) return <Fill>{b}</Fill>;
-  const close = p < 0.5 ? inOut(p / 0.42) : inOut((1 - p) / 0.42), half = W / 2;
-  const door = (side: "left" | "right") => (
-    <div style={{ position: "absolute", top: 0, bottom: 0, width: half, [side]: (close - 1) * half, overflow: "hidden", boxShadow: "0 0 40px rgba(0,0,0,.45)" }}>
-      <div style={{ position: "absolute", top: 0, bottom: 0, width: W, [side]: 0 }}><WarmBase /></div>
-      <div style={{ position: "absolute", top: 0, bottom: 0, width: 8, [side === "left" ? "right" : "left"]: 0, background: BRAND.accent }} />
-    </div>
-  );
-  return (
-    <>
-      <Fill>{p < 0.5 ? a : b}</Fill>
-      {door("left")}{door("right")}
-    </>
-  );
-};
-
 /** section card: for a change of topic — the decorated base rises over the old scene with the new section's title, then lifts away */
 export const TrSection: React.FC<Tr & { title: string; sub?: string }> = ({ at, dur = 1.8, a, b, title, sub }) => {
   const { height: H } = useVideoConfig();

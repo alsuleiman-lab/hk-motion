@@ -44,7 +44,6 @@
 | العدّاد والخط الزمني | `TimelineCounter` |
 | التحويل المشترك | `MorphBox` + `MorphContent` |
 | صندوق الكتابة | `TypeBox` |
-| التعتيم | `DimLayer` |
 | ومضات التقريب | `FlashCut` |
 | التقاء المصادر | `ConvergeMerge` |
 | الظهور من الضبابية | `BlurRise` |

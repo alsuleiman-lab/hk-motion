@@ -27,7 +27,11 @@
     "FolderOpen",
     "FoldReveal",
     "TagChip",
-    "SplitCards"
+    "SplitCards",
+    "DimLayer",
+    "TrAccentWipe",
+    "TrDoors",
+    "TrPaperTear"
   ],
   "itemTypes": [
     "neon",

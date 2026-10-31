@@ -96,18 +96,17 @@ textarea { width: 100%; box-sizing: border-box; min-height: 90px; font: 14px/1.6
 <script>
 const DATA = /*GRID_DATA*/null;
 const KIND_LABEL = { key: "عبارة وكتابة", photo: "صورة وخبر ومصدر", list: "قائمة بنود", solo: "اسم واشتراك" };
-const MODE_LABEL = { normal: "عادي", source: "مصدر معروض", solo: "أنا وحدي", half: "نصف الشاشة" };
+const MODE_LABEL = { full: "ملء الشاشة", half: "نصف الشاشة", iso: "عزل الخلفية" };   // the three screen modes (user 2026-10-31)
 const ORIENT_LABEL = { land: "عرضي", port: "طولي" };
 const MODE_NOTE = {
-  "land.normal": "أنت كامل الإطار، لا مصدر معروض.",
-  "land.source": "المقطع المردود عليه يساراً وأنت يميناً، كلٌّ في بطاقة.",
-  "land.solo": "تسجيل مقسوم: أنت وحدك يميناً والكتابة يساراً.",
-  "land.half": "أنت معزول ومزاح يميناً، واللوحة الكبيرة (شجرة، قائمة) يساراً.",
-  "port.normal": "أنت تملأ الإطار، والكتابة تحت اللحية.",
-  "port.source": "المقطع المردود عليه بطاقة مائلة عند كتفك.",
-  "port.half": "أنت مصغّر في الأعلى، واللوحة من y=936 إلى الأسفل.",
+  "land.full": "أنت كامل الإطار، لا مصدر معروض.",
+  "land.half": "المصدر المعروض (مقطع، صفحة كتاب، خبر) في بطاقة يساراً وأنت في بطاقة يميناً؛ كلام الخصم تحت بطاقته.",
+  "land.iso": "خلفيتك معزولة وخلفك صورة أو خريطة تملأ الإطار.",
+  "port.full": "أنت تملأ الإطار، والكتابة تحت اللحية.",
+  "port.half": "أنت مصغّر في الأعلى، والمصدر المعروض في النصف السفلي وتحته الكتابة.",
+  "port.iso": "خلفيتك معزولة وخلفك صورة أو خريطة تملأ الإطار.",
 };
-let grids = JSON.parse(JSON.stringify(DATA.grids)), notes = {}, o = "land", mode = "normal", sel = null, dirty = false, db = null;
+let grids = JSON.parse(JSON.stringify(DATA.grids)), notes = {}, o = "land", mode = "full", sel = null, dirty = false, db = null;
 try { const s = JSON.parse(localStorage.getItem("gridView") || "{}"); if (s.o) o = s.o; if (s.mode) mode = s.mode; } catch {}
 const ROOT_ = typeof __ROOT__ !== "undefined" ? __ROOT__ : document;   // the gallery mounts this page inside a shadow root
 const $ = (id) => ROOT_.getElementById(id);
@@ -125,18 +124,21 @@ const trim = (s, z) => {
   return (strips.length ? strips : c).sort((p, q) => area(q) - area(p))[0];
 };
 
+const MODE_GEOM = { land: { full: "normal", half: "source", iso: "normal" }, port: { full: "normal", half: "half", iso: "normal" } };   // geometry of each mode = the engine layout it stands for
 // ── where his recording and his face sit in each mode (mirrors src/MontageSpec.tsx + tools/lib/face_zone.mjs)
 function geometry() {
+  const mode = MODE_GEOM[o][window.__gridMode ?? "full"] ?? "normal";
   const Z = DATA.zone, fc = (Z[0] + Z[2]) / 2, map = (f) => { const a = f([Z[0], Z[1]]), b = f([Z[2], Z[3]]); return [a[0], a[1], b[0], b[1]]; };
   const vids = [], ph = [];
   if (o === "land") {
     if (mode === "normal") { vids.push({ box: [0, 0, 1920, 1080], vx: 0, vy: 0, vw: 1920, vh: 1080 }); return { vids, ph, zone: Z }; }
     if (mode === "half") { const dx = DATA.dx; ph.push({ r: [40, 120, 900, 960], t: "لوحة كبيرة (شجرة، قائمة)" }); vids.push({ box: [dx, 0, 1920, 1080], vx: 0, vy: 0, vw: 1920, vh: 1080 }); return { vids, ph, zone: map(([x, y]) => [x + dx, y]) }; }
     if (mode === "solo") { const s = DATA.soloScale, sx = Math.round(fc - 492), sw = 985 * s, sh = 1080 * s, left = 1920 - sw, top = (1080 - sh) / 2; vids.push({ box: [left, Math.max(0, top), 1920, Math.min(1080, top + sh)], vx: -sx * s, vy: Math.min(0, top), vw: 1920 * s, vh: sh }); return { vids, ph, zone: map(([x, y]) => [left + (x - sx) * s, top + y * s]) }; }
-    const k = 800 / 1080, B = 14, sx = Math.round(fc - 480), clipW = 900, cw = Math.round(clipW * k) + 2 * B, sw = Math.round(960 * k) + 2 * B, gap = 110, x0 = Math.round((1920 - (cw + sw + gap)) / 2), left = x0 + cw + gap + B, top = 60 + B;
-    ph.push({ r: [x0, 60, x0 + cw, 60 + 800 + 2 * B], t: "المقطع المردود عليه" });
-    vids.push({ box: [left - B, top - B, left + sw - B, top + 800 + B], vx: -sx * k + B, vy: B, vw: 1920 * k, vh: 800, card: true });
-    return { vids, ph, zone: map(([x, y]) => [left + (x - sx) * k, top + y * k]) };
+    // half screen = the dossier split layout (src/DebateLayouts.tsx DebateDossier): the source window left, his window [653,169]–[1882,860] at 0.64 of his frame
+    const k = 0.64, left = 653, top = 169;
+    ph.push({ r: [84, 186, 588, 843], t: "المصدر المعروض (مقطع، صفحة كتاب، خبر)" });
+    vids.push({ box: [left, top, left + 1920 * k, top + 1080 * k], vx: 0, vy: 0, vw: 1920 * k, vh: 1080 * k, card: true });
+    return { vids, ph, zone: map(([x, y]) => [left + x * k, top + y * k]) };
   }
   const K = 1920 / 1080, cx = DATA.cx, s = mode === "half" ? 0.66 : 1;
   const f = ([x, y]) => { const X = (x - (cx - 304)) * K, Y = y * K; return [540 + (X - 540) * s, Y * s]; };
@@ -147,6 +149,7 @@ function geometry() {
 }
 
 function render() {
+  window.__gridMode = mode;
   try { localStorage.setItem("gridView", JSON.stringify({ o, mode })); } catch {}
   const modes = Object.keys(grids[o]).filter((k) => grids[o][k]?.slots);
   if (!modes.includes(mode)) mode = modes[0];

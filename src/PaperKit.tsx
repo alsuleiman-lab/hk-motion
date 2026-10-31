@@ -82,7 +82,7 @@ export const TornNote: React.FC<{ at: number; until?: number; x: number; y: numb
 
 /** a title made of torn paper scraps, one word per scrap (Arabic letters keep their joins), each arriving in stop-motion with its own tilt and stock */
 /** without x it is centred across the width (user 2026-10-29); without y too it sits in the writing area: the third quarter of the height */
-export const WordScraps: React.FC<{ at: number; until?: number; x?: number; y?: number; text: string; size?: number; gap?: number }> = ({ at, until, x, y, text, size = 84, gap = 0.18 }) => {
+export const WordScraps: React.FC<{ at: number; until?: number; x?: number; y?: number; text: string; size?: number; gap?: number }> = ({ at, until, x, y, text, size = 50, gap = 0.18 }) => {
   const t = useStep(), f = useCurrentFrame(), { width, height } = useVideoConfig();
   const place: React.CSSProperties = x === undefined ? { left: 0, top: y ?? height * 0.5, width, ...(y === undefined ? { height: height * 0.25 } : {}), justifyContent: "center", boxSizing: "border-box", padding: `0 ${Math.round(width * 0.05)}px` } : { left: x, top: y ?? height * 0.5 };
   if (t < at || (until !== undefined && t > until + 0.3)) return null;

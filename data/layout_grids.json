@@ -1,10 +1,29 @@
 {
  "_page": "الشبكة تبويب في المعرض المحلي http://localhost:5601 (node tools/gallery_serve.mjs)؛ ما يحفظه المستخدم فيها يُكتب في data/gallery_grid_saved.json ويُطبَّق هنا.",
- "_": "شبكات المونتاج: لكل اتجاه ووضع شاشة خانات ثابتة [x0,y0,x1,y1]، ولكل خانة أنواع عناصرها. tools/grid_plan.mjs يحجز لكل عنصر خانة ووقتاً (لا عنصران في خانة واحدة في وقت واحد)، ويُسقط آلياً كل خانة تمسّ منطقة الوجه المحسوبة من تتبّع الوجه الحقيقي. exclusive = عنصر كبير يحجز منطقة المحتوى كلها في وقته. ignore = لا يحجز (سطر المصدر وشريط العنوان لهما حافة الإطار).",
+ "_": "شبكات المونتاج بثلاثة أوضاع (أمر المستخدم 2026-10-31): full = ملء الشاشة (هو كامل الإطار)، half = نصف الشاشة (مصدر معروض: مقطع أو صفحة كتاب أو خبر في نصف، وهو في النصف الآخر)، iso = عزل الخلفية (تُعزل خلفيته ويوضع خلفه شيء). لكل اتجاه ووضع خانات ثابتة [x0,y0,x1,y1] ولكل خانة أنواع عناصرها. tools/grid_plan.mjs يحجز لكل عنصر خانة ووقتاً ويُسقط آلياً كل خانة تمسّ منطقة الوجه. exclusive = عنصر كبير يحجز المحتوى كله في وقته. ignore = لا يحجز. source = المصدر المعروض نفسه (يملأ خانة اللوحة).",
  "kinds": {
-  "key": ["word", "blur", "torn"],
-  "photo": ["scholar", "pic", "crop", "flash", "news", "phone", "scene", "rewrite"],
-  "list": ["rows"],
+  "key": [
+   "word",
+   "blur",
+   "torn",
+   "scraps"
+  ],
+  "photo": [
+   "scholar",
+   "tphoto",
+   "clock",
+   "flag",
+   "pic",
+   "crop",
+   "flash",
+   "news",
+   "phone",
+   "scene",
+   "rewrite"
+  ],
+  "list": [
+   "rows"
+  ],
   "solo": [
    "nameTag",
    "subscribe"
@@ -16,35 +35,96 @@
    "timeline",
    "tree",
    "treefx",
-   "p2c"
+   "p2c",
+   "arc"
   ],
-  "ignore": ["credit", "mini", "cover"]
+  "ignore": [
+   "credit",
+   "mini",
+   "cover"
+  ],
+  "source": [
+   "book",
+   "clip"
+  ]
  },
  "port": {
   "W": 1080,
   "H": 1920,
-  "edge": [0, 1700, 1080, 1920],
-  "normal": {
+  "edge": [
+   0,
+   1700,
+   1080,
+   1920
+  ],
+  "full": {
    "slots": {
     "band": {
-     "rect": [40, 1312, 1040, 1696],
-     "kinds": ["key", "photo", "list", "solo"]
-    }
-   }
-  },
-  "source": {
-   "slots": {
-    "band": {
-     "rect": [30, 1302, 1030, 1686],
-     "kinds": ["key", "photo", "list", "solo"]
+     "rect": [
+      40,
+      1312,
+      1040,
+      1696
+     ],
+     "kinds": [
+      "key",
+      "photo",
+      "list",
+      "solo"
+     ]
     }
    }
   },
   "half": {
    "slots": {
     "panel": {
-     "rect": [40, 960, 1040, 1680],
-     "kinds": ["key", "photo", "list", "solo"]
+     "rect": [
+      40,
+      960,
+      1040,
+      1500
+     ],
+     "kinds": [
+      "source",
+      "photo"
+     ]
+    },
+    "under": {
+     "rect": [
+      40,
+      1520,
+      1040,
+      1690
+     ],
+     "kinds": [
+      "key"
+     ]
+    }
+   }
+  },
+  "iso": {
+   "slots": {
+    "back": {
+     "rect": [
+      0,
+      0,
+      1080,
+      1920
+     ],
+     "kinds": [
+      "exclusive"
+     ]
+    },
+    "band": {
+     "rect": [
+      40,
+      1312,
+      1040,
+      1696
+     ],
+     "kinds": [
+      "key"
+     ]
     }
    }
   }
@@ -52,54 +132,104 @@
  "land": {
   "W": 1920,
   "H": 1080,
-  "edge": [0, 990, 1920, 1080],
-  "normal": {
+  "edge": [
+   0,
+   990,
+   1920,
+   1080
+  ],
+  "full": {
    "slots": {
     "key": {
-     "rect": [300, 840, 1620, 985],
-     "kinds": ["key", "solo"]
+     "rect": [
+      300,
+      840,
+      1620,
+      985
+     ],
+     "kinds": [
+      "key",
+      "solo"
+     ]
     },
     "left": {
-     "rect": [40, 150, 640, 830],
-     "kinds": ["photo", "list"]
+     "rect": [
+      40,
+      150,
+      640,
+      830
+     ],
+     "kinds": [
+      "photo",
+      "list"
+     ]
     },
     "right": {
-     "rect": [1300, 150, 1880, 830],
-     "kinds": ["photo"]
-    }
-   }
-  },
-  "solo": {
-   "slots": {
-    "left": {
-     "rect": [40, 440, 960, 960],
-     "kinds": ["photo", "list"]
-    },
-    "key": {
-     "rect": [40, 70, 960, 395],
-     "kinds": ["key", "solo"]
-    }
-   }
-  },
-  "source": {
-   "slots": {
-    "key": {
-     "rect": [300, 880, 1620, 985],
-     "kinds": ["key", "solo"]
+     "rect": [
+      1300,
+      150,
+      1880,
+      830
+     ],
+     "kinds": [
+      "photo"
+     ]
     }
    }
   },
   "half": {
    "slots": {
-    "left": {
-     "rect": [40, 120, 900, 660],
-     "kinds": ["photo", "list"]
+    "panel": {
+     "rect": [
+      84,
+      186,
+      588,
+      843
+     ],
+     "kinds": [
+      "source",
+      "photo"
+     ]
+    },
+    "under": {
+     "rect": [
+      84,
+      858,
+      588,
+      985
+     ],
+     "kinds": [
+      "key"
+     ]
+    }
+   }
+  },
+  "iso": {
+   "slots": {
+    "back": {
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "kinds": [
+      "exclusive"
+     ]
     },
     "key": {
-     "rect": [40, 680, 900, 985],
-     "kinds": ["key", "solo"]
+     "rect": [
+      300,
+      840,
+      1620,
+      985
+     ],
+     "kinds": [
+      "key"
+     ]
     }
    }
   }
- }
+ },
+ "_half_land": "نصف الشاشة العرضي = تخطيط الملف DebateDossier: نافذة المصدر [84,186,588,843] (مائلة −5°) ونافذته [653,169,1882,860]؛ وجهه داخل نافذته = 653 + 0.64x ، 169 + 0.64y."
 }

@@ -5,7 +5,14 @@
     "kit": "PortraitKit",
     "group": "خلفيات",
     "where": "مثال: كلامه، ثم صورة ما يذكره تملأ الإطار بتقريب بطيء وإطار قلم على التفصيلة التي يسمّيها، ثم يعود تسجيله.",
-    "note": ""
+    "note": "",
+    "section": "bg",
+    "mode": "iso",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "BgKh",
@@ -13,7 +20,14 @@
     "kit": "KhKit",
     "group": "خلفيات",
     "where": "خلفية مزخرفة بديلة بنقش نجمي خافت.",
-    "note": ""
+    "note": "",
+    "section": "bg",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "both"
   },
   {
     "id": "BgPaperDark",
@@ -21,7 +35,14 @@
     "kit": "MG",
     "group": "خلفيات",
     "where": "خلفية ورقية داكنة لمشاهد الموشن الكاملة.",
-    "note": ""
+    "note": "",
+    "section": "bg",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "both"
   },
   {
     "id": "BgMashrabiya",
@@ -29,427 +50,776 @@
     "kit": "Backgrounds",
     "group": "خلفيات",
     "where": "نقش المشربية الدائري يعبره شعاع ضوء هادئ.",
-    "note": ""
+    "note": "",
+    "section": "bg",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "both"
   },
   {
     "id": "StatRow",
     "ar": "بطاقة البند",
     "kit": "EuKit",
-    "group": "نصوص مكتوبة",
+    "group": "البنود والقوائم",
     "where": "كل بند أو اسم أو رقم يعدّه الشيخ: بطاقة لكل بند في عمود واحد تحت شريط العنوان، في الجهة الخالية من إطاره، وتدخل عند كلمتها.",
-    "note": "الأيقونة يميناً، العبارة بكلماته، الرقم الكبير يعدّ صعوداً بوحدته، العلم عند ذكر بلد."
+    "note": "الأيقونة يميناً، العبارة بكلماته، الرقم الكبير يعدّ صعوداً بوحدته، العلم عند ذكر بلد.",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "VerseWords",
     "ar": "آية تُكتب كلمة كلمة (عرضي)",
     "kit": "MGExtras",
-    "group": "نصوص مكتوبة",
+    "group": "الآيات",
     "where": "كل آية يتلوها تُكتب في ثانية نطقها كلمة كلمة على بطاقة في الجانب الفارغ، بنص المصحف من قاعدة البيانات.",
-    "note": ""
+    "note": "",
+    "section": "text",
+    "mode": "half",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "land"
   },
   {
     "id": "ReelVerseFull",
     "ar": "آية بملء الشاشة (طولي)",
     "kit": "MGExtras",
-    "group": "نصوص مكتوبة",
+    "group": "الآيات",
     "where": "في الطولي تملأ الآية الشاشة وتُكتب كلمة كلمة وهو يتلوها، ويُخفى تسجيله مدة التلاوة.",
-    "note": ""
+    "note": "",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "port"
   },
   {
     "id": "PaperScene",
     "ar": "مشهد القصاصات",
     "kit": "PortraitKit",
-    "group": "ورقي وقصاصات",
+    "group": "القصاصات",
     "where": "بطاقة كرافت تنزلق عليها قصاصات أشخاص أو أشياء مذكورة واحدة بعد الأخرى بحركة إيقاف الحركة.",
-    "note": ""
+    "note": "",
+    "section": "image",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "BrowserFrame",
     "ar": "إطار المتصفح",
     "kit": "SourceFrames",
-    "group": "إطارات المصادر",
+    "group": "المصادر المعروضة",
     "where": "عند عرض موقع أو صفحة: إطار متصفح بلون الهوية، اسم الموقع في التبويب والرابط في شريط العنوان، والصفحة تنزل ببطء.",
     "note": "",
-    "still": 60
+    "still": 60,
+    "section": "image",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "VideoFrame",
     "ar": "إطار المقطع المعروض",
     "kit": "SourceFrames",
-    "group": "إطارات المصادر",
+    "group": "المصادر المعروضة",
     "where": "المقطع المردود عليه في إطار مشغّل: اسم القناة أعلاه، وخط تقدّم بلون التمييز والوقت أسفله.",
     "note": "",
-    "still": 60
+    "still": 60,
+    "section": "image",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "PostCard",
     "ar": "بطاقة المنشور",
     "kit": "SourceFrames",
-    "group": "إطارات المصادر",
+    "group": "المصادر المعروضة",
     "where": "اقتباس من حساب: الصورة والاسم والمعرّف والتاريخ، والكلمات التي يقف عندها تتظلل بلون التمييز واحدة بعد الأخرى.",
     "note": "",
-    "still": 60
+    "still": 60,
+    "section": "image",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "CommentCard",
     "ar": "بطاقة التعليق",
     "kit": "SourceFrames",
-    "group": "إطارات المصادر",
+    "group": "المصادر المعروضة",
     "where": "عند الرد على تعليق مشاهد: بطاقة التعليق ثم خط يدوي أحمر تحت الكلمات التي يقتبسها.",
     "note": "",
-    "still": 60
+    "still": 60,
+    "section": "image",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "BookPage",
     "ar": "صفحة الكتاب مع تظليل السطر",
     "kit": "SourceFrames",
-    "group": "إطارات المصادر",
+    "group": "المصادر المعروضة",
     "where": "عند النقل من كتاب أو وثيقة: الصفحة الحقيقية، وشريط بلون التمييز يمرّ على السطر المقروء وتعتم بقية الصفحة، ووسم المرجع يلتصق بالزاوية.",
     "note": "",
-    "still": 60
+    "still": 60,
+    "section": "image",
+    "mode": "half",
+    "slot": {
+      "land": "panel",
+      "port": "panel"
+    },
+    "orient": "both"
   },
   {
     "id": "CitationTag",
     "ar": "وسم المرجع",
     "kit": "SourceFrames",
-    "group": "إطارات المصادر",
+    "group": "الهوية الثابتة",
     "where": "اسم الكتاب والجزء والصفحة على وسم صغير بدبوس يتأرجح عند زاوية المصدر.",
     "note": "",
-    "still": 60
+    "still": 60,
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "NewsClip",
     "ar": "قصاصة صحيفة",
     "kit": "PaperKit",
-    "group": "ورقي وقصاصات",
+    "group": "المصادر المعروضة",
     "where": "للخبر: لقطة الخبر الحقيقية مقصوصة بحافة ممزقة، العنوان فوقها والمصدر تحتها، مثبتة بشريط لاصق، تدخل بحركة إيقاف الحركة.",
     "note": "",
-    "still": 60
+    "still": 60,
+    "section": "image",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "TornNote",
     "ar": "ملاحظة ممزقة",
     "kit": "PaperKit",
-    "group": "ورقي وقصاصات",
+    "group": "العبارات والكلمات",
     "where": "للعبارة المهمة: شريط ورق ممزق الطرفين بخط زين، وكلمة يخطّ تحتها خط أحمر باليد.",
     "note": "",
-    "still": 60
+    "still": 60,
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "WordScraps",
     "ar": "عنوان من قصاصات",
     "kit": "PaperKit",
-    "group": "ورقي وقصاصات",
+    "group": "العبارات والكلمات",
     "where": "لعنوان قسم: كل كلمة على قصاصة ممزقة بلون مختلف من الهوية، تصل واحدة بعد الأخرى بإيقاف الحركة.",
     "note": "",
-    "still": 60
+    "still": 60,
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "TornPhoto",
     "ar": "صورة بحافة ممزقة",
     "kit": "PaperKit",
-    "group": "ورقي وقصاصات",
+    "group": "الأشخاص والأماكن",
     "where": "صورة العالم أو المكان المذكور بإطار أبيض ممزق وشريط لاصق والاسم تحتها.",
     "note": "",
-    "still": 60
+    "still": 60,
+    "section": "image",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "PaperGrain",
     "ar": "ملمس الورق",
     "kit": "PaperKit",
-    "group": "ورقي وقصاصات",
+    "group": "طبقات",
     "where": "طبقة حبيبات ورق خفيفة فوق المشاهد الورقية لتبدو القصاصات والبطاقات مادة واحدة.",
     "note": "",
-    "still": 60
+    "still": 60,
+    "section": "bg",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "both"
   },
   {
     "id": "Stamp",
     "ar": "ختم الخلاصة",
     "kit": "MG",
-    "group": "نصوص مكتوبة",
+    "group": "البنود والقوائم",
     "where": "تحت عمود البطاقات عند الخلاصة العاطفية («والشعوب تغلي»).",
-    "note": "خلفية كريمية شبه معتمة ليُقرأ فوق الفيديو."
+    "note": "خلفية كريمية شبه معتمة ليُقرأ فوق الفيديو.",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "Sources",
     "ar": "شريط المصدر",
     "kit": "EuKit",
-    "group": "نصوص مكتوبة",
+    "group": "الهوية الثابتة",
     "where": "أسفل جهة الكتابة طوال الحديث عن خبر أو رقم: رابط المصدر المكتوب.",
-    "note": "الشريط الأبيض على قدّ نصه فقط."
+    "note": "الشريط الأبيض على قدّ نصه فقط.",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "BlurRise",
     "ar": "الظهور من الضبابية",
     "kit": "MG",
-    "group": "نصوص مكتوبة",
+    "group": "كلام الخصم",
     "where": "العبارة المفتاحية الواحدة أسفل اللحية، كلمة كلمة عند نطقها.",
-    "note": "خط Zain بحجم 100 وحدّ أسود، بلا صندوق."
+    "note": "خط Zain بحجم 100 وحدّ أسود، بلا صندوق.",
+    "section": "text",
+    "mode": "half",
+    "slot": {
+      "land": "under",
+      "port": "under"
+    },
+    "orient": "both"
   },
   {
     "id": "TypeBox",
     "ar": "صندوق الكتابة",
     "kit": "MG",
-    "group": "نصوص مكتوبة",
+    "group": "الاقتباس والسؤال",
     "where": "الجملة المقتبسة أو الآية أو السؤال تُكتب حرفاً حرفاً.",
-    "note": "لا صندوق «الفكرة»: تُكتب في موضع «اقتباس» بلون كريمي واضح."
+    "note": "لا صندوق «الفكرة»: تُكتب في موضع «اقتباس» بلون كريمي واضح.",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "right",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "TimelineCounter",
     "ar": "العدّاد والخط الزمني",
     "kit": "MG",
-    "group": "أرقام وزمن",
+    "group": "الأرقام والزمن",
     "where": "الأرقام المتغيرة والتواريخ والأعمار والمراحل، في النصف السفلي فوق التعتيم.",
-    "note": "أرقام إنجليزية في بطاقة، والخط على شريط كريمي بنقاط داكنة للتباين."
+    "note": "أرقام إنجليزية في بطاقة، والخط على شريط كريمي بنقاط داكنة للتباين.",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "GlowCounter",
     "ar": "عدّاد البطاقة",
     "kit": "MG",
-    "group": "أرقام وزمن",
+    "group": "الأرقام والزمن",
     "where": "رقم يمرّ بقيم وسيطة (4 ← 23 ← 36).",
-    "note": "الرقم بلون التمييز داخل بطاقة ورقية كبطاقة البند."
+    "note": "الرقم بلون التمييز داخل بطاقة ورقية كبطاقة البند.",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "TimelineTravel",
     "ar": "السفر على خط زمني",
     "kit": "MG",
-    "group": "أرقام وزمن",
+    "group": "الزمن والمراحل",
     "where": "سيرة شخص أو مراحل تاريخية على امتداد الفيديو؛ يظهر في النصف السفلي عند بلوغ كل مرحلة.",
-    "note": ""
+    "note": "",
+    "section": "move",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "Clock",
     "ar": "ساعة",
     "kit": "MG",
-    "group": "أرقام وزمن",
+    "group": "الأرقام والزمن",
     "where": "مدة أو وقت («24 ساعة») داخل بولارويد أو بطاقة.",
     "note": "",
-    "still": 24
+    "still": 24,
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "Bars",
     "ar": "أعمدة تنمو",
     "kit": "MG",
-    "group": "أرقام وزمن",
+    "group": "الأرقام والزمن",
     "where": "مقارنة كميات بسيطة.",
-    "note": "ألوان فاتحة عالية التباين (كريمي، أزرق فاتح، علامة)."
+    "note": "ألوان فاتحة عالية التباين (كريمي، أزرق فاتح، علامة).",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "SakugaMove",
     "ar": "مشي المصدر",
     "kit": "MG",
-    "group": "أشخاص ومصادر",
+    "group": "عرض الصورة",
     "where": "صورة من يرد عليه («هذا الشخص») أو مصدر مصوّر يبقى أكثر من 10 ثوانٍ.",
-    "note": "البطاقة بشكل الصورة المثبّتة بشريط (إطار ورقي بزوايا منحنية)، واسم اختياري تحتها."
+    "note": "البطاقة بشكل الصورة المثبّتة بشريط (إطار ورقي بزوايا منحنية)، واسم اختياري تحتها.",
+    "section": "move",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "SpotlightCard",
     "ar": "الكشّاف على المصدر",
     "kit": "MG",
-    "group": "أشخاص ومصادر",
+    "group": "عرض الصورة",
     "where": "عرض مصدر مكتوب (صفحة كتاب أو صحيفة): تُعتّم الصفحة ويقفز ضوء على السطر.",
-    "note": ""
+    "note": "",
+    "section": "move",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "FlashCut",
     "ar": "ومضات التقريب",
     "kit": "MG",
-    "group": "أشخاص ومصادر",
+    "group": "عرض الصورة",
     "where": "صفحة ← العنوان ← السطر أو الرقم بقطعات تقريب متتابعة.",
-    "note": ""
+    "note": "",
+    "section": "move",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "both"
   },
   {
     "id": "PinnedPhoto",
     "ar": "صورة مثبّتة بشريط",
     "kit": "MG",
-    "group": "أشخاص ومصادر",
+    "group": "الأشخاص والأماكن",
     "where": "صورة شخص أو عالِم يُذكر أو يُستشهد به (وبها حلّت محل بولارويد العالِم وبطاقة الشخص وبطاقة المقتطف)، الاسم تحت الصورة لا فوق الوجه، في الجهة الخالية من إطاره.",
-    "note": "هوامش حول الاسم والسطر الصغير، والزوايا منحنية."
+    "note": "هوامش حول الاسم والسطر الصغير، والزوايا منحنية.",
+    "section": "image",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "PhoneChips",
     "ar": "الجوال والفقاعات",
     "kit": "MG",
-    "group": "أشخاص ومصادر",
+    "group": "عرض الصورة",
     "where": "الجوال لأي شيء يُعرض على جوال، ولا سيما **المقاطع الطولية التي يعرضها الشيخ ليردّ عليها**، ورده القصير.",
-    "note": "كل عبارات الفقاعات على يسار الجوال. الحلقات اختيارية وإيقافها الافتراضي."
+    "note": "كل عبارات الفقاعات على يسار الجوال. الحلقات اختيارية وإيقافها الافتراضي.",
+    "section": "move",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "port"
   },
   {
     "id": "ConvergeMerge",
     "ar": "التقاء المصادر",
     "kit": "MG",
-    "group": "تدفق وتحويل",
+    "group": "التدفق والربط",
     "where": "عدة مصادر تلتقي في نتيجة واحدة: كل مصدر يظهر عند ذكره ويهتز، ثم تجمعها أنابيب غليظة في صندوق النتيجة.",
-    "note": "الأنابيب تبدأ من المصادر بلا ذيل قبلها؛ صندوق النتيجة بحدّ كريمي."
+    "note": "الأنابيب تبدأ من المصادر بلا ذيل قبلها؛ صندوق النتيجة بحدّ كريمي.",
+    "section": "move",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "PanelToCanvas",
     "ar": "من القائمة إلى اللوحة",
     "kit": "MG",
-    "group": "تدفق وتحويل",
+    "group": "التدفق والربط",
     "where": "اختيار عناصر من قائمة (على اليمين) تطير إلى لوحة.",
-    "note": "اللوحة كحلية والصفوف بطاقات ورقية والزر بلون التمييز، كبطاقة البند."
+    "note": "اللوحة كحلية والصفوف بطاقات ورقية والزر بلون التمييز، كبطاقة البند.",
+    "section": "move",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "NoteCard",
     "ar": "ورقة ملاحظة",
     "kit": "MG",
-    "group": "ورقي وقصاصات",
+    "group": "البنود والقوائم",
     "where": "ملاحظة ورقية بتسمية صغيرة وعنوان يُكتب.",
-    "note": ""
+    "note": "",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "CollageAssemble",
     "ar": "قصاصات ورقية",
     "kit": "MG",
-    "group": "ورقي وقصاصات",
+    "group": "القصاصات",
     "where": "مفهوم مجرد أو شيء ذُكر ولا مقطع له: قطع ورقية تدخل بحركة إيقاف الحركة عند نطق الفكرة.",
-    "note": "الاختيار بيد كلود (مهارة collage-selection)."
+    "note": "الاختيار بيد كلود (مهارة collage-selection).",
+    "section": "move",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "Strike",
     "ar": "شطب",
     "kit": "MG",
-    "group": "علامات وتمييز",
+    "group": "علامات على النص",
     "where": "تحت كلمة أو سطر خاطئ يُشطب.",
-    "note": ""
+    "note": "",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "BrushX",
     "ar": "شطب بفرشاة حمراء",
     "kit": "MG",
-    "group": "علامات وتمييز",
+    "group": "علامات على الصور",
     "where": "علامة X حمراء تُوضع حيث نريد (على صورة أو نص) لما يُنكر أو يُرفض؛ بديل دائرة الإنكار.",
-    "note": ""
+    "note": "",
+    "section": "image",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "EllipseMark",
     "ar": "بيضوي ذهبي (للتمييز)",
     "kit": "MG",
-    "group": "علامات وتمييز",
+    "group": "علامات على النص",
     "where": "حول عبارة أو شيء يحتاج تمييزاً؛ حلّ محل الدائرة اليدوية.",
-    "note": ""
+    "note": "",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "Marker",
     "ar": "إطار قلم أحمر",
     "kit": "PortraitKit",
-    "group": "علامات وتمييز",
+    "group": "علامات على الصور",
     "where": "فوق جزء من بطاقة مصدر، بإحداثيات نسبية.",
-    "note": ""
+    "note": "",
+    "section": "image",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "TiltNote",
     "ar": "ملاحظة مائلة",
     "kit": "MG",
-    "group": "علامات وتمييز",
+    "group": "البنود والقوائم",
     "where": "نداء أو تلميح صغير تحت رسم.",
-    "note": ""
+    "note": "",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "RewriteWindow",
     "ar": "نافذة التحسين",
     "kit": "MG",
-    "group": "علامات وتمييز",
+    "group": "البنود والقوائم",
     "where": "من كذا إلى كذا: العبارة القديمة تُشطب والجديدة تُكتب.",
-    "note": "في الثلث السفلي تحت اللحية في الطولي."
+    "note": "في الثلث السفلي تحت اللحية في الطولي.",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "Word",
     "ar": "الكلمة المفتاحية",
     "kit": "PortraitKit",
-    "group": "علامات وتمييز",
+    "group": "العبارات والكلمات",
     "where": "كلمة بلا صندوق بنص أبيض بحدّ داكن وخط فرشاة.",
-    "note": "خط Zain افتراضياً."
+    "note": "خط Zain افتراضياً.",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "CornerTags",
     "ar": "وسما الزاويتين",
     "kit": "MG",
-    "group": "علامات وتمييز",
+    "group": "الهوية الثابتة",
     "where": "هوية دائمة: الموضوع يميناً واسم المتحدث يساراً.",
-    "note": ""
+    "note": "",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "both"
   },
   {
     "id": "GlowCaption",
     "ar": "كابشن متوهج",
     "kit": "MG",
-    "group": "علامات وتمييز",
+    "group": "العبارات والكلمات",
     "where": "كلمة كلمة فوق الفيديو في الشريط السفلي أو الجانبين.",
-    "note": ""
+    "note": "",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "key",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "DashArc",
     "ar": "قوس منقّط",
     "kit": "MG",
-    "group": "علامات وتمييز",
+    "group": "التدفق والربط",
     "where": "يصل بين صورتين مثبّتتين عند ذكر علاقة بين شخصين (الأول على اليمين). استعمله كلما ربط الشيخ بين اثنين.",
-    "note": "ترتيب الصور من اليمين لليسار حسب ورودهما في الكلام."
-  },
-  {
-    "id": "DimLayer",
-    "ar": "التعتيم",
-    "kit": "MG",
-    "group": "انتقالات وطبقات",
-    "where": "تحت أي رسم يحتاج وضوحاً: يعتّم المصدر أو الخلفية ولا يغطي وجهه.",
-    "note": ""
+    "note": "ترتيب الصور من اليمين لليسار حسب ورودهما في الكلام.",
+    "section": "move",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "MapRoute",
     "ar": "خريطة المسار",
     "kit": "PortraitKit",
-    "group": "خرائط وورقي",
+    "group": "الخرائط",
     "where": "عند الانتقال بين بلاد أو مدن.",
-    "note": ""
+    "note": "",
+    "section": "image",
+    "mode": "iso",
+    "slot": {
+      "land": "back",
+      "port": "back"
+    },
+    "orient": "both"
   },
   {
     "id": "PaperMap",
     "ar": "خريطة ورقية",
     "kit": "PortraitKit",
-    "group": "خرائط وورقي",
+    "group": "الخرائط",
     "where": "سيارة بين مدينتين بإيقاف الحركة.",
-    "note": ""
+    "note": "",
+    "section": "image",
+    "mode": "iso",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "HandheldShake",
     "ar": "اهتزاز كاميرا اليد",
     "kit": "MG",
-    "group": "انتقالات وطبقات",
+    "group": "حركات الكاميرا",
     "where": "يلفّ لقطة الشيخ ويهزّها كاميرا محمولة باليد **فقط** أثناء الجملة الاعتراضية أو التهكمية (تُحدَّد من السياق)؛ لا اهتزاز مستمر ولا للتأكيد على جملة حاسمة.",
-    "note": "الصورة أثر الاهتزاز: أربعة إطارات متراكبة من اللقطة نفسها. يُراجع كل ما فيه rotate قبل العرض."
+    "note": "الصورة أثر الاهتزاز: أربعة إطارات متراكبة من اللقطة نفسها. يُراجع كل ما فيه rotate قبل العرض.",
+    "section": "transition",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "both"
   },
   {
     "id": "TitleBar",
     "ar": "شريط عنوان الحلقة",
     "kit": "TitleBar",
-    "group": "عناصر المونتاج الثابتة",
+    "group": "الهوية الثابتة",
     "where": "طوال الفيديو: العرضي أسفل اليمين، والطولي أسفل الشاشة بنصف عرضها.",
-    "note": "العنوان سطر واحد مع الوقت."
+    "note": "العنوان سطر واحد مع الوقت.",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "both"
   },
   {
     "id": "Subscribe",
     "ar": "تذكير الاشتراك",
     "kit": "EuKit",
-    "group": "عناصر المونتاج الثابتة",
+    "group": "الهوية الثابتة",
     "where": "نحو كل 5 دقائق، في الجهة الخالية من إطاره.",
-    "note": "الجرس يهتز عند الدخول."
+    "note": "الجرس يهتز عند الدخول.",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "PhotoFrame",
     "ar": "صورة بإطار تدخل جرياً",
     "kit": "MontageSpec",
-    "group": "عناصر المونتاج الثابتة",
+    "group": "الأشخاص والأماكن",
     "where": "صورة خبر أو مكان عند ذكره: العمود الأيسر في العرضي، وتحت اللحية في الطولي.",
-    "note": "إطار كريمي، تدخل من الحافة وتتوقف بارتداد."
+    "note": "إطار كريمي، تدخل من الحافة وتتوقف بارتداد.",
+    "section": "image",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
   },
   {
     "id": "PopCard",
     "ar": "ظهور البطاقة بنابض",
     "kit": "PortraitKit",
-    "group": "عناصر المونتاج الثابتة",
+    "group": "الأشخاص والأماكن",
     "where": "غلاف حركة لأي بطاقة لا تدخل جرياً (مثل قصاصة المصدر).",
-    "note": ""
+    "note": "",
+    "section": "image",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "DebateDossier",
@@ -457,7 +827,14 @@
     "kit": "DebateLayouts",
     "group": "نماذج الرد",
     "where": "العرضي، مدة المقطع المردود عليه: ورقة ملف خلف نافذتين 4:3 كصورتين مائلتين، شريط لاصق وختم ON RECORD و«ملف النقاش». splits[].layout = \"dossier\".",
-    "note": ""
+    "note": "",
+    "section": "image",
+    "mode": "half",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "land"
   },
   {
     "id": "DebateBlocks",
@@ -465,55 +842,119 @@
     "kit": "DebateLayouts",
     "group": "نماذج الرد",
     "where": "العرضي، مدة المقطع المردود عليه: خلفية مقسومة قطرياً ونافذتان 4:3 بزوايا ورقية وإطار سميك، والعنوان أسفل يميناً. splits[].layout = \"blocks\".",
-    "note": ""
+    "note": "",
+    "section": "image",
+    "mode": "half",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "land"
   },
   {
     "id": "Curtain",
     "ar": "الستارة بين التخطيطين",
     "kit": "MontageSpec",
-    "group": "عناصر المونتاج الثابتة",
+    "group": "بين الأوضاع",
     "where": "عند الانتقال بين بطاقتي نصف الشاشة وإطاره الكامل (العرضي).",
-    "note": "لوح مزخرف يعبر من اليمين إلى اليسار."
+    "note": "لوح مزخرف يعبر من اليمين إلى اليسار.",
+    "section": "transition",
+    "mode": "half",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "land"
   },
   {
     "id": "TailVoice",
     "ar": "بطاقة الرسالة الصوتية الختامية",
     "kit": "MontageSpec",
-    "group": "عناصر المونتاج الثابتة",
+    "group": "نهاية الفيديو",
     "where": "بعد فيديو الشيخ حين تُضاف رسالة صوتية: بطاقة كبيرة بموجة صوت وصور تتبدّل كل 4 ثوانٍ.",
-    "note": ""
+    "note": "",
+    "section": "image",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "both"
   },
   {
     "id": "PaperCover",
     "ar": "الغلاف الورقي",
     "kit": "CoverKit",
-    "group": "عناصر المونتاج الثابتة",
+    "group": "افتتاح الفيديو",
     "where": "أول 3 إطارات ثم يتمزق الورق حتى الإطار 51.",
     "note": "الغلاف الافتراضي.",
-    "still": 2
+    "still": 2,
+    "section": "transition",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "PushIn",
     "ar": "تقريب الوجه",
     "kit": "MontageSpec",
-    "group": "عناصر المونتاج الثابتة",
+    "group": "حركات الكاميرا",
     "where": "مرة في كل نافذة 3 دقائق عند كلام مهم: تقريب ناعم نحو وجهه.",
-    "note": "حركة كاميرا، لا عنصر مرسوم."
+    "note": "حركة كاميرا، لا عنصر مرسوم.",
+    "section": "transition",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "NameCard1",
     "ar": "بطاقة الاسم 1: بطاقة ورقية بحافة ملوّنة",
     "kit": "NameCards",
-    "group": "بطاقات الاسم",
+    "group": "الهوية الثابتة",
     "where": "شارة اسم الشيخ في المونتاج (الافتراضية): تحت خط الذقن نحو كل 3 دقائق.",
-    "note": "من عائلة بطاقة البند: ورق فاتح وحافة بلون التمييز يميناً."
+    "note": "من عائلة بطاقة البند: ورق فاتح وحافة بلون التمييز يميناً.",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
   },
   {
     "id": "NameCard3",
     "ar": "بطاقة الاسم 3: ملصق بشريط لاصق",
     "kit": "NameCards",
-    "group": "بطاقات الاسم",
+    "group": "الهوية الثابتة",
     "where": "بديل شارة الاسم (style: \"pinned\" في ملف المونتاج).",
-    "note": "من عائلة الصورة المثبّتة: ورق كريمي وشريط أصفر وميل خفيف."
+    "note": "من عائلة الصورة المثبّتة: ورق كريمي وشريط أصفر وميل خفيف.",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "both"
+  },
+  {
+    "id": "TrSection",
+    "ar": "بطاقة القسم",
+    "kit": "Transitions",
+    "group": "بين الفصول",
+    "where": "عند الانتقال إلى فصل جديد وتغيير الموضوع: الخلفية المزخرفة تصعد وعليها عنوان القسم الجديد ثم ترتفع عن المشهد التالي؛ مرة كل 3 دقائق على الأقل.",
+    "note": "",
+    "section": "transition",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "both"
   }
 ]

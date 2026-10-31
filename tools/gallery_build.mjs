@@ -70,36 +70,22 @@ const elements = lab.filter((m) => !tIds.has(m.id)).map((m) => ({
   id: m.id, kind: "element", ar: m.ar, kit: m.kit, group: m.group, where: m.where, note: m.note ?? "", still: m.still ?? 72,
   code: /^NameCard\d+$/.test(m.id) ? `<${m.id} at={0.2} x={960} y={880} />   // src/NameCards.tsx` : cut("src/ElementsLab.tsx", m.id),
 }));
-for (const t of transitions) { const m = lab.find((x) => x.id === t.id); if (m?.note) t.note = m.note; }
-// sections (user 2026-10-30): 1 backgrounds · 2 transitions (scene↔scene) · 3 motion styles (an element whose character is its movement, text or not) · 4 text/number elements · 5 picture/source elements · 6 the grid
-const IN = (s) => new Set(s.split(/\s+/));
-const BG = IN("BgFullImage BgKh BgPaperDark BgMashrabiya PaperGrain");
-const MOVES = IN("PushIn HandheldShake FlashCut SakugaMove SpotlightCard TimelineTravel ConvergeMerge PanelToCanvas DashArc CollageAssemble DimLayer PhoneChips");
-const IMAGES = IN("PaperScene BrowserFrame VideoFrame PostCard CommentCard BookPage NewsClip TornPhoto PinnedPhoto MapRoute PaperMap PhotoFrame PopCard TailVoice DebateDossier DebateBlocks");
-const SECTION_OF = (it) => (BG.has(it.id) ? "bg" : it.kind === "transition" || ["Curtain", "PaperCover"].includes(it.id) ? "transition" : MOVES.has(it.id) ? "move" : IMAGES.has(it.id) ? "image" : "text");
-// where each kind of the grid (data/layout_grids.json "kinds") is drawn by which gallery elements (approximate: one kind covers several)
+// every element's section, group (the text elements are split by role), screen mode, grid slot per orientation and orientations come from
+// data/elements_lab.json (user 2026-10-31: three modes full / half / iso, each with its grid; the gallery split into landscape and portrait)
+const META = Object.fromEntries(lab.map((m) => [m.id, m]));
+for (const t of transitions) { const m = META[t.id]; if (m?.note) t.note = m.note; }
+const IN = (s) => new Set(s.split(/s+/));
+// which gallery elements each kind of the grid (data/layout_grids.json "kinds") stands for — names shown inside the slots of the grid tab
 const KIND_ELEMENTS = {
-  key: IN("Word BlurRise GlowCaption TornNote WordScraps TypeBox"),
-  photo: IN("PinnedPhoto PopCard TornPhoto NewsClip FlashCut PhoneChips PaperScene RewriteWindow BrowserFrame PostCard CommentCard BookPage PhotoFrame VideoFrame"),
-  list: IN("StatRow"), solo: IN("NameCard1 NameCard3 Subscribe"),
-  exclusive: IN("VerseWords ReelVerseFull MapRoute PaperMap TimelineTravel PanelToCanvas"),
-  ignore: IN("Sources CitationTag PaperCover"),
+  key: IN("Word BlurRise GlowCaption TornNote WordScraps TypeBox TimelineCounter"),
+  photo: IN("PinnedPhoto PopCard TornPhoto NewsClip PhotoFrame Clock RewriteWindow BrowserFrame PostCard CommentCard VideoFrame SakugaMove SpotlightCard CollageAssemble BrushX Marker NoteCard TiltNote Stamp GlowCounter Bars Strike EllipseMark CitationTag"),
+  list: IN("StatRow"), solo: IN("NameCard1 NameCard3 Subscribe"), source: IN("BookPage"),
+  exclusive: IN("VerseWords ReelVerseFull MapRoute PaperMap BgFullImage TimelineTravel PanelToCanvas DashArc"),
+  ignore: IN("Sources PaperCover TitleBar CornerTags"),
 };
-const GRIDS = JSON.parse(fs.readFileSync("data/layout_grids.json", "utf8"));
-const MODE_AR = { normal: "عادي", source: "مصدر معروض", solo: "أنا وحدي", half: "نصف الشاشة" }, OR_AR = { land: "عرضي", port: "طولي" };
-const placesOf = (id) => {
-  const ks = Object.keys(KIND_ELEMENTS).filter((k) => KIND_ELEMENTS[k].has(id));
-  if (!ks.length) return "";
-  if (ks.includes("exclusive")) return "تحجز المحتوى كله في وقتها (لا عنصر معها).";
-  if (ks.includes("ignore")) return "على حافة الإطار، لا تحجز خانة.";
-  const out = [];
-  for (const o of ["land", "port"]) for (const m of Object.keys(MODE_AR)) {
-    const slots = Object.entries(GRIDS[o]?.[m]?.slots ?? {}).filter(([, s]) => s.kinds.some((k) => ks.includes(k))).map(([n]) => n);
-    if (slots.length) out.push(`${OR_AR[o]}/${MODE_AR[m]}: ${slots.join("، ")}`);
-  }
-  return out.join(" · ");
-};
-const items = [...elements, ...transitions].map((it) => ({ ...it, section: SECTION_OF(it), places: placesOf(it.id) }));
+const items = [...elements, ...transitions].map((it) => { const m = META[it.id] ?? {}; return { ...it, section: m.section ?? (it.kind === "transition" ? "transition" : "text"), group: m.group ?? it.group, mode: m.mode ?? "full", slot: m.slot ?? { land: "frame", port: "frame" }, orient: m.orient ?? "both" }; });
+const missing = items.filter((it) => !META[it.id]).map((it) => it.id);
+if (missing.length) console.log("⚠ لا بيانات وضع/خانة في data/elements_lab.json لـ: " + missing.join(" "));
 
 // the grid page (tools/grid_page.mjs) embedded as the 6th tab: css / body / script split from tools/grid_page.html, data from its build
 // the grid tab and the face zone drawn in each card's grid mode come from the gallery's real frame (his silent recording, src/galleryCut.ts)
@@ -130,7 +116,11 @@ pre.code{margin:0;max-height:220px;overflow:auto;background:var(--bg);border:1px
 #conn{margin:-10px 0 18px;font-size:14px;font-weight:700;padding:6px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--drop)}#conn[data-ok="1"]{color:var(--keep)}
 textarea.when{width:100%;box-sizing:border-box;min-height:64px;font:inherit;font-size:14px;line-height:1.55;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);resize:vertical;margin-top:4px}.whenlbl{display:block;font-size:13px;font-weight:700;color:var(--mute)}.card.flash{box-shadow:0 0 0 4px var(--accent)}
 footer{margin-top:28px;color:var(--mute);font-size:13px}
-.gridbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 14px 0}.gridbar .code-btn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}.gridlayer{position:absolute;inset:0;cursor:grab;touch-action:none;outline:3px solid var(--accent)}.gridlayer:active{cursor:grabbing}.gridlayer .slot{position:absolute;box-sizing:border-box;border:2px dashed rgba(255,255,255,.85);background:rgba(80,160,255,.16);color:#fff;font-size:13px;display:flex;flex-direction:column;padding:4px 8px;pointer-events:none;direction:rtl}.gridlayer .slot.hot{background:rgba(255,200,60,.35);border-color:#ffc83c}.gridlayer .slot i{font-style:normal;opacity:.8;font-size:11px}.gridlayer b{background:none;color:#fff;padding:0;font-size:13px}.gridlayer .face{position:absolute;box-sizing:border-box;border:2px solid #ff4d4d;background:rgba(255,60,60,.14);color:#fff;font-size:13px;padding:3px 6px;pointer-events:none;direction:rtl}.palette-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);margin:0 0 10px;padding-block:10px;border-bottom:1px solid var(--line);font-weight:700}`;
+.gridbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 14px 0}.gridbar .code-btn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}.gridlayer{position:absolute;inset:0;cursor:grab;touch-action:none;outline:3px solid var(--accent)}.gridlayer:active{cursor:grabbing}.gridlayer .slot{position:absolute;box-sizing:border-box;border:2px dashed rgba(255,255,255,.85);background:rgba(80,160,255,.16);color:#fff;font-size:13px;display:flex;flex-direction:column;padding:4px 8px;pointer-events:none;direction:rtl}.gridlayer .slot.hot{background:rgba(255,200,60,.35);border-color:#ffc83c}.gridlayer .slot i{font-style:normal;opacity:.8;font-size:11px}.gridlayer b{background:none;color:#fff;padding:0;font-size:13px}.gridlayer .face{position:absolute;box-sizing:border-box;border:2px solid #ff4d4d;background:rgba(255,60,60,.14);color:#fff;font-size:13px;padding:3px 6px;pointer-events:none;direction:rtl}.orient{display:flex;gap:10px;margin:8px 0 6px}.orient button{font:inherit;font-family:var(--f-title);font-size:20px;font-weight:800;border:2px solid var(--line);background:var(--panel);color:var(--ink);padding:10px 26px;border-radius:14px;cursor:pointer;display:flex;align-items:center;gap:10px}.orient button[aria-selected="true"]{border-color:var(--accent);background:var(--accent);color:var(--on-accent)}.orient .shape{display:inline-block;border:2.5px solid currentColor;border-radius:3px}.orient .shape.land{width:24px;height:14px}.orient .shape.port{width:14px;height:24px}
+.group{margin:22px 0 6px}.group h3{font-family:var(--f-title);font-size:22px;margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line);display:flex;gap:10px;align-items:baseline}.group h3 small{font-size:14px;color:var(--mute);font-weight:700}
+.grid.port{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}.stage.port{max-width:420px;margin:0 auto}
+.mode{display:inline-block;font-size:12.5px;font-weight:800;padding:3px 10px;border-radius:999px;border:1.5px solid}.mode.m-full{color:#2f6fb3;border-color:#2f6fb3}.mode.m-half{color:#b06a12;border-color:#b06a12}.mode.m-iso{color:#2f8a62;border-color:#2f8a62}.legend{display:flex;gap:6px;flex-wrap:wrap}
+.gridlayer .slot.cur{border-style:solid;border-color:#7dffb0}.palette-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);margin:0 0 10px;padding-block:10px;border-bottom:1px solid var(--line);font-weight:700}`;
 const data = JSON.stringify({ items, grid, built: new Date().toISOString().slice(0, 16).replace("T", " ") }).replace(/</g, "\\u003c");
 const html = `<title>معرض عناصر المونتاج</title>
 <meta name="claude:viewport-fit-sides" content="cover">

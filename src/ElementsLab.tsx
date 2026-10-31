@@ -116,7 +116,8 @@ const E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   NoteCard: { node: <NoteCard at={0.1} x={660} y={220} w={600} h={520} label="NOTE 01" tag="ملاحظة" title="عنوان الملاحظة" lines={4} /> },
   CollageAssemble: { node: <div style={{ position: "absolute", left: 360, top: 140, width: 1200, height: 800 }}><CollageAssemble at={0.1} bg="transparent" w={1200} h={800} pieces={[{ at: 0.2, x: 80, y: 120, w: 300, h: 380, rot: -4, from: "left", color: "#2f5a8a" }, { at: 0.6, x: 460, y: 200, w: 380, h: 260, rot: 3, from: "top", color: "#f4efe3", halftone: true }, { at: 1.0, x: 840, y: 360, w: 280, h: 330, rot: -2, from: "right", color: "#b8432f" }]} /></div> },
   Strike: { node: <><div style={{ position: "absolute", left: 640, top: 420, width: 640, textAlign: "center", fontFamily: kufiF, fontSize: 90, color: "#fff" }}>كلمة خاطئة</div><Strike at={0.1} x={640} y={480} w={640} /></> },
-  BrushX: { node: <><div style={{ position: "absolute", left: 700, top: 240, width: 520, height: 600, borderRadius: 24, overflow: "hidden" }}><Real src="people/azharCourt.jpg" /></div><BrushX at={0.1} x={680} y={230} w={560} h={620} /></> },
+  // the picture in the torn white frame of the person photo, the red X over it (user 2026-10-31: «اجعل له إطاراً مقطّعاً كإطار صورة الشخص»)
+  BrushX: { node: <><TornPhoto at={0.05} x={700} y={240} w={520} h={560} src="people/azharCourt.jpg" name="ما يُنكَر" rot={0} /><BrushX at={0.1} x={680} y={230} w={560} h={640} /></> },
   EllipseMark: { node: <><div style={{ position: "absolute", left: 600, top: 430, width: 720, textAlign: "center", fontFamily: kufiF, fontSize: 84, color: "#fff" }}>عبارة تحتاج تمييزاً</div><EllipseMark at={0.1} x={560} y={380} w={800} h={200} /></> },
   Marker: { node: <div style={{ position: "absolute", left: 560, top: 180, width: 800, height: 720 }}><Page /><Marker at={0.1} x={0.1} y={0.28} w={0.8} h={0.12} /></div> },
   TiltNote: { node: <TiltNote at={0.1} x={660} y={440} w={600} text="اشترك في القناة" /> },
@@ -212,8 +213,17 @@ const AT_SLOT: Record<string, (r: Rect, o: Orient) => React.ReactNode> = {
   // the opponent's words under his window: dark ink on the dossier paper (landscape), light on the dark lower panel (portrait)
   BlurRise: (r, o) => <BlurRise at={0.1} text="عبارة مفتاحية من كلامه" x={r[0]} w={r[2]} y={r[1] + Math.round(r[3] * 0.12)} size={o === "land" ? 46 : 56} color={o === "land" ? BRAND.ink : "#fff"} canvasW={o === "land" ? 1920 : 1080} />,
   BookPage: (r) => <BookPage at={0.1} x={r[0]} y={r[1]} w={r[2]} h={r[3]} src="books/bukhari2.jpg" line={{ y: Math.round(r[3] * 0.35), h: 64 }} book="صحيح البخاري" part="1" page="45" until={9} />,
+  // the same book page, with the red pen frame around the highlighted line (user 2026-10-31: «يطابق صفحة الكتاب مع تظليل السطر ويكون فيه الأحمر»)
+  Marker: (r) => <><BookPage at={0.1} x={r[0]} y={r[1]} w={r[2]} h={r[3]} src="books/bukhari2.jpg" line={{ y: Math.round(r[3] * 0.35), h: 64 }} book="صحيح البخاري" part="1" page="45" until={9} />
+    <div style={{ position: "absolute", left: r[0], top: r[1], width: r[2], height: r[3] }}><Marker at={0.9} x={0.03} y={(r[3] * 0.35 - 14) / r[3]} w={0.94} h={92 / r[3]} /></div></>,
+  // a website shown as the source of the half screen (user 2026-10-31: «هذا بنمط نصف الشاشة»)
+  BrowserFrame: (r) => <BrowserFrame at={0.1} x={r[0]} y={r[1]} w={r[2]} h={r[3]} url="www.azhar.eg/news/article-2026" site="الأزهر" scroll={160} until={9}><ArticleMock w={r[2]} img="people/azharMosque.jpg" title="عنوان الخبر كما في الموقع" /></BrowserFrame>,
+  // ONE comment sits in the writing area (several go to the left column)
+  CommentCard: (r, o) => <CommentCard at={0.1} x={r[0] + Math.max(0, (r[2] - (o === "land" ? 900 : 1000)) / 2)} y={o === "land" ? r[1] - 70 : r[1] + 40} w={o === "land" ? 900 : 1000} name="أحد المشاهدين" avatar="broll/wall1.jpg" text="لماذا لا تذكرون المصدر الذي نقلتم منه هذا الكلام؟" likes={1240} underline={[3, 5]} />,
+  // his key word in the half screen: under his own window (landscape), under the source panel (portrait)
+  Word: (r, o) => <Word text="كلمة مفتاحية" at={0.1} until={3} x={r[0] + r[2] / 2} y={r[1] + r[3] / 2} size={o === "land" ? 58 : 60} />,
   // the map fills the frame behind him (isolated background)
-  MapRoute: (r, o) => <MapRoute at={0.1} until={3} x={r[0]} y={r[1]} w={r[2]} h={r[3]} center={[36.8, 34.9]} spanLat={o === "land" ? 7 : 12} highlight={["Syria"]} pts={[{ name: "دمشق", lon: 36.3, lat: 33.5, at: 0.3 }, { name: "حلب", lon: 37.2, lat: 36.2, at: 0.7 }]} legs={[{ from: [36.3, 33.5], to: [37.2, 36.2], at: 1.0, dur: 1 }]} />,
+  MapRoute: (r, o) => <MapRoute at={0.1} until={3} x={r[0]} y={r[1]} w={r[2]} h={r[3]} center={o === "land" ? [41.5, 34.93] : [39.44, 33.13]} spanLat={o === "land" ? 7 : 12} highlight={["Syria"]} pts={[{ name: "دمشق", lon: 36.3, lat: 33.5, at: 0.3 }, { name: "حلب", lon: 37.2, lat: 36.2, at: 0.7 }]} legs={[{ from: [36.3, 33.5], to: [37.2, 36.2], at: 1.0, dur: 1 }]} />,
   // the spotlight's dimming stays inside the slot: it never darkens his face (PREFERENCES: لا تغطية وجهه)
   SpotlightCard: (r) => <div style={{ position: "absolute", inset: 0, clipPath: `inset(${r[1]}px calc(100% - ${r[0] + r[2]}px) calc(100% - ${r[1] + r[3]}px) ${r[0]}px round 18px)` }}><SpotlightCard at={0.1} card={{ x: r[0], y: r[1], w: r[2], h: r[3] }} lockAt={1.2} stops={[[r[0] + r[2] * 0.3, r[1] + r[3] * 0.3], [r[0] + r[2] * 0.7, r[1] + r[3] * 0.6], [r[0] + r[2] * 0.5, r[1] + r[3] * 0.45]]}><Page /></SpotlightCard></div>,
   ConvergeMerge: (r) => <ConvergeMerge at={0.1} mergeAt={1.9} x={r[0] + 150} y={r[1] + 40} w={r[2] - 150} h={r[3] - 80} sources={["المصدر الأول", "المصدر الثاني", "المصدر الثالث"]} sourceAt={[0.1, 0.6, 1.1]} result="النتيجة الواحدة" rtl />,

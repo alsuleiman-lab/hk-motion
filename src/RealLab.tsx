@@ -19,7 +19,6 @@ const SOURCE: SpecItem = { t: "credit", text: "المصدر: اسم الموقع
 const it = (o: Record<string, unknown>) => o as unknown as SpecItem;
 const REAL: Record<string, R> = {
   // writing
-  Word: { item: it({ t: "word", text: "١٠ ملايين دولار تبرُّع", at: A, until: U, x: 540, y: 1500, size: 56, tone: "gold", land: { x: 960, y: 912, size: 52 } }) },
   TornNote: { item: it({ t: "torn", text: "البناء على القبور حرام", at: A, until: U, underline: 2, size: 54, y: 1380, land: { x: 960, y: 846, size: 50 } }) },
   WordScraps: { item: it({ t: "scraps", text: "كلام مهم من كلامه", at: A, until: U, y: 1420, land: { y: 870 } }) },
   StatRow: { item: it({ t: "rows", from: A, to: U, y0: 1040, step: 160, rowH: 140, title: { at: A, text: "من كلام أحد المعمّمين" }, rows: [{ at: 0.4, label: "البند الأول من كلامه", icon: "Quote" }, { at: 1.1, label: "البند الثاني من كلامه", icon: "Quote" }] }) },
@@ -29,7 +28,7 @@ const REAL: Record<string, R> = {
   // the channel's fixed pieces
   NameCard1: { item: it({ t: "nameTag", at: 0.2, x: 540, y: 1535, dur: 2.4 }) },
   NameCard3: { item: it({ t: "nameTag", at: 0.2, x: 540, y: 1535, dur: 2.4, style: "pinned" }) },
-  Subscribe: { item: it({ t: "subscribe", at: 0.2, x: 260, y: 1440, dur: 2.5 }) },
+  Subscribe: { item: it({ t: "subscribe", at: 0.2, x: 490, y: 1490, dur: 2.5 }) },   // bottom right in both orientations (user 2026-10-31)
   Sources: { item: it({ t: "credit", text: "https://example.org/source-of-the-figure", from: A, to: U }) },
   PaperCover: { item: it({ t: "cover", style: "paper", kit: { line1: "عنوان الغلاف", line2: "سطر تحت العنوان" } }) },
   PushIn: { item: [], spec: { zooms: [{ from: 0.4, to: 1.9, amt: 0.08 }] } },
@@ -41,7 +40,8 @@ const REAL: Record<string, R> = {
   PaperScene: { item: it({ t: "scene", at: A, until: U, x: 140, y: 1330, w: 800, h: 340, pieces: [{ src: "collage/car.png", x: 30, y: 40, w: 300, at: 0.3, rot: -3, from: "left" }, { src: "collage/robe.png", x: 420, y: 10, w: 230, at: 0.9, rot: 2, from: "top" }] }) },
   // isolated background: he is cut out over what stands behind him
   BgFullImage: { item: it({ t: "full", src: "people/azharMosque.jpg", from: 0, to: 3, marker: { x: 640, y: 120, w: 420, h: 420, at: 1.5 }, land: { marker: { x: 1180, y: 20, w: 560, h: 560, at: 1.5 } } }), spec: ISO },
-  PaperMap: { item: it({ t: "pmap", iso: true, from: A, to: U, x: 0, y: 0, w: 1080, h: 1920, center: [36.8, 34.9], spanLat: 6, landCenter: [37.5, 34.9], landSpan: 7, highlight: ["Syria"], pts: [{ name: "دمشق", lon: 36.3, lat: 33.5, at: 0.3 }, { name: "حلب", lon: 37.2, lat: 36.2, at: 0.7 }], legs: [{ from: [36.3, 33.5], to: [37.2, 36.2], at: 1.0, dur: 1.2, car: true }] }), spec: ISO },
+  PaperMap: { item: it({ t: "pmap", iso: true, from: A, to: U, x: 0, y: 0, w: 1080, h: 1920, center: [39.44, 33.13], spanLat: 12, landCenter: [41.5, 34.93], landSpan: 7,   // the route stays clear of him (user 2026-10-31: «لازم صورتي لا تغطي المكان الذي نتحدث عنه»)
+    highlight: ["Syria"], pts: [{ name: "دمشق", lon: 36.3, lat: 33.5, at: 0.3 }, { name: "حلب", lon: 37.2, lat: 36.2, at: 0.7 }], legs: [{ from: [36.3, 33.5], to: [37.2, 36.2], at: 1.0, dur: 1.2, car: true }] }), spec: ISO },
   // movement and flow
   TimelineTravel: { item: it({ t: "timeline", stages: [{ at: A, date: "٦٩٠ هـ", title: "المرحلة الأولى", sub: "ميلاده" }, { at: 0.9, date: "٧٤٠ هـ", title: "المرحلة الثانية" }, { at: 1.7, date: "٧٩٠ هـ", title: "المرحلة الثالثة" }], from: 0, to: 3 }) },
   DashArc: { item: [

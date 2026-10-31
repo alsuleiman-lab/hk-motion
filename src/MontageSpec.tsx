@@ -185,7 +185,7 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
         </Only>
       );
     }
-    case "subscribe": return <Subscribe key={i} at={it.at} x={L ? ov.x ?? 330 : it.x} y={L ? ov.y ?? 720 : it.y} dur={it.dur} />;
+    case "subscribe": return <Subscribe key={i} at={it.at} x={L ? ov.x ?? 1300 : it.x} y={L ? ov.y ?? 790 : it.y} dur={it.dur} />;
     case "verse":
       // portrait: the verse fills the screen, his picture hidden while he recites (PREFERENCES §6); landscape: a card on the empty side
       return L ? <VerseWords key={i} words={it.words} times={it.times} x={ov.x ?? it.x} y={ov.y ?? it.y} w={ov.w ?? it.w} size={ov.size ?? it.size} title={it.title} refText={it.refText} until={it.until} />
@@ -219,8 +219,8 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
     case "timeline": return L
       ? <TimelineTravel key={i} stages={it.stages} hold={it.hold} travel={it.travel} bandY={it.bandY} axisK={it.axisK} compact />
       : <div key={i} style={{ position: "absolute", left: 0, top: it.portTop ?? 1313, width: 1920, height: 1080, transform: "scale(0.5625)", transformOrigin: "0 0" }}><TimelineTravel stages={it.stages} hold={it.hold} travel={it.travel} compact /></div>;
-    case "scholar": return <Only key={i} from={it.at} to={it.until ?? it.at + 6}><PinnedPhoto at={it.at} x={L ? ov.x ?? LANDSCAPE.right.x : it.x ?? 40} y={L ? ov.y ?? LANDSCAPE.right.y : it.y ?? 1360} w={it.w ?? 300} h={it.h ?? 370} name={it.name} sub={it.sub} rot={-3}><Pic src={it.src} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: it.pos ?? "50% 20%" }} /></PinnedPhoto></Only>;
-    case "tphoto": return <TornPhoto key={i} at={it.at} until={it.until ?? it.at + 6} x={L ? ov.x ?? LANDSCAPE.right.x : it.x ?? 40} y={L ? ov.y ?? LANDSCAPE.right.y : it.y ?? 1360} w={it.w ?? 300} h={it.h ?? 370} src={it.src} name={it.name} pos={it.pos} />;
+    case "scholar": return <Only key={i} from={it.at} to={it.until ?? it.at + 6}><PinnedPhoto at={it.at} x={L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 40} y={L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1360} w={it.w ?? 300} h={it.h ?? 370} name={it.name} sub={it.sub} rot={-3}><Pic src={it.src} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: it.pos ?? "50% 20%" }} /></PinnedPhoto></Only>;
+    case "tphoto": return <TornPhoto key={i} at={it.at} until={it.until ?? it.at + 6} x={L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 40} y={L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1360} w={it.w ?? 300} h={it.h ?? 370} src={it.src} name={it.name} pos={it.pos} />;
     case "scraps": return <WordScraps key={i} at={it.at} until={it.until} y={L ? ov.y ?? 845 : it.y ?? 1330} text={it.text} size={L ? ov.size ?? 50 : it.size ?? 36} />;   {/* 60 % of the former 84 / 60 (user 2026-10-31) */}
     case "clock": { const size = L ? ov.size ?? 360 : it.size ?? 300; return <Only key={i} from={it.at} to={it.until}><div style={{ position: "absolute", left: L ? ov.x ?? 140 : it.x ?? 60, top: L ? ov.y ?? 300 : it.y ?? 1330 }}><Clock at={it.at} size={size} /></div></Only>; }
     case "arc": {
@@ -228,7 +228,7 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
       const ax = it.a.x + (it.a.w ?? 300) / 2, bx = it.b.x + (it.b.w ?? 300) / 2;
       return <Only key={i} from={it.at} to={it.until}>{photo(it.a, -3)}{photo(it.b, 2)}<DashArc at={it.arcAt ?? it.at + 0.5} x1={ax} y1={it.a.y + (it.a.h ?? 380) + 60} x2={bx} y2={it.b.y + (it.b.h ?? 380) + 60} under lift={110} /></Only>;
     }
-    case "flag": { const w = it.w ?? 220; return <Only key={i} from={it.at} to={it.until}><PopCard at={it.at} x={L ? ov.x ?? LANDSCAPE.right.x : it.x ?? 60} y={L ? ov.y ?? LANDSCAPE.right.y : it.y ?? 1360}><Flag c={it.code} w={w} h={Math.round(w * 0.67)} /></PopCard></Only>; }
+    case "flag": { const w = it.w ?? 220; return <Only key={i} from={it.at} to={it.until}><PopCard at={it.at} x={L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 60} y={L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1360}><Flag c={it.code} w={w} h={Math.round(w * 0.67)} /></PopCard></Only>; }
     default: return null; // "full" is a base-layer item and "cover" a top-layer item (below)
   }
 };

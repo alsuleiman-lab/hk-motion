@@ -54,8 +54,8 @@ const rectOf = (it, o) => {
       return [x, y, x + w, y + size * 3.2 + (lines - 1) * size * 1.2];
     }
     case "nameTag": { const cx = L ? ov.x ?? 960 : it.x ?? 540, y = (L ? ov.y ?? 880 : it.y) + 40; return [cx - 300, y, cx + 300, y + 130]; }
-    case "subscribe": { const x = P("x", 330), y = P("y", 720); return [x, y, x + 560, y + 150]; }
-    case "scholar": case "tphoto": { const x = L ? ov.x ?? 1500 : it.x ?? 40, y = L ? ov.y ?? 200 : it.y ?? 1360, w = it.w ?? 300, h = (it.h ?? 370) + 78; return [x, y, x + w, y + h]; }
+    case "subscribe": { const x = P("x", 1300), y = P("y", 790); return [x, y, x + 560, y + 150]; }
+    case "scholar": case "tphoto": { const x = L ? ov.x ?? 40 : it.x ?? 40, y = L ? ov.y ?? 150 : it.y ?? 1360, w = it.w ?? 300, h = (it.h ?? 370) + 78; return [x, y, x + w, y + h]; }
     case "scraps": {   // one scrap per word (size × 0.8 per letter + 70), wrapped on 90 % of the width, centred
       const size = L ? ov.size ?? 50 : it.size ?? 36, Wd = L ? 1920 : 1080, y = L ? ov.y ?? 845 : it.y ?? 1330, ws = String(it.text).split(" "), gap = size * 0.3;
       const widths = ws.map((wd) => size * 0.8 * len(wd) + 70); let rows = 1, cur = 0;
@@ -64,7 +64,7 @@ const rectOf = (it, o) => {
       return [(Wd - w) / 2, y, (Wd + w) / 2, y + rows * size * 1.45 + (rows - 1) * gap];
     }
     case "clock": { const size = L ? ov.size ?? 360 : it.size ?? 300, x = L ? ov.x ?? 140 : it.x ?? 60, y = L ? ov.y ?? 300 : it.y ?? 1330; return [x, y, x + size, y + size]; }
-    case "flag": { const w = it.w ?? 220, x = L ? ov.x ?? 1500 : it.x ?? 60, y = L ? ov.y ?? 200 : it.y ?? 1360; return [x, y, x + w, y + w * 0.67]; }
+    case "flag": { const w = it.w ?? 220, x = L ? ov.x ?? 40 : it.x ?? 60, y = L ? ov.y ?? 150 : it.y ?? 1360; return [x, y, x + w, y + w * 0.67]; }
     case "arc": { const a = it.a, b = it.b, bot = Math.max(a.y + (a.h ?? 380), b.y + (b.h ?? 380)); return [Math.min(a.x, b.x), Math.min(a.y, b.y), Math.max(a.x + (a.w ?? 300), b.x + (b.w ?? 300)), bot + 60 + 110 + 20]; }   // the arc sags under the photos (DashArc under)
     case "pic": { const x = P("x", 40), y = P("y", 150), w = P("w", 600), h = L ? ov.h ?? Math.round((it.h * w) / it.w) : it.h; return [x, y, x + w, y + h]; }
     case "crop": { const x = P("x", 40), y = P("y", 150), w = P("w", 600), h = Math.round(((w - 20) / it.crop.w) * it.crop.h) + 78; return [x, y, x + w, y + h]; }

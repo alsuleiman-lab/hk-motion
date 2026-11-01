@@ -7,7 +7,7 @@ metadata:
 
 # Adding AI voiceover to a Remotion composition
 
-Use this workspace's local `S:\AI_Tools\VoiceWorkflow` first. For Arabic narration, use SILMA or a suitable Arabic Edge Neural voice, verify transcript and duration, and do not deliver Windows SAPI default voices. Use [`calculateMetadata`](./calculate-metadata.md) to size the composition to the resulting audio.
+Use local VoiceStudio (OmniVoice) with Voice Design parameters: male, middle-aged, very low pitch (speed 0.85) for documentary and cartoon Arabic narration. Strictly forbid browser/Edge-TTS, SAPI, and female voices. Fully vowelize Arabic text with punctuation pauses. Use [`calculateMetadata`](./calculate-metadata.md) to size the composition to the resulting audio.
 
 ## Prerequisites
 

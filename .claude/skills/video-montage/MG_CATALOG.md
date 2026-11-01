@@ -55,8 +55,8 @@ A clock whose hands spin fast then ease (reference: the "24 hours" polaroid). */
 `props:` words: { t: string; at: number; gold?: boolean }[]; x: number; y: number; w: number; size?: number
 
 ### `DashArc`
-4a) Dashed arc that draws itself between two points (links two pinned photos).
-`props:` at: number; x1: number; y1: number; x2: number; y2: number; lift?: number; dur?: number; color?: string; sw?: number
+`under`: the arc sags below the lower end instead of rising over the top (user 2026-10-31: «اجعل الخط من تحت لحيتي»)
+`props:` at: number; x1: number; y1: number; x2: number; y2: number; under?: boolean; lift?: number; dur?: number; color?: string; sw?: number
 
 ### `PinnedPhoto`
 Photo card pinned with a yellow tape strip, name underneath.
@@ -168,7 +168,7 @@ phone with a playing clip (the clip file shares the cut's time base). Default: b
 
 ### `PaperMap`
 Paper map: torn paper country on kraft paper, paper name tags, a dashed paper road and a paper car that drives between the two cities in stop-motion
-`props:` at: number; until: number; x: number; y: number; w: number; h: number; center: [number, number]; spanLat: number; highlight?: string[]; pts?: MapPt[]; legs?: MapLeg[]; carSrc?: string; carW?: number
+`props:` at: number; until: number; x: number; y: number; w: number; h: number; center: [number, number]; spanLat: number; highlight?: string[]; highlightAt?: Record<string, number>; geo?: "levant" | "world"; pts?: MapPt[]; legs?: MapLeg[]; carSrc?: string; carW?: number
 
 ### `PaperScene`
 Paper scene: a kraft card where described people/objects (faceless silhouettes) slide in one after another, stop-motion, e.g. a sheikh seated beside a made-up woman
@@ -192,7 +192,7 @@ his isolated cut-out shrunk into a corner (user 2026-10-29, the paper map): the 
 
 ### `FullImage`
 a source picture FILLS the 1080×1920 frame for a frame range (user 2026-10-23: manuscript full-screen) with a slow push and an optional self-drawing marker; sits in the BASE layers (outside <Gfx>) because it deliberately replaces him for those seconds. Put it 
-`props:` src: string; from: number; to: number; origin?: string; marker?: { x: number; y: number; w: number; h: number; at: number }
+`props:` src: string; from: number; to: number; origin?: string; marker?: { x: number; y: number; w: number; h: number; at: number }; box?: { x: number; y: number; w: number; h: number; rot?: number; plain?: boolean }
 
 ### `CitationTag`
 the citation tag: book, volume, page on a small identity label with a pin, swinging in from the corner of the source
@@ -225,6 +225,10 @@ a photo of the person or place in a torn white border with tape and a hand-writt
 ### `PaperGrain`
 paper grain over a paper scene (multiply, faint), so cut-outs and cards read as one sheet of material
 `props:` opacity?: number
+
+### `DateCalendar`
+a ready-made calendar motion graphic from the internet (LottieFiles free animation «calendar» by Zakaria Boukernafa, frames keyed to transparent) with the date written under it (user 2026-10-31: «جيب عنصر يعبر عن التاريخ… موشن جرافيك جاهز من الإنترنت»)
+`props:` at: number; until?: number; x: number; y: number; w: number; text: string; sub?: string
 
 ### `PaperTear`
 (بلا وصف: مكوّن أساسي)

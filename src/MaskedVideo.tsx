@@ -1,5 +1,11 @@
 import React, { useEffect, useLayoutEffect, useRef } from "react";
-import { AbsoluteFill, continueRender, delayRender, getRemotionEnvironment, staticFile, useCurrentFrame, useVideoConfig, Video } from "remotion";
+import { GFX_ONLY } from "./MG";
+import { AbsoluteFill, continueRender, delayRender, getInputProps, getRemotionEnvironment, staticFile, useCurrentFrame, useVideoConfig, Video } from "remotion";
+
+/** final render from pre-extracted JPEG frames (inputProps {"frames":true}): video frames in public/fr/<video name>/, matte frames in public/fr/<matte name>/ (f_%06d.jpg, number = file frame).
+ *  Two seeking <video> elements per window timed out at 58 s in the Halloween render (2026-10-31); still images load reliably and exactly. */
+const FRAMES = (getInputProps() as { frames?: boolean }).frames === true;
+const frameUrl = (file: string, n: number) => staticFile(`fr/${file.split("?")[0].split("/").pop()!.replace(/.[^.]+$/, "")}/f_${String(Math.max(0, n)).padStart(6, "0")}.jpg`);
 
 /**
  * MaskedVideo — the isolated Sheikh WITHOUT a transparent video (2026-10-22): the ORIGINAL video + a saved gray MATTE (tools/matte_cache.mjs, white = person) are combined on a WebGL
@@ -11,7 +17,7 @@ const VS = `attribute vec2 p; varying vec2 uv; void main(){ uv = vec2(p.x * .5 +
 const FS = `precision mediump float; varying vec2 uv; uniform sampler2D v; uniform sampler2D m; void main(){ vec4 c = texture2D(v, uv); float a = texture2D(m, uv).r; gl_FragColor = vec4(c.rgb * a, a); }`;
 type Src = CanvasImageSource | HTMLVideoElement;
 
-export const MaskedVideo: React.FC<{ video: string; matte: string; videoStartFrom?: number; matteStartFrom?: number; width?: number; height?: number; style?: React.CSSProperties }> = ({ video, matte, videoStartFrom = 0, matteStartFrom = 0, width = 1920, height = 1080, style }) => {
+const MaskedVideoInner: React.FC<{ video: string; matte: string; videoStartFrom?: number; matteStartFrom?: number; width?: number; height?: number; style?: React.CSSProperties }> = ({ video, matte, videoStartFrom = 0, matteStartFrom = 0, width = 1920, height = 1080, style }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const rendering = getRemotionEnvironment().isRendering;
@@ -83,6 +89,16 @@ export const MaskedVideo: React.FC<{ video: string; matte: string; videoStartFro
   }, [frame, rendering]);
   // not 2×2/opacity 0: browsers suspend decoding of «invisible» videos (black frames, no frame callbacks) — keep them a small, barely visible thumbnail under the canvas
   const hidden: React.CSSProperties = { position: "absolute", left: 0, top: 0, width: 32, height: 18, opacity: 0.01, pointerEvents: "none" };
+  if (rendering && FRAMES) {
+    const f = frame;
+    return (
+      <AbsoluteFill style={style}>
+        <canvas ref={canvas} width={width} height={height} style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%" }} />
+        <img key={"v" + f} src={frameUrl(video, videoStartFrom + f)} style={hidden} onLoad={(e) => { got.current.v = e.currentTarget; got.current.fv = f; tryDraw(); }} />
+        <img key={"m" + f} src={frameUrl(matte, matteStartFrom + f)} style={hidden} onLoad={(e) => { got.current.m = e.currentTarget; got.current.fm = f; tryDraw(); }} />
+      </AbsoluteFill>
+    );
+  }
   return (
     <AbsoluteFill style={style}>
       <canvas ref={canvas} width={width} height={height} style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%" }} />
@@ -99,3 +115,6 @@ export const MaskTest: React.FC = () => (
   </AbsoluteFill>
 );
 export const MASKTEST_FRAMES = 360;
+/** fast face check (inputProps {gfxOnly:true}): the isolated figure is a video, never a graphic — nothing is decoded, an empty box keeps its place */
+type MVProps = React.ComponentProps<typeof MaskedVideoInner>;
+export const MaskedVideo: React.FC<MVProps> = (p) => (GFX_ONLY ? <div style={{ position: "absolute", width: p.width ?? 1920, height: p.height ?? 1080 }} /> : <MaskedVideoInner {...p} />);

@@ -24,7 +24,6 @@ import { AzBehind } from "./AzBehind";
 import { AzBehindP } from "./AzBehindP";
 import { TirBehindP } from "./TirBehindP";
 import { QuranComposition, TOTAL_FRAMES as TOTAL_FRAMES_QURAN } from "./quran/QuranComposition";
-import { DeedatFalaqShort, FALAQ_FPS, FALAQ_TOTAL_FRAMES } from "./quran/DeedatFalaqShort";
 
 import { LessonMiracleLandscape, MIRACLE_DURATION_FRAMES, MIRACLE_FPS } from "./LessonMiracleLandscape";
 import { LessonPrayerPortrait, PRAYER_DURATION_FRAMES, PRAYER_FPS } from "./LessonPrayerPortrait";
@@ -80,14 +79,6 @@ export const ArchiveComps: React.FC = () => (
         component={LessonPrayerPortrait}
         durationInFrames={PRAYER_DURATION_FRAMES}
         fps={PRAYER_FPS}
-        width={1080}
-        height={1920}
-      />
-      <Composition
-        id="DeedatFalaqShort"
-        component={DeedatFalaqShort}
-        durationInFrames={FALAQ_TOTAL_FRAMES}
-        fps={FALAQ_FPS}
         width={1080}
         height={1920}
       />

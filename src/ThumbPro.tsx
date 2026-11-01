@@ -21,7 +21,7 @@ export type ThumbProps = {
   words: { main: string; accent?: string; sub?: string };   // main (white) + accent (yellow) on one line, sub on a dark box under it
   sheikh: Cutout;             // measured with tools/cutout_head.py
   opp?: Cutout;               // duel only
-  evidence?: { src: string; pos?: string; circle?: { x: number; y: number; r: number } };   // evidence only; circle in % of the frame box
+  evidence?: { src: string; pos?: string; nat?: { w: number; h: number }; circle?: { x: number; y: number; r: number } };   // evidence only; circle in % of the frame box; `nat` = the image's own size → the frame follows the picture (never cropped to a fixed box; user 2026-10-30)
   tone?: string;              // colour grade of the photo (default deep blue)
 };
 
@@ -76,6 +76,8 @@ const Signature: React.FC<{ portrait: boolean }> = ({ portrait }) => (
 /** `part` = which layers are drawn ("bg" = the torn paper backdrop, "fg" = people + words that fly out); `open` 0..1 = how far the elements have flown (sheikh → right, opponent → left, words → up, signature → down) */
 export const ThumbPro: React.FC<ThumbProps & { part?: "all" | "bg" | "fg"; open?: number }> = ({ format, layout, bg, bgPos, words, sheikh, opp, evidence, tone = "#2a4a7a", part = "all", open = 0 }) => {
   const P = format === "portrait";
+  // the evidence frame follows the picture's aspect when `nat` is given (portrait box up to 520×900, landscape up to 760×560)
+  const evBox = (mw: number, mh: number, dw: number, dh: number) => (evidence?.nat ? { w: Math.round(Math.min(mw, mh * evidence.nat.w / evidence.nat.h)), h: Math.round(Math.min(mh, mw * evidence.nat.h / evidence.nat.w)) } : { w: dw, h: dh });
   const bgOn = part !== "fg", fgOn = part !== "bg", W = P ? 1080 : 1920, H = P ? 1920 : 1080;
   const gone = (dx: number, dy: number) => ({ position: "absolute" as const, inset: 0, transform: `translate(${Math.round(dx * open * W)}px,${Math.round(dy * open * H)}px)` });
   if (P) {
@@ -85,7 +87,7 @@ export const ThumbPro: React.FC<ThumbProps & { part?: "all" | "bg" | "fg"; open?
         {bgOn ? <Backdrop src={bg} pos={bgPos} tone={tone} side="bottom" /> : null}
         {bgOn ? <AbsoluteFill style={{ background: "linear-gradient(to bottom, rgba(8,10,18,.8) 0%, transparent 34%)" }} /> : null}
         {fgOn && layout === "evidence" && evidence ? (
-          <Gfx><div style={{ position: "absolute", left: 60, top: 520, width: 520, height: 640, transform: "rotate(-4deg)", border: "10px solid #fff", boxShadow: "0 24px 40px rgba(0,0,0,.6)", overflow: "hidden" }}><Img src={staticFile(evidence.src)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: evidence.pos }} /></div></Gfx>
+          <Gfx><div style={{ position: "absolute", left: 60, top: 520, width: evBox(520, 900, 520, 640).w, height: evBox(520, 900, 520, 640).h, transform: "rotate(-4deg)", border: "10px solid #fff", boxShadow: "0 24px 40px rgba(0,0,0,.6)", overflow: "hidden" }}><Img src={staticFile(evidence.src)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: evidence.pos }} /></div></Gfx>
         ) : null}
         {fgOn ? <Person c={sheikh} cx={layout === "word" ? 540 : 760} top={layout === "word" ? 600 : 560} w={layout === "word" ? 420 : 360} shift={{ x: 1.3 * open * W, y: 0 }} /> : null}
         {/* the opponent is drawn in front of the Sheikh's arm (never behind his hands), low-left, away from the beard */}
@@ -116,7 +118,7 @@ export const ThumbPro: React.FC<ThumbProps & { part?: "all" | "bg" | "fg"; open?
       {layout === "evidence" && evidence ? (
         <>
           <Gfx>
-            <div style={{ position: "absolute", left: 80, top: 70, width: 760, height: 560, transform: "rotate(-3deg)", border: "12px solid #fff", boxShadow: "0 30px 50px rgba(0,0,0,.6)", overflow: "hidden", background: "#fff" }}>
+            <div style={{ position: "absolute", left: 80, top: 70, width: evBox(760, 560, 760, 560).w, height: evBox(760, 560, 760, 560).h, transform: "rotate(-3deg)", border: "12px solid #fff", boxShadow: "0 30px 50px rgba(0,0,0,.6)", overflow: "hidden", background: "#fff" }}>
               <Img src={staticFile(evidence.src)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: evidence.pos }} />
               {evidence.circle ? <div style={{ position: "absolute", left: `${evidence.circle.x - evidence.circle.r}%`, top: `${evidence.circle.y - evidence.circle.r}%`, width: `${evidence.circle.r * 2}%`, aspectRatio: "1.36", border: `12px solid ${YELLOW}`, borderRadius: "50%", boxShadow: "0 0 0 4px #10131c" }} /> : null}
             </div>

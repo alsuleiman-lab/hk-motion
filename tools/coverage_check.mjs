@@ -32,11 +32,18 @@ let fails = 0;
   if (badTypes.length || badFields.length) fails++;
 }
 
+// 0a) a source window shows the source itself, not the whole browser (user 2026-10-30): every split carries its crop box clip.y/h (tools/source_crop.mjs)
+{
+  const bare = (spec.splits ?? []).filter((s) => s.clip?.y === undefined || s.clip?.h === undefined);
+  console.log(bare.length ? `✘ نوافذ مصدر تعرض لقطة المتصفح كاملة (${bare.length}): ${bare.map((s) => mm(s.from)).join("، ")} — node tools/source_crop.mjs ${specF} --write ثم انظر .tmp/${spec.id}/source_crops.jpg` : `✔ كل نافذة مصدر مقصوصة على المصدر نفسه (${(spec.splits ?? []).length})`);
+  if (bare.length) fails++;
+}
+
 // 0b) format and quick isolation (user 2026-10-29): a reel is a chosen excerpt ≤ 3 min; `behind` windows need the saved `matte`; `brand` must be one of the 5 palettes
 {
   const dur = (spec.frames ?? 0) / (spec.fps ?? 30), errs = [];
   if (spec.kind === "reel" && dur > 180) errs.push(`ريلز طوله ${mm(dur)} (الحد 3:00)`);
-  if ((spec.behind ?? []).length && !spec.matte) errs.push("نوافذ behind بلا matte (node tools/matte_cache.mjs get …)");
+  if ((spec.behind ?? []).some((w) => !(w.matte ?? spec.matte))) errs.push("نوافذ behind بلا matte (node tools/matte_cache.mjs get …)");
   const pal = fs.readFileSync(path.join("src", "brand.ts"), "utf8").match(/BrandName = ([^;]+);/)?.[1] ?? "";
   if (spec.brand && !pal.includes(String.fromCharCode(34) + spec.brand + String.fromCharCode(34))) errs.push(`نمط لوني غير معروف «${spec.brand}» (${pal})`);
   for (const s of spec.splits ?? []) if (s.layout && !["dossier", "blocks"].includes(s.layout)) errs.push(`نموذج رد غير معروف «${s.layout}» (dossier | blocks)`);
@@ -50,7 +57,7 @@ const span = (it) => {
   return a == null ? null : [a, b];
 };
 const items = (spec.items ?? []).filter((i) => i.t !== "cover");
-const VISUAL = new Set(["pic", "full", "flash", "crop", "scholar", "person", "phone", "scene"]);
+const VISUAL = new Set(["pic", "full", "flash", "crop", "scholar", "tphoto", "arc", "flag", "person", "phone", "scene"]);
 const visual = items.filter((i) => VISUAL.has(i.t)).map(span).filter(Boolean);
 
 // 1) mentions

@@ -63,7 +63,8 @@ const rectOf = (it, o) => {
     }
     case "nameTag": { const cx = L ? ov.x ?? 960 : it.x ?? 540, y = (L ? ov.y ?? 880 : it.y) + 40; return [cx - 300, y, cx + 300, y + 130]; }
     case "subscribe": { const x = P("x", 1300), y = P("y", 790); return [x, y, x + 560, y + 150]; }
-    case "scholar": case "tphoto": { const x = L ? ov.x ?? 40 : it.x ?? 40, y = L ? ov.y ?? 150 : it.y ?? 1360, w = it.w ?? 300, h = (it.h ?? 370) + 78; return [x, y, x + w, y + h]; }
+    case "date": { const x = L ? ov.x ?? 40 : it.x ?? 40, y = L ? ov.y ?? 150 : it.y ?? 1330, w = (L ? ov.w : undefined) ?? it.w ?? 340; return [x, y, x + w, y + Math.round(w * 277 / 268) + Math.round(w * 0.45)]; }
+    case "scholar": case "tphoto": { const x = L ? ov.x ?? 40 : it.x ?? 40, y = L ? ov.y ?? 150 : it.y ?? 1360, pw = (L ? ov.w : undefined) ?? it.w ?? 300, n = 1 + (it.also?.length ?? 0), w = n * pw + (n - 1) * 24, h = ((L ? ov.h : undefined) ?? it.h ?? 370) + 78; return [x, y, x + w, y + h]; }
     case "scraps": {   // one scrap per word (size × 0.8 per letter + 70), wrapped on 90 % of the width, centred
       const size = L ? ov.size ?? 50 : it.size ?? 36, Wd = L ? 1920 : 1080, y = L ? ov.y ?? 845 : it.y ?? 1330, ws = String(it.text).split(" "), gap = size * 0.3;
       const widths = ws.map((wd) => size * 0.8 * len(wd) + 70); let rows = 1, cur = 0;
@@ -83,7 +84,8 @@ const rectOf = (it, o) => {
     case "rows": {
       const g = L ? { x: 40, w: 600, bannerY: 150, rowY: (i, t) => (t ? 285 : 150) + i * 185, rowH: 160 } : { x: 40, w: 1000, bannerY: 1440, rowY: (i, t) => (t ? 1515 : 1445) + i * 122, rowH: 112 };
       const titled = !!it.title && (L || it.rows.length < 3), rowY = (n) => (!L && it.y0 !== undefined ? it.y0 + n * (it.step ?? 112) : g.rowY(n, titled)), rowH = !L && it.rowH ? it.rowH : g.rowH;
-      return [g.x, titled ? g.bannerY : rowY(0), g.x + g.w, rowY(it.rows.length - 1) + rowH];
+      const gx = L && it.side === "right" ? 1920 - 40 - g.w : g.x;   // a list that no longer fits the left column continues on the right (user 2026-10-31)
+      return [gx, titled ? g.bannerY : rowY(0), gx + g.w, rowY(it.rows.length - 1) + rowH];
     }
     default: return null;
   }
@@ -102,7 +104,7 @@ const trim = (s, z) => {
 };
 
 // snap an item into a box: keep its size when it fits (else scale it down), centred horizontally, at the top of the box; each type's own position fields
-const SNAP = new Set(["torn", "scraps", "tphoto", "clock", "flag", "scholar", "pic", "crop", "flash", "news", "scene", "rewrite", "nameTag", "subscribe"]);
+const SNAP = new Set(["date", "torn", "scraps", "tphoto", "clock", "flag", "scholar", "pic", "crop", "flash", "news", "scene", "rewrite", "nameTag", "subscribe"]);
 function snap(it, o, r, box) {
   const w = r[2] - r[0], h = r[3] - r[1], k = Math.min(1, (box[2] - box[0]) / w, (box[3] - box[1]) / h);
   const nx = Math.round(box[0] + ((box[2] - box[0]) - w * k) / 2), ny = Math.round(box[1]);
@@ -113,6 +115,8 @@ function snap(it, o, r, box) {
   tgt.x = nx; tgt.y = ny;
   if (k < 1 && it.t === "clock") tgt.size = Math.round((it.t === "clock" && (o === "land" ? it.land?.size : it.size) ? (o === "land" ? it.land.size : it.size) : o === "land" ? 360 : 300) * k);
   else if (k < 1 && it.t === "flag") it.w = Math.round((it.w ?? 220) * k);
+  else if (k < 1 && it.t === "date") { tgt.w = Math.round(((o === "land" ? it.land?.w : undefined) ?? it.w ?? 340) * k); }
+  else if (k < 1 && it.t === "tphoto" && o === "land") { tgt.w = Math.round(((it.land?.w) ?? it.w ?? 300) * k); tgt.h = Math.round(((it.land?.h) ?? it.h ?? 370) * k); }
   else if (k < 1 && (it.t === "scholar" || it.t === "tphoto")) { it.w = Math.round((it.w ?? 300) * k); it.h = Math.round((it.h ?? 370) * k); }
   else if (k < 1 && ["pic", "crop", "flash", "news"].includes(it.t)) tgt.w = Math.round(w * k);
 }
@@ -142,10 +146,10 @@ for (const o of orients) {
       }
       continue;
     }
-    const under = big.find((y) => y.k === "exclusive" && y.s[0] < b - 0.1 && y.s[1] > a + 0.1 && !(o === "port" && mode === "half"));
+    const under = big.find((y) => y.k === "exclusive" && y.s[0] < b - 0.1 && y.s[1] > a + 0.1 && !(o === "port" && mode === "half") && !(y.it.t === "full" && (spec.behind ?? []).some((bw) => bw.from <= y.s[0] + 0.05 && bw.to >= y.s[1] - 0.05)));   // a B-roll behind him (iso window) lets the key notes stay on top (user 2026-10-31)
     if (under) fails.push(`${label}: فوق عنصر كبير ${under.it.t}#${under.i} (${mm(under.s[0])}–${mm(under.s[1])})`);
     const z = zoneOver(o, a, b), slots = Object.entries(grid[mode]?.slots ?? {}).filter(([, s]) => s.kinds.includes(x.k));
-    const free = slots.find(([n]) => !(res[mode + n] ?? []).some(([p, q]) => p < b + 0.15 && q > a - 0.15));
+    const free = slots.filter(([n]) => !(x.it.t === "rows" && o === "land" && x.it.side === "right") || n === "right").find(([n]) => !(res[mode + n] ?? []).some(([p, q]) => p < b + 0.15 && q > a - 0.15));
     const r = rectOf(x.it, o);
     if (r && inter(r, z) > FACE_TOL * area(r)) fails.push(`${label}: فوق الوجه (${r.map(Math.round).join(",")} ∩ ${z.map(Math.round).join(",")})`);
     if (!free) { fails.push(`${label}: لا خانة ${x.k} فارغة في وضع ${mode} — أخّره أو قدّمه`); continue; }

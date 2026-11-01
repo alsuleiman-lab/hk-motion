@@ -100,6 +100,7 @@ export const SheikhLayers: React.FC<{ cut: string; cams: Cam[]; zooms?: { from: 
 
 /* ───────── MapRoute — «عند ذكر الانتقال بين البلاد/المدن تُرسم خريطة» (user rule 2026-10-22; own component, Natural Earth outlines in src/levantMap.ts) ───────── */
 import { LEVANT } from "./levantMap";
+import { WORLD } from "./worldMap";
 import { BRAND } from "./brand";
 export type MapPt = { name: string; lon: number; lat: number; at: number; down?: boolean };
 export type MapLeg = { from: [number, number]; to: [number, number]; at: number; dur?: number; car?: boolean };
@@ -161,8 +162,8 @@ const useStop = () => { const f = useCurrentFrame(); const q = Math.floor(f / SM
 /** Paper map: torn paper country on kraft paper, paper name tags, a dashed paper road and a paper car that drives between the two cities in stop-motion */
 export const PaperMap: React.FC<{
   at: number; until: number; x: number; y: number; w: number; h: number; center: [number, number]; spanLat: number;
-  highlight?: string[]; pts?: MapPt[]; legs?: MapLeg[]; carSrc?: string; carW?: number;
-}> = ({ at, until, x, y, w, h, center, spanLat, highlight = ["SYR"], pts = [], legs = [], carSrc = "collage/car.png", carW = 140 }) => {
+  highlight?: string[]; highlightAt?: Record<string, number>; geo?: "levant" | "world"; pts?: MapPt[]; legs?: MapLeg[]; carSrc?: string; carW?: number;
+}> = ({ at, until, x, y, w, h, center, spanLat, highlight = ["SYR"], highlightAt, geo, pts = [], legs = [], carSrc = "collage/car.png", carW = 140 }) => {
   const { t, k } = useStop();
   if (t < at || t > until) return null;
   const pop = clamp((t - at) / 0.35), out = clamp((until - t) / 0.3);
@@ -185,7 +186,7 @@ export const PaperMap: React.FC<{
           <filter id="shd" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx="3" dy="6" stdDeviation="3.5" floodColor="#3b2410" floodOpacity="0.55" /></filter>
         </defs>
         <g filter="url(#shd)"><g filter="url(#rough)">
-          {Object.entries(LEVANT).map(([code, polys]) => polys.map((poly, i) => <path key={code + i} d={path(poly)} fill={highlight.includes(code) ? "#f4ead2" : "#dcc296"} stroke={highlight.includes(code) ? "#fffaf0" : "#efe0bf"} strokeWidth={highlight.includes(code) ? 5 : 3} />))}
+          {Object.entries(geo === "world" ? WORLD : LEVANT).map(([code, polys]) => polys.map((poly, i) => <path key={code + i} d={path(poly)} fill={highlight.includes(code) && (!highlightAt || t >= (highlightAt[code] ?? 0)) ? "#f4ead2" : "#dcc296"} stroke={highlight.includes(code) ? "#fffaf0" : "#efe0bf"} strokeWidth={highlight.includes(code) ? 5 : 3} />))}
         </g></g>
         {car.map((c, i) => c ? Array.from({ length: 16 }, (_, j) => {
           const s = (j + 0.5) / 16; if (s > c.e) return null;
@@ -400,12 +401,24 @@ export const PopCard: React.FC<{ at: number; x: number; y: number; children: Rea
 };
 
 /** a source picture FILLS the 1080×1920 frame for a frame range (user 2026-10-23: manuscript full-screen) with a slow push and an optional self-drawing marker; sits in the BASE layers (outside <Gfx>) because it deliberately replaces him for those seconds. Put it right after SheikhLayers, before <Gfx>. */
-export const FullImage: React.FC<{ src: string; from: number; to: number; origin?: string; marker?: { x: number; y: number; w: number; h: number; at: number } }> = ({ src, from, to, origin = "50% 40%", marker }) => {
+export const FullImage: React.FC<{ src: string; from: number; to: number; origin?: string; marker?: { x: number; y: number; w: number; h: number; at: number }; box?: { x: number; y: number; w: number; h: number; rot?: number; plain?: boolean } }> = ({ src, from, to, origin = "50% 40%", marker, box }) => {
   const t = useT(0);
   if (t < from || t > to) return null;
   const o = Math.min(1, (t - from) / 0.1 + 0.34, (to - t) / 0.1 + 0.34);
   const k = 1 + 0.12 * clamp((t - from) / (to - from));
   const mp = marker ? clamp((t - marker.at) / 0.5) : 0;
+  // `box` (user 2026-11-01: «خلف رأسي لكن صغيرة بحيث تملأ المساحة» above his shoulders): the B-roll shrunk into that region, still behind him (a `behind` window); `plain` = no paper frame
+  if (box) return (
+    <div style={{ position: "absolute", left: box.x, top: box.y, width: box.w, height: box.h, opacity: o, ...(box.plain ? {} : { background: BRAND.card, padding: 10, boxShadow: "0 14px 30px rgba(0,0,0,.45)" }), boxSizing: "border-box", transform: box.rot ? `rotate(${box.rot}deg)` : undefined }}>
+      <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
+        <div style={{ width: "100%", height: "100%", transform: `scale(${k})`, transformOrigin: origin }}>
+          {/\.mp4$/i.test(src)
+            ? <Sequence from={Math.round(from * PK_FPS)}>{getRemotionEnvironment().isRendering ? <OffthreadVideo src={staticFile(src)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <SafeVideo src={staticFile(src)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</Sequence>
+            : <Pic src={src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+        </div>
+      </div>
+    </div>
+  );
   return (
     <AbsoluteFill style={{ opacity: o, background: BRAND.card, overflow: "hidden" }}>
       <div style={{ position: "absolute", inset: 0, transform: `scale(${k})`, transformOrigin: origin }}>

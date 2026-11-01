@@ -49,7 +49,7 @@ if (file.endsWith(".json")) {
 } else walk(file);
 const all = texts.join("\n"), counts = {};
 for (const [kind, names] of Object.entries(KIT)) counts[kind] = names.reduce((n, nm) => n + (all.match(new RegExp(`<${nm}[\\s>/]`, "g")) ?? []).length, 0);
-const used = Object.entries(counts).filter(([, n]) => n > 0), need = Math.min(10, Math.max(4, Math.ceil(minutes * 0.8)));
+const used = Object.entries(counts).filter(([, n]) => n > 0), need = Math.min(9, Math.max(4, Math.ceil(minutes * 0.8)));
 console.log(`ملفات مفحوصة: ${seen.size} | المدة المفترضة: ${minutes} د | المطلوب: ${need} أنواع مختلفة على الأقل من القطع\n`);
 for (const [k, n] of Object.entries(counts)) console.log(`${n > 0 ? "✔" : "·"} ${k}: ${n}`);
 const EXEMPT = new Set(["عبارة مفتاحية", "ملاحظة ممزقة", "اشتراك", "بطاقة اسم"]);   // content/periodic obligations, not decoration (user 2026-10-29: «أنت لا تكتب الكلمات المهمة»): no cap

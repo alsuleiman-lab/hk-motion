@@ -52,6 +52,8 @@ try {
   const common = {
     composition: comp, serveUrl, inputProps: JSON.parse(process.env.RENDER_PROPS ?? "{}"), port: Number(process.env.RENDER_PORT ?? 3458), chromiumOptions: { gl: "angle" }, hardwareAcceleration: "if-possible",
     concurrency: 3, timeoutInMilliseconds: 180000,
+    // hardware encoding without a bitrate/quality gives ≈2 Mbps (the «دقة ضعيفة» of HaithamJail, 2026-10-31): ask for a quality-based NVENC rate unless told otherwise
+    ...(process.env.RENDER_BITRATE === "off" ? {} : { videoBitrate: process.env.RENDER_BITRATE ?? "16M" }),
   };
   const retry = async (label, fn) => {
     for (let n = 1; n <= 3; n++) {

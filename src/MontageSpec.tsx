@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { Gfx, HandheldShake, SourceWalk, BlurRise, RewriteWindow, FlashCut, PinnedPhoto, TimelineTravel, PanelToCanvas, Clock, DashArc, useT } from "./MG";
-import { KeyChip, VerseWords, ReelVerseFull } from "./MGExtras";
+import { KeyChip, ReelVerseFull } from "./MGExtras";
 import { TitleBar } from "./TitleBar";
 import type { BarTheme } from "./TitleBar";
 import { NameCard1, NameCard3 } from "./NameCards";
@@ -14,7 +14,7 @@ import { CoverKit, COVER_PALETTES, PaperCoverKit, PAPER_COVER_END } from "./Cove
 import type { CoverProps } from "./CoverKit";
 import { ThumbProOpen, THUMBPRO_END } from "./ThumbPro";
 import type { ThumbProps } from "./ThumbPro";
-import { TornNote, NewsClip, TornPhoto, WordScraps } from "./PaperKit";
+import { TornNote, NewsClip, TornPhoto, WordScraps, DateCalendar } from "./PaperKit";
 import { BRAND, applyBrand } from "./brand";
 import type { BrandName } from "./brand";
 import { MaskedVideo } from "./MaskedVideo";
@@ -45,7 +45,7 @@ export type SpecItem = Common & (
   | { t: "crop"; src: string; nat: { w: number; h: number }; crop: { x: number; y: number; w: number; h: number }; name: string; at: number; until: number; x: number; y: number; w: number; walk?: boolean }
   | { t: "pic"; src: string; at: number; until: number; x: number; y: number; w: number; h: number; marker?: Mark }
   | { t: "scene"; at: number; until: number; x: number; y: number; w: number; h: number; pieces: { src: string; x: number; y: number; w: number; at: number; rot?: number; from?: "left" | "right" | "top" | "bottom" }[] }
-  | { t: "full"; src: string; from: number; to: number; origin?: string; marker?: Mark }
+  | { t: "full"; src: string; from: number; to: number; origin?: string; marker?: Mark; box?: { x: number; y: number; w: number; h: number; rot?: number; plain?: boolean } }
   | { t: "rewrite"; x: number; y: number; w: number; h?: number; oldText: string; newText: string; oldAt: number; strikeAt: number; newAt: number; extra?: string; until?: number }
   | { t: "flash"; src: string; name?: string; at: number; until: number; x: number; y: number; w: number; h: number; crops: { fx: number; fy: number; zoom: number }[]; beats: number[] }
   | { t: "credit"; text: string; from?: number; to?: number }
@@ -53,7 +53,7 @@ export type SpecItem = Common & (
   | { t: "subscribe"; at: number; x: number; y: number; dur?: number }
   | { t: "verse"; words: string[]; times: number[]; title: string; refText: string; x: number; y: number; w: number; size?: number; until?: number }
   /** a column of written cards (EU-Protests style): dark `Banner` title + one `StatRow` card per spoken item; placed by the orientation's layout (no x/y) */
-  | { t: "rows"; from: number; to: number; y0?: number; step?: number; rowH?: number; pin?: { x: number; w: number }; title?:{ at: number; text: string }; rows: { at: number; label: string; sub?: string; icon?: string; photo?: string }[] }
+  | { t: "rows"; side?: "right"; from: number; to: number; y0?: number; step?: number; rowH?: number; pin?: { x: number; w: number }; title?:{ at: number; text: string }; rows: { at: number; label: string; sub?: string; icon?: string; photo?: string }[] }
   /** a scholar he quotes: polaroid with the name in the white band (empty side of his frame; portrait: below the beard) */
   | { t: "scholar"; src: string; name: string; sub?: string; at: number; until?: number; x?: number; y?: number; w?: number; h?: number; pos?: string }
   /** the cover drawn over everything at the start (skill thumbnail-design). DEFAULT style "paper" (user 2026-10-27) = PaperCoverKit: newsprint sheet, 3 still frames, then the
@@ -64,7 +64,7 @@ export type SpecItem = Common & (
   /** family tree on a paper card (user 2026-10-29): landscape = left half of a split screen (his frame slides right through `shifts`), portrait = card under the beard; node/link positions are relative (0..1) */
   | { t: "tree"; from: number; to: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number; nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number }
   /** paper map (user 2026-10-29): landscape = the whole frame behind his shrunk cut-out (`mini`), portrait = a card under the beard */
-  | { t: "pmap"; iso?: boolean; from: number; to: number; x: number; y: number; w: number; h: number; center: [number, number]; spanLat: number; landCenter?: [number, number]; landSpan?: number; highlight?: string[]; pts: MapPt[]; legs?: MapLeg[]; carSrc?: string; carW?: number }
+  | { t: "pmap"; iso?: boolean; from: number; to: number; x: number; y: number; w: number; h: number; center: [number, number]; spanLat: number; landCenter?: [number, number]; landSpan?: number; highlight?: string[]; highlightAt?: Record<string, number>; geo?: "levant" | "world"; pts: MapPt[]; legs?: MapLeg[]; carSrc?: string; carW?: number }
   /** his isolated cut-out (needs `matte`) over a map, landscape only: full size until `shrinkAt`, then scaled to `scale` with his face moved to (cx, cy) */
   /** historical stations travelling on a timeline under him (skill timeline-and-numbers; user 2026-10-29): landscape = the lower half dims, portrait = the same 1920×1080 piece scaled into the lower third */
   | { t: "timeline"; stages: { at: number; date: string; title: string; sub?: string }[]; hold?: number; travel?: number; bandY?: number; axisK?: number; from?: number; to?: number; portTop?: number }
@@ -77,15 +77,17 @@ export type SpecItem = Common & (
   /** the stronger family tree, NO frame (user 2026-10-29): drawn on the decorated base; put a `behind` window with his matte on the same span so he stands in front of it (landscape: `dx` moves him right) */
   | { t: "treefx"; skin?: "parchment"; from: number; to: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number; nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number; titleSize?: number; land?: { x: number; y: number; w: number; h: number; titleSize?: number; nodeW?: number; nodeH?: number; font?: number } }
   /** the photo of a person he names, in a torn white border with tape (PaperKit TornPhoto; PREFERENCES «متى يُستعمل كل عنصر»: mandatory for every named person) */
-  | { t: "tphoto"; src: string; name?: string; at: number; until?: number; x?: number; y?: number; w?: number; h?: number; pos?: string }
+  | { t: "tphoto"; src: string; name?: string; at: number; until?: number; x?: number; y?: number; w?: number; h?: number; pos?: string; also?: { src: string; name?: string; at: number }[] }
   /** an important line of his speech on torn paper scraps, one word per scrap, centred in the writing area (PaperKit WordScraps) */
   | { t: "scraps"; text: string; at: number; until: number; y?: number; size?: number }
   /** a clock whenever he speaks of time or a duration (MG Clock) */
   | { t: "clock"; at: number; until: number; x?: number; y?: number; size?: number }
   /** two related people/things pinned side by side and joined by a dotted arc when he links them (first = the one on the right; MG DashArc) */
-  | { t: "arc"; at: number; until: number; arcAt?: number; a: { src: string; name: string; x: number; y: number; w?: number; h?: number }; b: { src: string; name: string; x: number; y: number; w?: number; h?: number } }
+  | { t: "arc"; at: number; until: number; arcAt?: number; a: { src: string; name: string; x: number; y: number; w?: number; h?: number }; b: { src: string; name: string; x: number; y: number; w?: number; h?: number }; landA?: { x: number; y: number; w?: number; h?: number }; landB?: { x: number; y: number; w?: number; h?: number }; landLift?: number }
   /** a country's flag springing in (PopCard around EuKit Flag) when he names the country */
   | { t: "flag"; code: FlagCode; at: number; until: number; x?: number; y?: number; w?: number }
+  /** a date as a ready-made calendar motion graphic (PaperKit DateCalendar) */
+  | { t: "date"; text: string; sub?: string; at: number; until?: number; x?: number; y?: number; w?: number; h?: number }
   | { t: "mini"; from: number; to: number; shrinkAt: number; scale: number; cx: number; cy: number; matte?: { src: string; start?: number } }
 );
 
@@ -115,7 +117,7 @@ export type MontageSpec = {
   /** landscape split screen: his frame slides right by `dx` px between from and to (eased 0.4 s) so a left-hand panel (family tree) gets half the screen */
   shifts?: { from: number; to: number; dx: number }[];
   /** windows (cut seconds) where he is drawn over the full-screen pictures and the clip card (needs `matte`) */
-  behind?: { from: number; to: number; matte?: { src: string; startFrom?: number; start?: number }; dx?: number }[];
+  behind?: { only?: "port" | "land"; from: number; to: number; matte?: { src: string; startFrom?: number; start?: number }; dx?: number }[];
   items: SpecItem[];
 };
 
@@ -188,17 +190,16 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
     case "subscribe": return <Subscribe key={i} at={it.at} x={L ? ov.x ?? 1300 : it.x} y={L ? ov.y ?? 790 : it.y} dur={it.dur} />;
     case "verse":
       // portrait: the verse fills the screen, his picture hidden while he recites (PREFERENCES §6); landscape: a card on the empty side
-      return L ? <VerseWords key={i} words={it.words} times={it.times} x={ov.x ?? it.x} y={ov.y ?? it.y} w={ov.w ?? it.w} size={ov.size ?? it.size} title={it.title} refText={it.refText} until={it.until} />
-        : <ReelVerseFull key={i} to={it.until ?? it.times[it.times.length - 1] + 1.2} refName={`${it.title} — ${it.refText}`} lines={[{ words: it.words, times: it.times }]} />;
+      return <ReelVerseFull key={i} to={it.until ?? it.times[it.times.length - 1] + 1.2} refName={`${it.title} — ${it.refText}`} lines={[{ words: it.words, times: it.times }]} />;
     case "credit": return <Only key={i} from={it.from ?? 0.5} to={it.to ?? 9999}><Sources links={[{ at: it.from ?? 0.5, url: it.text }]} x={40} bottom={L ? 24 : 178} w={L ? 1100 : 1000} size={L ? 22 : 24} /></Only>;
     case "rows": {
-      const g = ROWS[o], titled = !!it.title && (L || it.rows.length < 3);
+      const g = ROWS[o], titled = !!it.title && (L || it.rows.length < 3), gx = L && it.side === "right" ? 1920 - 40 - g.w : g.x;
       // `y0/step/rowH` (portrait) pack a long list under the beard: first row top, row pitch, row height
       const rowY = (n: number) => (!L && it.y0 !== undefined ? it.y0 + n * (it.step ?? 112) : g.rowY(n, titled)), rowH = !L && it.rowH ? it.rowH : g.rowH;
       return (
         <Only key={i} from={it.from} to={it.to}>
-          {titled && it.title ? <Banner at={it.title.at} x={g.x} y={g.bannerY} w={g.w} text={it.title.text} size={g.bannerSize} /> : null}
-          {it.rows.map((r, n) => <StatRow key={n} at={r.at} x={!L && it.pin ? it.pin.x : g.x} y={rowY(n)} w={!L && it.pin ? it.pin.w : g.w} h={rowH} icon={r.icon ?? "Quote"} label={r.label} sub={r.sub} photo={r.photo} rot={n % 2 ? 1 : -1} />)}
+          {titled && it.title ? <Banner at={it.title.at} x={gx} y={g.bannerY} w={g.w} text={it.title.text} size={g.bannerSize} /> : null}
+          {it.rows.map((r, n) => <StatRow key={n} at={r.at} x={!L && it.pin ? it.pin.x : gx} y={rowY(n)} w={!L && it.pin ? it.pin.w : g.w} h={rowH} icon={r.icon ?? "Quote"} label={r.label} sub={r.sub} photo={r.photo} rot={n % 2 ? 1 : -1} />)}
         </Only>
       );
     }
@@ -206,7 +207,7 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
       const x = L ? ov.x ?? 30 : it.x, y = L ? ov.y ?? 60 : it.y, w = L ? ov.w ?? 820 : it.w, h = L ? ov.h ?? 900 : it.h;
       return <FamilyTree key={i} from={it.from} until={it.to} x={x} y={y} w={w} h={h} title={it.title} titleAt={it.titleAt} nodes={it.nodes} links={it.links} nodeW={it.nodeW} nodeH={it.nodeH} font={it.font} />;
     }
-    case "pmap": return L || it.iso ? null : <PaperMap key={i} at={it.from} until={it.to} x={it.x} y={it.y} w={it.w} h={it.h} center={it.center} spanLat={it.spanLat} highlight={it.highlight} pts={it.pts} legs={it.legs} carSrc={it.carSrc} carW={it.carW} />;
+    case "pmap": return L || it.iso ? null : <PaperMap key={i} at={it.from} until={it.to} x={it.x} y={it.y} w={it.w} h={it.h} center={it.center} spanLat={it.spanLat} highlight={it.highlight} highlightAt={it.highlightAt} geo={it.geo} pts={it.pts} legs={it.legs} carSrc={it.carSrc} carW={it.carW} />;
     case "mini": return null;
     case "treefx": return L ? null : <TreeFx key={i} skin={it.skin} from={it.from} until={it.to} x={it.x} y={it.y} w={it.w} h={it.h} title={it.title} titleAt={it.titleAt} nodes={it.nodes} links={it.links} nodeW={it.nodeW} nodeH={it.nodeH} font={it.font} titleSize={it.titleSize} />;   // landscape: base layer under him, see MontageFromSpec
     case "torn": {
@@ -220,14 +221,22 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
       ? <TimelineTravel key={i} stages={it.stages} hold={it.hold} travel={it.travel} bandY={it.bandY} axisK={it.axisK} compact />
       : <div key={i} style={{ position: "absolute", left: 0, top: it.portTop ?? 1313, width: 1920, height: 1080, transform: "scale(0.5625)", transformOrigin: "0 0" }}><TimelineTravel stages={it.stages} hold={it.hold} travel={it.travel} compact /></div>;
     case "scholar": return <Only key={i} from={it.at} to={it.until ?? it.at + 6}><PinnedPhoto at={it.at} x={L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 40} y={L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1360} w={it.w ?? 300} h={it.h ?? 370} name={it.name} sub={it.sub} rot={-3}><Pic src={it.src} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: it.pos ?? "50% 20%" }} /></PinnedPhoto></Only>;
-    case "tphoto": return <TornPhoto key={i} at={it.at} until={it.until ?? it.at + 6} x={L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 40} y={L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1360} w={it.w ?? 300} h={it.h ?? 370} src={it.src} name={it.name} pos={it.pos} />;
+    case "tphoto": {
+      // several photos named in one breath (the books of one sentence) stand SIDE BY SIDE, each popping up at its word, all leaving together (user 2026-10-31)
+      const w = (L ? ov.w : undefined) ?? it.w ?? 300, h = (L ? ov.h : undefined) ?? it.h ?? 370, x0 = L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 40, y0 = L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1360;
+      const all = [{ src: it.src, name: it.name, at: it.at }, ...(it.also ?? [])], n = all.length;
+      return <React.Fragment key={i}>{all.map((p, j) => <TornPhoto key={j} at={p.at} until={it.until ?? it.at + 6} x={x0 + (n - 1 - j) * (w + 24)} y={y0} w={w} h={h} src={p.src} name={p.name} pos={it.pos} />)}</React.Fragment>;
+    }
     case "scraps": return <WordScraps key={i} at={it.at} until={it.until} y={L ? ov.y ?? 845 : it.y ?? 1330} text={it.text} size={L ? ov.size ?? 50 : it.size ?? 36} />;   {/* 60 % of the former 84 / 60 (user 2026-10-31) */}
     case "clock": { const size = L ? ov.size ?? 360 : it.size ?? 300; return <Only key={i} from={it.at} to={it.until}><div style={{ position: "absolute", left: L ? ov.x ?? 140 : it.x ?? 60, top: L ? ov.y ?? 300 : it.y ?? 1330 }}><Clock at={it.at} size={size} /></div></Only>; }
     case "arc": {
+      // landscape (user 2026-10-31): one picture on each side of him (right-hand one first), the dotted line passes under his beard
+      const A = L && it.landA ? { ...it.a, ...it.landA } : it.a, B = L && it.landB ? { ...it.b, ...it.landB } : it.b;
       const photo = (q: typeof it.a, rot: number) => <PinnedPhoto at={it.at} x={q.x} y={q.y} w={q.w ?? 300} h={q.h ?? 380} name={q.name} rot={rot}><Pic src={q.src} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 20%" }} /></PinnedPhoto>;
-      const ax = it.a.x + (it.a.w ?? 300) / 2, bx = it.b.x + (it.b.w ?? 300) / 2;
-      return <Only key={i} from={it.at} to={it.until}>{photo(it.a, -3)}{photo(it.b, 2)}<DashArc at={it.arcAt ?? it.at + 0.5} x1={ax} y1={it.a.y + (it.a.h ?? 380) + 60} x2={bx} y2={it.b.y + (it.b.h ?? 380) + 60} under lift={110} /></Only>;
+      const ax = A.x + (A.w ?? 300) / 2, bx = B.x + (B.w ?? 300) / 2;
+      return <Only key={i} from={it.at} to={it.until}>{photo(A, -3)}{photo(B, 2)}<DashArc at={it.arcAt ?? it.at + 0.5} x1={ax} y1={A.y + (A.h ?? 380) + 60} x2={bx} y2={B.y + (B.h ?? 380) + 60} under lift={L ? it.landLift ?? 110 : 110} /></Only>;
     }
+    case "date": return <DateCalendar key={i} at={it.at} until={it.until ?? it.at + 5} x={L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 300} y={L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1330} w={(L ? ov.w : undefined) ?? it.w ?? 340} text={it.text} sub={it.sub} />;
     case "flag": { const w = it.w ?? 220; return <Only key={i} from={it.at} to={it.until}><PopCard at={it.at} x={L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 60} y={L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1360}><Flag c={it.code} w={w} h={Math.round(w * 0.67)} /></PopCard></Only>; }
     default: return null; // "full" is a base-layer item and "cover" a top-layer item (below)
   }
@@ -377,7 +386,7 @@ const MiniMe: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; 
 };
 
 /** every item type the renderer knows (= the elements approved in the gallery); anything else is an error, never silently skipped (user 2026-10-28) */
-const APPROVED_TYPES = new Set(["word", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag"]);
+const APPROVED_TYPES = new Set(["word", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date"]);
 
 export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
   for (const it of spec.items) if (!APPROVED_TYPES.has(it.t)) throw new Error(`عنصر غير معتمد في المعرض: «${it.t}» في ${spec.id} — المعتمد: ${[...APPROVED_TYPES].join("، ")}`);
@@ -393,7 +402,12 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
     ? (spec.cut ? <LandFootage cut={spec.cut} zooms={spec.zooms} splits={spec.splits} shifts={spec.shifts} /> : null)
     : (spec.cut ? <SheikhLayers cut={spec.cut} cams={spec.cams ?? [{ from: 0, to: 9999, cx: 990 }]} zooms={spec.zooms} /> : null);
   return (
-    <AbsoluteFill style={{ background: BRAND.base }}>
+    <AbsoluteFill
+      style={{
+        background: BRAND.base,
+        scale: 0.994
+      }}
+    >
       {spec.cut ? <Audio src={staticFile(spec.cut)} volume={0.8} /> : null}
       {o === "port" || !spec.cut ? <WarmBase /> : null}
       <Sequence from={0} durationInFrames={spec.tail ? Math.round(spec.tail.from * 30) : spec.frames}>{(() => { const b2 = o === "port" && spec.psplits?.length ? <PortSplit windows={spec.psplits}>{body}</PortSplit> : body; return spec.shake?.length ? <HandheldShake windows={spec.shake} amp={6} rot={0.4}>{b2}</HandheldShake> : b2; })()}</Sequence>
@@ -405,12 +419,12 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
       {o === "land" ? (spec.solos ?? []).flatMap((sp, i) => [<Curtain key={"ca" + i} at={sp.from} />, <Curtain key={"cb" + i} at={sp.to} />, ...(sp.center ?? []).flatMap((c, j) => [<Curtain key={"cc" + i + j} at={c.from} />, <Curtain key={"cd" + i + j} at={c.to} />])]) : null}
       {spec.tail ? <Sequence from={Math.round(spec.tail.from * 30)}><Audio src={staticFile(spec.tail.src)} volume={0.95} /></Sequence> : null}
       {spec.tail ? <TailVoice tl={spec.tail} /> : null}
-      {fulls.map((x, i) => <FullImage key={i} src={x.src} from={x.from} to={x.to} origin={o === "land" ? x.land?.origin ?? x.origin : x.origin} marker={o === "land" ? x.land?.marker : x.marker} />)}
+      {fulls.map((x, i) => <FullImage key={i} src={x.src} from={x.from} to={x.to} origin={o === "land" ? x.land?.origin ?? x.origin : x.origin} marker={o === "land" ? x.land?.marker : x.marker} box={o === "land" ? undefined : x.box} />)}
       {/* the map is a base layer (under his isolated cut-out when the spec has `behind`); in portrait only for an isolated map (`iso`, user 2026-10-31: the map is an isolated-background element) */}
-      {spec.items.map((it, i) => it.t === "pmap" && !it.only && (o === "land" || it.iso) ? <PaperMap key={"pm" + i} at={it.from} until={it.to} x={o === "land" ? it.land?.x ?? 0 : it.x} y={o === "land" ? it.land?.y ?? 0 : it.y} w={o === "land" ? it.land?.w ?? 1920 : it.w} h={o === "land" ? it.land?.h ?? 1080 : it.h} center={o === "land" ? it.landCenter ?? it.center : it.center} spanLat={o === "land" ? it.landSpan ?? it.spanLat : it.spanLat} highlight={it.highlight} pts={it.pts} legs={it.legs} carSrc={it.carSrc} carW={it.carW} /> : null)}
+      {spec.items.map((it, i) => it.t === "pmap" && !it.only && (o === "land" || it.iso) ? <PaperMap key={"pm" + i} at={it.from} until={it.to} x={o === "land" ? it.land?.x ?? 0 : it.x} y={o === "land" ? it.land?.y ?? 0 : it.y} w={o === "land" ? it.land?.w ?? 1920 : it.w} h={o === "land" ? it.land?.h ?? 1080 : it.h} center={o === "land" ? it.landCenter ?? it.center : it.center} spanLat={o === "land" ? it.landSpan ?? it.spanLat : it.spanLat} highlight={it.highlight} highlightAt={it.highlightAt} geo={it.geo} pts={it.pts} legs={it.legs} carSrc={it.carSrc} carW={it.carW} /> : null)}
       {o === "land" && spec.cut ? spec.items.map((it, i) => it.t === "mini" && (it.matte ?? spec.matte) ? <Sequence key={"mi" + i} from={Math.round(it.from * 30)} durationInFrames={Math.round((it.to - it.from) * 30)}><MiniMe cut={spec.cut!} matte={(it.matte ?? spec.matte)!} it={it} /></Sequence> : null) : null}
       {o === "land" ? spec.items.map((it, i) => it.t === "treefx" && !it.only ? <Only key={"tf" + i} from={it.from} to={it.to}>{it.skin === "parchment" ? <Parchment /> : <AbsoluteFill><WarmBase /></AbsoluteFill>}<TreeFx skin={it.skin} from={it.from} until={it.to} x={o === "land" ? it.land?.x ?? 20 : it.x} y={o === "land" ? it.land?.y ?? 50 : it.y} w={o === "land" ? it.land?.w ?? 880 : it.w} h={o === "land" ? it.land?.h ?? 980 : it.h} title={it.title} titleAt={it.titleAt} nodes={it.nodes} links={it.links} nodeW={o === "land" ? it.land?.nodeW ?? it.nodeW : it.nodeW} nodeH={o === "land" ? it.land?.nodeH ?? it.nodeH : it.nodeH} font={o === "land" ? it.land?.font ?? it.font : it.font} titleSize={o === "land" ? it.land?.titleSize ?? it.titleSize : it.titleSize} /></Only> : null) : null}
-      {spec.cut ? (spec.behind ?? []).map((w, i) => { const mt = w.matte ?? spec.matte; return mt && (o === "land" || w.dx === undefined) ? <Sequence key={i} from={Math.round(w.from * 30)} durationInFrames={Math.round((w.to - w.from) * 30)}><MaskedSheikh cut={spec.cut!} matte={mt} o={o} cams={spec.cams} zooms={spec.zooms} dx={o === "land" ? w.dx : 0} from={w.from} /></Sequence> : null; }) : null}
+      {spec.cut ? (spec.behind ?? []).map((w, i) => { const mt = w.matte ?? spec.matte; return mt && (!w.only || w.only === o) && (o === "land" || w.dx === undefined) ? <Sequence key={i} from={Math.round(w.from * 30)} durationInFrames={Math.round((w.to - w.from) * 30)}><MaskedSheikh cut={spec.cut!} matte={mt} o={o} cams={spec.cams} zooms={spec.zooms} dx={o === "land" ? w.dx : 0} from={w.from} /></Sequence> : null; }) : null}
       <Gfx>
         {spec.items.map((it, i) => renderItem(it, i, o, bar))}
         <TitleBar title={spec.title} theme={bar} bottomHalf={o === "port"} />

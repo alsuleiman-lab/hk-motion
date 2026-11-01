@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, random, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Img, random, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { noise2D } from "@remotion/noise";
 import { kufiF, zainF } from "./MG";
 import { Pic } from "./EuKit";
@@ -107,8 +107,11 @@ export const WordScraps: React.FC<{ at: number; until?: number; x?: number; y?: 
 
 /** a photo of the person or place in a torn white border with tape and a hand-written-style name strip */
 export const TornPhoto: React.FC<{ at: number; until?: number; x: number; y: number; w: number; h: number; src: string; name?: string; pos?: string; rot?: number }> = ({ at, until, x, y, w, h, src, name, pos = "50% 25%", rot = 2.5 }) => {
-  const s = useArrive(at, until, "tp" + src, "right", rot);
-  if (!s) return null;
+  // no sliding across the frame (user 2026-10-31): it pops up in place from small and leaves the same way (shrinks back), never travelling over his face
+  const t = useStep(), f = useCurrentFrame();
+  if (t < at || (until !== undefined && t > until + 0.3)) return null;
+  const grow = easeOut((t - at) / 0.4) * (until === undefined ? 1 : 1 - easeOut((t - until) / 0.3));
+  const s = { transform: `scale(${0.15 + 0.85 * grow}) rotate(${rot + noise2D("tp" + src, f / 90, 0) * 0.6}deg)`, transformOrigin: "50% 50%", opacity: Math.min(1, grow * 2.5) } as React.CSSProperties;
   const H = h + (name ? 70 : 28);
   return (
     <div style={{ position: "absolute", left: x, top: y, width: w, height: H, filter: shadow, ...s }}>
@@ -128,5 +131,21 @@ export const PaperGrain: React.FC<{ opacity?: number }> = ({ opacity = 0.09 }) =
     <AbsoluteFill style={{ pointerEvents: "none", mixBlendMode: "multiply", opacity }}>
       <svg width="100%" height="100%"><filter id="pk-grain"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={2} seed={Math.floor(f / 3) % 40} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter><rect width="100%" height="100%" filter="url(#pk-grain)" /></svg>
     </AbsoluteFill>
+  );
+};
+
+/** a ready-made calendar motion graphic from the internet (LottieFiles free animation «calendar» by Zakaria Boukernafa, frames keyed to transparent) with the date written under it (user 2026-10-31: «جيب عنصر يعبر عن التاريخ… موشن جرافيك جاهز من الإنترنت») */
+export const DateCalendar: React.FC<{ at: number; until?: number; x: number; y: number; w: number; text: string; sub?: string }> = ({ at, until, x, y, w, text, sub }) => {
+  const f = useCurrentFrame(), { fps } = useVideoConfig(), t = f / fps;
+  if (t < at || (until !== undefined && t > until + 0.3)) return null;
+  const grow = easeOut((t - at) / 0.35) * (until === undefined ? 1 : 1 - easeOut((t - until) / 0.3));
+  const idx = Math.min(109, Math.floor((t - at) * 25)), iw = Math.round(w * 0.72), ih = Math.round(iw * 277 / 268), size = Math.round(w * 0.16);
+  // an opaque cream card in the identity (user 2026-10-31: «شفافية التقويم مزعجة… كريمي مع لون مناسب للكود اللوني»): the white frames multiply onto the card, the orange is turned to the accent hue
+  return (
+    <div style={{ position: "absolute", left: x, top: y, width: w, padding: "18px 0 22px", background: "#f4ecda", borderRadius: 26, borderTop: `10px solid ${BRAND.accent}`, boxShadow: "0 18px 36px rgba(0,0,0,.4)", transform: `scale(${0.2 + 0.8 * grow}) rotate(-2deg)`, transformOrigin: "50% 40%", opacity: Math.min(1, grow * 2.5), direction: "rtl", textAlign: "center" }}>
+      <Img src={staticFile(`halloween/date/o_${String(idx).padStart(3, "0")}.png`)} style={{ width: iw, height: ih, display: "block", margin: "0 auto", mixBlendMode: "multiply", filter: "hue-rotate(196deg) saturate(.6) brightness(.85)" }} />
+      <div style={{ fontFamily: kufiF, fontWeight: 800, fontSize: size, color: BRAND.ink, lineHeight: 1.2, marginTop: 4 }}>{text}</div>
+      {sub ? <div style={{ fontFamily: kufiF, fontSize: Math.round(size * 0.55), color: BRAND.gray }}>{sub}</div> : null}
+    </div>
   );
 };

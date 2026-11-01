@@ -6,7 +6,7 @@ import numpy as np
 src, mp = sys.argv[1:3]
 ratio = float(sys.argv[sys.argv.index("--ratio") + 1]) if "--ratio" in sys.argv else 4.0
 sr = 48000
-y = np.frombuffer(subprocess.run(["ffmpeg", "-v", "error", "-i", src, "-vn", "-f", "f32le", "-ac", "1", "-ar", str(sr), "-"], capture_output=True).stdout, np.float32).astype(np.float64)
+y = np.frombuffer(subprocess.run(["ffmpeg", "-threads", "4", "-filter_threads", "4", "-v", "error", "-i", src, "-vn", "-f", "f32le", "-ac", "1", "-ar", str(sr), "-"], capture_output=True).stdout, np.float32).astype(np.float64)
 hp = y - np.convolve(y, np.ones(24) / 24, mode="same")   # crude high-pass
 segs = json.load(open(mp))["segments"]
 bad = []

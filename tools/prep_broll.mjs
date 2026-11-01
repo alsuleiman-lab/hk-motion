@@ -15,7 +15,7 @@ if (cmd === "sheet") {
   ff(["-i", input, "-vf", "fps=2,scale=320:-1,tile=6x5", "-frames:v", "1", output]);
   console.log("sheet:", output);
 } else if (cmd === "prep") {
-  const sec = Math.min(2, parseFloat(flag("sec", "2")));          // hard cap: never more than 2 s
+  const sec = Math.min(4, parseFloat(flag("sec", "3")));          // hard cap: never more than 4 s (user 2026-10-31)
   const W = flag("w", "1920"), H = flag("h", "1080");
   // deterministic per-file variation so no two clips get the same treatment
   const h = crypto.createHash("md5").update(output).digest();

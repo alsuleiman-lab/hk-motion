@@ -138,6 +138,11 @@ export const TimedCompare: React.FC<{ at: number; until: number; x: number; y: n
   );
 };
 
+
+/** Uthmani marks the Qur'an font draws as a stray dot/ring (user 2026-10-31: «نقطة تحت الألف في مرّوا، ودائرة تحت ألف كراما»): small rounded/rectangular zero, small meems/seen,
+ *  small low/high stops — removed; open tanween → ordinary tanween. Applied to every verse drawn (VerseWords, ReelVerseFull). */
+export const cleanQuran = (s: string) => s.replace(/[ۣ۪ۭ۟۠ۢ۫۬]/g, "").replace(/ࣰ/g, "ً").replace(/ࣱ/g, "ٌ").replace(/ࣲ/g, "ٍ");
+
 // ---------- verse / hadith cards ----------
 const cardBox: React.CSSProperties = { background: "rgba(10,26,50,.72)", border: "2px solid rgba(255,255,255,.3)", borderRadius: 26, boxShadow: "0 18px 40px rgba(0,0,0,.35)", direction: "rtl" };
 
@@ -156,7 +161,7 @@ export const VerseWords: React.FC<{ words: string[]; times: number[]; x: number;
       <div style={{ fontFamily: `"${QURAN_FONT}", ${TEXT}`, fontWeight: 400, fontSize: size * 1.12, lineHeight: 1.9, color: BRAND.card, textAlign: "center", textShadow: "0 2px 8px rgba(0,0,0,.4)" }}>
         {words.map((wd, i) => {
           const u = clamp((t - times[i]) / 0.28);
-          return <span key={i} style={{ display: "inline-block", margin: "0 7px", opacity: u, transform: `translateY(${(1 - u) * 14}px)`, color: i < words.length && u > 0 && u < 1 ? BRAND.light : BRAND.card }}>{wd}</span>;
+          return <span key={i} style={{ display: "inline-block", margin: "0 7px", opacity: u, transform: `translateY(${(1 - u) * 14}px)`, color: i < words.length && u > 0 && u < 1 ? BRAND.light : BRAND.card }}>{cleanQuran(wd)}</span>;
         })}
       </div>
     </div>
@@ -271,20 +276,22 @@ export const ReelBehindCard: React.FC<{ from: number; to: number; side: "left" |
 
 /** REELS ONLY (user 2026-10-25: «عرض الآيات بملء الشاشة دون صورتي — هذا استثناء فقط في الريلز»): while he recites, the verse fills the screen and his picture is hidden.
  *  Text from data/quran (tools/quran_ayah.mjs), KFGQPC font, decorated dark background; every word appears when he says it; hard cut in and out. */
-export const ReelVerseFull: React.FC<{ to: number; refName: string; lines: { words: string[]; times: number[] }[]; size?: number }> = ({ to, refName, lines, size = 84 }) => {
+export const ReelVerseFull: React.FC<{ to: number; refName: string; lines: { words: string[]; times: number[] }[]; size?: number }> = ({ to, refName, lines, size: size0 }) => {
   const t = useT(0);
+  const { width: VW, height: VH } = useVideoConfig();
+  const LD = VW > VH, size = size0 ?? (LD ? 76 : 84);   // landscape too (user 2026-10-31: the verses fill the screen in the landscape version as well)
   const from = lines[0].times[0] - 0.1;
   if (t < from || t >= to) return null;
-  const words = lines.flatMap((l) => l.words.map((w, i) => ({ w, at: l.times[i] })));
+  const words = lines.flatMap((l) => l.words.map((w, i) => ({ w: cleanQuran(w), at: l.times[i] })));
   return (
     <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 45%, ${BRAND.base2} 0%, ${BRAND.base} 60%, ${BRAND.base3} 100%)` }}>
-      <svg width="1080" height="1920" style={{ position: "absolute", inset: 0, opacity: 0.13 }}>
+      <svg width={VW} height={VH} style={{ position: "absolute", inset: 0, opacity: 0.13 }}>
         <defs><pattern id="aw-star" width="120" height="120" patternUnits="userSpaceOnUse"><path d="M60 8l14 38 38 14-38 14-14 38-14-38-38-14 38-14z" fill="none" stroke={BRAND.light} strokeWidth="2" /><circle cx="60" cy="60" r="9" fill="none" stroke={BRAND.light} strokeWidth="2" /></pattern></defs>
-        <rect width="1080" height="1920" fill="url(#aw-star)" />
+        <rect width={VW} height={VH} fill="url(#aw-star)" />
       </svg>
-      <div style={{ position: "absolute", left: 60, right: 60, top: 300, bottom: 300, border: `3px solid ${alpha(BRAND.light, 0.55)}`, borderRadius: 34 }} />
-      <div style={{ position: "absolute", left: 0, right: 0, top: 370, textAlign: "center", fontFamily: `"${QURAN_FONT}", ${TITLE}`, fontWeight: 400, fontSize: 52, color: BRAND.light, direction: "rtl" }}>{refName}</div>
-      <div style={{ position: "absolute", left: 100, right: 100, top: 480, bottom: 380, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl" }}>
+      <div style={{ position: "absolute", left: LD ? 110 : 60, right: LD ? 110 : 60, top: LD ? 110 : 300, bottom: LD ? 150 : 300, border: `3px solid ${alpha(BRAND.light, 0.55)}`, borderRadius: 34 }} />
+      <div style={{ position: "absolute", left: 0, right: 0, top: LD ? 150 : 370, textAlign: "center", fontFamily: `"${QURAN_FONT}", ${TITLE}`, fontWeight: 400, fontSize: LD ? 46 : 52, color: BRAND.light, direction: "rtl" }}>{refName}</div>
+      <div style={{ position: "absolute", left: LD ? 190 : 100, right: LD ? 190 : 100, top: LD ? 240 : 480, bottom: LD ? 230 : 380, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl" }}>
         <div style={{ fontFamily: QURAN_FAM, fontSize: size, lineHeight: 1.9, color: BRAND.card, textAlign: "center" }}>
           {words.map((x, i) => {
             const p = clamp((t - x.at) / 0.25);

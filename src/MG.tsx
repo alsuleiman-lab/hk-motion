@@ -135,8 +135,8 @@ export const Stamp: React.FC<{ at: number; x: number; y: number; text: string; s
 export const Bars: React.FC<{ at: number; x: number; y: number; w: number; h: number; vals?: number[]; colors?: string[] }> = ({ at, x, y, w, h, vals = [1, 0.62, 0.38], colors = [BRAND.card, BRAND.blue, T.mark] }) => {
   const t = useT(at);
   return (
-    <div style={{ position: "absolute", left: x, top: y, width: w, height: h, display: "flex", gap: w * 0.12, alignItems: "flex-end", justifyContent: "center" }}>
-      {vals.map((v, i) => <div key={i} style={{ width: w * 0.22, height: h * v * ease((t - i * 0.12) / 0.4), background: colors[i], borderRadius: 4 }} />)}
+    <div style={{ position: "absolute", left: x, top: y, width: w, height: h, boxSizing: "border-box", padding: `${h * 0.12}px ${w * 0.1}px ${h * 0.1}px`, background: `linear-gradient(160deg, ${BRAND.navy}, ${BRAND.navyDeep})`, border: `4px solid ${BRAND.light}`, borderRadius: 18, boxShadow: "0 14px 34px rgba(0,0,0,.4)", opacity: ease(t / 0.3), display: "flex", gap: w * 0.1, alignItems: "flex-end", justifyContent: "center" }}>   {/* framed panel with its own background (user 2026-11-02: «ضع له إطار وخلفية») */}
+      {vals.map((v, i) => <div key={i} style={{ width: w * 0.2, height: (h * 0.78) * v * ease((t - i * 0.12) / 0.4), background: colors[i], borderRadius: 4 }} />)}
     </div>
   );
 };
@@ -902,13 +902,6 @@ export const RewriteWindow: React.FC<{ x: number; y: number; w: number; h?: numb
       {extra ? <div style={{ position: "absolute", right: 28, bottom: 26, fontSize: fs * 0.62, color: ink, opacity: k }}>{extra}</div> : null}
     </div>
   );
-};
-
-/** 34) TiltNote — «ملاحظة مائلة برتقالية» (reference §21): a small saturated note tilted ≈ −3° that pops under a graphic, with a tiny chat-bubble glyph; for a call to action / hint. Pops with overshoot at `at`. */
-export const TiltNote: React.FC<{ at: number; x: number; y: number; w: number; text: string; until?: number; color?: string; rot?: number }> = ({ at, x, y, w, text, until, color = BRAND.mark, rot = -3 }) => {
-  const t = useT(at), sp = spring({ frame: Math.max(0, Math.round(t * FPS)), fps: FPS, config: { damping: 11, stiffness: 190 } }), out = until === undefined ? 1 : ease((until - (t + at)) / 0.25);
-  if (t < 0 || out <= 0) return null;
-  return <div style={{ position: "absolute", left: x, top: y, width: w, padding: "14px 22px", boxSizing: "border-box", borderRadius: 14, background: color, color: "#fff", fontFamily: kufiF, fontSize: Math.min(40, w * 0.052), direction: "rtl", whiteSpace: "nowrap", boxShadow: "0 12px 26px rgba(0,0,0,.35)", transform: `rotate(${rot}deg) scale(${0.6 + 0.4 * sp})`, opacity: clamp(sp * 2) * out, display: "flex", alignItems: "center", gap: 12 }}><span style={{ width: 30, height: 24, borderRadius: 12, background: "#fff", opacity: 0.9, flexShrink: 0 }} />{text}</div>;
 };
 
 void interpolate;

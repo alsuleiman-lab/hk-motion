@@ -29,7 +29,7 @@ const ROLE = {
   navyDeep: "#0f2a47",
 };
 const roleOf = Object.fromEntries(Object.entries(ROLE).flatMap(([k, hs]) => hs.split(" ").map((h) => [h, k])));
-const MARKING = /Highlight|Ellipse|Mark|Brush|TiltNote|Stamp/;   // gold in a hand-drawn mark → the mark colour, elsewhere → the accent
+const MARKING = /Highlight|Ellipse|Mark|Brush|Stamp/;   // gold in a hand-drawn mark → the mark colour, elsewhere → the accent
 // warm rgba() families (shadows, sweeps, glows) → the brand's rgb; the alpha is kept
 const RGBA = {
   "10,18,30": "40,24,10 28,27,25 52,32,14 40,26,12 30,18,8 30,18,6 8,5,2",   // warm brown shadows → navy shadow

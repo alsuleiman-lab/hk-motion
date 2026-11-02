@@ -1,6 +1,6 @@
 # فهرس قطع الموشن (مولَّد آلياً من src/MG.tsx وPortraitKit وSourceFrames وPaperKit وPaperTear وDebateLayouts — لا تعدّله يدوياً)
 
-> يُولَّد بـ`node tools/gen_quickref.mjs`. الزمن بالثواني المطلقة ما لم يُذكر؛ كل قطعة تُوضع داخل `<Gfx>`؛ التفاصيل والضوابط الكاملة لكل قطعة في مهارة motion-graphics وأخواتها، وهنا ما يكفي لاستدعائها دون قراءة طويلة. عدد القطع: 59.
+> يُولَّد بـ`node tools/gen_quickref.mjs`. الزمن بالثواني المطلقة ما لم يُذكر؛ كل قطعة تُوضع داخل `<Gfx>`؛ التفاصيل والضوابط الكاملة لكل قطعة في مهارة motion-graphics وأخواتها، وهنا ما يكفي لاستدعائها دون قراءة طويلة. عدد القطع: 58.
 
 ### `MGTheme`
 one colour identity (src/brand.ts, user 2026-10-27): whatever `theme` an older composition passes, the brand (steel) is used
@@ -137,10 +137,6 @@ A red hand-brushed X draws itself diagonally over `box` (two strokes, 0.25 s eac
 ### `RewriteWindow`
 A white browser-like window (tiny top bar with a red tab) holding ONE rewrite story: the OLD phrase is written, then STRUCK THROUGH (rough line draws right→left, text fades to 55 %), an ARROW draws from it toward the NEW phrase which is written with a pale-ora
 `props:` x: number; y: number; w: number; h?: number; oldText: string; newText: string; oldAt: number; strikeAt: number; newAt: number; extra?: string; rot?: number; until?: number; accent?: string
-
-### `TiltNote`
-: a small saturated note tilted ≈ −3° that pops under a graphic, with a tiny chat-bubble glyph; for a call to action / hint. Pops with overshoot at `at`.
-`props:` at: number; x: number; y: number; w: number; text: string; until?: number; color?: string; rot?: number
 
 ### `RV`
 render from pre-extracted JPEG frames (inputProps {"frames":true}; public/fr/<video name>/f_%06d.jpg, file number = composition frame; PREFERENCES R-RENDER-SPEED.4): no video decoding, exact frame

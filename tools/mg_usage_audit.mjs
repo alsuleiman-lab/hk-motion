@@ -14,7 +14,7 @@ const KIT = {
   "ظهور ضبابي": ["BlurRise"],
   "قائمة→لوحة": ["PanelToCanvas"],
   "جوال": ["PhoneChips"],
-  "نافذة تحسين/ملاحظة": ["RewriteWindow", "TiltNote"],
+  "نافذة تحسين/ملاحظة": ["RewriteWindow"],
   "شطب": ["BrushX"],
   "مشي المصدر": ["SakugaMove", "SourceWalk"],
   "كشّاف": ["SpotlightCard"],

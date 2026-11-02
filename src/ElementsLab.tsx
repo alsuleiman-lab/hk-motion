@@ -3,7 +3,7 @@ import { AbsoluteFill, OffthreadVideo, Sequence, staticFile, useVideoConfig } fr
 import {
   Bars, BlurRise, BrushX, Clock, CollageAssemble, ConvergeMerge, CornerTags, DashArc, EllipseMark, FlashCut, GlowCaption, GlowCounter,
   Highlight, MGTheme, NoteCard, PanelToCanvas, PhoneChips, PinnedPhoto,
-  HandheldShake, PaperBg, RewriteWindow, SakugaMove, SpotlightCard, Stamp, Strike, T, TiltNote, TimelineCounter, TimelineTravel, TypeBox, kufiF, naskhF,
+  HandheldShake, PaperBg, RewriteWindow, SakugaMove, SpotlightCard, Stamp, Strike, T, TimelineCounter, TimelineTravel, TypeBox, kufiF, naskhF,
 } from "./MG";
 import { Banner, Sources, StatRow, useFonts } from "./EuKit";
 import { MapRoute, Marker, PaperMap, Word } from "./PortraitKit";
@@ -105,7 +105,7 @@ const E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   GlowCounter: { node: <GlowCounter at={0.1} x={700} y={400} steps={[4, 23, 36]} stepDur={0.6} size={190} /> },
   TimelineTravel: { node: <TimelineTravel stages={[{ at: 0.1, date: "٦٩٠ هـ", title: "المرحلة الأولى", sub: "ميلاده" }, { at: 0.9, date: "٧٤٠ هـ", title: "المرحلة الثانية" }, { at: 1.7, date: "٧٩٠ هـ", title: "المرحلة الثالثة" }]} bandY={560} /> },
   Clock: { node: <div style={{ position: "absolute", left: 740, top: 320 }}><Clock at={0.1} size={440} /></div> },
-  Bars: { node: <Bars at={0.1} x={660} y={300} w={600} h={420} vals={[1, 0.62, 0.38]} /> },
+  Bars: { node: <Bars at={0.1} x={60} y={200} w={560} h={420} vals={[1, 0.62, 0.38]} /> },
   SakugaMove: { node: <SakugaMove at={0.1} w={560} h={360} from={{ x: -600, y: 360 }} mid={{ x: 680, y: 360 }} to={{ x: 680, y: 360 }} switchAt={1.0} impact={false} name="اسم المردود عليه" accent="#d9b36a" labelPos={{ left: 680, top: 250 }}><Real src="people/popeTayeb1.jpg" /></SakugaMove> },
   SpotlightCard: { node: <SpotlightCard at={0.1} card={{ x: 600, y: 200, w: 720, h: 640 }} lockAt={1.2} stops={[[400, 300], [1200, 700], [800, 500]]}><Page /></SpotlightCard> },
   FlashCut: { node: <FlashCut at={0.1} x={0} y={0} w={1920} h={1080} crops={[{ fx: 0.5, fy: 0.5, zoom: 1 }, { fx: 0.4, fy: 0.3, zoom: 1.7 }]} beats={[0.6]} hud="حُفظ"><Page /></FlashCut> },
@@ -120,7 +120,6 @@ const E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   BrushX: { node: <><TornPhoto at={0.05} x={700} y={240} w={520} h={560} src="people/azharCourt.jpg" name="ما يُنكَر" rot={0} /><BrushX at={0.1} x={680} y={230} w={560} h={640} /></> },
   EllipseMark: { node: <><div style={{ position: "absolute", left: 600, top: 430, width: 720, textAlign: "center", fontFamily: kufiF, fontSize: 84, color: "#fff" }}>عبارة تحتاج تمييزاً</div><EllipseMark at={0.1} x={560} y={380} w={800} h={200} /></> },
   Marker: { node: <div style={{ position: "absolute", left: 560, top: 180, width: 800, height: 720 }}><Page /><Marker at={0.1} x={0.1} y={0.28} w={0.8} h={0.12} /></div> },
-  TiltNote: { node: <TiltNote at={0.1} x={660} y={440} w={600} text="اشترك في القناة" /> },
   RewriteWindow: { node: <RewriteWindow x={500} y={300} w={920} oldText="العبارة القديمة" newText="العبارة الأحسن" oldAt={0.1} strikeAt={0.8} newAt={1.3} extra="سطر توضيحي" /> },
   Word: { node: <Word text="كلمة مفتاحية" at={0.1} until={3} x={560} y={430} size={120} /> },
   CornerTags: { node: <CornerTags right={["الموضوع", "الحكم"]} left={["محمد بن شمس الدين"]} y={120} size={34} /> },

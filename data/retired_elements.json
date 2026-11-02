@@ -31,7 +31,8 @@
     "DimLayer",
     "TrAccentWipe",
     "TrDoors",
-    "TrPaperTear"
+    "TrPaperTear",
+    "TiltNote"
   ],
   "itemTypes": [
     "neon",

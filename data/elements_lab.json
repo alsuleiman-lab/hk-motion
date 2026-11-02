@@ -627,21 +627,6 @@
     "orient": "both"
   },
   {
-    "id": "TiltNote",
-    "ar": "ملاحظة مائلة",
-    "kit": "MG",
-    "group": "البنود والقوائم",
-    "where": "هذه للتنبيه  او الملجوظات",
-    "note": "",
-    "section": "text",
-    "mode": "full",
-    "slot": {
-      "land": "left",
-      "port": "band"
-    },
-    "orient": "both"
-  },
-  {
     "id": "RewriteWindow",
     "ar": "نافذة التحسين",
     "kit": "MG",

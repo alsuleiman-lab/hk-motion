@@ -1,0 +1,6 @@
+import {createServer} from '../../../Papermotion/node_modules/vite/dist/node/index.js';
+import path from 'node:path';import os from 'node:os';
+try{os.setPriority(0,os.constants.priority.PRIORITY_BELOW_NORMAL)}catch{}
+const root=path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1'));
+const server=await createServer({root,configFile:false,cacheDir:path.join(root,'.cache/vite'),server:{host:'127.0.0.1',port:3305,strictPort:true,hmr:false,watch:null,fs:{allow:['S:/AI_Tools']}},logLevel:'error'});
+await server.listen();console.log('مكتبة شخصيات الكرتون: http://localhost:3305');

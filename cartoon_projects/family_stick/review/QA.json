@@ -1,0 +1,117 @@
+{
+  "cast": 6,
+  "motions": 8,
+  "poses": 2888,
+  "boneLengthError": 4.263256414560601e-14,
+  "plantedFootDrift": 4.263256414560601e-14,
+  "deterministic": true,
+  "lowerElbowBranch": true,
+  "minElbowBelowLine": 19.42872948969216,
+  "maxElbowStep": 2.413006209555325,
+  "liveAnimation": true,
+  "pause": true,
+  "flip": true,
+  "mobile": true,
+  "contrast": [
+    {
+      "mode": "light",
+      "ratios": [
+        {
+          "selector": "body",
+          "ratio": 12.819696574248841
+        },
+        {
+          "selector": "p",
+          "ratio": 5.525902951272734
+        },
+        {
+          "selector": "a",
+          "ratio": 6.239571017472872
+        },
+        {
+          "selector": "button",
+          "ratio": 14.492914614260389
+        },
+        {
+          "selector": "button[aria-pressed=true]",
+          "ratio": 12.108703249763767
+        },
+        {
+          "selector": ".stage-meta",
+          "ratio": 6.2471400298472215
+        },
+        {
+          "selector": "#name",
+          "ratio": 14.492914614260389
+        }
+      ]
+    },
+    {
+      "mode": "dark",
+      "ratios": [
+        {
+          "selector": "body",
+          "ratio": 13.440891607296313
+        },
+        {
+          "selector": "p",
+          "ratio": 9.122822920881998
+        },
+        {
+          "selector": "a",
+          "ratio": 9.851567871695373
+        },
+        {
+          "selector": "button",
+          "ratio": 10.621067927457977
+        },
+        {
+          "selector": "button[aria-pressed=true]",
+          "ratio": 9.5136126418011
+        },
+        {
+          "selector": ".stage-meta",
+          "ratio": 7.208905834807852
+        },
+        {
+          "selector": "#name",
+          "ratio": 10.621067927457977
+        }
+      ]
+    },
+    {
+      "mode": "forced",
+      "ratios": [
+        {
+          "selector": "body",
+          "ratio": 21
+        },
+        {
+          "selector": "p",
+          "ratio": 21
+        },
+        {
+          "selector": "a",
+          "ratio": 13.994023083921398
+        },
+        {
+          "selector": "button",
+          "ratio": 21
+        },
+        {
+          "selector": "button[aria-pressed=true]",
+          "ratio": 21
+        },
+        {
+          "selector": ".stage-meta",
+          "ratio": 21
+        },
+        {
+          "selector": "#name",
+          "ratio": 21
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

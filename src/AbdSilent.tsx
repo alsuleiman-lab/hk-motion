@@ -1,0 +1,3 @@
+export { SilentReaction as AbdSilent, calculateSilentMetadata as calculateAbdMetadata } from "./SilentReaction";
+/** literal asset paths so tools/lib/cached_bundle.mjs (face check, probes) links them: the config loads them dynamically */
+export const ABD_ASSETS = ["silent/abd-limen/config.json", "silent/abd-limen/reaction.mp4", "silent/abd-limen/reaction_proxy.mp4", "silent/abd-limen/source.mp4", "silent/abd-limen/source_proxy.mp4", "silent/abd-limen/cover_frame.jpg", "cov/abd_sheikh.png", "silent/abd-limen/broll/bus.png", "silent/abd-limen/broll/radio.png", "silent/abd-limen/broll/mosque.png", "silent/abd-limen/broll/sujud.png", "silent/abd-limen/broll/wheel.png"];

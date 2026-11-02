@@ -1,0 +1,119 @@
+{
+  "id": "dodo-family",
+  "name": "عائلة دودو",
+  "status": "ready-for-review",
+  "reusable": true,
+  "independentFrom": "abu-khatt-family",
+  "retainAfterVideoCleanup": true,
+  "root": "cartoon_projects/dodo_family",
+  "renderer": "rig.ts",
+  "readme": "README.md",
+  "styleReference": "references/user-style.png",
+  "style": "رأس كبير خوخي وعينان نقطتان وفم صغير وحدود حبرية سميكة وجسم قصير",
+  "characters": [
+    {
+      "id": "father",
+      "name": "الرجل الأول",
+      "assets": {
+        "idle": "assets/father-v2.svg",
+        "wave": "assets/father-wave-v2.svg",
+        "angry": "assets/father-angry-v2.svg",
+        "talkOpen": "assets/father-talk-open-v2.svg",
+        "talkClosed": "assets/father-talk-closed-v2.svg"
+      }
+    },
+    {
+      "id": "uncle",
+      "name": "الرجل الثاني",
+      "assets": {
+        "idle": "assets/uncle-v2.svg",
+        "wave": "assets/uncle-wave-v2.svg",
+        "angry": "assets/uncle-angry-v2.svg",
+        "talkOpen": "assets/uncle-talk-open-v2.svg",
+        "talkClosed": "assets/uncle-talk-closed-v2.svg"
+      }
+    },
+    {
+      "id": "boy-big",
+      "name": "الطفل الأكبر",
+      "assets": {
+        "idle": "assets/boy-big-v2.svg",
+        "wave": "assets/boy-big-wave-v2.svg",
+        "angry": "assets/boy-big-angry-v2.svg",
+        "talkOpen": "assets/boy-big-talk-open-v2.svg",
+        "talkClosed": "assets/boy-big-talk-closed-v2.svg"
+      }
+    },
+    {
+      "id": "boy-small",
+      "name": "الطفل الأصغر",
+      "assets": {
+        "idle": "assets/boy-small-v2.svg",
+        "wave": "assets/boy-small-wave-v2.svg",
+        "angry": "assets/boy-small-angry-v2.svg",
+        "talkOpen": "assets/boy-small-talk-open-v2.svg",
+        "talkClosed": "assets/boy-small-talk-closed-v2.svg"
+      }
+    },
+    {
+      "id": "girl",
+      "name": "البنت بضفيرة وربطة شعر",
+      "assets": {
+        "idle": "assets/girl-v2.svg",
+        "wave": "assets/girl-wave-v2.svg",
+        "angry": "assets/girl-angry-v2.svg",
+        "talkOpen": "assets/girl-talk-open-v2.svg",
+        "talkClosed": "assets/girl-talk-closed-v2.svg"
+      }
+    },
+    {
+      "id": "mother",
+      "name": "الأم المنقبة",
+      "assets": {
+        "idle": "assets/mother-v2.svg",
+        "wave": "assets/mother-wave-v2.svg",
+        "angry": "assets/mother-angry-v2.svg",
+        "talkOpen": "assets/mother-talk-open-v2.svg",
+        "talkClosed": "assets/mother-talk-closed-v2.svg"
+      }
+    }
+  ],
+  "motions": [
+    "idle",
+    "listen",
+    "explain",
+    "point",
+    "wave",
+    "carry",
+    "walk",
+    "sit",
+    "angry",
+    "talk"
+  ],
+  "expressions": [
+    "happy",
+    "smile",
+    "curious",
+    "surprised",
+    "angry"
+  ],
+  "lineup": {
+    "svg": "assets/family-lineup-v2.svg",
+    "png": "assets/family-lineup-v2.png"
+  },
+  "preview": {
+    "url": "http://localhost:3311",
+    "command": "node cartoon_projects/dodo_family/serve.mjs"
+  },
+  "remotion": {
+    "compositionId": "DodoFamilyCast",
+    "component": "src/DodoFamilyCast.tsx",
+    "url": "http://localhost:3100/DodoFamilyCast"
+  },
+  "constraints": {
+    "faces": "Preserve the features of the attached Dodo reference",
+    "elbow": "Stable lower branch for raised-hand gestures",
+    "speech": "Real voiced intervals in videos; silent demo uses sample intervals",
+    "mother": "No visible mouth or hair outside the niqab"
+  }
+}

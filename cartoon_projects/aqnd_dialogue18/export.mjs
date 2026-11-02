@@ -1,0 +1,19 @@
+import fs from 'node:fs';import path from 'node:path';import os from 'node:os';
+import {createRequire} from 'node:module';import {buildSync} from 'esbuild';
+try{os.setPriority(0,os.constants.priority.PRIORITY_BELOW_NORMAL)}catch{}
+const root='cartoon_projects/aqnd_dialogue18';fs.mkdirSync(root+'/scenes',{recursive:true});
+buildSync({entryPoints:[root+'/scene.ts'],outfile:'.tmp/aqnd_dialogue18/scene.cjs',bundle:true,platform:'node',format:'cjs'});
+const require=createRequire(import.meta.url),{data,frameSvg,C,poseFor,sourceTimeAtOutputTime}=require(path.resolve('.tmp/aqnd_dialogue18/scene.cjs'));
+const font=(family,file)=>`@font-face{font-family:'${family}';src:url(data:font/ttf;base64,${fs.readFileSync('public/fonts/'+file).toString('base64')})}`;
+const fonts='<defs><style>'+font('Noto Kufi Arabic','NotoKufiArabic-Variable.ttf')+font('KFGQPC Uthmanic Sousi','UthmanicSousi_V20.ttf')+'</style></defs>';
+for(const s of data.scenes){const t=s.to-Math.min(.18,(s.to-s.from)*.2);const svg=frameSvg(t).replace('http://www.inkscape.org/namespaces/inkscape','http://www.inkscape.org/namespaces/inkscape').replace(/(<svg[^>]*>)/,'$1'+fonts);fs.writeFileSync(root+`/scenes/scene-${String(s.id).padStart(2,'0')}.svg`,svg);}
+const lum=h=>{const v=h.slice(1).match(/../g).map(x=>parseInt(x,16)/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4);return .2126*v[0]+.7152*v[1]+.0722*v[2]};
+const ratio=(a,b)=>(Math.max(lum(a),lum(b))+.05)/(Math.min(lum(a),lum(b))+.05);
+const contrast={textOnPanel:ratio(C.ink,C.panel),caption:ratio(C.panel,C.ink),accentOnPanel:ratio(C.olive,C.panel),outlineOnWall:ratio(C.ink,C.wall)};
+if(Object.values(contrast).some(x=>x<4.5))throw Error('Contrast failed');
+let maxBoneError=0,listenerDrift=0,minElbowBelow=Infinity;
+for(let i=0;i<Math.ceil(data.duration*30);i++){const t=sourceTimeAtOutputTime(i/30),s=data.scenes.find(s=>t>=s.from&&t<s.to)??data.scenes[17];for(const id of ['A','B']){const p=poseFor(id,t).p;for(let j=0;j<2;j++){const shoulder=p.shoulders[j],w=p.wrists[j],e=p.elbows[j];maxBoneError=Math.max(maxBoneError,Math.abs(Math.hypot(e.x-shoulder.x,e.y-shoulder.y)-56),Math.abs(Math.hypot(w.x-e.x,w.y-e.y)-57));const q=(e.x-shoulder.x)/(w.x-shoulder.x);const below=e.y-(shoulder.y+(w.y-shoulder.y)*q);if(Math.abs(w.x-shoulder.x)>5)minElbowBelow=Math.min(minElbowBelow,below);}if(s.speaker!==id&&t>s.from+.04&&t<s.to-.04){const prev=poseFor(id,sourceTimeAtOutputTime(i/30-1/30)).p;for(let j=0;j<2;j++)listenerDrift=Math.max(listenerDrift,Math.hypot(p.wrists[j].x-prev.wrists[j].x,p.wrists[j].y-prev.wrists[j].y));}}}
+const report={scenes:data.scenes.length,duration:data.duration,dimensions:[1080,1920],contrast,maxBoneError,listenerDrift,minElbowBelow,audioAsset:'dialogue_nomusic_cut_v3.wav',roundFingeredHands:true};
+fs.writeFileSync(root+'/checks.json',JSON.stringify(report,null,2));console.log(report);
+fs.writeFileSync(root+'/README.md',`# حوار الأعمال والرحمة\n\n18 مشهداً مرقماً بصيغة SVG مستقلة، 1080×1920، برسوم متجهية وطبقات مسماة. أسلوب Illustration؛ لا تعتمد الحزمة على برنامج Illustrator.\n\nالطبقات: الخلفية والأثاث، جسم كل شخصية، الذراع اليمنى، الذراع اليسرى، الفم، اللوحات، النصوص، الكابشن. النماذج من مكتبة عائلة أبو خط الدائمة دون إعادة رسم الوجوه.\n\nكل SVG يحتوي الخطين محلياً مضمّنين ويحتفظ بالنصوص العربية قابلة للتحرير. التوقيت والحركات المتصلة في scene.ts، والجدول والكلمات في timing.json. تُشغَّل الحركة من تركيبة Remotion AqndDialogue18. ملفات SVG لقطات مفصلية قابلة للتحرير وليست فيديوهات مستقلة.\n\nالصوت من النسخة المرسلة بلا موسيقى؛ قُصّرت فترات الصمت الطويلة إلى نحو 0.25 ثانية دون حذف أي كلمة منطوقة، وأُعيد ضبط توقيت المشاهد والكابشن وفق ذلك. الكلمات غير المؤكدة عند 6.06–6.48 و8.34–9.58 ثانية لا تُعرض.\n\nالآيات: قاعدة quran-uthmani المحلية، مطابقة لبوابة دين الحق: https://din.hk/tafseer?sura=3&aya=132 وhttps://din.hk/tafseer?sura=24&aya=56.\n`);
+

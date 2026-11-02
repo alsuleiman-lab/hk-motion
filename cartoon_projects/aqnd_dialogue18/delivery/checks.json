@@ -1,0 +1,19 @@
+{
+  "scenes": 18,
+  "duration": 34.133,
+  "dimensions": [
+    1080,
+    1920
+  ],
+  "contrast": {
+    "textOnPanel": 14.906165448803469,
+    "caption": 14.906165448803469,
+    "accentOnPanel": 7.79682128717165,
+    "outlineOnWall": 12.537758966849134
+  },
+  "maxBoneError": 3.552713678800501e-14,
+  "listenerDrift": 0,
+  "minElbowBelow": 18.888356861302128,
+  "audioAsset": "dialogue_nomusic_cut_v3.wav",
+  "roundFingeredHands": true
+}

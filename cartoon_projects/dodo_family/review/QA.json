@@ -1,0 +1,54 @@
+{
+  "characters": 6,
+  "motions": 10,
+  "poses": 7210,
+  "maxBoneError": 4.263256414560601e-14,
+  "maxPlantedFootDrift": 2.842170943040401e-14,
+  "minElbowBelowLine": 23.814262378406767,
+  "maxElbowStep": 3.170572555625633,
+  "deterministic": true,
+  "mouthRestsInPauses": true,
+  "niqabConcealsMouth": true,
+  "contrast": [
+    {
+      "fill": "paper",
+      "ratio": 17.080314408244092
+    },
+    {
+      "fill": "skin",
+      "ratio": 12.994023863395277
+    },
+    {
+      "fill": "skinShade",
+      "ratio": 9.694322611376434
+    },
+    {
+      "fill": "blue",
+      "ratio": 12.041151915860555
+    },
+    {
+      "fill": "blueShade",
+      "ratio": 9.174916073773927
+    },
+    {
+      "fill": "gold",
+      "ratio": 12.506074980326192
+    },
+    {
+      "fill": "denim",
+      "ratio": 7.026612668891488
+    },
+    {
+      "fill": "peach",
+      "ratio": 9.582936344352342
+    },
+    {
+      "fill": "rose",
+      "ratio": 9.6344630530088
+    },
+    {
+      "fill": "veil",
+      "ratio": 5.795904726738685
+    }
+  ]
+}

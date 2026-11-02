@@ -1,0 +1,76 @@
+{
+  "characters": [
+    {
+      "expected": "الرجل الأول",
+      "actual": "الرجل الأول"
+    },
+    {
+      "expected": "الرجل الثاني",
+      "actual": "الرجل الثاني"
+    },
+    {
+      "expected": "الطفل الأكبر",
+      "actual": "الطفل الأكبر"
+    },
+    {
+      "expected": "الطفل الأصغر",
+      "actual": "الطفل الأصغر"
+    },
+    {
+      "expected": "البنت",
+      "actual": "البنت"
+    },
+    {
+      "expected": "الأم",
+      "actual": "الأم"
+    }
+  ],
+  "motions": [
+    {
+      "motion": "talk",
+      "selected": "talk"
+    },
+    {
+      "motion": "angry",
+      "selected": "angry"
+    },
+    {
+      "motion": "wave",
+      "selected": "wave"
+    },
+    {
+      "motion": "explain",
+      "selected": "explain"
+    },
+    {
+      "motion": "point",
+      "selected": "point"
+    },
+    {
+      "motion": "listen",
+      "selected": "listen"
+    },
+    {
+      "motion": "walk",
+      "selected": "walk"
+    },
+    {
+      "motion": "carry",
+      "selected": "carry"
+    },
+    {
+      "motion": "sit",
+      "selected": "sit"
+    },
+    {
+      "motion": "idle",
+      "selected": "idle"
+    }
+  ],
+  "closedMouth": "0",
+  "openMouth": "0.997",
+  "buttons": 10,
+  "documentWidth": 471,
+  "mouth": "0.997",
+  "viewportWidth": 486
+}

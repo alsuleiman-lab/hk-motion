@@ -1,0 +1,12 @@
+{
+  "characters": 6,
+  "motions": 10,
+  "poses": 7210,
+  "maxBoneError": 4.263256414560601e-14,
+  "minElbowBelowLine": 19.42872948969216,
+  "maxElbowStep": 2.413006209555325,
+  "mouthOpensAndCloses": true,
+  "mouthAndGesturesRestInPauses": true,
+  "customSpeechAfterSixSeconds": true,
+  "niqabKeepsMouthCovered": true
+}

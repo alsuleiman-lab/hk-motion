@@ -20,6 +20,8 @@ import { KhMaskTest, KMT_FRAMES } from "./KhMaskTest";
 import { KhBench, KHBENCH_FRAMES } from "./KhBench";
 import { KhCssMaskTrial, KhCssMaskTrialOT, CSSMASK_FRAMES } from "./KhCssMaskTrial";
 import { KhAlphaTrial, ALPHATRIAL_FRAMES } from "./KhAlphaTrial";
+import { AzharSilent, calculateAzharMetadata } from "./AzharSilent";
+import { AbdSilent, calculateAbdMetadata } from "./AbdSilent";
 import { HybridGrad, HybridGradP135, HybridGradP160, HybridStar, HybridVig } from "./hybrid/HybridAssets";
 
 
@@ -44,6 +46,8 @@ import { ShiaHandDebate, SHIA_HAND_FPS, SHIA_HAND_TOTAL_FRAMES } from "./ShiaHan
 export const RemotionRoot: React.FC = () => {
   return (
     <ByRecency>
+      <Composition id="Silent-Azhar-Portrait" component={AzharSilent} durationInFrames={1325} fps={30} width={1080} height={1920} defaultProps={{ name: "azhar-turban" }} calculateMetadata={calculateAzharMetadata} />
+      <Composition id="Silent-Abd-Portrait" component={AbdSilent} durationInFrames={1572} fps={30} width={1080} height={1920} defaultProps={{ name: "abd-limen", orient: "portrait" as const }} calculateMetadata={calculateAbdMetadata} />
       <Composition id="AqndDialogue18" component={AqndDialogue18} durationInFrames={AQND18_FRAMES} fps={30} width={1080} height={1920}/>
       <Composition id="ShiaHandDebate" component={ShiaHandDebate} durationInFrames={SHIA_HAND_TOTAL_FRAMES} fps={SHIA_HAND_FPS} width={1080} height={1920} />
       <Composition id="FamilyStickCast" component={FamilyStickCast} durationInFrames={180} fps={30} width={1080} height={1920} />

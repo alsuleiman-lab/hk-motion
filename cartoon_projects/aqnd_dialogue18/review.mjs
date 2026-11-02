@@ -1,0 +1,6 @@
+import {chromium} from '../../../Papermotion/node_modules/playwright-core/index.mjs';
+import fs from 'node:fs';import os from 'node:os';
+try{os.setPriority(0,os.constants.priority.PRIORITY_BELOW_NORMAL)}catch{}
+const root='cartoon_projects/aqnd_dialogue18';fs.mkdirSync(root+'/review',{recursive:true});
+const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--renderer-process-limit=2','--num-raster-threads=2','--disable-gpu']});
+try{const page=await browser.newPage({viewport:{width:1080,height:1920}});const imgs=[];for(let i=1;i<=18;i++){const svg=fs.readFileSync(root+`/scenes/scene-${String(i).padStart(2,'0')}.svg`);imgs.push(`<div><b>${String(i).padStart(2,'0')}</b><img src="data:image/svg+xml;base64,${svg.toString('base64')}"/></div>`);}await page.setContent(`<html><style>body{margin:0;background:#fff;font-family:Arial;display:grid;grid-template-columns:repeat(3,360px);align-items:start}div{height:670px}b{height:30px;display:block;padding:5px}img{width:360px;height:640px;object-fit:contain}</style>${imgs.join('')}</html>`);await page.waitForFunction(()=>[...document.images].every(i=>i.complete));await page.screenshot({path:root+'/review/contact-sheet.png',fullPage:true});console.log('18-scene portrait contact sheet saved');}finally{await browser.close();}

@@ -1,0 +1,14 @@
+import {Paper,ik,hash,type V} from '../../../Papermotion/src/index';
+export {Paper,ik,hash};export type {V};
+export const pt=(x:number,y:number):V=>({x,y});
+export const ease=(x:number)=>{const u=Math.min(1,Math.max(0,x));return u*u*(3-2*u)};
+export const mix=(a:number,b:number,u:number)=>a+(b-a)*u;
+export const ep=(x:number,y:number,rx:number,ry:number,n=36)=>Array.from({length:n},(_,i)=>pt(x+Math.cos(i/n*Math.PI*2)*rx,y+Math.sin(i/n*Math.PI*2)*ry));
+export function line(c:CanvasRenderingContext2D,points:V[],color:string,width=1){c.beginPath();points.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.strokeStyle=color;c.lineWidth=width;c.lineCap='round';c.lineJoin='round';c.stroke()}
+export function path(c:CanvasRenderingContext2D,d:string,fill:string,stroke='#473f3d',sw=1.2){const p=new Path2D(d);c.fillStyle=fill;c.fill(p);if(stroke){c.strokeStyle=stroke;c.lineWidth=sw;c.lineJoin='round';c.lineCap='round';c.stroke(p)}}
+export function disk(c:CanvasRenderingContext2D,x:number,y:number,rx:number,ry:number,fill:string,stroke='',sw=1){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=sw;c.stroke()}}
+export function paperPath(p:Paper,d:string,color:string,bounds:[number,number,number,number],stroke='rgba(35,32,40,.35)',sw=.9){const [x,y,w,h]=bounds,shape=new Path2D(d);p.fill(shape,color,[pt(x,y),pt(x+w,y+h)]);if(stroke){p.context.strokeStyle=stroke;p.context.lineWidth=sw;p.context.lineCap='round';p.context.lineJoin='round';p.context.stroke(shape)}}
+export function capsule(p:Paper,a:V,b:V,width:number,color:string,seed:number){p.tube([a,b],width,width*.8,color,{seed,tear:.2,shadow:0,edge:false,texture:.1})}
+export function grainCanvas(w=1280,h=720){const cn=document.createElement('canvas');cn.width=w;cn.height=h;const c=cn.getContext('2d')!,im=c.createImageData(w,h);let r=1271;for(let i=0;i<w*h;i++){r^=r<<13;r^=r>>>17;r^=r<<5;const n=(r>>>0)%256;im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=n;im.data[i*4+3]=12;}c.putImageData(im,0,0);return cn}
+export function glow(c:CanvasRenderingContext2D,x:number,y:number,r:number,color='rgba(249,145,61,.2)'){c.save();c.globalCompositeOperation='screen';const g=c.createRadialGradient(x,y,1,x,y,r);g.addColorStop(0,color);g.addColorStop(1,'rgba(100,48,32,0)');c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2);c.restore()}
+export function hand(c:CanvasRenderingContext2D,wrist:V,forearm:V,skin:string,size=1,open=false){c.save();c.translate(wrist.x,wrist.y);c.rotate(Math.atan2(wrist.y-forearm.y,wrist.x-forearm.x));c.scale(size,size);path(c,open?'M-3 -7 Q5 -11 12 -8 L20 -20 Q23 -22 24 -18 L21 -6 L28 -18 Q31 -18 31 -14 L26 -2 L34 -11 Q37 -10 35 -7 L29 4 L34 0 Q38 1 35 5 L24 15 Q12 18 1 10 Z':'M-3 -9 Q9 -13 20 -8 Q28 -5 21 2 L12 4 Q28 7 22 13 Q11 17 1 10 Z',skin,'rgba(65,41,33,.5)',.8);c.restore()}

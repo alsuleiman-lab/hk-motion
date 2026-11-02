@@ -1,0 +1,15 @@
+{
+  "hash": "6c7176a1",
+  "configHash": "8ee8f622",
+  "lockfileHash": "a371ebd4",
+  "browserHash": "fd586006",
+  "optimized": {
+    "p5.brush/standalone": {
+      "src": "../../../node_modules/p5.brush/dist/brush.esm.js",
+      "file": "p5__brush_standalone.js",
+      "fileHash": "fc8e4b65",
+      "needsInterop": false
+    }
+  },
+  "chunks": {}
+}

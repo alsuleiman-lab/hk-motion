@@ -1,0 +1,10 @@
+import {mount} from '../../../Papermotion/src/index';
+import {BicycleStudy} from './bicycle';
+import {EmbersStudy} from './embers';
+import {MothStudy} from './moth';
+import {makeBikePaint} from './watercolor';
+const params=new URLSearchParams(location.search),scene=params.get('scene')??'bicycle';
+const canvas=document.querySelector<HTMLCanvasElement>('#film')!;
+const paint=scene==='bicycle'?makeBikePaint():undefined;
+const make=(canvas:HTMLCanvasElement)=>scene==='bicycle'?new BicycleStudy(canvas,paint!):scene==='embers'?new EmbersStudy(canvas):new MothStudy(canvas);
+mount(canvas,make,{headless:params.has('headless'),scale:Number(params.get('scale')??1)});

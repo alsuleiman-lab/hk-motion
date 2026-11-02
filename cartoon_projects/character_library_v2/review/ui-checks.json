@@ -1,0 +1,18 @@
+{
+  "groups": 2,
+  "charactersPerGroup": 10,
+  "modelCount": 20,
+  "motions": 8,
+  "selection": "passed",
+  "liveAnimation": "passed",
+  "pause": "passed",
+  "flip": "passed",
+  "bones": "passed",
+  "themes": [
+    "light",
+    "dark",
+    "forced-colors"
+  ],
+  "mobile": "390px checked",
+  "errors": []
+}

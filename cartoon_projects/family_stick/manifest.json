@@ -1,0 +1,124 @@
+{
+  "id": "abu-khatt-family",
+  "name": "عائلة أبو خط",
+  "aliases": [
+    "عائلة ابو خط",
+    "عائلة أبوخط"
+  ],
+  "status": "approved",
+  "reusable": true,
+  "retainAfterVideoCleanup": true,
+  "root": "cartoon_projects/family_stick",
+  "readme": "README.md",
+  "renderer": "rig.ts",
+  "exports": [
+    "cast",
+    "motions",
+    "characterMarkup",
+    "characterSvg",
+    "poseAt",
+    "speechAt"
+  ],
+  "style": "رسم خطي بسيط بملامح المرجع وأجسام بيضاوية ملونة",
+  "characters": [
+    {
+      "id": "father",
+      "name": "الرجل الأول",
+      "assets": {
+        "svg": "assets/father.svg",
+        "png": "assets/father.png",
+        "angry": "assets/father-angry.svg",
+        "talkOpen": "assets/father-talk-open.svg",
+        "talkClosed": "assets/father-talk-closed.svg"
+      }
+    },
+    {
+      "id": "uncle",
+      "name": "الرجل الثاني",
+      "assets": {
+        "svg": "assets/uncle.svg",
+        "png": "assets/uncle.png",
+        "angry": "assets/uncle-angry.svg",
+        "talkOpen": "assets/uncle-talk-open.svg",
+        "talkClosed": "assets/uncle-talk-closed.svg"
+      }
+    },
+    {
+      "id": "boy-big",
+      "name": "الطفل الأكبر",
+      "assets": {
+        "svg": "assets/boy-big.svg",
+        "png": "assets/boy-big.png",
+        "angry": "assets/boy-big-angry.svg",
+        "talkOpen": "assets/boy-big-talk-open.svg",
+        "talkClosed": "assets/boy-big-talk-closed.svg"
+      }
+    },
+    {
+      "id": "boy-small",
+      "name": "الطفل الأصغر",
+      "assets": {
+        "svg": "assets/boy-small.svg",
+        "png": "assets/boy-small.png",
+        "angry": "assets/boy-small-angry.svg",
+        "talkOpen": "assets/boy-small-talk-open.svg",
+        "talkClosed": "assets/boy-small-talk-closed.svg"
+      }
+    },
+    {
+      "id": "girl",
+      "name": "البنت بضفيرة وربطة شعر",
+      "assets": {
+        "svg": "assets/girl.svg",
+        "png": "assets/girl.png",
+        "angry": "assets/girl-angry.svg",
+        "talkOpen": "assets/girl-talk-open.svg",
+        "talkClosed": "assets/girl-talk-closed.svg"
+      }
+    },
+    {
+      "id": "mother",
+      "name": "الأم المنقبة",
+      "assets": {
+        "svg": "assets/mother.svg",
+        "png": "assets/mother.png",
+        "angry": "assets/mother-angry.svg",
+        "talkOpen": "assets/mother-talk-open.svg",
+        "talkClosed": "assets/mother-talk-closed.svg"
+      }
+    }
+  ],
+  "motions": [
+    "idle",
+    "listen",
+    "explain",
+    "point",
+    "wave",
+    "carry",
+    "walk",
+    "sit",
+    "angry",
+    "talk"
+  ],
+  "expressions": [
+    "happy",
+    "smile",
+    "curious",
+    "surprised",
+    "angry"
+  ],
+  "constraints": {
+    "elbow": "lower stable IK branch during raised-hand gestures",
+    "speech": "Use actual voiced intervals; mouth and hands rest in pauses",
+    "mother": "mouth remains concealed by niqab"
+  },
+  "preview": {
+    "url": "http://localhost:3310",
+    "command": "node cartoon_projects/family_stick/serve.mjs"
+  },
+  "remotion": {
+    "component": "src/FamilyStickCast.tsx",
+    "compositionId": "FamilyStickCast",
+    "url": "http://localhost:3100/FamilyStickCast"
+  }
+}

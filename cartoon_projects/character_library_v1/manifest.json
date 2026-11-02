@@ -1,0 +1,228 @@
+{
+  "version": 1,
+  "style": "native-paper-cutout",
+  "facialFeatures": false,
+  "characters": [
+    {
+      "id": "elder",
+      "name": "١ · الشيخ المسن",
+      "description": "لحية فضية طويلة · طاقية وثوب وصديري",
+      "kind": "man",
+      "height": 1,
+      "width": 38,
+      "skin": "#cda47d",
+      "cloth": "#e4dcc2",
+      "trim": "#a99a7a",
+      "pants": "#7b7b73",
+      "shoe": "#594b41",
+      "cover": "cap",
+      "scarf": "#ebe6d4",
+      "vest": "#aa9477",
+      "beard": {
+        "color": "#b8b7ab",
+        "length": 100
+      },
+      "robe": true
+    },
+    {
+      "id": "imam",
+      "name": "٢ · الرجل ذو العمامة",
+      "description": "لحية بنية طويلة · ثوب أخضر مزرق",
+      "kind": "man",
+      "height": 1.05,
+      "width": 35,
+      "skin": "#b98865",
+      "cloth": "#486e6b",
+      "trim": "#a9b9a3",
+      "pants": "#364b4d",
+      "shoe": "#4b3e38",
+      "cover": "turban",
+      "scarf": "#ded9bf",
+      "beard": {
+        "color": "#685047",
+        "length": 86
+      },
+      "robe": true
+    },
+    {
+      "id": "merchant",
+      "name": "٣ · التاجر",
+      "description": "بنية ممتلئة · لحية قصيرة وصديري خمري",
+      "kind": "man",
+      "height": 0.98,
+      "width": 48,
+      "skin": "#d6ad84",
+      "cloth": "#b49a72",
+      "trim": "#dbc19b",
+      "pants": "#63564f",
+      "shoe": "#604733",
+      "vest": "#76515b",
+      "hair": "#51413d",
+      "beard": {
+        "color": "#51413d",
+        "length": 57
+      },
+      "robe": true
+    },
+    {
+      "id": "worker",
+      "name": "٤ · العامل",
+      "description": "لحية متوسطة · قميص أزرق وسروال",
+      "kind": "man",
+      "height": 1.02,
+      "width": 39,
+      "skin": "#b78764",
+      "cloth": "#647d92",
+      "trim": "#b4c0bf",
+      "pants": "#48515d",
+      "shoe": "#4e4239",
+      "hair": "#3f3c40",
+      "beard": {
+        "color": "#484046",
+        "length": 67
+      },
+      "robe": false
+    },
+    {
+      "id": "niqab-charcoal",
+      "name": "٥ · المنتقبة الفحمية",
+      "description": "نقاب كامل وعباءة وقفازان",
+      "kind": "woman",
+      "height": 0.99,
+      "width": 43,
+      "skin": "#c39c79",
+      "cloth": "#383c49",
+      "trim": "#818594",
+      "pants": "#303443",
+      "shoe": "#34323b",
+      "cover": "niqab",
+      "scarf": "#4c505e",
+      "robe": true,
+      "gloves": true
+    },
+    {
+      "id": "niqab-navy",
+      "name": "٦ · المنتقبة الكحلية",
+      "description": "طبقات قماش كحلية وحدود ذهبية هادئة",
+      "kind": "woman",
+      "height": 1.02,
+      "width": 46,
+      "skin": "#cba786",
+      "cloth": "#344f67",
+      "trim": "#b3a17e",
+      "pants": "#303e52",
+      "shoe": "#383b46",
+      "cover": "niqab",
+      "scarf": "#486179",
+      "robe": true,
+      "gloves": true
+    },
+    {
+      "id": "hijab-cream",
+      "name": "٧ · المحجبة بالحجاب الكريمي",
+      "description": "حجاب كريمي وعباءة طينية",
+      "kind": "woman",
+      "height": 1,
+      "width": 42,
+      "skin": "#d8b390",
+      "cloth": "#a86f5c",
+      "trim": "#e0b28e",
+      "pants": "#65505b",
+      "shoe": "#62463d",
+      "cover": "hijab",
+      "scarf": "#e3d6b5",
+      "robe": true
+    },
+    {
+      "id": "hijab-rose",
+      "name": "٨ · المحجبة بالحجاب الوردي",
+      "description": "حجاب وردي هادئ وعباءة خضراء مزرقة",
+      "kind": "woman",
+      "height": 0.97,
+      "width": 45,
+      "skin": "#bf9472",
+      "cloth": "#547b76",
+      "trim": "#a4b6a2",
+      "pants": "#435351",
+      "shoe": "#59483f",
+      "cover": "hijab",
+      "scarf": "#bc8f93",
+      "robe": true
+    },
+    {
+      "id": "boy",
+      "name": "٩ · الطفل",
+      "description": "نسب طفولية وقميص نحاسي وسروال كحلي",
+      "kind": "boy",
+      "height": 0.73,
+      "width": 31,
+      "skin": "#d7ad81",
+      "cloth": "#be845a",
+      "trim": "#ead2a6",
+      "pants": "#48546c",
+      "shoe": "#7e5b42",
+      "hair": "#5b443c",
+      "robe": false
+    },
+    {
+      "id": "girl",
+      "name": "١٠ · الطفلة",
+      "description": "حجاب بنفسجي وثوب وردي طويل",
+      "kind": "girl",
+      "height": 0.71,
+      "width": 32,
+      "skin": "#d0a67e",
+      "cloth": "#b77e86",
+      "trim": "#ead0b4",
+      "pants": "#65536c",
+      "shoe": "#71516a",
+      "cover": "hijab",
+      "scarf": "#8b789f",
+      "robe": true
+    }
+  ],
+  "motions": [
+    {
+      "id": "idle",
+      "name": "وقوف"
+    },
+    {
+      "id": "listen",
+      "name": "استماع"
+    },
+    {
+      "id": "explain",
+      "name": "شرح"
+    },
+    {
+      "id": "point",
+      "name": "إشارة"
+    },
+    {
+      "id": "wave",
+      "name": "تحية"
+    },
+    {
+      "id": "carry",
+      "name": "حمل صندوق"
+    },
+    {
+      "id": "walk",
+      "name": "مشي"
+    },
+    {
+      "id": "sit",
+      "name": "جلوس"
+    }
+  ],
+  "assets": [
+    "idle",
+    "explain",
+    "carry",
+    "sit"
+  ],
+  "rig": "rig.ts",
+  "coordinateOrigin": "floor",
+  "runtime": "Papermotion Paper + analytical IK",
+  "audio": "none"
+}

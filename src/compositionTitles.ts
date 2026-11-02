@@ -32,4 +32,6 @@ export const COMPOSITION_TITLES: Record<string, string> = {
   "DodoFamilyCast": "عائلة دودو — شخصيات قابلة للتحريك",
   "ShiaHandDebate": "صدمة الشيعي من كتبه.. الشيخ يثبت يد الله ومصافحته للمؤمنين",
   "AqndDialogue18": "الأعمال والرحمة — حوار من 18 مشهداً",
+  "Silent-Azhar-Portrait": "ثقوا في العمامة الأزهرية (تعليق صامت + خاتمة ورقية)",
+  "Silent-Abd-Portrait": "أنت عبد لمن؟ (تعليق صامت)",
 };

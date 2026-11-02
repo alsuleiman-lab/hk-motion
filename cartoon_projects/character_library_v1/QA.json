@@ -1,0 +1,15 @@
+{
+  "rig": {
+    "checked": 14400,
+    "maxBoneError": 5.684341886080802e-14,
+    "maxGroundError": 0,
+    "maxSkate": 8.171241461241152e-14,
+    "failures": [],
+    "failureCount": 0
+  },
+  "replay": {
+    "identical": true,
+    "sha256": "a883530e292597f027806890f85607a3cbe2c9d514a4c4f7c575740f2398fb1d"
+  },
+  "browserErrors": []
+}

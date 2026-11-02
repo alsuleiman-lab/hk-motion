@@ -49,6 +49,8 @@ export type SilentConfigBase = {
   captions: (T & { text: string; pos?: "top" | "bottom"; quran?: boolean })[];
   keywords: (T & { text: string; tone?: "bad" | "good" })[];
   photos?: (T & { src: string; label: string })[];
+  /** our own generated B-roll stills (faceless): cover the source card for `dur` seconds with a slow push-in while its audio keeps playing */
+  broll?: (T & { src: string })[];
   facts: (T & { label: string; value: string })[];
   highlights: (T & { box: { x: number; y: number; w: number; h: number } })[];
   punches: (T & { scale: number; cx: number; cy: number })[];
@@ -280,7 +282,7 @@ const SilentMain: React.FC<{ orient: "portrait" | "landscape"; c: SilentConfigVO
   const rs = Math.max(RR.w / rc.w, RR.h / rc.h);
   const rk = 1;
 
-  const cap = active(c.captions, f, fps), kw = active(c.keywords, f, fps), fact = active(c.facts, f, fps), hl = active(c.highlights, f, fps), ph = active(c.photos ?? [], f, fps);
+  const cap = active(c.captions, f, fps), kw = active(c.keywords, f, fps), fact = active(c.facts, f, fps), hl = active(c.highlights, f, fps), ph = active(c.photos ?? [], f, fps), bl = active(c.broll ?? [], f, fps);
   const capP = cap ? spring({ frame: f - Math.round(cap.at * fps), fps, config: { damping: 14, stiffness: 150 } }) : 0;
   const capOut = cap ? interpolate(f / fps, [cap.at + cap.dur - 0.25, cap.at + cap.dur], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 1;
   const kwP = kw ? spring({ frame: f - Math.round(kw.at * fps), fps, config: { damping: 9, stiffness: 160 } }) : 0;
@@ -312,6 +314,7 @@ const SilentMain: React.FC<{ orient: "portrait" | "landscape"; c: SilentConfigVO
       <div style={{ ...card, left: SR.x, top: SR.y, width: SR.w, height: SR.h, zIndex: inSwap ? 3 : 1, ...(inSwap ? { transform: `scale(${bump}) rotate(${tiltSw}deg)` } : ambientStyle(f / fps, c.ambient?.every ?? 7, c.ambient?.amount ?? 1)) }}>
         <div style={{ position: "absolute", inset: 0, transform: `scale(${pk})`, transformOrigin: `${(pun?.cx ?? 0.5) * 100}% ${(pun?.cy ?? 0.5) * 100}%` }}>
           <Vid src={IS_RENDER ? c.source.src : c.source.proxy} startFrom={Math.round(c.source.startSec * fps)} muted={c.source.muted} style={{ position: "absolute", left: -sc.x * ss, top: -sc.y * ss, width: c.source.w * ss, height: c.source.h * ss, maxWidth: "none" }} />
+          {bl ? <Gfx><Img src={staticFile(bl.src)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: Math.min(1, env(f, fps, bl.at, bl.dur) * 3), transform: `scale(${1 + 0.12 * clamp01((f / fps - bl.at) / bl.dur)})` }} /></Gfx> : null}
           {hl ? (
             <div style={{ position: "absolute", left: `${hl.box.x * 100}%`, top: `${hl.box.y * 100}%`, width: `${hl.box.w * 100}%`, height: `${hl.box.h * 100}%`, border: `6px solid ${accent}`, borderRadius: 14, boxShadow: `0 0 0 ${4 + 6 * Math.abs(Math.sin(f / 7))}px ${accent}55`, opacity: env(f, fps, hl.at, hl.dur) }} />
           ) : null}

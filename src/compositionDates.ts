@@ -40,5 +40,4 @@ export const COMPOSITION_DATES: Record<string, number> = {
   "AqndDialogue18": 0,
   "Spec-Demo": 0,
   "Spec-Demo-L": 0,
-  "ShouldersPrayer": 0,
 };

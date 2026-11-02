@@ -30,9 +30,6 @@ export const COMPOSITION_TITLES: Record<string, string> = {
   "Clip4ThronePortrait": "المخلوق الوحيد فوق العرش",
   "FamilyStickCast": "عائلة أبو خط — شخصيات قابلة للتحريك",
   "DodoFamilyCast": "عائلة دودو — شخصيات قابلة للتحريك",
-  "ShouldersPrayer": "هل يجب تغطية الكتفين في الصلاة للرجال؟",
   "ShiaHandDebate": "صدمة الشيعي من كتبه.. الشيخ يثبت يد الله ومصافحته للمؤمنين",
   "AqndDialogue18": "الأعمال والرحمة — حوار من 18 مشهداً",
-  "MutaZina": "ما الفرق بين المتعة والزنا؟",
-  "MadadDua": "هل دعاء «مدد يا الله» بدعة؟",
 };

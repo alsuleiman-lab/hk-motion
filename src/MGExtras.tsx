@@ -276,13 +276,14 @@ export const ReelBehindCard: React.FC<{ from: number; to: number; side: "left" |
 
 /** REELS ONLY (user 2026-10-25: «عرض الآيات بملء الشاشة دون صورتي — هذا استثناء فقط في الريلز»): while he recites, the verse fills the screen and his picture is hidden.
  *  Text from data/quran (tools/quran_ayah.mjs), KFGQPC font, decorated dark background; every word appears when he says it; hard cut in and out. */
-export const ReelVerseFull: React.FC<{ to: number; refName: string; lines: { words: string[]; times: number[] }[]; size?: number }> = ({ to, refName, lines, size: size0 }) => {
+/** `hadith` (user 2026-11-02): the same full-screen box for a hadith — text font, «» instead of ﴿﴾, `refName` = the book and number (never a link) */
+export const ReelVerseFull: React.FC<{ to: number; refName: string; lines: { words: string[]; times: number[] }[]; size?: number; hadith?: boolean }> = ({ to, refName, lines, size: size0, hadith }) => {
   const t = useT(0);
   const { width: VW, height: VH } = useVideoConfig();
   const LD = VW > VH, size = size0 ?? (LD ? 76 : 84);   // landscape too (user 2026-10-31: the verses fill the screen in the landscape version as well)
   const from = lines[0].times[0] - 0.1;
   if (t < from || t >= to) return null;
-  const words = lines.flatMap((l) => l.words.map((w, i) => ({ w: cleanQuran(w), at: l.times[i] })));
+  const words = lines.flatMap((l) => l.words.map((w, i) => ({ w: hadith ? w : cleanQuran(w), at: l.times[i] })));
   return (
     <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 45%, ${BRAND.base2} 0%, ${BRAND.base} 60%, ${BRAND.base3} 100%)` }}>
       <svg width={VW} height={VH} style={{ position: "absolute", inset: 0, opacity: 0.13 }}>
@@ -292,13 +293,13 @@ export const ReelVerseFull: React.FC<{ to: number; refName: string; lines: { wor
       <div style={{ position: "absolute", left: LD ? 110 : 60, right: LD ? 110 : 60, top: LD ? 110 : 300, bottom: LD ? 150 : 300, border: `3px solid ${alpha(BRAND.light, 0.55)}`, borderRadius: 34 }} />
       <div style={{ position: "absolute", left: 0, right: 0, top: LD ? 150 : 370, textAlign: "center", fontFamily: `"${QURAN_FONT}", ${TITLE}`, fontWeight: 400, fontSize: LD ? 46 : 52, color: BRAND.light, direction: "rtl" }}>{refName}</div>
       <div style={{ position: "absolute", left: LD ? 190 : 100, right: LD ? 190 : 100, top: LD ? 240 : 480, bottom: LD ? 230 : 380, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl" }}>
-        <div style={{ fontFamily: QURAN_FAM, fontSize: size, lineHeight: 1.9, color: BRAND.card, textAlign: "center" }}>
+        <div style={{ fontFamily: hadith ? TEXT : QURAN_FAM, fontWeight: hadith ? 800 : undefined, fontSize: hadith ? Math.round(size * 0.8) : size, lineHeight: 1.9, color: BRAND.card, textAlign: "center" }}>
           {words.map((x, i) => {
             const p = clamp((t - x.at) / 0.25);
             const w = <span style={{ opacity: 0.12 + 0.88 * p, display: "inline-block", transform: `translateY(${(1 - p) * 14}px)` }}>{x.w}</span>;
             return (
               <span key={i} style={{ whiteSpace: "nowrap", margin: "0 6px" }}>
-                {i === 0 ? <span style={{ color: BRAND.light }}>﴿ </span> : null}{w}{i === words.length - 1 ? <span style={{ color: BRAND.light }}> ﴾</span> : null}
+                {i === 0 ? <span style={{ color: BRAND.light }}>{hadith ? "« " : "﴿ "}</span> : null}{w}{i === words.length - 1 ? <span style={{ color: BRAND.light }}>{hadith ? " »" : " ﴾"}</span> : null}
               </span>
             );
           })}

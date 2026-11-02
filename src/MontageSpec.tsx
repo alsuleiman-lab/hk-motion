@@ -39,7 +39,7 @@ export type Land = { x?: number; y?: number; w?: number; h?: number; photoH?: nu
 type Common = { only?: "port" | "land"; land?: Land };
 export type SpecItem = Common & (
   | { t: "word"; text: string; at: number; until: number; x: number; y: number; size?: number; tone?: "gold" | "cream"; flag?: string }
-  | { t: "blur"; text: string; at: number; until: number; y: number; size?: number; accentWords?: number[] }
+  | { t: "blur"; text: string; at: number; until: number; y: number; size?: number; accentWords?: number[]; x?: number; w?: number }   // x/w (portrait): a narrow left column under the opponent's card, text left-aligned (gallery note on BlurRise)
   | { t: "nameTag"; at: number; x: number; y: number; dur?: number; style?: "card" | "pinned" }
   | { t: "phone"; at: number; to: number; src: string; dur: number; cx?: number; cy?: number; w?: number; h?: number }
   | { t: "crop"; src: string; nat: { w: number; h: number }; crop: { x: number; y: number; w: number; h: number }; name: string; at: number; until: number; x: number; y: number; w: number; walk?: boolean }
@@ -52,6 +52,8 @@ export type SpecItem = Common & (
   /** a verse written word by word at the second he recites it (text copied from data/quran by tools/quran_ayah.mjs, never typed) */
   | { t: "subscribe"; at: number; x: number; y: number; dur?: number }
   | { t: "verse"; words: string[]; times: number[]; title: string; refText: string; x: number; y: number; w: number; size?: number; until?: number }
+  /** a hadith in the full-screen box (user 2026-11-02): matn from sunnah.com / الدرر السنية / الشاملة word by word as he says it; `source` = book + number, e.g. «صحيح البخاري (5115)» */
+  | { t: "hadith"; words: string[]; times: number[]; source: string; until?: number }
   /** a column of written cards (EU-Protests style): dark `Banner` title + one `StatRow` card per spoken item; placed by the orientation's layout (no x/y) */
   | { t: "rows"; side?: "right"; from: number; to: number; y0?: number; step?: number; rowH?: number; pin?: { x: number; w: number }; title?:{ at: number; text: string }; rows: { at: number; label: string; sub?: string; icon?: string; photo?: string }[] }
   /** a scholar he quotes: polaroid with the name in the white band (empty side of his frame; portrait: below the beard) */
@@ -139,7 +141,7 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
     case "blur":
       return L
         ? <KeyChip key={i} phrases={[{ text: it.text, at: it.at }]} until={it.until} x={ov.x} y={ov.y ?? LANDSCAPE.keyY} size={ov.size ?? 54} theme={bar} />
-        : <Only key={i} from={it.at} to={it.until}><BlurRise at={it.at} times={[it.at, it.at + 0.4]} text={it.text} x={40} w={1000} y={it.y} size={it.size ?? 58} color="#fff" accentColor={BRAND.accent} accentWords={it.accentWords ?? []} canvasW={1080} /></Only>;
+        : <Only key={i} from={it.at} to={it.until}><BlurRise at={it.at} times={[it.at, it.at + 0.4]} text={it.text} x={it.x ?? 40} w={it.w ?? 1000} y={it.y} size={it.size ?? 58} color="#fff" accentColor={BRAND.accent} accentWords={it.accentWords ?? []} canvasW={1080} align={it.w ? "left" : undefined} /></Only>;
     case "nameTag": {   // the old NameTag was dropped in the gallery (2026-10-28): the approved name card 1, or 3 with style "pinned"
       const C = it.style === "pinned" ? NameCard3 : NameCard1;
       return <Only key={i} from={it.at} to={it.at + (it.dur ?? 4)}><C at={it.at} x={L ? ov.x ?? LANDSCAPE.W / 2 : it.x} y={(L ? ov.y ?? LANDSCAPE.nameY : it.y) + 40} /></Only>;
@@ -191,6 +193,7 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
     case "verse":
       // portrait: the verse fills the screen, his picture hidden while he recites (PREFERENCES §6); landscape: a card on the empty side
       return <ReelVerseFull key={i} to={it.until ?? it.times[it.times.length - 1] + 1.2} refName={`${it.title} — ${it.refText}`} lines={[{ words: it.words, times: it.times }]} />;
+    case "hadith": return <ReelVerseFull key={i} hadith to={it.until ?? it.times[it.times.length - 1] + 1.2} refName={it.source} lines={[{ words: it.words, times: it.times }]} />;
     case "credit": return <Only key={i} from={it.from ?? 0.5} to={it.to ?? 9999}><Sources links={[{ at: it.from ?? 0.5, url: it.text }]} x={40} bottom={L ? 24 : 178} w={L ? 1100 : 1000} size={L ? 22 : 24} /></Only>;
     case "rows": {
       const g = ROWS[o], titled = !!it.title && (L || it.rows.length < 3), gx = L && it.side === "right" ? 1920 - 40 - g.w : g.x;
@@ -386,7 +389,7 @@ const MiniMe: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; 
 };
 
 /** every item type the renderer knows (= the elements approved in the gallery); anything else is an error, never silently skipped (user 2026-10-28) */
-const APPROVED_TYPES = new Set(["word", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date"]);
+const APPROVED_TYPES = new Set(["word", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "hadith", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date"]);
 
 export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
   for (const it of spec.items) if (!APPROVED_TYPES.has(it.t)) throw new Error(`عنصر غير معتمد في المعرض: «${it.t}» في ${spec.id} — المعتمد: ${[...APPROVED_TYPES].join("، ")}`);

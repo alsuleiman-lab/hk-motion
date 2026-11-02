@@ -35,7 +35,7 @@ const spanOf = (it) => {
   if (it.t === "nameTag") return [it.at, it.at + (it.dur ?? 4)];
   if (it.t === "scholar" || it.t === "tphoto") return [it.at, it.until ?? it.at + 6];
   if (it.t === "rewrite") return [it.oldAt - 0.4, it.until ?? it.newAt + 8];
-  if (it.t === "verse") return [it.times[0], it.until ?? it.times[it.times.length - 1] + 1.2];
+  if (it.t === "verse" || it.t === "hadith") return [it.times[0], it.until ?? it.times[it.times.length - 1] + 1.2];
   const a = it.at ?? it.from, b = it.until ?? it.to ?? (it.dur != null ? a + it.dur : a + 3);
   return a == null ? null : [a, b];
 };
@@ -46,7 +46,7 @@ const rectOf = (it, o) => {
   const L = o === "land", ov = it.land ?? {}, P = (k, d) => (L ? ov[k] ?? d : it[k] ?? d);
   switch (it.t) {
     case "word": case "blur": {
-      if (!L && it.t === "blur") { const s = it.size ?? 58; return [40, it.y, 1040, it.y + s * 1.5]; }
+      if (!L && it.t === "blur") { const s = it.size ?? 58, x0 = it.x ?? 40, w0 = it.w ?? 1000, lines = it.w ? Math.max(1, Math.ceil(len(it.text) * s * 0.5 / w0)) : 1; return [x0, it.y, x0 + w0, it.y + s * 1.25 * lines + s * 0.25]; }
       const s = L ? ov.size ?? 54 : it.size ?? 64, w = Math.min(L ? 1500 : 1000, len(it.text) * s * 0.55 + 100), x = P("x", undefined), y = P("y", L ? 840 : 1400);
       // landscape with an explicit x/y: KeyChip centres itself on (x, y) (translate −50 %,−50 %), so the box is centred there too
       if (L && (ov.x !== undefined || ov.y !== undefined)) { const cx = ov.x ?? 960, h = s * 1.5; return [cx - w / 2, y - h / 2, cx + w / 2, y + h / 2]; }
@@ -118,6 +118,7 @@ function snap(it, o, r, box) {
   else if (k < 1 && it.t === "date") { tgt.w = Math.round(((o === "land" ? it.land?.w : undefined) ?? it.w ?? 340) * k); }
   else if (k < 1 && it.t === "tphoto" && o === "land") { tgt.w = Math.round(((it.land?.w) ?? it.w ?? 300) * k); tgt.h = Math.round(((it.land?.h) ?? it.h ?? 370) * k); }
   else if (k < 1 && (it.t === "scholar" || it.t === "tphoto")) { it.w = Math.round((it.w ?? 300) * k); it.h = Math.round((it.h ?? 370) * k); }
+  else if (k < 1 && it.t === "pic" && o !== "land") { tgt.w = Math.round(w * k); tgt.h = Math.round(h * k); }   // a picture keeps its aspect when it shrinks (never cropped)
   else if (k < 1 && ["pic", "crop", "flash", "news"].includes(it.t)) tgt.w = Math.round(w * k);
 }
 
@@ -136,7 +137,7 @@ for (const o of orients) {
     if (o === "land" && x.k !== "exclusive") { const rb = rectOf(x.it, o); if (rb && inter(rb, TITLE_BAR) > 0) fails.push(`${label}: تحت شريط العنوان (${rb.map(Math.round).join(",")} ∩ ${TITLE_BAR.join(",")})`); }
     if (x.k === "exclusive" || x.k === "solo") {
       const clash = items.filter((y) => y !== x && y.k !== "exclusive" && y.s[0] < b - 0.1 && y.s[1] > a + 0.1);
-      if (x.k === "solo" && x.it.t === "nameTag" && clash.length) fails.push(`${label}: بطاقة الاسم مع ${clash.map((y) => y.it.t + "#" + y.i).join("+")}`);
+      if (x.k === "solo" && clash.length) fails.push(`${label}: ${x.it.t === "nameTag" ? "بطاقة الاسم" : "بطاقة الاشتراك"} مع ${clash.map((y) => y.it.t + "#" + y.i).join("+")}`);
       rows.push(`| ${mm(a)}–${mm(b)} | ${mode} | كامل المحتوى | ${x.it.t}#${x.i} |`);
       if (x.k === "solo") {   // name card / subscribe: the whole content is theirs in time, their place is the grid's «solo» slot
         const r = rectOf(x.it, o), z = zoneOver(o, a, b), sl = Object.values(grid[mode]?.slots ?? {}).find((s) => s.kinds.includes("solo"));

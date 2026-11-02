@@ -35,12 +35,6 @@ import type { MontageSpec } from "./MontageSpec";
 import demoSpec from "../data/specs/demo.json";
 import { BidahCartoon, BIDAH_TOTAL_FRAMES, BIDAH_FPS } from "./BidahCartoon";
 const SpecDemo: React.FC = () => <MontageFromSpec spec={demoSpec as unknown as MontageSpec} />;
-import shouldersSpec from "../data/specs/ShouldersPrayer.json";
-import mutaSpec from "../data/specs/MutaZina.json";
-const MutaZinaVideo: React.FC = () => <MontageFromSpec spec={mutaSpec as unknown as MontageSpec} />;
-import madadSpec from "../data/specs/MadadDua.json";
-const MadadDuaVideo: React.FC = () => <MontageFromSpec spec={madadSpec as unknown as MontageSpec} />;
-const ShouldersPrayerVideo: React.FC = () => <MontageFromSpec spec={shouldersSpec as unknown as MontageSpec} />;
 
 import { Clip4ThronePortrait, CLIP4_FRAMES, CLIP4_FPS } from "./Clip4ThronePortrait";
 import { ShiaHandDebate, SHIA_HAND_FPS, SHIA_HAND_TOTAL_FRAMES } from "./ShiaHandDebate";
@@ -50,7 +44,7 @@ import { ShiaHandDebate, SHIA_HAND_FPS, SHIA_HAND_TOTAL_FRAMES } from "./ShiaHan
 export const RemotionRoot: React.FC = () => {
   return (
     <ByRecency>
-      <Composition id="AqndDialogue18" component={AqndDialogue18} durationInFrames={AQND18_FRAMES} fps={30} width={1920} height={1080}/>
+      <Composition id="AqndDialogue18" component={AqndDialogue18} durationInFrames={AQND18_FRAMES} fps={30} width={1080} height={1920}/>
       <Composition id="ShiaHandDebate" component={ShiaHandDebate} durationInFrames={SHIA_HAND_TOTAL_FRAMES} fps={SHIA_HAND_FPS} width={1080} height={1920} />
       <Composition id="FamilyStickCast" component={FamilyStickCast} durationInFrames={180} fps={30} width={1080} height={1920} />
       <Composition id="DodoFamilyCast" component={DodoFamilyCast} durationInFrames={180} fps={30} width={1080} height={1920} />
@@ -63,9 +57,6 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="BidahCartoon" component={BidahCartoon} durationInFrames={BIDAH_TOTAL_FRAMES} fps={BIDAH_FPS} width={1080} height={1920} />
       <Composition id="Spec-Demo" component={SpecDemo} durationInFrames={demoSpec.frames} fps={30} width={1080} height={1920} />
       <Composition id="Spec-Demo-L" component={SpecDemo} durationInFrames={demoSpec.frames} fps={30} width={1920} height={1080} />
-      <Composition id="ShouldersPrayer" component={ShouldersPrayerVideo} durationInFrames={shouldersSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="MutaZina" component={MutaZinaVideo} durationInFrames={mutaSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="MadadDua" component={MadadDuaVideo} durationInFrames={madadSpec.frames} fps={30} width={1080} height={1920} />
       <Composition id="JuhaInshallah15" component={JuhaInshallah15} durationInFrames={JUHA_15S_FRAMES} fps={JUHA_15S_FPS} width={1080} height={1920} />
       <Composition id="CartoonOutro" component={CartoonEndScreen} durationInFrames={90} fps={30} width={1080} height={1920} />
       <Composition id="Juha-15s" component={JuhaStory15} durationInFrames={JUHA_STORY_FRAMES} fps={30} width={1080} height={1920} />

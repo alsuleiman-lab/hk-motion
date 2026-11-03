@@ -72,6 +72,11 @@ const rectOf = (it, o) => {
       const w = Math.min(Wd * 0.9, widths.reduce((a, b) => a + b, 0) + gap * (ws.length - 1));
       return [(Wd - w) / 2, y, (Wd + w) / 2, y + rows * size * 1.45 + (rows - 1) * gap];
     }
+    case "verse": {   // the verse card (VerseWords): header + wrapped words; full:true = the full-screen box (exclusive)
+      const size = L ? ov.size ?? 38 : it.size ?? 44, x = L ? ov.x ?? 40 : it.x ?? 40, w = L ? ov.w ?? 600 : it.w ?? 1000, y = L ? ov.y ?? 150 : it.y ?? 1330;
+      const fs1 = size * 1.12, wordW = 5 * fs1 * 0.52 + 14, per = Math.max(1, Math.floor((w - 72) / wordW)), lines = Math.max(1, Math.ceil(it.words.length / per));
+      return [x, y, x + w, y + 22 + 34 + 14 + lines * fs1 * 1.9 + 30];
+    }
     case "clock": { const size = L ? ov.size ?? 360 : it.size ?? 300, x = L ? ov.x ?? 140 : it.x ?? 60, y = L ? ov.y ?? 300 : it.y ?? 1330; return [x, y, x + size, y + size]; }
     case "flag": { const w = it.w ?? 220, x = L ? ov.x ?? 40 : it.x ?? 60, y = L ? ov.y ?? 150 : it.y ?? 1360; return [x, y, x + w, y + w * 0.67]; }
     case "arc": { const a = it.a, b = it.b, bot = Math.max(a.y + (a.h ?? 380), b.y + (b.h ?? 380)); return [Math.min(a.x, b.x), Math.min(a.y, b.y), Math.max(a.x + (a.w ?? 300), b.x + (b.w ?? 300)), bot + 60 + 110 + 20]; }   // the arc sags under the photos (DashArc under)
@@ -104,13 +109,28 @@ const trim = (s, z) => {
 };
 
 // snap an item into a box: keep its size when it fits (else scale it down), centred horizontally, at the top of the box; each type's own position fields
-const SNAP = new Set(["date", "torn", "scraps", "tphoto", "clock", "flag", "scholar", "pic", "crop", "flash", "news", "scene", "rewrite", "nameTag", "subscribe"]);
+const SNAP = new Set(["verse", "date", "torn", "scraps", "tphoto", "clock", "flag", "scholar", "pic", "crop", "flash", "news", "scene", "rewrite", "nameTag", "subscribe"]);
 function snap(it, o, r, box) {
   const w = r[2] - r[0], h = r[3] - r[1], k = Math.min(1, (box[2] - box[0]) / w, (box[3] - box[1]) / h);
   const nx = Math.round(box[0] + ((box[2] - box[0]) - w * k) / 2), ny = Math.round(box[1]);
   const tgt = o === "land" ? (it.land ??= {}) : it;
-  if (it.t === "torn") { if (o === "land") tgt.x = Math.round(nx + (w * k) / 2); tgt.y = ny; if (k < 1) tgt.size = Math.round((o === "land" ? it.land?.size ?? 60 : it.size ?? 52) * k); return; }   // a note too wide for the slot gets a smaller font (its width follows the text)
+  if (it.t === "torn") {   // the largest font (≤ nominal) whose note — width follows the text, +1 line of height per wrap, as TornNote draws it — fits the slot; < 30 px fails the check (shorten the phrase)
+    const B = o === "land" ? 60 : it.size ?? 52, bw = box[2] - box[0], bh = box[3] - box[1];
+    let s = B, nw = w;
+    for (; s >= 24; s--) {
+      nw = Math.min(o === "land" ? 1000 : 960, Math.max(380, Math.round(len(it.text) * s * 0.5 + 3.6 * s + 70)));
+      const ln = Math.max(1, Math.ceil(len(it.text) / Math.max(1, Math.floor((nw - 3.6 * s) / (s * 0.52)))));
+      if (nw <= bw && s * 3.2 + (ln - 1) * s * 1.2 <= bh) break;
+    }
+    if (o === "land") { tgt.x = Math.round(box[0] + (bw - nw) / 2 + nw / 2); tgt.size = s; } else if (s < B) tgt.size = s;
+    tgt.y = ny; return;
+  }
   if (it.t === "scraps") { tgt.y = ny; return; }
+  if (it.t === "verse") {   // card width = the slot width at most; the largest font whose wrapped card fits the slot height
+    const bw = box[2] - box[0], bh = box[3] - box[1], W0 = Math.min(o === "land" ? it.land?.w ?? 600 : it.w ?? 1000, bw), B = o === "land" ? 38 : it.size ?? 44;
+    let s = B; for (; s >= 24; s--) { const f1 = s * 1.12, per = Math.max(1, Math.floor((W0 - 72) / (5 * f1 * 0.52 + 14))), ln = Math.max(1, Math.ceil(it.words.length / per)); if (22 + 34 + 14 + ln * f1 * 1.9 + 30 <= bh) break; }
+    tgt.x = Math.round(box[0] + (bw - W0) / 2); tgt.y = ny; tgt.w = W0; tgt.size = s; return;
+  }
   if (it.t === "nameTag") { tgt.x = Math.round(box[0] + (box[2] - box[0]) / 2); tgt.y = ny - 40; return; }
   tgt.x = nx; tgt.y = ny;
   if (k < 1 && it.t === "clock") tgt.size = Math.round((it.t === "clock" && (o === "land" ? it.land?.size : it.size) ? (o === "land" ? it.land.size : it.size) : o === "land" ? 360 : 300) * k);
@@ -127,7 +147,7 @@ const md = [`# الشبكة — ${spec.id}`, ""];
 let bad = 0, moved = 0;
 for (const o of orients) {
   const grid = G[o], res = {}, fails = [], offGrid = [], rows = [];
-  const items = spec.items.map((it, i) => ({ it, i, s: spanOf(it), k: kindOf[it.t] ?? "photo" }))
+  const items = spec.items.map((it, i) => ({ it, i, s: spanOf(it), k: it.t === "verse" && it.full ? "exclusive" : kindOf[it.t] ?? "photo" }))
     .filter((x) => x.s && x.k !== "ignore" && !(x.it.t === "rows" && x.it.pin && o === "port") && !(x.it.only && x.it.only !== o) && !(o === "land" && x.it.land?.skip) && !(o === "land" && x.it.t === "phone"))
     .sort((a, b) => a.s[0] - b.s[0]);
   const big = items.filter((x) => x.k === "exclusive" || x.k === "solo");
@@ -149,7 +169,7 @@ for (const o of orients) {
     }
     const under = big.find((y) => y.k === "exclusive" && y.s[0] < b - 0.1 && y.s[1] > a + 0.1 && !(o === "port" && mode === "half") && !(y.it.t === "full" && (spec.behind ?? []).some((bw) => bw.from <= y.s[0] + 0.05 && bw.to >= y.s[1] - 0.05)));   // a B-roll behind him (iso window) lets the key notes stay on top (user 2026-10-31)
     if (under) fails.push(`${label}: فوق عنصر كبير ${under.it.t}#${under.i} (${mm(under.s[0])}–${mm(under.s[1])})`);
-    const z = zoneOver(o, a, b), slots = Object.entries(grid[mode]?.slots ?? {}).filter(([, s]) => s.kinds.includes(x.k));
+    const z = zoneOver(o, a, b), kk = x.it.t === "verse" && !x.it.full && mode === "half" ? "verse" : x.k, slots = Object.entries(grid[mode]?.slots ?? {}).filter(([, s]) => s.kinds.includes(kk));
     const free = slots.filter(([n]) => !(x.it.t === "rows" && o === "land" && x.it.side === "right") || n === "right").find(([n]) => !(res[mode + n] ?? []).some(([p, q]) => p < b + 0.15 && q > a - 0.15));
     const r = rectOf(x.it, o);
     if (r && inter(r, z) > FACE_TOL * area(r)) fails.push(`${label}: فوق الوجه (${r.map(Math.round).join(",")} ∩ ${z.map(Math.round).join(",")})`);
@@ -167,6 +187,12 @@ for (const o of orients) {
   for (const f of fails.slice(0, 25)) console.log("  ✘ " + f);
   if (fails.length > 25) console.log(`  … و${fails.length - 25} غيرها (التفصيل في grid.md)`);
   md.push(`## ${o === "land" ? "العرضي" : "الطولي"}`, "", "| الوقت | الوضع | الخانة | العنصر |", "|---|---|---|---|", ...rows, "", ...(fails.length ? ["### مشكلات", ...fails.map((f) => "- " + f), ""] : []), ...(offGrid.length ? ["### خارج خانته", ...offGrid.map((f) => "- " + f), ""] : []));
+}
+// text inside a torn strip is never shrunk below 26 px to fit a slot (user 2026-11-03: tiny text with no visible margin in the half-screen strip) — shorten the phrase instead
+for (const o of orients) for (const [i, it] of spec.items.entries()) {
+  if (it.t !== "torn" || (it.only && it.only !== o)) continue;
+  const sz = o === "land" ? it.land?.size ?? 60 : it.size ?? 52;
+  if (sz < 26) { bad++; console.log(`  ✘ torn#${i} [${o}] ${mm(it.at)}: الخط ${sz}px أصغر من 26 ليتسع في خانته — اختصر العبارة (هامش الشريط الممزق إلزامي)`); md.push(`- torn#${i} [${o}] نص أصغر من 26px: اختصر العبارة`); }
 }
 const T = path.join(".tmp", spec.id); fs.mkdirSync(T, { recursive: true });
 fs.writeFileSync(path.join(T, "grid.md"), md.join("\n"));

@@ -1,7 +1,8 @@
 import React from "react";
-import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Img, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { PaperTear } from "./PaperTear";
 import { Gfx, HandheldShake, SourceWalk, BlurRise, RewriteWindow, FlashCut, PinnedPhoto, TimelineTravel, PanelToCanvas, Clock, DashArc, useT } from "./MG";
-import { KeyChip, ReelVerseFull } from "./MGExtras";
+import { KeyChip, ReelVerseFull, VerseWords } from "./MGExtras";
 import { TitleBar } from "./TitleBar";
 import type { BarTheme } from "./TitleBar";
 import { NameCard1, NameCard3 } from "./NameCards";
@@ -12,7 +13,7 @@ import { BAR_WARM, WarmBase, Only, PopCard, Word, PhoneWin, SheikhLayers, PaperS
 import type { TreeNode, TreeLink, MapPt, MapLeg } from "./PortraitKit";
 import { CoverKit, COVER_PALETTES, PaperCoverKit, PAPER_COVER_END } from "./CoverKit";
 import type { CoverProps } from "./CoverKit";
-import { ThumbProOpen, THUMBPRO_END } from "./ThumbPro";
+import { ThumbProOpen, THUMBPRO_END, THUMBPRO_TEAR_END } from "./ThumbPro";
 import type { ThumbProps } from "./ThumbPro";
 import { TornNote, NewsClip, TornPhoto, WordScraps, DateCalendar } from "./PaperKit";
 import { BRAND, applyBrand } from "./brand";
@@ -51,7 +52,7 @@ export type SpecItem = Common & (
   | { t: "credit"; text: string; from?: number; to?: number }
   /** a verse written word by word at the second he recites it (text copied from data/quran by tools/quran_ayah.mjs, never typed) */
   | { t: "subscribe"; at: number; x: number; y: number; dur?: number }
-  | { t: "verse"; words: string[]; times: number[]; title: string; refText: string; x: number; y: number; w: number; size?: number; until?: number }
+  | { t: "verse"; words: string[]; times: number[]; title: string; refText: string; x: number; y: number; w: number; size?: number; until?: number; full?: boolean }
   /** a hadith in the full-screen box (user 2026-11-02): matn from sunnah.com / الدرر السنية / الشاملة word by word as he says it; `source` = book + number, e.g. «صحيح البخاري (5115)» */
   | { t: "hadith"; words: string[]; times: number[]; source: string; until?: number }
   /** a column of written cards (EU-Protests style): dark `Banner` title + one `StatRow` card per spoken item; placed by the orientation's layout (no x/y) */
@@ -63,6 +64,8 @@ export type SpecItem = Common & (
   | { t: "cover"; style?: "paper" | "kit"; tearOrder?: number[]; frames?: number; palette?: keyof typeof COVER_PALETTES; kit: Omit<CoverProps, "format" | "palette">; kitLand?: Partial<Omit<CoverProps, "format" | "palette">> }
   /** style "pro" (user 2026-10-28) = ThumbPro cover (duel / word / evidence, skill thumbnail-design) for frames 0–2, then the cover itself tears into paper strips (stop-motion) until frame 35; `proLand` overrides `pro` in landscape */
   | { t: "cover"; style: "pro"; tearOrder?: number[]; pro: Omit<ThumbProps, "format">; proLand?: Partial<Omit<ThumbProps, "format">> }
+  /** style "image" (user 2026-11-02): a finished cover picture the user supplies (public/ path) for frames 0–2, then it rips in two (PaperTear) and is gone by THUMBPRO_END; portrait = the picture centred over its own blurred copy */
+  | { t: "cover"; style: "image"; src: string }
   /** family tree on a paper card (user 2026-10-29): landscape = left half of a split screen (his frame slides right through `shifts`), portrait = card under the beard; node/link positions are relative (0..1) */
   | { t: "tree"; from: number; to: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number; nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number }
   /** paper map (user 2026-10-29): landscape = the whole frame behind his shrunk cut-out (`mini`), portrait = a card under the beard */
@@ -190,9 +193,12 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
       );
     }
     case "subscribe": return <Subscribe key={i} at={it.at} x={L ? ov.x ?? 1300 : it.x} y={L ? ov.y ?? 790 : it.y} dur={it.dur} />;
-    case "verse":
-      // portrait: the verse fills the screen, his picture hidden while he recites (PREFERENCES §6); landscape: a card on the empty side
-      return <ReelVerseFull key={i} to={it.until ?? it.times[it.times.length - 1] + 1.2} refName={`${it.title} — ${it.refText}`} lines={[{ words: it.words, times: it.times }]} />;
+    case "verse": {
+      // a verse he recites INSIDE his talk = the known verse card (VerseWords) in the writing area / the empty side, his picture visible (user 2026-11-01); full screen (full:true) only for a lone recitation
+      const to = it.until ?? it.times[it.times.length - 1] + 1.2;
+      if (it.full) return <ReelVerseFull key={i} to={to} refName={`${it.title} — ${it.refText}`} lines={[{ words: it.words, times: it.times }]} />;
+      return <VerseWords key={i} words={it.words} times={it.times} x={L ? ov.x ?? G.x : it.x} y={L ? ov.y ?? G.y : it.y} w={L ? ov.w ?? G.w : it.w} size={L ? ov.size ?? 38 : it.size ?? 44} title={it.title} refText={it.refText} until={to} />;
+    }
     case "hadith": return <ReelVerseFull key={i} hadith to={it.until ?? it.times[it.times.length - 1] + 1.2} refName={it.source} lines={[{ words: it.words, times: it.times }]} />;
     case "credit": return <Only key={i} from={it.from ?? 0.5} to={it.to ?? 9999}><Sources links={[{ at: it.from ?? 0.5, url: it.text }]} x={40} bottom={L ? 24 : 178} w={L ? 1100 : 1000} size={L ? 22 : 24} /></Only>;
     case "rows": {
@@ -432,9 +438,10 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
         {spec.items.map((it, i) => renderItem(it, i, o, bar))}
         <TitleBar title={spec.title} theme={bar} bottomHalf={o === "port"} />
       </Gfx>
+      {cover && cover.style === "image" && f < THUMBPRO_END ? <PaperTear from={3} to={THUMBPRO_TEAR_END} sheet={<AbsoluteFill style={{ background: "#0d0f14" }}>{o === "land" ? null : <Img src={staticFile(cover.src)} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "blur(40px) brightness(.55)", transform: "scale(1.2)" }} />}<Img src={staticFile(cover.src)} style={o === "land" ? { width: "100%", height: "100%", objectFit: "cover" } : { position: "absolute", left: 0, top: "50%", width: "100%", transform: "translateY(-50%)" }} /></AbsoluteFill>} /> : null}
       {cover && cover.style === "pro" && f < THUMBPRO_END ? <ThumbProOpen format={o === "land" ? "landscape" : "portrait"} tearOrder={cover.tearOrder} {...cover.pro} {...(o === "land" ? cover.proLand : {})} /> : null}
-      {cover && cover.style !== "pro" && (cover.style ?? "paper") === "paper" && f < PAPER_COVER_END ? <PaperCoverKit format={o === "land" ? "landscape" : "portrait"} palette={COVER_PALETTES[cover.palette ?? "steel"]} tearOrder={cover.tearOrder} {...cover.kit} {...(o === "land" ? cover.kitLand : {})} /> : null}
-      {cover && cover.style === "kit" && f < (cover.frames ?? 3) ? <CoverKit format={o === "land" ? "landscape" : "portrait"} palette={COVER_PALETTES[cover.palette ?? "steel"]} {...cover.kit} {...(o === "land" ? cover.kitLand : {})} /> : null}
+      {cover && cover.style !== "pro" && cover.style !== "image" && (cover.style ?? "paper") === "paper" && f < PAPER_COVER_END ? <PaperCoverKit format={o === "land" ? "landscape" : "portrait"} palette={COVER_PALETTES[cover.palette ?? "steel"]} tearOrder={cover.tearOrder} {...cover.kit} {...(o === "land" ? cover.kitLand : {})} /> : null}
+      {cover && cover.style !== "image" && cover.style === "kit" && f < (cover.frames ?? 3) ? <CoverKit format={o === "land" ? "landscape" : "portrait"} palette={COVER_PALETTES[cover.palette ?? "steel"]} {...cover.kit} {...(o === "land" ? cover.kitLand : {})} /> : null}
     </AbsoluteFill>
   );
 };

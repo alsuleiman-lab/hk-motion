@@ -4,7 +4,7 @@ import sys, json, subprocess, cv2, numpy as np
 src, keysf, dst = sys.argv[1:4]
 groups = json.load(open(keysf))
 cap = cv2.VideoCapture(src); fps = cap.get(5); W = int(cap.get(3)); H = int(cap.get(4))
-p = subprocess.Popen(["ffmpeg","-v","error","-y","-f","rawvideo","-pix_fmt","bgr24","-s",f"{W}x{H}","-r",str(fps),"-i","-","-i",src,"-map","0:v","-map","1:a?","-c:v","libx264","-crf","17","-preset","fast","-pix_fmt","yuv420p","-c:a","copy",dst],stdin=subprocess.PIPE)
+p = subprocess.Popen(["ffmpeg","-v","error","-y","-f","rawvideo","-pix_fmt","bgr24","-s",f"{W}x{H}","-r",str(fps),"-i","-","-i",src,"-map","0:v","-map","1:a?","-c:v","h264_nvenc","-preset","p5","-rc","vbr","-cq","18","-b:v","0","-g","15","-pix_fmt","yuv420p","-c:a","copy",dst],stdin=subprocess.PIPE)
 i = 0
 while True:
     ok, f = cap.read()

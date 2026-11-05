@@ -21,7 +21,7 @@ const clamp = (x: number, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const ease = (x: number) => Easing.bezier(0.45, 0, 0.15, 1)(clamp(x));
 // the key-phrase card (PREFERENCES §4 «العبارة المفتاحية»): landscape = frame centre, middle of the 4th fifth of the height (y 60–80%); portrait = under the beard.
 // Pass x/y only to override. Colours = the TIMER block of the video's TitleBar theme (pass the same `theme` given to TitleBar); bg/fg override.
-export const KeyChip: React.FC<{ phrases: { text: string; at: number }[]; x?: number; y?: number; size?: number; until?: number; theme?: BarTheme; bg?: string; fg?: string }> = ({ phrases, x: x0, y: y0, size = 50, until, bg = BRAND_BAR.timerBg, fg = BRAND_BAR.timerText }) => {   // one colour identity: a passed `theme` is ignored
+export const KeyChip: React.FC<{ phrases: { text: string; at: number }[]; x?: number; y?: number; size?: number; until?: number; theme?: BarTheme; bg?: string; fg?: string; rot?: number }> = ({ phrases, x: x0, y: y0, size = 50, until, rot = 0, bg = BRAND_BAR.timerBg, fg = BRAND_BAR.timerText }) => {   // one colour identity: a passed `theme` is ignored
   const { width, height } = useVideoConfig();
   const x = x0 ?? width / 2, y = y0 ?? (height > width ? 1390 : height * 0.7);
   const t = useT();
@@ -30,7 +30,7 @@ export const KeyChip: React.FC<{ phrases: { text: string; at: number }[]; x?: nu
   const s = useSp(p ? p.at : 0, 11, 220);
   if (!p || (until !== undefined && t > until)) return null;
   return (
-    <div style={{ position: "absolute", left: x, top: y, transform: `translate(-50%,-50%) scale(${0.82 + 0.18 * s})`, opacity: Math.min(1, s * 2), background: bg, color: fg, fontFamily: TITLE, fontWeight: 800, fontSize: size, padding: "6px 30px 14px", borderRadius: 16, direction: "rtl", whiteSpace: "nowrap", boxShadow: "0 8px 0 rgba(0,0,0,.18)" }}>{p.text}</div>
+    <div style={{ position: "absolute", left: x, top: y, transform: `translate(-50%,-50%) rotate(${rot}deg) scale(${0.82 + 0.18 * s})`, opacity: Math.min(1, s * 2), background: bg, color: fg, fontFamily: TITLE, fontWeight: 800, fontSize: size, padding: "6px 30px 14px", borderRadius: 16, direction: "rtl", whiteSpace: "nowrap", boxShadow: "0 8px 0 rgba(0,0,0,.18)" }}>{p.text}</div>
   );
 };
 export const StampG: React.FC<{ at: number; x: number; y: number; text: string; size?: number }> = ({ at, x, y, text, size = 58 }) => {

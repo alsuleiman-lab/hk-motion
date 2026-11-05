@@ -19,7 +19,7 @@ export type BarTheme = { timerBg: string; titleBg: string; timerText: string; ti
 /** one colour identity for every video (src/brand.ts): the bar always uses BRAND_BAR; a `theme` passed by an older composition is ignored */
 export const THEME_LESSON: BarTheme = BRAND_BAR;
 
-export const TitleBar: React.FC<{ title: string; theme?: BarTheme; date?: string; offsetSec?: number; bottomHalf?: boolean }> = ({ title, date = EDIT_DATE, offsetSec = 0, bottomHalf = false }) => {
+export const TitleBar: React.FC<{ title: string; theme?: BarTheme; date?: string; offsetSec?: number; bottomHalf?: boolean; hideNotice?: boolean }> = ({ title, date = EDIT_DATE, offsetSec = 0, bottomHalf = false, hideNotice = false }) => {
   const theme = BRAND_BAR;
   const f = useCurrentFrame();
   const { fps, width } = useVideoConfig();
@@ -40,7 +40,7 @@ export const TitleBar: React.FC<{ title: string; theme?: BarTheme; date?: string
             <div style={{ fontFamily: cairo, fontWeight: 700, fontSize: 11 * k, color: theme.subText, whiteSpace: "nowrap" }}>{hijri(date)} • {gregorian(date)}</div>
           </div>
         </div>
-        <div style={{ fontFamily: amiri, fontWeight: 700, fontSize: 11 * 2 * k, color: "#fff", WebkitTextStroke: `${portrait ? 3 : 2}px #000`, paintOrder: "stroke fill", textShadow: "0 1px 4px rgba(0,0,0,.9)", textAlign: "center", marginTop: 2 }}>يمنع اقتصاص الفيديو دون عرض العداد</div>
+        {hideNotice ? null : <div style={{ fontFamily: amiri, fontWeight: 700, fontSize: 11 * 2 * k, color: "#fff", WebkitTextStroke: `${portrait ? 3 : 2}px #000`, paintOrder: "stroke fill", textShadow: "0 1px 4px rgba(0,0,0,.9)", textAlign: "center", marginTop: 2 }}>يمنع اقتصاص الفيديو دون عرض العداد</div>}
       </div>
     </AbsoluteFill>
   );

@@ -54,14 +54,14 @@ const Pt = {
   glow: [620, 830] as const,
 };
 
-export const CoverKit: React.FC<CoverProps> = ({ bgImage, bgFilter, sparkles, format, palette = BLUE, line1, line2, oppName, sheikh = "cov/sheikh_t268.png", opp = "cov/zayed.png", sheikhClip, book, bookPos, sheikhPos, oppPos, oppClip, bookBox, tagTop, tagLeft, tagSize, headBottom, headSize, headlinePos, bgBlur }) => {
+export const CoverKit: React.FC<CoverProps> = ({ bgImage, bgFilter, sparkles, format, palette = BLUE, line1, line2, oppName, sheikh = "cov/sheikh_t268.png", opp, sheikhClip, book, bookPos, sheikhPos, oppPos, oppClip, bookBox, tagTop, tagLeft, tagSize, headBottom, headSize, headlinePos, bgBlur }) => {
   const portrait = format === "portrait";
   const g = portrait ? Pt : L;
   const s1 = Math.min(g.head.s1, Math.floor((portrait ? 980 : 1500) / (line1.length * 0.58)));
   return (
     <AbsoluteFill>
       <Backdrop p={bgImage ? { ...palette, bg: bgImage } : palette} gx={g.glow[0]} gy={g.glow[1]} blur={bgBlur} filter={bgFilter} sparkles={sparkles} />
-      <Gfx><Book p={palette} {...(bookBox ?? g.book)} src={book} pos={bookPos} /></Gfx>
+      {book ? <Gfx><Book p={palette} {...(bookBox ?? g.book)} src={book} pos={bookPos} /></Gfx> : null}
       {opp && !portrait ? <Gfx><Cut p={palette} src={opp} {...(oppPos ?? g.opp)} rim={palette.oppRim} clip={oppClip ?? "inset(0 0 0 9%)"} mask /></Gfx> : null}
       <Cut p={palette} src={sheikh} {...(sheikhPos ?? g.sheikh)} rim={palette.rim} clip={sheikhClip} />
       {/* portrait: the Sheikh's body is wide, so the opponent is drawn in FRONT, low-left, away from the beard */}
@@ -96,7 +96,7 @@ export const KitP4: React.FC = () => <CoverKit format="portrait" palette={STEEL}
  * `tearOrder` belonged to the old strip tear and is ignored.
  */
 export const PAPER_COVER_END = 35;   // ×1.5 faster tear (user 2026-10-30): was 51
-export const PaperCoverKit: React.FC<CoverProps & { tearOrder?: number[] }> = ({ format, palette = STEEL, line1, line2, sheikh = "cov/sheikh_t268.png", opp = "cov/zayed.png", sheikhClip, book, bookPos, sheikhPos, oppPos, oppClip, bookBox, headBottom, headSize, headlinePos }) => {
+export const PaperCoverKit: React.FC<CoverProps & { tearOrder?: number[] }> = ({ format, palette = STEEL, line1 = "", line2 = "", sheikh = "cov/sheikh_t268.png", opp, sheikhClip, book, bookPos, sheikhPos, oppPos, oppClip, bookBox, headBottom, headSize, headlinePos }) => {
   const frame = useCurrentFrame();
   const portrait = format === "portrait";
   const g = portrait ? Pt : L;
@@ -104,9 +104,10 @@ export const PaperCoverKit: React.FC<CoverProps & { tearOrder?: number[] }> = ({
   if (frame >= PAPER_COVER_END) return null;
   const sp = sheikhPos ?? g.sheikh;
   const bb = bookBox ?? g.book;
-  const s1 = Math.min(headSize?.s1 ?? 130, Math.floor((portrait ? 900 : 1300) / (line1.length * 0.5)));
+  const l1 = line1 || "";
+  const s1 = Math.min(headSize?.s1 ?? 130, Math.floor((portrait ? 900 : 1300) / (Math.max(1, l1.length) * 0.5)));
   const s2 = headSize?.s2 ?? (portrait ? 70 : 64);
-  const stripW = Math.min(portrait ? 1040 : 1400, Math.round(line1.length * s1 * 0.62 + 160));
+  const stripW = Math.min(portrait ? 1040 : 1400, Math.round(Math.max(1, l1.length) * s1 * 0.62 + 160));
   const ink: P = { ...palette, rim: "rgba(60,45,20,.35)", oppRim: "rgba(60,45,20,.35)", border: "#f4efe2", glow2: "rgba(60,45,20,.25)" };
   const sheet = (
     <AbsoluteFill>
@@ -118,7 +119,7 @@ export const PaperCoverKit: React.FC<CoverProps & { tearOrder?: number[] }> = ({
       {/* no name tags under pictures (rule «عبارات الغلاف وتوقيعه»): `oppName` is ignored here; the signature sits bottom-left */}
       <Gfx><div style={{ position: "absolute", left: portrait ? 36 : 40, bottom: portrait ? 22 : 18, direction: "rtl", fontFamily: "Almarai", fontWeight: 800, fontSize: 30, color: "#3a3226" }}>محمد بن شمس الدين</div></Gfx>
       <Gfx><div style={{ position: "absolute", left: 0, right: 0, bottom: headBottom ?? (portrait ? 78 : 66), display: "flex", flexDirection: "column", alignItems: "center", ...headlinePos }}>
-        <div style={{ position: "relative", width: stripW, height: Math.round(s1 * 1.45) }}><PaperStrip w={stripW} h={Math.round(s1 * 1.45)} text={line1} size={s1} style={{ left: 0, top: 0, transform: "rotate(-1.2deg)" }} /></div>
+        <div style={{ position: "relative", width: stripW, height: Math.round(s1 * 1.45) }}><PaperStrip w={stripW} h={Math.round(s1 * 1.45)} text={l1} size={s1} style={{ left: 0, top: 0, transform: "rotate(-1.2deg)" }} /></div>
         <div style={{ marginTop: -14, direction: "rtl", whiteSpace: "nowrap", fontFamily: "Almarai", fontWeight: 800, fontSize: s2, color: "#f4efe2", background: "#2c2418", padding: "4px 44px 12px", transform: "rotate(.8deg)", boxShadow: "0 12px 22px rgba(40,30,10,.45)" }}>{line2}</div>
       </div></Gfx>
     </AbsoluteFill>

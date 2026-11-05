@@ -89,9 +89,8 @@ export const WordScraps: React.FC<{ at: number; until?: number; x?: number; y?: 
   const stocks = [BRAND.card, BRAND.paper, BRAND.navy, BRAND.accent];
   return (
     <div style={{ position: "absolute", display: "flex", flexDirection: "row-reverse", flexWrap: "wrap", gap: size * 0.3, alignItems: "center", ...place }}>
-      {text.split(" ").map((wd, i) => {
+      {text.split(" ").map((wd, i, all) => ({ wd, i, gone: i + 4 < all.length ? at + (i + 4) * gap : Infinity })).filter(({ i, gone }) => t >= at + i * gap && t < gone).map(({ wd, i }) => {   // at most 4 scraps at once: the first goes when a fifth arrives (user 2026-11-05)
         const a = at + i * gap, inn = easeOut((t - a) / 0.25), out = until === undefined ? 0 : easeOut((t - until) / 0.3);
-        if (t < a) return <span key={i} style={{ visibility: "hidden", fontFamily: zainF, fontSize: size, padding: "0 22px" }}>{wd}</span>;
         const bg = stocks[Math.floor(random("ws" + wd + i) * stocks.length)], dark = bg === BRAND.navy || bg === BRAND.accent;
         const rot = (random("wr" + wd + i) - 0.5) * 10 + noise2D("ws" + i, f / 80, 0) * 0.8;
         const w = Math.round(size * 0.8 * wd.length + 70), h = Math.round(size * 1.45);

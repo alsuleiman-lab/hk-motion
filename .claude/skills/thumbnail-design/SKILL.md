@@ -1,6 +1,6 @@
 ---
 name: thumbnail-design
-description: Recipe + checklist for the cover frame (first 0.10 s = 3 frames) and thumbnail of Sheikh Muhammad bin Shams al-Din's videos, landscape 1920x1080 and portrait 1080x1920, built in Remotion. Two approved styles for the data-spec `cover` item: newsprint paper cover (PaperCoverKit, default) and ThumbPro (`"style": "pro"`: duel / word / evidence YouTube-practice cover); both open with the paper tear (PaperTear: the whole cover rips in two and the halves pull away over the recording, 2026-10-28); the old calm-blue/steel CoverKit only with `"style": "kit"`. Use whenever making, judging or placing a cover/thumbnail.
+description: Recipe + checklist for the cover frame (first 0.25 s = 7-8 frames) and thumbnail of Sheikh Muhammad bin Shams al-Din's videos, landscape 1920x1080 and portrait 1080x1920, built in Remotion. Two approved styles for the data-spec `cover` item: newsprint paper cover (PaperCoverKit, default) and ThumbPro (`"style": "pro"`: duel / word / evidence YouTube-practice cover); both open with the paper tear (PaperTear: the whole cover rips in two and the halves pull away over the recording, 2026-10-28); the old calm-blue/steel CoverKit only with `"style": "kit"`. Use whenever making, judging or placing a cover/thumbnail.
 ---
 
 **غلاف الكرتون:** طولي 9:16، مرسوم بالكامل من عالم القصة، بلا صورة فوتوغرافية للراوي أو الأشخاص. قواعد الغلاف الفوتوغرافي أدناه تخص مونتاج الكلام.

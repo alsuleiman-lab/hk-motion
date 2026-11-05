@@ -57,7 +57,7 @@ export const SRC: Record<number, string> = {
 };
 /** refs of the scene being drawn, each {n, at}: the source appears at `at` seconds (when its information is spoken) */
 export const SrcCtx = React.createContext<{ n: number; at: number }[]>([]);
-const SK = 0.91;   // the panel is drawn at this scale so the strip fits under it inside the 960×1080 frame
+const SK = 0.88;   // the panel is drawn at this scale so the strip fits under it inside the 960×1080 frame
 
 /** The sticker panel: title + sub on top, illustration area (y 190–900), «حدّ ما نعرفه» badges at the bottom. */
 export const Panel: React.FC<{ t: number; title: string; sub?: string; badges?: Badge[]; dy?: number; children: React.ReactNode }> = ({ t, title, sub, badges = [], dy = 0, children }) => {
@@ -97,15 +97,16 @@ export const Panel: React.FC<{ t: number; title: string; sub?: string; badges?: 
             );
           })}
           </g>
-          {refs.length > 0 && (
-            <g opacity={pr(t, Math.min(...refs.slice(0, 4).map((r) => r.at)), 0.4)}>
-              <rect x={(PW - PW * SK) / 2 + 6} y={PH * SK + 6} width={PW * SK - 12} height={PH - PH * SK - 16} rx="22" fill="rgba(14,20,30,.88)" stroke={alpha(BRAND.accent, 0.7)} strokeWidth="2" />
-              <text x={PW - (PW - PW * SK) / 2 - 24} y={PH * SK + 36} textAnchor="start" direction="rtl" fontSize="22" fontWeight="800" fill={BRAND.accent}>المصدر</text>
-              {refs.slice(0, 4).map((r, i) => (
-                <text key={r.n} x={(PW - PW * SK) / 2 + 22 + (i % 2) * 372} y={PH * SK + 34 + Math.floor(i / 2) * 30} fontSize="17" fontWeight="700" fill={BRAND.card} direction="ltr" opacity={pr(t, r.at, 0.4)} fontFamily={`"Segoe UI", Arial, sans-serif`}>{`[${r.n}] ${SRC[r.n]}`}</text>
-              ))}
-            </g>
-          )}
+          {refs.length > 0 && (() => {
+            const rs = refs.slice(0, 3), x0 = (PW - PW * SK) / 2, top = PH * SK + 8, hh = 20 + rs.length * 30;
+            return (
+              <g opacity={pr(t, Math.min(...rs.map((r) => r.at)), 0.4)}>
+                <rect x={x0 + 6} y={top} width={PW * SK - 12} height={hh} rx="20" fill="rgba(14,20,30,.9)" stroke={alpha(BRAND.accent, 0.7)} strokeWidth="2" />
+                <text x={PW - x0 - 24} y={top + 30} textAnchor="start" direction="rtl" fontSize="22" fontWeight="800" fill={BRAND.accent}>المصدر</text>
+                {rs.map((r, i) => <text key={r.n} x={x0 + 24} y={top + 30 + i * 30} fontSize="18" fontWeight="700" fill={BRAND.card} direction="ltr" opacity={pr(t, r.at, 0.4)} fontFamily={`"Segoe UI", Arial, sans-serif`}>{`[${r.n}] ${SRC[r.n]}`}</text>)}
+              </g>
+            );
+          })()}
         </svg>
       </Gfx>
     </AbsoluteFill>

@@ -23,8 +23,8 @@ const ratio = (s: DebateSrc) => s.aspect ?? (s.w ? s.w / (s.h ?? 1080) : 16 / 9)
 /** the window is exactly the shown video's size (user 2026-10-29: «الإطار على أبعاد الفيديو المعروض، لا أكبر ولا أصغر»): the video's ratio fitted in the
  *  original's 4:3 slot (a taller video may grow to 1.4× the slot height), centred on the slot and kept inside the frame */
 const box = (w: Win, s: DebateSrc) => {
-  const r = ratio(s), sw = w.width * W, sh = (sw * 3) / 4, maxH = Math.min(sh * 1.4, H * 0.9);
-  const bw = Math.min(sw, maxH * r), bh = bw / r, m = H * 0.03;
+  const r = ratio(s), sw = w.width * W, sh = (sw * 3) / 4, maxH = Math.min(sh * 1.4, H * 0.76);
+  const bw = Math.min(sw, maxH * r), bh = bw / r, m = 64;
   const x = Math.min(Math.max(w.left * W + (sw - bw) / 2, m), W - m - bw), y = Math.min(Math.max(w.mid !== undefined ? w.mid * H - bh / 2 : w.top * H + (sh - bh) / 2, m), H - m - bh);
   return { x: Math.round(x), y: Math.round(y), w: Math.round(bw), h: Math.round(bh) };
 };
@@ -100,7 +100,7 @@ export const DebateDossier: React.FC<Props> = ({ main, guest, title = "مصدر"
         <div style={{ position: "absolute", inset: 0, background: BRAND.paper, clipPath: tornClip(W * 0.92, H * 0.92, "dossier-sheet", 11, 34),
           backgroundImage: `repeating-linear-gradient(0deg, transparent 0 ${22 * K}px, ${alpha(BRAND.ink, 0.08)} ${22 * K}px ${22 * K + 1}px)` }} />
       </div>
-      <TornWindow w={{ left: 0.34, top: 0.05, width: 0.64 }} s={main} seed="dossier-main"
+      <TornWindow w={{ left: 0.35, top: 0.05, width: 0.64 }} s={main} seed="dossier-main"
         transform={(b) => {
           const s0 = Math.min(W / b.w, H / b.h);
           return `translate(${(1 - mi) * (W / 2 - (b.x + b.w / 2))}px, ${(1 - mi) * (H / 2 - (b.y + b.h / 2))}px) rotate(${1.5 * mi}deg) scale(${1 + (s0 - 1) * (1 - mi)})`;

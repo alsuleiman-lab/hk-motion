@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill, Audio, Img, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { PaperTear } from "./PaperTear";
-import { Gfx, HandheldShake, SourceWalk, BlurRise, RewriteWindow, FlashCut, PinnedPhoto, TimelineTravel, PanelToCanvas, Clock, DashArc, useT } from "./MG";
+import { Gfx, NoteCard, HandheldShake, SourceWalk, BlurRise, RewriteWindow, FlashCut, PinnedPhoto, TimelineTravel, PanelToCanvas, Clock, DashArc, useT } from "./MG";
 import { KeyChip, ReelVerseFull, VerseWords } from "./MGExtras";
 import { TitleBar } from "./TitleBar";
 import type { BarTheme } from "./TitleBar";
@@ -56,6 +56,8 @@ export type SpecItem = Common & (
   | { t: "verse"; words: string[]; times: number[]; title: string; refText: string; x: number; y: number; w: number; size?: number; until?: number; full?: boolean }
   /** a hadith in the full-screen box (user 2026-11-02): matn from sunnah.com / الدرر السنية / الشاملة word by word as he says it; `source` = book + number, e.g. «صحيح البخاري (5115)» */
   | { t: "hadith"; words: string[]; times: number[]; source: string; until?: number }
+  /** a hadith on a paper NoteCard (MG NoteCard; user's gallery note 2026-11-05: «مخصصة لكتابة الأحاديث النبوية»): the matn typed as `title`, the book + number as `tag`; he stays on screen */
+  | { t: "note"; at: number; until: number; title: string; tag: string; label?: string; x?: number; y?: number; w?: number; h?: number; size?: number; cps?: number }
   /** a column of written cards (EU-Protests style): dark `Banner` title + one `StatRow` card per spoken item; placed by the orientation's layout (no x/y) */
   | { t: "rows"; side?: "right"; from: number; to: number; y0?: number; step?: number; rowH?: number; pin?: { x: number; w: number }; title?:{ at: number; text: string }; rows: { at: number; label: string; sub?: string; icon?: string; photo?: string }[] }
   /** a scholar he quotes: polaroid with the name in the white band (empty side of his frame; portrait: below the beard) */
@@ -145,10 +147,15 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
       return L
         ? <KeyChip key={i} phrases={[{ text: it.text, at: it.at }]} until={it.until} x={ov.x} y={ov.y ?? LANDSCAPE.keyY} size={ov.size ?? 54} theme={bar} />
         : <Word key={i} text={it.text} at={it.at} until={it.until} x={it.x} y={it.y} size={it.size} tone={it.tone} flag={it.flag} />;
-    case "blur":
+    case "blur":   // the opponent's words (landscape): under the answered clip, centred at (431, 880), tilted −7° (the user's red box, 2026-11-05)
       return L
-        ? <KeyChip key={i} phrases={[{ text: it.text, at: it.at }]} until={it.until} x={ov.x} y={ov.y ?? LANDSCAPE.keyY} size={ov.size ?? 54} theme={bar} />
+        ? <KeyChip key={i} phrases={[{ text: it.text, at: it.at }]} until={it.until} x={ov.x ?? 431} y={ov.y ?? 880} size={ov.size ?? 29} rot={-7} theme={bar} />
         : <Only key={i} from={it.at} to={it.until}><BlurRise at={it.at} times={[it.at, it.at + 0.4]} text={it.text} x={it.x ?? 40} w={it.w ?? 1000} y={it.y} size={it.size ?? 58} color="#fff" accentColor={BRAND.accent} accentWords={it.accentWords ?? []} canvasW={1080} align={it.w ? "left" : undefined} /></Only>;
+    case "note": {
+      const w = L ? ov.w ?? it.w ?? 600 : it.w ?? 1000, size = it.size ?? 40;
+      const lines = Math.max(1, Math.ceil([...it.title].length / Math.max(1, Math.floor((w - 70) / (size * 0.5))))), h = ov.h ?? it.h ?? Math.round(130 + lines * size * 1.6);
+      return <Only key={i} from={it.at} to={it.until}><NoteCard at={it.at} x={L ? ov.x ?? 40 : it.x ?? 40} y={L ? ov.y ?? 150 : it.y ?? 1300} w={w} h={h} label={it.label ?? "حديث شريف"} tag={it.tag} title={it.title} lines={0} size={size} cps={it.cps ?? Math.max(10, Math.round([...it.title].length / Math.max(2, it.until - it.at - 1.2)))} /></Only>;
+    }
     case "poison":
       return L ? <PoisonClip key={i} id={it.id} at={it.at} until={it.until} x={it.mode === "half" ? 0 : it.x ?? 16} y={it.mode === "half" ? 0 : it.y ?? 150} scale={it.mode === "half" ? 1 : it.scale ?? 0.7} cfg={{ map: it.map, only: it.parts, nobadges: !it.badges }} refs={it.refs ?? []} /> : null;
     case "nameTag": {   // the old NameTag was dropped in the gallery (2026-10-28): the approved name card 1, or 3 with style "pinned"
@@ -401,7 +408,7 @@ const MiniMe: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; 
 };
 
 /** every item type the renderer knows (= the elements approved in the gallery); anything else is an error, never silently skipped (user 2026-10-28) */
-const APPROVED_TYPES = new Set(["word", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "hadith", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date", "poison"]);
+const APPROVED_TYPES = new Set(["word", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "hadith", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date", "poison", "note"]);
 
 export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
   for (const it of spec.items) if (!APPROVED_TYPES.has(it.t)) throw new Error(`عنصر غير معتمد في المعرض: «${it.t}» في ${spec.id} — المعتمد: ${[...APPROVED_TYPES].join("، ")}`);

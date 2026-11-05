@@ -47,10 +47,12 @@ export type SilentConfigBase = {
   theme: { bgA: string; bgB: string; accent: string };
   /** all of these belong to the SOURCE speaker and are drawn inside the source card; `at` = the second the speaker STARTS saying it */
   captions: (T & { text: string; pos?: "top" | "bottom"; quran?: boolean })[];
-  keywords: (T & { text: string; tone?: "bad" | "good" })[];
+  keywords: (T & { text: string; tone?: "bad" | "good"; pos?: "top" })[];
   photos?: (T & { src: string; label: string })[];
   /** our own generated B-roll stills (faceless): cover the source card for `dur` seconds with a slow push-in while its audio keeps playing */
   broll?: (T & { src: string })[];
+  /** the empty band under the two cards: our own stills + stock clips + a paper tag, each at its word's onset (user 2026-11-03) */
+  under?: { at: number; dur: number; src: string; kind: "img" | "video"; startSec?: number; label?: string }[];
   facts: (T & { label: string; value: string })[];
   highlights: (T & { box: { x: number; y: number; w: number; h: number } })[];
   punches: (T & { scale: number; cx: number; cy: number })[];
@@ -78,6 +80,26 @@ export const calculateSilentMetadata: CalculateMetadataFunction<SilentProps> = a
 const IS_RENDER = getRemotionEnvironment().isRendering;
 const Vid: React.FC<{ src: string; startFrom: number; muted?: boolean; style: React.CSSProperties }> = ({ src, startFrom, muted, style }) =>
   IS_RENDER ? <OffthreadVideo src={staticFile(src)} startFrom={startFrom} muted={muted} style={style} /> : <Video src={staticFile(src)} startFrom={startFrom} muted={muted} style={style} />;
+
+/** the band under the two cards: a picture / stock clip with a slow push, sliding up at `at`, a torn paper tag on it */
+const UnderBand: React.FC<{ it: NonNullable<SilentConfigBase["under"]>[number]; fps: number; top: number; height: number; accent: string }> = ({ it, fps, top, height, accent }) => {
+  const lf = useCurrentFrame();
+  const t = lf / fps;
+  const inU = Math.min(1, t / 0.35), outU = Math.min(1, Math.max(0, (it.dur - t) / 0.2));
+  const e = 1 - Math.pow(1 - inU, 3);
+  const push = 1 + 0.1 * Math.min(1, t / it.dur);
+  const media: React.CSSProperties = { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", transform: `scale(${push})` };
+  return (
+    <Gfx>
+      <div style={{ position: "absolute", left: 60, width: 960, top, height, overflow: "hidden", borderRadius: 30, border: "6px solid #f3e3c0", boxShadow: "0 16px 40px rgba(20,12,4,.5)", transform: `translateY(${(1 - e) * 420}px)`, opacity: outU }}>
+        {it.kind === "video" ? <Vid src={it.src} startFrom={Math.round((it.startSec ?? 0) * fps)} muted style={media} /> : <Img src={staticFile(it.src)} style={media} />}
+        {it.label ? (
+          <div style={{ position: "absolute", right: 22, bottom: 18, padding: "8px 30px", background: "#f6efe0", border: "3px solid #3a2414", borderRadius: 6, borderRight: `14px solid ${accent}`, fontFamily: kufi, fontWeight: 800, fontSize: 44, color: "#3a2414", transform: "rotate(-2deg)", boxShadow: "0 6px 16px rgba(20,12,4,.5)" }}>{it.label}</div>
+        ) : null}
+      </div>
+    </Gfx>
+  );
+};
 
 /** 0→1→0 envelope with 0.4 s ease on each side, for a window [at, at+dur] (seconds). */
 const env = (f: number, fps: number, at: number, dur: number) => interpolate(f / fps, [at, at + 0.4, at + dur - 0.4, at + dur], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
@@ -242,7 +264,7 @@ const VoiceOutro: React.FC<{ c: SilentConfigVO; orient: "portrait" | "landscape"
           {[0, 1, 2, 3].map((i) => { const u = (((t - sc.arrowAt!) * 1.3 + i / 4) % 1); return <div key={i} style={{ position: "absolute", left: 1000 - u * 1000, top: 0, opacity: Math.sin(Math.PI * u) }}><DrawIcon name="ChevronsLeft" p={1} size={110} color="#ffd978" sw={2.2} glow={14} /></div>; })}
         </div>
       ) : null}
-      <Gfx><TitleBar title={c.title} theme={c.barTheme} offsetSec={c.timerOffset ?? c.durationSec} /></Gfx>
+      <Gfx><TitleBar title={c.title} theme={c.barTheme} offsetSec={c.timerOffset ?? c.durationSec} hideNotice /></Gfx>
     </AbsoluteFill>
   );
 };
@@ -334,7 +356,7 @@ const SilentMain: React.FC<{ orient: "portrait" | "landscape"; c: SilentConfigVO
           </div>
         ) : null}
         {kw ? (
-          <div style={{ position: "absolute", left: 0, right: 0, bottom: 14, textAlign: "center", opacity: Math.min(1, kwP * 1.5) * kwOut, transform: `scale(${0.6 + 0.4 * kwP}) rotate(${(1 - kwP) * -4}deg)` }}>
+          <div style={{ position: "absolute", left: 0, right: 0, ...(kw.pos === "top" ? { top: 14 } : { bottom: 14 }), textAlign: "center", opacity: Math.min(1, kwP * 1.5) * kwOut, transform: `scale(${0.6 + 0.4 * kwP}) rotate(${(1 - kwP) * -4}deg)` }}>
             <span style={{ fontFamily: kufi, whiteSpace: "nowrap", fontSize: kw.text.length > 14 ? Math.round(bigText * 0.55) : kw.text.length > 8 ? Math.round(bigText * 0.72) : bigText, color: kw.tone === "bad" ? "#ffd9cf" : "#fff4d6", WebkitTextStroke: `14px ${kw.tone === "bad" ? "#7a1f12" : "#4a2f1d"}`, paintOrder: "stroke fill", textShadow: "0 10px 0 rgba(0,0,0,.3)" }}>{kw.tone === "bad" ? "✗ " : kw.tone === "good" ? "✓ " : ""}{kw.text}</span>
           </div>
         ) : null}
@@ -346,7 +368,12 @@ const SilentMain: React.FC<{ orient: "portrait" | "landscape"; c: SilentConfigVO
         </Gfx>
       </div>
 
-      <Gfx><TitleBar title={c.title} theme={c.barTheme} offsetSec={c.timerOffset ?? 0} /></Gfx>
+      {(c.under ?? []).map((u, i) => (
+        <Sequence key={i} from={Math.round(u.at * fps)} durationInFrames={Math.round(u.dur * fps)}>
+          <UnderBand it={u} fps={fps} top={Math.max(RR.y + RR.h, SR.y + SR.h) + 34} height={1880 - (Math.max(RR.y + RR.h, SR.y + SR.h) + 34)} accent={accent} />
+        </Sequence>
+      ))}
+      <Gfx><TitleBar title={c.title} theme={c.barTheme} offsetSec={c.timerOffset ?? 0} hideNotice /></Gfx>
 
       {/* cover: first 3 frames (0.10 s) = a nice still of the Sheikh + the TOPIC title + the people mentioned (never the title of his own earlier video) */}
       {c.coverKit ? (

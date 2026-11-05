@@ -94,14 +94,14 @@ const Clip: React.FC<{ left?: number }> = ({ left = 60 }) => (
 );
 
 /** Paper note card: slides in from the right (0.33 s, ease-out, fade) and settles with a tiny tilt; header mono label + black tag + typewritten title + grey lines. */
-export const NoteCard: React.FC<{ at: number; x: number; y: number; w: number; h: number; rot?: number; label?: string; tag?: string; title?: string; lines?: number; children?: React.ReactNode; fromX?: number }> = ({ at, x, y, w, h, rot = -1.5, label, tag, title, lines = 2, children, fromX = 120 }) => {
+export const NoteCard: React.FC<{ at: number; x: number; y: number; w: number; h: number; rot?: number; label?: string; tag?: string; title?: string; lines?: number; children?: React.ReactNode; fromX?: number; cps?: number; size?: number }> = ({ at, x, y, w, h, rot = -1.5, label, tag, title, lines = 2, children, fromX = 120, cps = 16, size = 44 }) => {
   const u = ease((useT(at)) / 0.33);
   return (
     <div style={{ position: "absolute", left: x + (1 - u) * fromX, top: y, width: w, height: h, opacity: u, transform: `rotate(${rot + (1 - u) * 3}deg)`, background: T.card, borderRadius: 10, boxShadow: "0 18px 34px rgba(0,0,0,.28), 0 2px 0 rgba(0,0,0,.08)", padding: "20px 26px", direction: "rtl" }}>
       <Clip left={w - 120} />
       {label ? <div style={{ fontFamily: monoF, fontSize: 18, color: T.gray, display: "flex", justifyContent: "space-between", direction: "ltr" }}><span>{label}</span><span>0</span></div> : null}
       {tag ? <div style={{ display: "inline-block", background: T.ink, color: T.card, fontFamily: monoF, fontWeight: 700, fontSize: 18, padding: "2px 10px", margin: "6px 0 0 0", direction: "ltr" }}>{tag}</div> : null}
-      {title ? <Typewriter text={title} at={at + 0.25} style={{ fontFamily: naskhF, fontSize: 44, color: T.ink, margin: "8px 0" }} /> : null}
+      {title ? <Typewriter text={title} at={at + 0.25} cps={cps} style={{ fontFamily: naskhF, fontSize: size, color: T.ink, margin: "8px 0", lineHeight: 1.55 }} /> : null}
       {Array.from({ length: lines }).map((_, i) => <div key={i} style={{ height: 8, background: BRAND.paper2, borderRadius: 4, margin: "12px 0", width: `${90 - i * 28}%` }} />)}
       {children}
     </div>

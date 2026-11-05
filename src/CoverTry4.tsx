@@ -50,7 +50,6 @@ export const Cut: React.FC<{ p: P; src: string; w: number; left: number; bottom:
           width: "100%",
           display: "block",
           filter: `saturate(${p.sat}) brightness(${p.bri}) contrast(1.03)`,
-          translate: "1080.2px 225.3px"
         }}
       />
       <div style={{ position: "absolute", inset: 0, background: p.grade, opacity: p.gradeA * 3, mixBlendMode: p.gradeBlend as React.CSSProperties["mixBlendMode"], WebkitMaskImage: `url(${url})`, WebkitMaskSize: "100% 100%", maskImage: `url(${url})`, maskSize: "100% 100%" }} />
@@ -76,7 +75,6 @@ export const Tag: React.FC<{ p: P; children: React.ReactNode; style?: React.CSSP
 /** the hadith manuscript as a big, clearly visible, tilted framed prop */
 export const Book: React.FC<{ p: P; left: number; top: number; w: number; h: number; rot: number; src?: string; pos?: string }> = ({ p, left, top, w, h, rot, src = "cov/ms_marinid.jpg", pos = "50% 45%" }) => (
   <div style={{ position: "absolute", left, top, width: w, height: h, borderRadius: 14, overflow: "hidden", transform: `rotate(${rot}deg)`, border: `8px solid ${p.border}`, boxShadow: `0 28px 54px rgba(0,0,0,.6), 0 0 50px ${p.glow2}` }}>
-    <Img src={staticFile(src)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: pos }} />
   </div>
 );
 

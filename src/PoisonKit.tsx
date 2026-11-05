@@ -59,22 +59,6 @@ export const SRC: Record<number, string> = {
 export const SrcCtx = React.createContext<{ n: number; at: number }[]>([]);
 const SK = 0.88;   // the panel is drawn at this scale so the strip fits under it inside the 960×1080 frame
 
-/** digital rain behind the panel (matrix screen, user 2026-11-05): 22 columns of falling glyphs, bright head, fading tail */
-const GLYPHS = "01アイウエオカキクケコサシスセソ23456789ABCDEF";
-const MatrixRain = (t: number) => {
-  const cols = [];
-  for (let c = 0; c < 22; c++) {
-    const x = 36 + c * 41, sp = 70 + ((c * 37) % 5) * 28, off = (c * 197) % 1400, len = 12 + (c % 5);
-    const head = ((t * sp + off) % (PH + len * 26)) - len * 4;
-    for (let k = 0; k < len; k++) {
-      const y = head - k * 26; if (y < 10 || y > PH - 10) continue;
-      const g = GLYPHS[Math.floor(t * 6 + c * 7 + k * 3) % GLYPHS.length];
-      cols.push(<text key={c + "_" + k} x={x} y={y} fontSize="22" fontFamily="monospace" fill={k === 0 ? "#d9ffe9" : "#00ff9c"} opacity={k === 0 ? 0.8 : Math.max(0.05, 0.4 - k * 0.03)}>{g}</text>);
-    }
-  }
-  return <g>{cols}</g>;
-};
-
 /** The sticker panel: title + sub on top, illustration area (y 190–900), «حدّ ما نعرفه» badges at the bottom. */
 export const Panel: React.FC<{ t: number; title: string; sub?: string; badges?: Badge[]; dy?: number; children: React.ReactNode }> = ({ t, title, sub, badges = [], dy = 0, children }) => {
   const cfg = React.useContext(CfgCtx);
@@ -85,20 +69,14 @@ export const Panel: React.FC<{ t: number; title: string; sub?: string; badges?: 
     <AbsoluteFill style={{ background: "transparent" }}>
       <Gfx>
         <svg viewBox={`0 0 ${PW} ${PH}`} width={PW} height={PH} style={{ position: "absolute", inset: 0, fontFamily: `${kufiF}, "Segoe UI", Arial, sans-serif` }}>
+          <rect x="0" y="0" width={PW} height={PH} fill="url(#pkBg)" />
           <g transform={`translate(${(PW - PW * SK) / 2} 0) scale(${SK})`}>
           <defs>
-            <linearGradient id="pkBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#061a12" /><stop offset="1" stopColor="#020b08" /></linearGradient>
-            <filter id="pkGlow" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="5" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
-            <pattern id="pkScan" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="1.4" fill="rgba(0,255,156,.06)" /></pattern>
+            <linearGradient id="pkBg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#061633" stopOpacity="0.97" /><stop offset="0.55" stopColor="#0a2459" stopOpacity="0.93" /><stop offset="1" stopColor="#0d2f73" stopOpacity="0" /></linearGradient>
             <pattern id="pkDots" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="13" cy="13" r="1.6" fill="rgba(255,255,255,.07)" /></pattern>
+            <linearGradient id="pkSteel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#e4eaf1" /><stop offset="0.5" stopColor="#8f9aa8" /><stop offset="1" stopColor="#4d5866" /></linearGradient>
             <clipPath id="pkClip"><rect x="14" y="14" width={PW - 28} height={PH - 28} rx="48" /></clipPath>
           </defs>
-          <rect x="14" y="14" width={PW - 28} height={PH - 28} rx="48" fill="url(#pkBg)" />
-          <rect x="14" y="14" width={PW - 28} height={PH - 28} rx="48" fill="url(#pkDots)" />
-          <g clipPath="url(#pkClip)">{MatrixRain(t)}</g>
-          <rect x="14" y="14" width={PW - 28} height={PH - 28} rx="48" fill="url(#pkScan)" />
-          <rect x="14" y="14" width={PW - 28} height={PH - 28} rx="48" fill="none" stroke="#00ff9c" strokeWidth="4" filter="url(#pkGlow)" opacity=".9" />
-          <rect x="30" y="30" width={PW - 60} height={PH - 60} rx="36" fill="none" stroke={alpha(BRAND.light, 0.12)} strokeWidth="2" />
           <g opacity={pr(t, 0, 0.5)} transform={`translate(0 ${(1 - pr(t, 0, 0.5)) * -18})`}>
             <text x={PW / 2} y="112" textAnchor="middle" direction="rtl" fontSize="56" fontWeight="800" fill={BRAND.card}>{title}</text>
             <rect x={PW / 2 - 70} y="146" width="140" height="6" rx="3" fill={BRAND.accent} />
@@ -161,11 +139,11 @@ export const Lead: React.FC<{ t: number; at: number; x1: number; y1: number; x2:
 };
 
 /** the toxin's scissors: `th` = half opening angle in degrees (14 open … 0 closed) */
-export const Scissors: React.FC<{ x: number; y: number; s?: number; rot?: number; th?: number; c?: string; ring?: string }> = ({ x, y, s = 1, rot = 0, th = 14, c = RED, ring }) => (
+export const Scissors: React.FC<{ x: number; y: number; s?: number; rot?: number; th?: number; c?: string; ring?: string }> = ({ x, y, s = 1, rot = 0, th = 14, c = "url(#pkSteel)", ring }) => (
   <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`}>
-    <g transform={`rotate(${-th * 1.6})`}><path d="M-16 6 C-16 -40 -6 -100 4 -136 C 14 -90 16 -30 16 6 Z" fill={c} stroke={BRAND.navyDeep} strokeWidth="3" /><path d="M0 4 V50" stroke={c} strokeWidth="12" strokeLinecap="round" /><ellipse cx="0" cy="82" rx="26" ry="32" fill="none" stroke={ring ?? c} strokeWidth="11" /></g>
-    <g transform={`rotate(${th * 1.6})`}><path d="M16 6 C16 -40 6 -100 -4 -136 C -14 -90 -16 -30 -16 6 Z" fill={c} stroke={BRAND.navyDeep} strokeWidth="3" opacity=".95" /><path d="M0 4 V50" stroke={c} strokeWidth="12" strokeLinecap="round" /><ellipse cx="0" cy="82" rx="26" ry="32" fill="none" stroke={ring ?? c} strokeWidth="11" /></g>
-    <circle r="11" fill={BRAND.card} stroke={BRAND.navyDeep} strokeWidth="3" />
+    <g transform={`rotate(${-th * 1.6})`}><path d="M-16 6 C-16 -40 -6 -100 4 -136 C 14 -90 16 -30 16 6 Z" fill={c} stroke="#dfe6ee" strokeWidth="2.2" /><path d="M0 4 V50" stroke={c} strokeWidth="12" strokeLinecap="round" /><ellipse cx="0" cy="82" rx="26" ry="32" fill="none" stroke={ring ?? c} strokeWidth="11" /></g>
+    <g transform={`rotate(${th * 1.6})`}><path d="M16 6 C16 -40 6 -100 -4 -136 C -14 -90 -16 -30 -16 6 Z" fill={c} stroke="#dfe6ee" strokeWidth="2.2" opacity=".95" /><path d="M0 4 V50" stroke={c} strokeWidth="12" strokeLinecap="round" /><ellipse cx="0" cy="82" rx="26" ry="32" fill="none" stroke={ring ?? c} strokeWidth="11" /></g>
+    <circle r="11" fill={BRAND.card} stroke="#dfe6ee" strokeWidth="2.2" />
   </g>
 );
 

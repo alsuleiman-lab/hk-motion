@@ -14,7 +14,14 @@ const r3 = (x) => Math.round(x * 1000) / 1000;
 const items = [], shifts = [];
 for (const c of cues.clips) {
   const at = toCut(c.from), until = toCut(c.to);
-  const m = c.cues.map(([s, sc]) => [r3(toCut(s) - at), sc]);
+  // an element must never show BEFORE the word it illustrates (user 2026-11-05): over a long gap between two cues the scene is held at the first cue's state and only plays in the last ≤2.5 s before the second word
+  const held = [];
+  c.cues.forEach(([s, sc], i) => {
+    const prev = c.cues[i - 1];
+    if (prev && s - prev[0] > 3.5 && sc - prev[1] > 0.3) held.push([s - Math.min(2.5, (s - prev[0]) * 0.3), prev[1] + (sc - prev[1]) * 0.06]);
+    held.push([s, sc]);
+  });
+  const m = held.map(([s, sc]) => [r3(toCut(s) - at), sc]);
   for (let i = 1; i < m.length; i++) if (m[i][0] <= m[i - 1][0]) m[i][0] = r3(m[i - 1][0] + 0.05);   // two words fell on the same cut second
   const sceneAt = (s) => { const t = toCut(s) - at; for (let i = 1; i < m.length; i++) if (t <= m[i][0]) { const [a, b] = m[i - 1], [d, e] = m[i]; return b + ((t - a) / (d - a)) * (e - b); } return m[m.length - 1][1]; };
   items.push({ t: "poison", id: c.id, at: r3(at), until: r3(until), mode: c.mode, parts: c.parts, map: m, refs: (c.refs ?? []).map(([n, s]) => ({ n, at: r3(Math.max(0.3, sceneAt(s))) })) });

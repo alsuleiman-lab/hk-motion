@@ -1,6 +1,6 @@
 import React from "react";
 import { BRAND, RED, alpha } from "./brand";
-import { A, Cross, Drop, Lead, Mol, Panel, Pill, Scissors, Spark, Tick, Tx, cl, eio, lerp, ln, pr, sec, useTime, wob } from "./PoisonKit";
+import { A, Cross, Drop, Lead, Mol, Panel, Pill, Scissors, Spark, Tick, Tx, cl, eio, lerp, ln, pr, sec, useShow, useTime, wob } from "./PoisonKit";
 
 const Gear: React.FC<{ x: number; y: number; r?: number; rot?: number; c?: string }> = ({ x, y, r = 34, rot = 0, c = BRAND.light }) => (
   <g transform={`translate(${x} ${y}) rotate(${rot})`}>
@@ -57,7 +57,7 @@ export const Poison08Sodium: React.FC = () => {
 /* ───────── 09 · الهيالورونيداز: يفتح الطريق للسمّ ───────── */
 export const P09_FRAMES = sec(18);
 export const Poison09Hyal: React.FC = () => {
-  const t = useTime();
+  const t = useTime(), show = useShow(), generic = !show("names");   // he says «الفلافونويدات» only, not its members
   const A1 = 1 - ln(t, 9.4, 10), B1 = ln(t, 9.8, 10.4);
   const cols = [150, 320, 490, 660], rows = [300, 410, 520];
   const Wall = (dissolve: (cx: number, cy: number) => number) => (
@@ -91,10 +91,10 @@ export const Poison09Hyal: React.FC = () => {
           <path d="M0 0 L58 -34 A68 68 0 1 0 58 34 Z" fill={RED} stroke={BRAND.navyDeep} strokeWidth="4" transform={`scale(.72) rotate(${Math.sin(t * 3) * 3})`} opacity=".55" />
         </g>
         {[{ n: "الكيرسيتين", x0: 140, at: 10.6, tx: 440 }, { n: "الروتين", x0: 820, at: 11.2, tx: 520 }].map((m, i) => {
-          const u = eio(ln(t, m.at, m.at + 1)); return <g key={i} opacity={pr(t, m.at, 0.3)}><Mol x={lerp(m.x0, m.tx, u)} y={lerp(700, 452 + i * 6, u)} r={22} label={u < 0.99 ? m.n : undefined} ls={22} /></g>;
+          const u = eio(ln(t, m.at, m.at + 1)); return <g key={i} opacity={pr(t, m.at, 0.3)}><Mol x={lerp(m.x0, m.tx, u)} y={lerp(700, 452 + i * 6, u)} r={22} label={u < 0.99 ? (generic ? "فلافونويدات" : m.n) : undefined} ls={22} /></g>;
         })}
         <Pill t={t} at={12.6} x={480} y={830} text="تقلّل نشاط الإنزيم" s={28} fill={BRAND.green} stroke={BRAND.green} color={BRAND.navyDeep} />
-        <Pill t={t} at={13.6} x={480} y={770} text="الأرجح: ارتباط في موضع، لا غلاف حوله" s={24} until={15} />
+        {show("note") && <Pill t={t} at={13.6} x={480} y={770} text="الأرجح: ارتباط في موضع، لا غلاف حوله" s={24} until={15} />}
       </g>
     </Panel>
   );
@@ -141,7 +141,7 @@ export const Poison10Inflam: React.FC = () => {
 /* ───────── 11 · الزرنيخ: محطة الكهرباء داخل الخلية ───────── */
 export const P11_FRAMES = sec(18);
 export const Poison11Arsenic: React.FC = () => {
-  const t = useTime();
+  const t = useTime(), show = useShow();
   const stuck = ln(t, 6, 7), fake = ln(t, 8.2, 9.6);
   const spin = (t: number, k: number) => (t * 70 * (1 - 0.95 * stuck)) * k;
   const bright = 1 - 0.8 * ln(t, 7, 10);
@@ -159,20 +159,20 @@ export const Poison11Arsenic: React.FC = () => {
       {stuck > 0 && <g transform={`translate(${lerp(300, 360, eio(stuck))} ${lerp(260, 400, eio(stuck))})`}><circle r="26" fill={RED} stroke={BRAND.navyDeep} strokeWidth="4" /><Tx x={0} y={9} s={22} c={BRAND.card}>As</Tx></g>}
       <Pill t={t} at={4.4} until={9.8} x={250} y={330} text="يمسك أجزاء حساسة" s={26} fill={RED} stroke={RED} />
       {/* counterfeit phosphate */}
-      <A t={t} at={7.6} dy={0}>
+      {show("fake") && <A t={t} at={7.6} dy={0}>
         <rect x={470 - 26} y={lerp(280, 470, eio(fake)) - 26} width="52" height="52" rx="8" fill={RED} stroke={BRAND.card} strokeWidth="4" /><Tx x={470} y={lerp(280, 470, eio(fake)) + 10} s={26} c={BRAND.card}>As</Tx>
         <rect x={650} y={236} width="52" height="52" rx="8" fill={BRAND.green} /><Tx x={676} y={272} s={26} c={BRAND.navyDeep}>P</Tx>
-      </A>
-      <Pill t={t} at={8.2} until={11.4} x={480} y={680} text="قطعة مغشوشة تشبه الفوسفات" s={26} fill={RED} stroke={RED} />
+      </A>}
+      {show("fake") && <Pill t={t} at={8.2} until={11.4} x={480} y={680} text="قطعة مغشوشة تشبه الفوسفات" s={26} fill={RED} stroke={RED} />}
       <Pill t={t} at={10} until={11.4} x={480} y={248} text="الطاقة تنطفئ" s={26} fill={RED} stroke={RED} />
       {/* dates */}
       <A t={t} at={11.8} dy={0}>
         <rect x="130" y="650" width="700" height="170" rx="30" fill={BRAND.navy} stroke={BRAND.green} strokeWidth="3" />
         <Mol x={250} y={705} r={24} label="فينولات" ls={22} /><Mol x={400} y={705} r={24} label="بكتين" ls={22} />
         <Tx x={620} y={700} s={26}>مقاومة تفاعلات مؤكسدة</Tx><Tx x={620} y={740} s={26}>وربط بعض أيونات المعادن</Tx>
-        <Tx x={480} y={805} s={23} c={BRAND.light}>أشكال الزرنيخ مختلفة؛ بعضها لا يُجذب بالبكتين</Tx>
+        {show("note") && <Tx x={480} y={805} s={23} c={BRAND.light}>أشكال الزرنيخ مختلفة؛ بعضها لا يُجذب بالبكتين</Tx>}
       </A>
-      <A t={t} at={13.6} dy={0}><Pill t={t} at={13.6} x={480} y={870} text="ترياق للزرنيخ" s={34} fill={BRAND.navyDeep} stroke={RED} /><g stroke={RED} strokeWidth="9" strokeLinecap="round"><line x1="350" y1="870" x2="610" y2="870" /></g></A>
+      {show("note") && <A t={t} at={13.6} dy={0}><Pill t={t} at={13.6} x={480} y={870} text="ترياق للزرنيخ" s={34} fill={BRAND.navyDeep} stroke={RED} /><g stroke={RED} strokeWidth="9" strokeLinecap="round"><line x1="350" y1="870" x2="610" y2="870" /></g></A>}
     </Panel>
   );
 };
@@ -180,7 +180,7 @@ export const Poison11Arsenic: React.FC = () => {
 /* ───────── 12 · الرصاص والكادميوم والبكتين ───────── */
 export const P12_FRAMES = sec(18);
 export const Poison12Pectin: React.FC = () => {
-  const t = useTime();
+  const t = useTime(), show = useShow();
   const swap = ln(t, 1.6, 3);
   const ionPos = [{ x: 200, y: 520 }, { x: 330, y: 650 }, { x: 760, y: 560 }, { x: 640, y: 700 }, { x: 250, y: 740 }, { x: 800, y: 700 }];
   const hooks = [{ x: 420, y: 470 }, { x: 490, y: 520 }, { x: 560, y: 470 }, { x: 630, y: 520 }, { x: 350, y: 520 }, { x: 700, y: 470 }];
@@ -202,15 +202,15 @@ export const Poison12Pectin: React.FC = () => {
         {ionPos.map((p, i) => { const k = att(i); return <g key={i}><circle cx={lerp(p.x + wob(t, i, 14), hooks[i].x, k)} cy={lerp(p.y + wob(t, i + 3, 12), hooks[i].y + 72, k)} r="19" fill={BRAND.gray} stroke={BRAND.card} strokeWidth="2.5" /><text x={lerp(p.x + wob(t, i, 14), hooks[i].x, k)} y={lerp(p.y + wob(t, i + 3, 12), hooks[i].y + 72, k) + 6} textAnchor="middle" fontSize="16" fontWeight="800" fill={BRAND.navyDeep}>{i % 2 ? "Cd" : "Pb"}</text></g>; })}
         <Pill t={t} at={5} x={480} y={410} text="بكتين: مجموعات سالبة تجذب أيونات المعادن" s={24} fill={BRAND.green} stroke={BRAND.green} color={BRAND.navyDeep} until={9.6} />
       </A>
-      <A t={t} at={9.8} dy={0}>
+      {show("neq") && <A t={t} at={9.8} dy={0}>
         <rect x="60" y="300" width="840" height="470" rx="40" fill={BRAND.base3} opacity=".96" />
         <rect x="90" y="360" width="360" height="190" rx="26" fill={BRAND.navy} stroke={BRAND.light} strokeWidth="3" /><rect x="510" y="360" width="360" height="190" rx="26" fill={BRAND.navy} stroke={BRAND.green} strokeWidth="3" />
         <Tx x={270} y={420} s={28}>بكتين حمضي</Tx><Tx x={270} y={462} s={28}>معدّل مصنَّع</Tx><Tx x={270} y={515} s={22} c={BRAND.light}>ما درسته الدراسات</Tx>
         <Tx x={690} y={420} s={28}>بكتين التمر</Tx><Tx x={690} y={462} s={28}>الذي نأكله</Tx><Tx x={690} y={515} s={22} c={BRAND.light}>مادة وخصائص أخرى</Tx>
         <Tx x={480} y={475} s={80} c={RED}>≠</Tx>
-        <Pill t={t} at={11.8} x={480} y={640} text="وفينولات التمر قد تحدّ من الضرر المؤكسد" s={24} />
-        <Pill t={t} at={12.8} x={480} y={710} text="دون أن تنزع المعدن نفسه" s={24} />
-      </A>
+        {show("note") && <Pill t={t} at={11.8} x={480} y={640} text="وفينولات التمر قد تحدّ من الضرر المؤكسد" s={24} />}
+        {show("note") && <Pill t={t} at={12.8} x={480} y={710} text="دون أن تنزع المعدن نفسه" s={24} />}
+      </A>}
     </Panel>
   );
 };

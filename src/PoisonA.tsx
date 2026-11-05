@@ -1,6 +1,6 @@
 import React from "react";
 import { BRAND, RED, alpha } from "./brand";
-import { A, Cross, Drop, Lead, Lipid, Mol, Panel, Pill, Rbc, Scissors, Spark, Tick, Tx, cl, eio, lerp, ln, pr, sec, useTime, wob } from "./PoisonKit";
+import { A, Cross, Drop, Lead, Lipid, Mol, Panel, Pill, Rbc, Scissors, Spark, Tick, Tx, cl, eio, lerp, ln, pr, sec, useShow, useTime, wob } from "./PoisonKit";
 
 /* ───────── 01 · الخلية: كيس بغشاء ───────── */
 export const P01_FRAMES = sec(14);
@@ -143,7 +143,7 @@ const Membrane: React.FC<{ t: number; cutAt?: number[] }> = ({ t, cutAt = [] }) 
   );
 };
 export const Poison04PLA2: React.FC = () => {
-  const t = useTime();
+  const t = useTime(), show = useShow();
   const A1 = 1 - ln(t, 7.3, 8.0), B1 = ln(t, 7.7, 8.4);
   const snip = (a: number, b: number) => (t > a && t < b ? 14 - 12 * Math.abs(Math.sin((t - a) * 7)) : 14);
   const blobs = [210, 330, 450, 570, 690, 810];
@@ -173,13 +173,13 @@ export const Poison04PLA2: React.FC = () => {
         <Membrane t={t} />
         <Scissors x={sxB + shake} y={syB} s={0.9} rot={180} th={t < 11.6 ? snip(9.6, 11.6) : 14} />
         <Pill t={t} at={8.2} x={480} y={254} text="مع مركّبات التمر" s={26} fill={alpha(BRAND.green, 0.3)} stroke={BRAND.green} />
-        {[{ n: "الكيرسيتين", x0: 130, at: 9.6 }, { n: "حمض الغاليك", x0: 830, at: 10.3 }, { n: "الكاتيشين", x0: 130, at: 11 }].map((m, i) => {
-          const u = eio(ln(t, m.at, m.at + 1.0)), tx = [412, 548, 480][i], ty = [300, 300, 268][i];
+        {[{ k: "q", n: "الكيرسيتين", x0: 130, at: 9.6 }, { k: "g", n: "حمض الغاليك", x0: 830, at: 10.3 }, { k: "c", n: "الكاتيشين", x0: 130, at: 11 }].filter((m) => show(m.k)).map((m) => {
+          const i = ["q", "g", "c"].indexOf(m.k), u = eio(ln(t, m.at, m.at + 1.0)), tx = [412, 548, 480][i], ty = [300, 300, 268][i];
           return <g key={i} opacity={pr(t, m.at, 0.3)}><Mol x={lerp(m.x0, tx, u)} y={lerp(300 + i * 40, ty, u)} r={20} label={u < 0.99 ? m.n : undefined} ls={22} /></g>;
         })}
         <A t={t} at={12.2} dy={0}><Cross x={480} y={470} r={20} /></A>
         <Pill t={t} at={12.4} x={230} y={400} text="المقبض لم يعد يتحرك" s={26} fill={BRAND.green} stroke={BRAND.green} color={BRAND.navyDeep} />
-        <Pill t={t} at={13.2} x={480} y={780} text="ثلاث مواد تُضيّق على وظيفة المقصّ" s={26} />
+        {show("all") && <Pill t={t} at={13.2} x={480} y={780} text="ثلاث مواد تُضيّق على وظيفة المقصّ" s={26} />}
       </g>
     </Panel>
   );
@@ -188,7 +188,7 @@ export const Poison04PLA2: React.FC = () => {
 /* ───────── 05 · SVMP: المقصّ الذي يجرح الشعيرات ───────── */
 export const P05_FRAMES = sec(18);
 export const Poison05SVMP: React.FC = () => {
-  const t = useTime();
+  const t = useTime(), show = useShow();
   const bricks = Array.from({ length: 11 }, (_, i) => 90 + i * 78);
   const A1 = 1 - ln(t, 8.8, 9.5), B1 = ln(t, 9.2, 9.9);
   const burst = ln(t, 6, 8);
@@ -219,19 +219,20 @@ export const Poison05SVMP: React.FC = () => {
         <circle cx={500} cy={lerp(800, 668, eio(ln(t, 1.6, 3.2))) + 0} r="17" fill={BRAND.navyDeep} stroke={BRAND.card} strokeWidth="3" opacity={pr(t, 2, 0.4)} />
         <Tx x={500} y={lerp(800, 668, eio(ln(t, 1.6, 3.2))) + 8} s={19} c={BRAND.card}>Zn</Tx>
         <Pill t={t} at={3.4} until={8.8} x={730} y={730} text="يقطع الأساسات" s={26} />
-        <Pill t={t} at={6.4} until={8.8} x={250} y={770} text="يضعف الوعاء وينشقّ" s={26} fill={RED} stroke={RED} />
-        <Pill t={t} at={7.2} until={8.8} x={250} y={830} text="نزيف إلى الأنسجة" s={26} fill={RED} stroke={RED} />
+        {show("bleed") && <Pill t={t} at={6.4} until={8.8} x={250} y={770} text="يضعف الوعاء وينشقّ" s={26} fill={RED} stroke={RED} />}
+        {show("bleed") && <Pill t={t} at={7.2} until={8.8} x={250} y={830} text="نزيف إلى الأنسجة" s={26} fill={RED} stroke={RED} />}
       </g>
       <g opacity={B1}>
         {Vessel(false)}
         <Scissors x={500} y={668} s={0.8} rot={0} th={t < 12 ? 14 - 10 * Math.abs(Math.sin((t - 9.6) * 5)) * (1 - ln(t, 10.4, 11.6)) : 14} />
-        <circle cx={500} cy={668} r="17" fill={BRAND.navyDeep} stroke={BRAND.card} strokeWidth="3" /><Tx x={500} y={676} s={19} c={BRAND.card}>Zn</Tx>
+        {/* the zinc tag is pulled off the scissors by the catechin (he says: «تنزع الزنك من المقص») */}
+        <g opacity={1 - 0.8 * ln(t, 11.6, 12.8)} transform={`translate(${eio(ln(t, 10.9, 12.2)) * 190} ${-eio(ln(t, 10.9, 12.2)) * 40})`}><circle cx={500} cy={668} r="17" fill={BRAND.navyDeep} stroke={BRAND.card} strokeWidth="3" /><Tx x={500} y={676} s={19} c={BRAND.card}>Zn</Tx></g>
         <Pill t={t} at={9.3} x={480} y={250} text="مع مركّبات التمر" fill={alpha(BRAND.green, 0.3)} stroke={BRAND.green} />
-        {[{ n: "الكاتيشين", x0: 130, at: 10 }, { n: "مركّبات فينولية", x0: 830, at: 10.6 }].map((m, i) => {
-          const u = eio(ln(t, m.at, m.at + 1)); return <g key={i} opacity={pr(t, m.at, 0.3)}><Mol x={lerp(m.x0, 470 + i * 60, u)} y={lerp(700, 612 + i * 6, u)} r={22} label={u < 0.99 ? m.n : undefined} ls={22} /></g>;
+        {[{ k: "c", n: "الكاتيشين", x0: 130, at: 10 }, { k: "p", n: "مركّبات فينولية", x0: 830, at: 10.6 }].filter((m) => show(m.k)).map((m) => {
+          const i = m.k === "c" ? 0 : 1, u = eio(ln(t, m.at, m.at + 1)); return <g key={i} opacity={pr(t, m.at, 0.3)}><Mol x={lerp(m.x0, 470 + i * 60, u)} y={lerp(700, 612 + i * 6, u)} r={22} label={u < 0.99 ? m.n : undefined} ls={22} /></g>;
         })}
         <Pill t={t} at={12.4} x={250} y={770} text="الأساسات سليمة" s={26} fill={BRAND.green} stroke={BRAND.green} color={BRAND.navyDeep} />
-        <Pill t={t} at={13} x={250} y={830} text="تحدّ من نشاط بعض الإنزيمات" s={24} />
+        {show("note") && <Pill t={t} at={13} x={250} y={830} text="تحدّ من نشاط بعض الإنزيمات" s={24} />}
       </g>
     </Panel>
   );
@@ -240,7 +241,7 @@ export const Poison05SVMP: React.FC = () => {
 /* ───────── 06 · التجلّط ───────── */
 export const P06_FRAMES = sec(17);
 export const Poison06Clot: React.FC = () => {
-  const t = useTime();
+  const t = useTime(), show = useShow();
   const A1 = 1 - ln(t, 8.6, 9.3), B1 = ln(t, 9, 9.7);
   const mesh = ln(t, 1.4, 3.2);
   const lines = [0, 1, 2, 3, 4, 5];
@@ -283,7 +284,7 @@ export const Poison06Clot: React.FC = () => {
         })}
         <Pill t={t} at={11.8} x={250} y={440} text="يُبطئ المقصّ" s={28} fill={BRAND.green} stroke={BRAND.green} color={BRAND.navyDeep} />
         <Pill t={t} at={13.2} x={720} y={440} text="الرقعة تصمد أطول" s={26} />
-        <Pill t={t} at={14} x={480} y={800} text="دراسة على جزيئات معزولة" s={26} />
+        {show("note") && <Pill t={t} at={14} x={480} y={800} text="دراسة على جزيئات معزولة" s={26} />}
       </g>
     </Panel>
   );

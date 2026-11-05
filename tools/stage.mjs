@@ -154,8 +154,12 @@ if (stage === "cut") {
       let k = -1, best = 9;
       for (let i = 0; i < segments.length - 1; i++) { const dd = Math.abs(segments[i + 1].n - t); if (dd < best) { best = dd; k = i; } }
       if (best > 0.9) { say(`pause ${d}s at ${t}s is inside a segment (not at a join) — cut it by hand (cut_at.mjs) or --rem`); continue; }
+      // shave only inside the VAD pads (0.18 s after / 0.10 s before speech) so the cut never lands inside a word (an audible click, audio_gate); a pause still over budget is left for --rem
       const take = Math.min(d - 0.34, 0.3);
-      segments[k].b = +(segments[k].b - take * 0.65).toFixed(4); segments[k + 1].a = +(segments[k + 1].a + take * 0.35).toFixed(4); fixed++;
+      const gB = Math.min(take * 0.65, 0.12 - (segments[k].sb ?? 0)), gA = Math.min(take * 0.35, 0.04 - (segments[k + 1].sa ?? 0));
+      if (gB <= 0.005 && gA <= 0.005) { say(`pause ${d}s at ${t}s: pad budget used up — cut it with --rem (source ${segments[k].b.toFixed(2)}–${segments[k + 1].a.toFixed(2)})`); continue; }
+      segments[k].b = +(segments[k].b - Math.max(0, gB)).toFixed(4); segments[k].sb = (segments[k].sb ?? 0) + Math.max(0, gB);
+      segments[k + 1].a = +(segments[k + 1].a + Math.max(0, gA)).toFixed(4); segments[k + 1].sa = (segments[k + 1].sa ?? 0) + Math.max(0, gA); fixed++;
     }
     say(`round ${round + 1}: ${pauses.length} pause(s) > 0.40 s, trimmed ${fixed}`);
     writeMap();

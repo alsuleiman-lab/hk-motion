@@ -43,7 +43,8 @@
   "ignore": [
    "credit",
    "mini",
-   "cover"
+   "cover",
+   "poison"
   ],
   "source": [
    "book",

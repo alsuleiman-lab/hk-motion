@@ -22,19 +22,54 @@ export const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
 export const pr = (t: number, at: number, d = 0.6) => eo((t - at) / d);
 /** progress 0→1 linear between a and b */
 export const ln = (t: number, a: number, b: number) => cl((t - a) / (b - a));
-export const useTime = () => useCurrentFrame() / FPS;
+/** Montage settings of one clip (the spec item `poison`): `map` = [real s since the clip began, scene s] pairs, piecewise linear, so every beat of the scene lands on the word he says
+ *  (slope 1 after the last pair); `only` = keys of the optional parts to draw (parts he did not say are left out); `nobadges` hides the «حدّ ما نعرفه» badges (not said). */
+export type PoisonCfg = { map?: [number, number][]; only?: string[]; nobadges?: boolean };
+export const CfgCtx = React.createContext<PoisonCfg>({});
+export const useCfg = () => React.useContext(CfgCtx);
+/** is the optional part `k` drawn? (all drawn when no `only` list) */
+export const useShow = () => { const { only } = useCfg(); return (k: string) => !only || only.includes(k); };
+export const mapTime = (map: [number, number][], r: number) => {
+  if (!map.length) return r;
+  if (r <= map[0][0]) return map[0][1] - (map[0][0] - r);
+  for (let i = 1; i < map.length; i++) if (r <= map[i][0]) { const [a, b] = map[i - 1], [c, d] = map[i]; return b + ((r - a) / Math.max(1e-6, c - a)) * (d - b); }
+  const [a, b] = map[map.length - 1];
+  return b + (r - a);
+};
+export const useTime = () => { const { map } = React.useContext(CfgCtx); const r = useCurrentFrame() / FPS; return map ? mapTime(map, r) : r; };
 
 export type Badge = { kind: "proved" | "maybe" | "none"; text: string; at: number };
 const BADGE_COL = () => ({ proved: BRAND.green, maybe: BRAND.accent, none: RED });
 const BADGE_ICON = { proved: "✓", maybe: "؟", none: "✕" };
 
+/** Source strip under every clip (user 2026-11-05: «ضع المصدر مع كل معلومة في الأسفل»): numbers are the script's reference list; the scene's refs come through SrcCtx from PoisonComps. */
+export const SRC: Record<number, string> = {
+  3: "Snake venom tissue damage · PMC10960010", 4: "Quercetin vs snake PLA2 · PubMed 21056032", 5: "Gallic acid vs PLA2 · PubMed 34197854",
+  6: "Catechin vs venom · PubMed 32830399", 7: "Venom metalloproteinases · PMC4848620", 8: "α-neurotoxins · PMC8867384",
+  9: "Scorpion Na-channel toxins · PubMed 22694883", 10: "Scorpion hyaluronidase · PubMed 11478957", 11: "Rutin, chlorogenic acid · PubMed 30902683",
+  12: "Arsenic toxicity · CDC/ATSDR MMG", 13: "Pectin & metal ions · PubMed 34823799", 14: "Citrus pectin, metals · PubMed 16835878",
+  15: "Mercury & selenium · PubMed 22198265", 16: "Aflatoxin B1 · EFSA 2020", 17: "Ajwa vs ochratoxin · PubMed 30221139",
+  18: "Organophosphates · CDC/ATSDR", 19: "Date vs dimethoate · PubMed 20359872", 20: "Botulinum · CDC MMWR rr7002a1",
+  21: "Ajwah/Safawy/Sukkari · PMC7820033", 22: "4 Madinah cultivars · Arab J Chem", 23: "Ripening polyphenols · PubMed 23406291",
+  24: "Flavonoid bioavailability · PubMed 15493450", 25: "Ajwa antivenom patent · US10004778B1", 26: "Date extract, hemolysis · 1997",
+  27: "Aconite alkaloids · PMC9213726", 28: "PLA2 & SVMP structure · PMC4060629", 29: "Date antioxidants review · PMC10181018",
+  30: "Scorpion inflammation · PMC3917877", 31: "Cyanide · CDC/ATSDR MMG", 32: "Clotting & neurotoxins · PMC9861841",
+};
+/** refs of the scene being drawn, each {n, at}: the source appears at `at` seconds (when its information is spoken) */
+export const SrcCtx = React.createContext<{ n: number; at: number }[]>([]);
+const SK = 0.91;   // the panel is drawn at this scale so the strip fits under it inside the 960×1080 frame
+
 /** The sticker panel: title + sub on top, illustration area (y 190–900), «حدّ ما نعرفه» badges at the bottom. */
 export const Panel: React.FC<{ t: number; title: string; sub?: string; badges?: Badge[]; dy?: number; children: React.ReactNode }> = ({ t, title, sub, badges = [], dy = 0, children }) => {
+  const cfg = React.useContext(CfgCtx);
+  if (cfg.nobadges) badges = [];
   const n = badges.length;
+  const refs = React.useContext(SrcCtx);
   return (
     <AbsoluteFill style={{ background: "transparent" }}>
       <Gfx>
         <svg viewBox={`0 0 ${PW} ${PH}`} width={PW} height={PH} style={{ position: "absolute", inset: 0, fontFamily: `${kufiF}, "Segoe UI", Arial, sans-serif` }}>
+          <g transform={`translate(${(PW - PW * SK) / 2} 0) scale(${SK})`}>
           <defs>
             <linearGradient id="pkBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={BRAND.base2} /><stop offset="1" stopColor={BRAND.base3} /></linearGradient>
             <pattern id="pkDots" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="13" cy="13" r="1.6" fill="rgba(255,255,255,.07)" /></pattern>
@@ -61,6 +96,16 @@ export const Panel: React.FC<{ t: number; title: string; sub?: string; badges?: 
               </g>
             );
           })}
+          </g>
+          {refs.length > 0 && (
+            <g opacity={pr(t, Math.min(...refs.slice(0, 4).map((r) => r.at)), 0.4)}>
+              <rect x={(PW - PW * SK) / 2 + 6} y={PH * SK + 6} width={PW * SK - 12} height={PH - PH * SK - 16} rx="22" fill="rgba(14,20,30,.88)" stroke={alpha(BRAND.accent, 0.7)} strokeWidth="2" />
+              <text x={PW - (PW - PW * SK) / 2 - 24} y={PH * SK + 36} textAnchor="start" direction="rtl" fontSize="22" fontWeight="800" fill={BRAND.accent}>المصدر</text>
+              {refs.slice(0, 4).map((r, i) => (
+                <text key={r.n} x={(PW - PW * SK) / 2 + 22 + (i % 2) * 372} y={PH * SK + 34 + Math.floor(i / 2) * 30} fontSize="17" fontWeight="700" fill={BRAND.card} direction="ltr" opacity={pr(t, r.at, 0.4)} fontFamily={`"Segoe UI", Arial, sans-serif`}>{`[${r.n}] ${SRC[r.n]}`}</text>
+              ))}
+            </g>
+          )}
         </svg>
       </Gfx>
     </AbsoluteFill>

@@ -16,6 +16,7 @@ import type { CoverProps } from "./CoverKit";
 import { ThumbProOpen, THUMBPRO_END, THUMBPRO_TEAR_END } from "./ThumbPro";
 import type { ThumbProps } from "./ThumbPro";
 import { TornNote, NewsClip, TornPhoto, WordScraps, DateCalendar } from "./PaperKit";
+import { PoisonClip } from "./PoisonComps";
 import { BRAND, applyBrand } from "./brand";
 import type { BrandName } from "./brand";
 import { MaskedVideo } from "./MaskedVideo";
@@ -93,6 +94,8 @@ export type SpecItem = Common & (
   | { t: "flag"; code: FlagCode; at: number; until: number; x?: number; y?: number; w?: number }
   /** a date as a ready-made calendar motion graphic (PaperKit DateCalendar) */
   | { t: "date"; text: string; sub?: string; at: number; until?: number; x?: number; y?: number; w?: number; h?: number }
+  /** an explainer motion clip (src/Poison*.tsx; user 2026-11-05: «كيف تعمل السموم»), landscape only: `half` = left 960×1080 half (add a `shifts` window so his face stays clear), `sticker` = scaled over the video */
+  | { t: "poison"; id: string; at: number; until: number; mode: "half" | "sticker"; x?: number; y?: number; scale?: number; map?: [number, number][]; parts?: string[]; refs?: { n: number; at: number }[]; badges?: boolean }
   | { t: "mini"; from: number; to: number; shrinkAt: number; scale: number; cx: number; cy: number; matte?: { src: string; start?: number } }
 );
 
@@ -100,6 +103,7 @@ export type MontageSpec = {
   id: string; title: string; frames: number; fps?: number;
   cut?: string;                       // public/<cut>.mp4 — his video (also the audio)
   bar?: BarTheme;                     // title-bar / key-chip colours (default BAR_WARM)
+  showTitleBar?: boolean;             // whether to render TitleBar (in lessons and streams: NO title bar, user 2026-11-05)
   cams?: { from: number; to: number; cx: number }[];
   zooms?: { from: number; to: number; amt?: number }[];
   shake?: { from: number; to: number }[];
@@ -145,6 +149,8 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
       return L
         ? <KeyChip key={i} phrases={[{ text: it.text, at: it.at }]} until={it.until} x={ov.x} y={ov.y ?? LANDSCAPE.keyY} size={ov.size ?? 54} theme={bar} />
         : <Only key={i} from={it.at} to={it.until}><BlurRise at={it.at} times={[it.at, it.at + 0.4]} text={it.text} x={it.x ?? 40} w={it.w ?? 1000} y={it.y} size={it.size ?? 58} color="#fff" accentColor={BRAND.accent} accentWords={it.accentWords ?? []} canvasW={1080} align={it.w ? "left" : undefined} /></Only>;
+    case "poison":
+      return L ? <PoisonClip key={i} id={it.id} at={it.at} until={it.until} x={it.mode === "half" ? 0 : it.x ?? 16} y={it.mode === "half" ? 0 : it.y ?? 150} scale={it.mode === "half" ? 1 : it.scale ?? 0.7} cfg={{ map: it.map, only: it.parts, nobadges: !it.badges }} refs={it.refs ?? []} /> : null;
     case "nameTag": {   // the old NameTag was dropped in the gallery (2026-10-28): the approved name card 1, or 3 with style "pinned"
       const C = it.style === "pinned" ? NameCard3 : NameCard1;
       return <Only key={i} from={it.at} to={it.at + (it.dur ?? 4)}><C at={it.at} x={L ? ov.x ?? LANDSCAPE.W / 2 : it.x} y={(L ? ov.y ?? LANDSCAPE.nameY : it.y) + 40} /></Only>;
@@ -395,7 +401,7 @@ const MiniMe: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; 
 };
 
 /** every item type the renderer knows (= the elements approved in the gallery); anything else is an error, never silently skipped (user 2026-10-28) */
-const APPROVED_TYPES = new Set(["word", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "hadith", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date"]);
+const APPROVED_TYPES = new Set(["word", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "hadith", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date", "poison"]);
 
 export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
   for (const it of spec.items) if (!APPROVED_TYPES.has(it.t)) throw new Error(`عنصر غير معتمد في المعرض: «${it.t}» في ${spec.id} — المعتمد: ${[...APPROVED_TYPES].join("، ")}`);
@@ -436,7 +442,7 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
       {spec.cut ? (spec.behind ?? []).map((w, i) => { const mt = w.matte ?? spec.matte; return mt && (!w.only || w.only === o) && (o === "land" || w.dx === undefined) ? <Sequence key={i} from={Math.round(w.from * 30)} durationInFrames={Math.round((w.to - w.from) * 30)}><MaskedSheikh cut={spec.cut!} matte={mt} o={o} cams={spec.cams} zooms={spec.zooms} dx={o === "land" ? w.dx : 0} from={w.from} /></Sequence> : null; }) : null}
       <Gfx>
         {spec.items.map((it, i) => renderItem(it, i, o, bar))}
-        <TitleBar title={spec.title} theme={bar} bottomHalf={o === "port"} />
+        {spec.showTitleBar ? <TitleBar title={spec.title} theme={bar} bottomHalf={o === "port"} /> : null}
       </Gfx>
       {cover && cover.style === "image" && f < THUMBPRO_END ? <PaperTear from={3} to={THUMBPRO_TEAR_END} sheet={<AbsoluteFill style={{ background: "#0d0f14" }}>{o === "land" ? null : <Img src={staticFile(cover.src)} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "blur(40px) brightness(.55)", transform: "scale(1.2)" }} />}<Img src={staticFile(cover.src)} style={o === "land" ? { width: "100%", height: "100%", objectFit: "cover" } : { position: "absolute", left: 0, top: "50%", width: "100%", transform: "translateY(-50%)" }} /></AbsoluteFill>} /> : null}
       {cover && cover.style === "pro" && f < THUMBPRO_END ? <ThumbProOpen format={o === "land" ? "landscape" : "portrait"} tearOrder={cover.tearOrder} {...cover.pro} {...(o === "land" ? cover.proLand : {})} /> : null}

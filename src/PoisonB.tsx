@@ -28,22 +28,28 @@ export const Poison08Sodium: React.FC = () => {
   const ions = Array.from({ length: 8 }, (_, i) => i);
   return (
     <Panel t={t} title="أبواب الكهرباء في العصب" sub="قنوات الصوديوم وذيفانات العقرب" badges={[{ kind: "none", at: 15.2, text: "التغذية بالمعادن شيء، وإبطال سمّ العقرب شيء آخر" }]}>
-      <rect x="50" y="340" width="380" height="76" rx="12" fill={BRAND.navy} stroke={BRAND.light} strokeWidth="3" /><rect x="530" y="340" width="380" height="76" rx="12" fill={BRAND.navy} stroke={BRAND.light} strokeWidth="3" />
-      <rect x="430" y={lerp(340, 280, o)} width="100" height="76" rx="10" fill={phase >= 1 && phase < 3 ? alpha(RED, 0.75) : BRAND.accent} stroke={BRAND.card} strokeWidth="3" />
-      {phase >= 1 && phase < 3 && <g transform={`translate(480 ${lerp(340, 280, o) - 6})`}>{[-22, 0, 22].map((dx) => <path key={dx} d={`M${dx - 8} 0 L${dx} -26 L${dx + 8} 0 Z`} fill={RED} stroke={BRAND.card} strokeWidth="2" />)}</g>}
-      <Tx x={150} y={392} s={24} c={BRAND.light} w={700}>غشاء العصب</Tx>
+      {/* the nerve channel as a tube: a gate inside it opens, the sodium dots stream through, then it shuts (user 2026-11-05) */}
+      <defs><clipPath id="gateClip"><rect x="40" y="296" width="880" height="210" /></clipPath></defs>
+      <rect x="50" y="330" width="860" height="140" fill={alpha(BRAND.blue, 0.22)} />
+      <rect x="50" y="300" width="860" height="30" rx="8" fill={BRAND.light} opacity=".9" /><rect x="50" y="470" width="860" height="30" rx="8" fill={BRAND.light} opacity=".9" />
+      <Tx x={480} y={546} s={24} c={BRAND.light} w={700}>الأنبوب: قناة العصب، وفيها بوّابة الصوديوم</Tx>
       {ions.map((i) => {
-        const u = ((t * 0.9 + i * 0.125) % 1), through = o > 0.5;
-        const yy = through ? lerp(250, 520, u) : lerp(250, 316 + (i % 3) * 6, Math.min(u * 2, 1));
-        return <g key={i} opacity={pr(t, 0.5, 0.4)}><circle cx={through ? 480 + (i - 3.5) * 9 : 150 + i * 90} cy={yy} r="11" fill={BRAND.light} /><text x={through ? 480 + (i - 3.5) * 9 : 150 + i * 90} y={yy + 4} textAnchor="middle" fontSize="11" fontWeight="800" fill={BRAND.navyDeep}>+</text></g>;
+        const base = 90 + (((t * 0.16 + i * 0.125) % 1) * 800), through = o > 0.5;
+        const stack = 450 - (i % 4) * 28, x = !through && base < 500 ? Math.min(base, stack) : base;
+        const y = 352 + (i % 3) * 38 + wob(t, i, 3);
+        return <g key={i} opacity={pr(t, 0.5, 0.4)}><circle cx={x} cy={y} r="13" fill={BRAND.light} stroke={BRAND.card} strokeWidth="2" /><text x={x} y={y + 5} textAnchor="middle" fontSize="15" fontWeight="800" fill={BRAND.navyDeep}>+</text></g>;
       })}
+      <g clipPath="url(#gateClip)">
+        <rect x="462" y={lerp(330, 190, o)} width="36" height="140" rx="6" fill={phase >= 1 && phase < 3 ? alpha(RED, 0.85) : BRAND.accent} stroke={BRAND.card} strokeWidth="3" />
+        {phase >= 1 && phase < 3 && <g transform={`translate(480 ${lerp(330, 190, o) - 4})`}>{[-12, 12].map((dx) => <path key={dx} d={`M${dx - 8} 0 L${dx} -24 L${dx + 8} 0 Z`} fill={RED} stroke={BRAND.card} strokeWidth="2" />)}</g>}
+      </g>
       <Pill t={t} at={0.6} x={480} y={256} text="أيونات الصوديوم" s={24} />
       <polyline points={pts.join(" ")} fill="none" stroke={phase >= 1 ? RED : BRAND.green} strokeWidth="6" strokeLinejoin="round" />
       <line x1="80" y1="790" x2="880" y2="790" stroke={BRAND.light} strokeWidth="2" opacity=".5" />
       <Tx x={480} y={830} s={22} c={BRAND.light} w={700}>الإشارة الكهربائية عبر الزمن</Tx>
-      <Pill t={t} at={0.8} until={5.4} x={480} y={510} text="يفتح لحظة قصيرة ثم يتوقف" s={28} />
-      <Pill t={t} at={5.8} until={10.4} x={480} y={510} text="ألفا: تؤخّر توقف القناة بعد فتحها" s={28} fill={RED} stroke={RED} />
-      <Pill t={t} at={10.5} until={14} x={480} y={510} text="بيتا: تجعلها تنفتح بسهولة أكبر" s={28} fill={RED} stroke={RED} />
+      <Pill t={t} at={0.8} until={5.4} x={480} y={612} text="يفتح لحظة قصيرة ثم يتوقف" s={28} />
+      <Pill t={t} at={5.8} until={10.4} x={480} y={612} text="ألفا: تؤخّر توقف القناة بعد فتحها" s={28} fill={RED} stroke={RED} />
+      <Pill t={t} at={10.5} until={14} x={480} y={612} text="بيتا: تجعلها تنفتح بسهولة أكبر" s={28} fill={RED} stroke={RED} />
       <A t={t} at={12} until={14} dy={0}><g transform={`translate(790 650) rotate(${Math.sin(t * 18) * 12})`}><path d="M-34 24 Q-34 -34 0 -34 Q34 -34 34 24 Z" fill={BRAND.card} /><rect x="-40" y="24" width="80" height="10" rx="5" fill={BRAND.card} /><circle cy="46" r="8" fill={BRAND.card} /></g><Tx x={790} y={725} s={22} c={BRAND.light}>جرس لا يكفّ</Tx></A>
       <A t={t} at={14.2} dy={10}>
         <Mol x={250} y={560} r={30} c={BRAND.accent} label="مغنيسيوم" /><Mol x={390} y={560} r={30} c={BRAND.accent} label="بوتاسيوم" />

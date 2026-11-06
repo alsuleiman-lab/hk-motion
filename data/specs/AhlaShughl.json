@@ -1,0 +1,177 @@
+{
+ "id": "AhlaShughl",
+ "title": "أحلى شغل في الدنيا",
+ "frames": 869,
+ "cut": "AhlaShughl_cut_s.mp4",
+ "cams": [
+  {
+   "from": 0,
+   "to": 9999,
+   "cx": 1324
+  }
+ ],
+ "zooms": [
+  {
+   "from": 19.3,
+   "to": 21.8
+  }
+ ],
+ "shake": [],
+ "splits": [
+  {
+   "from": 0,
+   "to": 28.967,
+   "clip": {
+    "x": 43,
+    "y": 168,
+    "w": 656,
+    "h": 818
+   },
+   "sheikh": {
+    "x": 707,
+    "w": 1213
+   },
+   "clipName": "مقطع الشيخ والمريدين",
+   "card": {
+    "left": -40,
+    "top": 480,
+    "rot": -4,
+    "innerH": 420
+   }
+  }
+ ],
+ "items": [
+  {
+   "t": "cover",
+   "style": "pro",
+   "pro": {
+    "layout": "word",
+    "bg": "AhlaShughl/gen_kiss.png",
+    "bgPos": "50% 50%",
+    "words": {
+     "main": "أحلى شغل",
+     "accent": "في الدنيا؟",
+     "sub": "تقبيل مجاني.. ودخل ممتاز!"
+    },
+    "sheikh": {
+     "src": "AhlaShughl/cover_pose.png",
+     "headX": 718,
+     "headTop": 14,
+     "headW": 244,
+     "srcW": 1448
+    }
+   }
+  },
+  {
+   "t": "torn",
+   "text": "الشيخ مكيّف.. يقبّلون يده ويعطونه مصاري",
+   "at": 0.22,
+   "until": 6.68,
+   "size": 39,
+   "underline": 0,
+   "y": 1520
+  },
+  {
+   "t": "torn",
+   "text": "مَن يعرف.. تحصل له فرصة عمل!",
+   "at": 6.9,
+   "until": 9.8,
+   "size": 53,
+   "underline": 0,
+   "y": 1520
+  },
+  {
+   "t": "torn",
+   "text": "فرصة عمل حلوة بصراحة!",
+   "at": 10.02,
+   "until": 14.54,
+   "size": 53,
+   "underline": 0,
+   "y": 1520
+  },
+  {
+   "t": "scraps",
+   "text": "لا شغل ولا دين ولا تعب ولا علم",
+   "at": 14.76,
+   "until": 19.08,
+   "y": 1520,
+   "size": 60
+  },
+  {
+   "t": "torn",
+   "text": "يؤمنون بكراماته فقط",
+   "at": 19.3,
+   "until": 24.7,
+   "size": 53,
+   "underline": 0,
+   "y": 1520
+  },
+  {
+   "t": "torn",
+   "text": "والله المستعان",
+   "at": 24.92,
+   "until": 25.65,
+   "size": 53,
+   "underline": 0,
+   "y": 1520
+  },
+  {
+   "t": "pic",
+   "src": "AhlaShughl/gen_kiss.png",
+   "at": 0.12,
+   "until": 6.8,
+   "x": 70,
+   "y": 1010,
+   "w": 190,
+   "h": 273
+  },
+  {
+   "t": "pic",
+   "src": "AhlaShughl/gen_bucket.png",
+   "at": 12.38,
+   "until": 14.7,
+   "x": 70,
+   "y": 1010,
+   "w": 190,
+   "h": 273
+  },
+  {
+   "t": "pic",
+   "src": "AhlaShughl/gen_books.png",
+   "at": 18.18,
+   "until": 19.25,
+   "x": 70,
+   "y": 1010,
+   "w": 190,
+   "h": 273
+  },
+  {
+   "t": "tphoto",
+   "src": "AhlaShughl/gen_bucket.png",
+   "at": 22.64,
+   "until": 24.8,
+   "x": 60,
+   "y": 1010,
+   "w": 230,
+   "h": 298
+  },
+  {
+   "t": "subscribe",
+   "at": 25.87,
+   "x": 540,
+   "y": 1560,
+   "dur": 3
+  }
+ ],
+ "kind": "reel",
+ "behind": [
+  {
+   "from": 0,
+   "to": 28.967,
+   "matte": {
+    "src": "AhlaShughl/mt/w_0_28.967.mp4",
+    "start": 0
+   }
+  }
+ ]
+}

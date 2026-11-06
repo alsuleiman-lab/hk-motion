@@ -12,6 +12,9 @@ sample = None
 if "--sample" in sys.argv:
     sample = [tuple(map(float, r.split("-"))) for r in sys.argv[sys.argv.index("--sample") + 1].split(",")]
 
+only = []   # --word a-b,c-d (source seconds): bleep the word(s) starting inside, whatever they are (a user instruction for one spot)
+if "--word" in sys.argv:
+    only = [tuple(map(float, r.split("-"))) for r in sys.argv[sys.argv.index("--word") + 1].split(",")]
 w = json.load(open(f".tmp/{p}/words_vad.json", encoding="utf-8"))
 words = w if isinstance(w, list) else (w.get("words") or [x for s in w["segments"] for x in s["words"]])
 segs = json.load(open(f"public/{p}_map.json"))["segments"]
@@ -20,14 +23,16 @@ def to_cut(t):
     for s in segs:
         if s["a"] - 0.001 <= t <= s["b"] + 0.001:
             return s["n"] + (t - s["a"])
-    return None
+    near = min(segs, key=lambda s: min(abs(t - s["a"]), abs(t - s["b"])))   # a word edge inside the VAD pad that the cut trimmed
+    return near["n"] if abs(t - near["a"]) <= 0.15 else None
 
 ranges = []
 for x in words:
     t = (x.get("word") or x.get("w")).strip()
-    if not re.search(PATTERN, t):
-        continue
     s, e = x.get("start", x.get("s")), x.get("end", x.get("e"))
+    forced = any(lo <= s <= hi for lo, hi in only)   # --word a-b: a word the user asked to bleep at that exact source time
+    if not re.search(PATTERN, t) and not forced:
+        continue
     lead = 2 if t.startswith("ال") else 0
     cs = s + (e - s) * lead / len(t)
     a, b = cs + (e - cs) * 0.25, cs + (e - cs) * 0.75

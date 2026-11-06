@@ -5,6 +5,7 @@
 // 2) no stretch longer than --gap (5) seconds without any item, baked split, push-in or shake
 // 3) the moves were planned: no more than 2 min from the start / between push-ins (`zooms`) / to the end, and a `shake` list (tools/moves_plan.mjs → .tmp/<p>/moves.md)
 // Exit 1 on any miss; a miss that is right on purpose is written in the spec as  "skipMentions": ["الإنجيل"]  (the reason goes in the plan).
+import { align as alignScraps } from "./lib/scraps_times.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -42,6 +43,12 @@ let fails = 0;
 // 0b) format and quick isolation (user 2026-10-29): a reel is a chosen excerpt ≤ 3 min; `behind` windows need the saved `matte`; `brand` must be one of the 5 palettes
 {
   const dur = (spec.frames ?? 0) / (spec.fps ?? 30), errs = [];
+  for (const it of spec.items ?? []) if (it.t === "scraps") {   // every scrap is written when its word is spoken (user 2026-11-06)
+    const n = it.text.split(" ").length;
+    if (!it.times || it.times.length !== n) { errs.push(`قصاصات «${it.text.slice(0, 24)}…» بلا times (node tools/scraps_times.mjs data/specs/${spec.id}.json)`); continue; }
+    const al = alignScraps(it.text, it.at, it.until, words);
+    al.forEach((x, i) => { if (x != null && Math.abs(it.times[i] - x) > 0.25) errs.push(`قصاصة «${it.text.split(" ")[i]}» عند ${it.times[i]}ث وتُنطق عند ${x}ث`); });
+  }
   if (spec.kind === "reel" && dur > 180) errs.push(`ريلز طوله ${mm(dur)} (الحد 3:00)`);
   if ((spec.behind ?? []).some((w) => !(w.matte ?? spec.matte))) errs.push("نوافذ behind بلا matte (node tools/matte_cache.mjs get …)");
   const pal = fs.readFileSync(path.join("src", "brand.ts"), "utf8").match(/BrandName = ([^;]+);/)?.[1] ?? "";

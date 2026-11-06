@@ -87,7 +87,7 @@ export type SpecItem = Common & (
   /** the photo of a person he names, in a torn white border with tape (PaperKit TornPhoto; PREFERENCES «متى يُستعمل كل عنصر»: mandatory for every named person) */
   | { t: "tphoto"; src: string; name?: string; at: number; until?: number; x?: number; y?: number; w?: number; h?: number; pos?: string; also?: { src: string; name?: string; at: number }[] }
   /** an important line of his speech on torn paper scraps, one word per scrap, centred in the writing area (PaperKit WordScraps) */
-  | { t: "scraps"; text: string; at: number; until: number; y?: number; size?: number }
+  | { t: "scraps"; text: string; at: number; until: number; y?: number; size?: number; times?: number[] /* the second each word is spoken: node tools/scraps_times.mjs */ }
   /** a clock whenever he speaks of time or a duration (MG Clock) */
   | { t: "clock"; at: number; until: number; x?: number; y?: number; size?: number }
   /** two related people/things pinned side by side and joined by a dotted arc when he links them (first = the one on the right; MG DashArc) */
@@ -114,6 +114,8 @@ export type MontageSpec = {
   splits?: { from: number; to: number; clip: { x: number; w: number; y?: number; h?: number }; sheikh: { x: number; w: number }; clipName?: string; clipUrl?: string; faceX?: number; blur?: number; layout?: DebateLayoutName; card?: { left: number; top: number; rot: number; innerH: number } }[];
   /** an audio message added after his video: plays `src` from `from` s (+ voice card with a waveform and cycling photos) */
   tail?: { from: number; to: number; src: string; label: string; photos: string[] };
+  /** light sound effects at transitions / element entries (user 2026-11-06: light, varied, not loud, not many): src under public/sfx, at = seconds on the cut timeline, vol relative to speech (≤ 0.06) */
+  sfx?: { src: string; at: number; vol: number }[];
   /** the colour palette of the one identity (src/brand.ts PALETTES; default steel) */
   brand?: BrandName;
   /** "full" = the whole video (landscape and/or full portrait, same timeline); "reel" = a chosen excerpt ≤ 3 min, portrait only (hook 10–15 s, full-screen verses) */
@@ -250,7 +252,7 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
       const all = [{ src: it.src, name: it.name, at: it.at }, ...(it.also ?? [])], n = all.length;
       return <React.Fragment key={i}>{all.map((p, j) => <TornPhoto key={j} at={p.at} until={it.until ?? it.at + 6} x={x0 + (n - 1 - j) * (w + 24)} y={y0} w={w} h={h} src={p.src} name={p.name} pos={it.pos} />)}</React.Fragment>;
     }
-    case "scraps": return <WordScraps key={i} at={it.at} until={it.until} y={L ? ov.y ?? 845 : it.y ?? 1330} text={it.text} size={L ? ov.size ?? 50 : it.size ?? 36} />;   {/* 60 % of the former 84 / 60 (user 2026-10-31) */}
+    case "scraps": return <WordScraps key={i} at={it.at} until={it.until} y={L ? ov.y ?? 845 : it.y ?? 1330} text={it.text} times={it.times} size={L ? ov.size ?? 50 : it.size ?? 36} />;   {/* 60 % of the former 84 / 60 (user 2026-10-31) */}
     case "clock": { const size = L ? ov.size ?? 360 : it.size ?? 300; return <Only key={i} from={it.at} to={it.until}><div style={{ position: "absolute", left: L ? ov.x ?? 140 : it.x ?? 60, top: L ? ov.y ?? 300 : it.y ?? 1330 }}><Clock at={it.at} size={size} /></div></Only>; }
     case "arc": {
       // landscape (user 2026-10-31): one picture on each side of him (right-hand one first), the dotted line passes under his beard
@@ -432,6 +434,7 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
       }}
     >
       {spec.cut ? <Audio src={staticFile(spec.cut)} volume={0.8} /> : null}
+      {(spec.sfx ?? []).map((x, i) => <Sequence key={"sfx" + i} from={Math.max(0, Math.round(x.at * 30))} durationInFrames={45}><Audio src={staticFile(x.src)} volume={x.vol} /></Sequence>)}
       {o === "port" || !spec.cut ? <WarmBase /> : null}
       <Sequence from={0} durationInFrames={spec.tail ? Math.round(spec.tail.from * 30) : spec.frames}>{(() => { const b2 = o === "port" && spec.psplits?.length ? <PortSplit windows={spec.psplits}>{body}</PortSplit> : body; return spec.shake?.length ? <HandheldShake windows={spec.shake} amp={6} rot={0.4}>{b2}</HandheldShake> : b2; })()}</Sequence>
       {o === "port" && spec.psplits?.length ? <PortPanel windows={spec.psplits} /> : null}

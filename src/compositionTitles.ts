@@ -58,4 +58,8 @@ export const COMPOSITION_TITLES: Record<string, string> = {
   "Poison-22-Chain": "سموم 22 — من المختبر إلى الإنسان",
   "Abdul-America": "عبدول السيد وأمريكا",
   "Abdul-America-L": "عبدول السيد وأمريكا (عرضي)",
+  "InjilSufi": "الإنجيل في مساجد الصوفية؟",
+  "AhlaShughl": "أحلى شغل في الدنيا",
+  "Tawaf-Nawawi": "لماذا يطوفون حول قبر النووي؟",
+  "Tawaf-Nawawi-L": "لماذا يطوفون حول قبر النووي؟ (عرضي)",
 };

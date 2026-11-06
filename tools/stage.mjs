@@ -8,7 +8,7 @@
 //                                                     are trimmed at their join automatically (up to 4 rounds); audio_gate; only if it passes: one NVENC build
 //                                                     → public/<p>_cut.mp4 and the cut transcript .tmp/<p>/cut_transcript.txt (for timing elements).
 //   node tools/stage.mjs check <p> <CompId> --file src/<X>.tsx --minutes <m> [--skip 0-12,40-55]
-//                                                     typecheck → rules_lint → element_usage → brand_audit (spec) → mg_usage_audit → coverage_check (spec) → grid_plan + grid_sheet (spec montage; else face_check) → frame_audit (old TSX only), one after another (never two renders at once).
+//                                                     typecheck → rules_lint → element_usage → brand_audit (spec) → mg_usage_audit → writing_sync (spec: no writing before its words) → coverage_check (spec) → grid_plan + grid_sheet (spec montage; else face_check) → frame_audit (old TSX only), one after another (never two renders at once).
 // Exit code 1 when any step fails; the summary names the step and the log line to read.
 import fs from "node:fs";
 import os from "node:os";
@@ -228,6 +228,7 @@ if (stage === "check") {
   // complete, not just valid (user 2026-10-28): every named thing has its picture, no long empty stretch, the moves are in the spec
   // the source itself, not the browser window: missing crop boxes are detected and written, the sheet .tmp/<p>/source_crops.jpg is looked at
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("source_crop", "node", ["tools/source_crop.mjs", path.join("data", "specs", `${p}.json`), "--write"], /✘|→|لا نوافذ/);
+  if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("writing_sync", "node", ["tools/writing_sync.mjs", path.join("data", "specs", `${p}.json`)], /^s*✘|writing_sync/);
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("coverage_check", "node", ["tools/coverage_check.mjs", path.join("data", "specs", `${p}.json`)], /^✘|PASSED|FAILED/);
   // his face is fixed vertically and moves sideways only when a source is shown (user 2026-10-27): check the frames where something is drawn (each plan window: start, middle, end), not every N seconds
   const faceFrames = (() => {

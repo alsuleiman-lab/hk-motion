@@ -60,11 +60,11 @@ export const Word: React.FC<{ text: string; at: number; until: number; x: number
   const gold = tone === "gold";
   size = size * 1.15;
   return (
-    <div style={{ position: "absolute", left: x, top: y, transform: `translate(-50%,-50%) translateY(${(1 - p) * size * 0.35}px)`, opacity: p * out, filter: p < 1 ? `blur(${((1 - p) * size * 0.1).toFixed(1)}px)` : undefined, direction: "rtl", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 14 }}>
+    <div style={{ position: "absolute", left: x, top: y, transform: `translate(-50%,-50%) translateY(${(1 - p) * size * 0.35}px)`, opacity: p * out, filter: p < 1 ? `blur(${((1 - p) * size * 0.1).toFixed(1)}px)` : undefined, direction: "rtl", maxWidth: 820, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", gap: 14 }}>
       {flag ? <Pic src={flag} style={{ height: size * 0.95, width: size * 0.95, borderRadius: "50%", objectFit: "cover", border: `3px solid ${BRAND.card}`, boxShadow: "0 3px 10px rgba(10,18,30,.6)" }} /> : null}
-      <span style={{ position: "relative", display: "inline-block", padding: "0 10px" }}>
+      <span style={{ position: "relative", display: "inline-block", maxWidth: "100%", padding: "0 18px", textAlign: "center" }}>
         <span style={{ position: "absolute", right: 0, bottom: gold ? "4%" : "-2%", height: gold ? "58%" : "8%", width: `${sweep * 100}%`, background: gold ? alpha(BRAND.accent, .92) : "rgba(246,239,224,.95)", borderRadius: 8, transform: "skewX(-6deg)" }} />
-        <span style={{ position: "relative", fontFamily: font ?? zainF, fontSize: size, lineHeight: 1.3, color: "#fff", WebkitTextStroke: `${Math.max(5, size * 0.12)}px ${BRAND.ink}`, paintOrder: "stroke fill", textShadow: "0 5px 16px rgba(10,18,30,.75)" }}>{text}</span>
+        <span style={{ position: "relative", fontFamily: font ?? zainF, fontSize: size, lineHeight: 1.3, color: "#fff", WebkitTextStroke: `${Math.max(5, size * 0.12)}px ${BRAND.ink}`, paintOrder: "stroke fill", textShadow: "0 5px 16px rgba(10,18,30,.75)", whiteSpace: "normal", textAlign: "center" }}>{text}</span>
       </span>
     </div>
   );

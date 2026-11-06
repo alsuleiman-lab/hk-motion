@@ -82,18 +82,19 @@ export const TornNote: React.FC<{ at: number; until?: number; x: number; y: numb
 
 /** a title made of torn paper scraps, one word per scrap (Arabic letters keep their joins), each arriving in stop-motion with its own tilt and stock */
 /** without x it is centred across the width (user 2026-10-29); without y too it sits in the writing area: the third quarter of the height */
-export const WordScraps: React.FC<{ at: number; until?: number; x?: number; y?: number; text: string; size?: number; gap?: number }> = ({ at, until, x, y, text, size = 50, gap = 0.18 }) => {
+export const WordScraps: React.FC<{ at: number; until?: number; x?: number; y?: number; text: string; size?: number; gap?: number; times?: number[] }> = ({ at, until, x, y, text, size = 50, gap = 0.18, times }) => {
+  const ta = (i: number) => times?.[i] ?? at + i * gap;   // each scrap is written the moment its word is spoken (user 2026-11-06)
   const t = useStep(), f = useCurrentFrame(), { width, height } = useVideoConfig();
   const place: React.CSSProperties = x === undefined ? { left: 0, top: y ?? height * 0.5, width, ...(y === undefined ? { height: height * 0.25 } : {}), justifyContent: "center", boxSizing: "border-box", padding: `0 ${Math.round(width * 0.05)}px` } : { left: x, top: y ?? height * 0.5 };
   if (t < at || (until !== undefined && t > until + 0.3)) return null;
   const stocks = [BRAND.card, BRAND.paper, BRAND.navy, BRAND.accent];
   return (
     <div style={{ position: "absolute", display: "flex", flexDirection: "row-reverse", flexWrap: "wrap", gap: size * 0.3, alignItems: "center", ...place }}>
-      {text.split(" ").map((wd, i, all) => ({ wd, i, gone: i + 4 < all.length ? at + (i + 4) * gap : Infinity })).filter(({ i, gone }) => t >= at + i * gap && t < gone).map(({ wd, i }) => {   // at most 4 scraps at once: the first goes when a fifth arrives (user 2026-11-05)
-        const a = at + i * gap, inn = easeOut((t - a) / 0.25), out = until === undefined ? 0 : easeOut((t - until) / 0.3);
+      {text.split(" ").map((wd, i, all) => ({ wd, i, gone: i + 4 < all.length ? ta(i + 4) : Infinity })).filter(({ i, gone }) => t >= ta(i) && t < gone).map(({ wd, i }) => {   // at most 4 scraps at once: the first goes when a fifth arrives (user 2026-11-05)
+        const a = ta(i), inn = easeOut((t - a) / 0.25), out = until === undefined ? 0 : easeOut((t - until) / 0.3);
         const bg = stocks[Math.floor(random("ws" + wd + i) * stocks.length)], dark = bg === BRAND.navy || bg === BRAND.accent;
         const rot = (random("wr" + wd + i) - 0.5) * 10 + noise2D("ws" + i, f / 80, 0) * 0.8;
-        const w = Math.round(size * 0.8 * wd.length + 70), h = Math.round(size * 1.45);
+        const w = Math.round(size * 0.8 * wd.length + 100), h = Math.round(size * 1.8);   // paper taller and wider so the writing never touches the torn edges (user 2026-11-06)
         return (
           <span key={i} style={{ position: "relative", width: w, height: h, transform: `scale(${0.6 + 0.4 * inn}) rotate(${rot}deg) translateY(${out * 600}px)`, opacity: Math.min(1, inn * 2), filter: shadow, display: "inline-block" }}>
             <span style={{ position: "absolute", inset: 0, background: bg, clipPath: tornClip(w, h, "ws" + wd + i, 6, 16), display: "flex", alignItems: "center", justifyContent: "center", fontFamily: zainF, fontSize: size, color: dark ? BRAND.card : BRAND.ink, direction: "rtl" }}>{wd}</span>

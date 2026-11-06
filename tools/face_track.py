@@ -48,15 +48,19 @@ p.wait()
 # follow HIS face, not the biggest one: faces inside a shown clip can be bigger. Start from the most common position (the camera is fixed and
 # he is on screen most of the time), then each frame takes the candidate nearest to the last one; a jump > 450 px = not him (missing)
 cx = lambda b: b[0] + b[2] / 2
-allx = sorted(cx(b) for c in cands for b in c)
-last = (allx[len(allx) // 2] if allx else VW / 2, None)
+# filter candidates: in a seated recording, head top is always in the upper 45% of the frame (y <= VH * 0.45)
+cands_upper = [[b for b in c if b[1] <= VH * 0.45] for c in cands]
+allx = sorted(cx(b) for c in cands_upper for b in c)
+med_x = allx[len(allx) // 2] if allx else VW / 2
+last = (med_x, None)
 boxes = []
-for k, c in enumerate(cands):
+for k, c in enumerate(cands_upper):
     t = round(k / fps, 3)
     best = min(c, key=lambda b: abs(cx(b) - last[0])) if c else None
-    if best and abs(cx(best) - last[0]) <= 450:
+    if best and abs(cx(best) - med_x) <= 350 and (last[1] is None or abs(best[1] - last[1][1]) <= 160):
         boxes.append([t, *best]); last = (cx(best), best)
     else:
         boxes.append([t, None])
+        last = (med_x, None)
 json.dump({"fps": fps, "W": VW, "H": VH, "boxes": boxes}, open(out, "w"))
 print(json.dumps({"frames": i, "found": sum(1 for b in boxes if b[1] is not None)}))

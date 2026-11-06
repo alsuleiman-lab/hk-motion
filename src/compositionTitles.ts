@@ -56,5 +56,6 @@ export const COMPOSITION_TITLES: Record<string, string> = {
   "Poison-20-Compare2": "سموم 20 — المقارنة الثانية",
   "Poison-21-Ripening": "سموم 21 — النضج",
   "Poison-22-Chain": "سموم 22 — من المختبر إلى الإنسان",
-  "DatePoison-L": "كيف يحمي التمر من السموم؟ (عرضي)",
+  "Abdul-America": "عبدول السيد وأمريكا",
+  "Abdul-America-L": "عبدول السيد وأمريكا (عرضي)",
 };

@@ -150,11 +150,12 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
     case "blur":   // the opponent's words (landscape): under the answered clip, centred at (431, 880), tilted −7° (the user's red box, 2026-11-05)
       return L
         ? <KeyChip key={i} phrases={[{ text: it.text, at: it.at }]} until={it.until} x={ov.x ?? 431} y={ov.y ?? 880} size={ov.size ?? 29} rot={-7} theme={bar} />
-        : <Only key={i} from={it.at} to={it.until}><BlurRise at={it.at} times={[it.at, it.at + 0.4]} text={it.text} x={it.x ?? 40} w={it.w ?? 1000} y={it.y} size={it.size ?? 58} color="#fff" accentColor={BRAND.accent} accentWords={it.accentWords ?? []} canvasW={1080} align={it.w ? "left" : undefined} /></Only>;
+        : <Only key={i} from={it.at} to={it.until}><BlurRise at={it.at} times={[it.at, it.at + 0.4]} text={it.text} x={it.x ?? Math.round((1080 - (it.w ?? 820)) / 2)} w={it.w ?? 820} y={it.y} size={it.size ?? 58} color="#fff" accentColor={BRAND.accent} accentWords={it.accentWords ?? []} canvasW={1080} align={it.w ? "left" : undefined} /></Only>;
     case "note": {
-      const w = L ? ov.w ?? it.w ?? 600 : it.w ?? 1000, size = it.size ?? 40;
+      const w = L ? ov.w ?? it.w ?? 600 : it.w ?? 820, size = it.size ?? 38;
       const lines = Math.max(1, Math.ceil([...it.title].length / Math.max(1, Math.floor((w - 70) / (size * 0.5))))), h = ov.h ?? it.h ?? Math.round(130 + lines * size * 1.6);
-      return <Only key={i} from={it.at} to={it.until}><NoteCard at={it.at} x={L ? ov.x ?? 40 : it.x ?? 40} y={L ? ov.y ?? 150 : it.y ?? 1300} w={w} h={h} label={it.label ?? "حديث شريف"} tag={it.tag} title={it.title} lines={0} size={size} cps={it.cps ?? Math.max(10, Math.round([...it.title].length / Math.max(2, it.until - it.at - 1.2)))} /></Only>;
+      const x = L ? ov.x ?? 40 : it.x ?? Math.round((1080 - w) / 2);
+      return <Only key={i} from={it.at} to={it.until}><NoteCard at={it.at} x={x} y={L ? ov.y ?? 150 : it.y ?? 1440} w={w} h={h} label={it.label ?? "حديث شريف"} tag={it.tag} title={it.title} lines={0} size={size} cps={it.cps ?? Math.max(10, Math.round([...it.title].length / Math.max(2, it.until - it.at - 1.2)))} /></Only>;
     }
     case "poison":
       return L ? <PoisonClip key={i} id={it.id} at={it.at} until={it.until} x={it.mode === "half" ? 0 : it.x ?? 16} y={it.mode === "half" ? 0 : it.y ?? 150} scale={it.mode === "half" ? 1 : it.scale ?? 0.7} cfg={{ map: it.map, only: it.parts, nobadges: !it.badges }} refs={it.refs ?? []} /> : null;
@@ -233,8 +234,8 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
     case "mini": return null;
     case "treefx": return L ? null : <TreeFx key={i} skin={it.skin} from={it.from} until={it.to} x={it.x} y={it.y} w={it.w} h={it.h} title={it.title} titleAt={it.titleAt} nodes={it.nodes} links={it.links} nodeW={it.nodeW} nodeH={it.nodeH} font={it.font} titleSize={it.titleSize} />;   // landscape: base layer under him, see MontageFromSpec
     case "torn": {
-      const size = L ? ov.size ?? 60 : it.size ?? 52, w = Math.min(L ? 1000 : 960, Math.max(380, Math.round(it.text.replace(/[ً-ٰٟۖ-ۭ]/g, "").length * size * 0.5 + 3.6 * size + 70)));   // TornNote's padding: 1.8 text heights + the tear depth on each side
-      const x = L ? (ov.x !== undefined ? ov.x - w / 2 : (1920 - w) / 2) : it.right ? 1040 - w : (1080 - w) / 2, y = L ? ov.y ?? 850 : it.y ?? 1470;
+      const size = L ? ov.size ?? 60 : it.size ?? 48, w = Math.min(L ? 1000 : 820, Math.max(360, Math.round(it.text.replace(/[ً-ٰٟۖ-ۭ]/g, "").length * size * 0.44 + 3.2 * size + 50)));   // TornNote: max 820px in portrait -> at least 130px margins on both sides
+      const x = L ? (ov.x !== undefined ? ov.x - w / 2 : (1920 - w) / 2) : it.right ? 950 - w : (1080 - w) / 2, y = L ? ov.y ?? 850 : it.y ?? 1470;
       return <TornNote key={i} at={it.at} until={it.until} x={x} y={y} w={w} text={it.text} size={size} underline={it.underline} />;
     }
     case "news": { const w = L ? ov.w ?? 600 : it.w, h = Math.round((it.h * w) / it.w); return <NewsClip key={i} at={it.at} until={it.until} x={L ? ov.x ?? LANDSCAPE.left.x : it.x} y={L ? ov.y ?? LANDSCAPE.left.y : it.y} w={w} h={h} src={it.src} headline={it.headline} source={it.source} />; }

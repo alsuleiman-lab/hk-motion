@@ -122,6 +122,7 @@ if (stage === "cut") {
   const prepConfig = fs.existsSync(cfgFile) ? JSON.parse(fs.readFileSync(cfgFile, "utf8")) : {};
   const src = prepConfig.source ?? path.join("public", `${p}_src.mp4`), mapF = path.join("public", `${p}_map.json`), wav = path.join(T, "cut.wav");
   const rem = (opt("rem", "") || "").split(",").filter(Boolean).map((r) => r.split("-").map(Number));
+  { const r = await must("vad_onset_fix", PY, ["tools/vad_onset_fix.py", p]); say(r.out.trim().split("\n").pop()); }   // never start a segment inside a word (first syllable clipped)
   const vad = JSON.parse(fs.readFileSync(path.join(T, "vad.json"), "utf8")).speech;
   let segs = [];
   for (let [s, e] of vad) {   // VAD speech minus the removed ranges
@@ -200,8 +201,10 @@ if (stage === "cut") {
   say(`read: ${path.join(T, "cut_transcript.txt")} (cut timeline — check stumbles/«أعيد» are gone)`);
   const vs = await run("node", ["tools/verse_scan.mjs", p]);   // every recited verse becomes a verse item at the second it is said (user 2026-10-28)
   say(`verse_scan: ${(vs.out.match(/✔ /g) ?? []).length} تلاوة في القص → .tmp/${p}/verses.json (كل تلاوة تُكتب في الخطة)`);
+  // research (verse slips, hadith, people, countries/places, numbers) and the camera-move plan run AT THE SAME TIME (user 2026-11-10); findings that need the user go to the questions page
   // the camera moves are PLANNED here, before the build (user 2026-10-28): push-ins + shake with their sentences → moves.md, copied into the spec by spec_draft
-  const mv = await run("node", ["tools/moves_plan.mjs", p]);
+  const [rs, mv] = await Promise.all([run("node", ["tools/research.mjs", p]), run("node", ["tools/moves_plan.mjs", p])]);
+  for (const l of rs.out.trim().split("\n")) say(`research: ${l}`);
   say(`${mv.out.trim().split("\n").pop()} (راجعها في الخطة: أبقِ/انقل/احذف، ثم zooms/shake في ملف البيانات)`);
   finish(0);
 }
@@ -213,6 +216,7 @@ if (stage === "check") {
   const running = path.join(T, "smooth.running");
   if (fs.existsSync(running)) { say("waiting for the background smoothing (<p>_cut_s.mp4)…"); while (fs.existsSync(running)) await new Promise((r) => setTimeout(r, 5000)); }
   let failed = 0;
+  await run("node", ["tools/make_preview_proxy.mjs", "--auto", p]);   // light Studio copies of every heavy video (no stutter in the preview; renders use the full files)
   const step = async (label, cmd, args, pick) => {
     const r = await run(cmd, args);
     const key = r.out.trim().split("\n").filter((l) => pick.test(l)).slice(-2).join(" | ") || r.out.trim().split("\n").pop();
@@ -226,10 +230,20 @@ if (stage === "check") {
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("brand_audit", "node", ["tools/brand_audit.mjs", "--strict", path.join("data", "specs", `${p}.json`)], /outside the identity|brand OK/);
   await step("mg_usage_audit", "node", ["tools/mg_usage_audit.mjs", file, "--minutes", minutes], /PASS|FAIL|kinds|نوع/i);
   // complete, not just valid (user 2026-10-28): every named thing has its picture, no long empty stretch, the moves are in the spec
+  // every element time comes from cut_words.json: prove it matches the REAL cut audio first (user 2026-11-09, a stale file made all elements 2.7 s late and every other check passed)
+  if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("words_drift", "node", ["tools/words_drift_check.mjs", p], /words_drift/);
   // the source itself, not the browser window: missing crop boxes are detected and written, the sheet .tmp/<p>/source_crops.jpg is looked at
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("source_crop", "node", ["tools/source_crop.mjs", path.join("data", "specs", `${p}.json`), "--write"], /✘|→|لا نوافذ/);
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("writing_sync", "node", ["tools/writing_sync.mjs", path.join("data", "specs", `${p}.json`)], /^s*✘|writing_sync/);
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("coverage_check", "node", ["tools/coverage_check.mjs", path.join("data", "specs", `${p}.json`)], /^✘|PASSED|FAILED/);
+  // continuous captions lose no spoken word (user 2026-11-09): a report, judged by me
+  if (fs.existsSync(path.join("data", "specs", `${p}.json`))) { const lw = await run("node", ["tools/lost_words_check.mjs", path.join("data", "specs", `${p}.json`)]); for (const l of lw.out.trim().split("\n").slice(-8)) say(l); }
+  // verse-reading audit (user 2026-11-09: «إن أخطأتُ بقراءة أي آية اكتب لي بوضوح قبل الرندر»): the FULL report goes to the user, never a one-line summary
+  if (fs.existsSync(path.join("data", "specs", `${p}.json`))) {
+    const va = await run("node", ["tools/verse_audit.mjs", path.join("data", "specs", `${p}.json`), "--strict"]);
+    if (va.code === 0) say("✔ verse_audit: كل آية مقروءة كما في المصحف (حسب التفريغ)");
+    else { failed++; say("✘ verse_audit — فروق بين قراءة الشيخ ونص الآية؛ اعرضها عليه بوضوح قبل أي رندر ليصلحها أو يؤكدها:"); for (const l of va.out.trim().split("\n").filter((x) => /^✘|^\s+- /.test(x))) say("   " + l); }
+  }
   // his face is fixed vertically and moves sideways only when a source is shown (user 2026-10-27): check the frames where something is drawn (each plan window: start, middle, end), not every N seconds
   const faceFrames = (() => {
     try {

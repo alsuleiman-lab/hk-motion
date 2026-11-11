@@ -27,7 +27,7 @@ log(`${comp}: frames ${start}-${end} (${n}) in ${parts.length} parts of ≤${siz
 
 const runPart = (p) => new Promise((res) => {
   const lf = path.join(work, `part_${p.i}.log`);
-  const c = spawn("node", ["tools/hybrid_any.mjs", "--comp", comp, "--out", path.join(work, `part_${p.i}.mp4`), "--start", String(p.a), "--end", String(p.b), "--conc", String(conc),
+  const c = spawn("node", ["tools/hybrid_any.mjs", "--comp", comp, "--out", path.join(work, `part_${p.i}.mp4`), "--start", String(p.a), "--end", String(p.b), "--conc", String(conc), "--browsers", "1",
     "--part", String(p.i), "--png-port", String(47741 + 10 * (p.i + 1)), "--geom-port", String(47742 + 10 * (p.i + 1))],
     { env: { ...process.env, HYBRID_PARENT_LOCK: String(process.pid) }, windowsHide: true });
   const ws = fs.createWriteStream(lf); c.stdout.pipe(ws); c.stderr.pipe(ws);

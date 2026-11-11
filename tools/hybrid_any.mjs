@@ -1,5 +1,5 @@
 // GENERIC GPU HYBRID RENDER — one command renders ANY composition that uses <HybridHost> / <VSlot> / <HybridBg> (src/hybrid/Slot.tsx).
-//   node tools/hybrid_any.mjs --comp EU-Protests-Landscape --out "C:/Users/mshms/Videos/جاهز/عرضي/أساسية/<العنوان>.mp4" [--start 0] [--end N] [--conc 3] [--browsers 3 [--block 120]] [--report render_work/x]
+//   node tools/hybrid_any.mjs --comp EU-Protests-Landscape --out "C:/Users/mshms/Videos/جاهز/عرضي/أساسية/<العنوان>.mp4" [--start 0] [--end N] [--conc 3] [--browsers 3 (default) --block 150] [--report render_work/x]
 // Remotion draws ONLY the graphics (transparent PNG frames, no video decoding) and reports each video slot's on-screen matrix per frame;
 // tools/hybrid_generic.py decodes the videos on NVDEC, composites on CUDA and encodes on NVENC. Audio is mixed by ffmpeg from the assets Remotion registered.
 // Writes a measurement report (time, GPU/encoder/decoder utilisation sampled by nvidia-smi, CPU) next to the output.
@@ -113,9 +113,10 @@ const conc = arg("conc", null);
 const CONC = conc && conc !== true ? Number(conc) : 3;
 // --browsers K (2026-11-11): K independent Chromium instances render at the same time. One Chromium is latency-bound (each tab waits
 // ~200 ms per frame while using little CPU) and extra tabs barely help, but separate browsers do (measured on Mufti-Iraq-L: 3×3 = 22–23 fps
-// vs 11–15 for 1×3). The range is handed out in blocks of --block frames (default 120) so the compositor, which consumes frames in order
-// and buffers early ones, never holds more than about K blocks. K=1 (default) = the original single call, unchanged.
-const BROWSERS = Math.max(1, Number(arg("browsers", 1)) || 1), BLOCK = Math.max(10, Number(arg("block", 120)) || 120);
+// vs 11–15 for 1×3; full hybrid A/B under load 2026-11-11: 86 s vs 126 s for 900 frames). The range is handed out in blocks of --block frames
+// (default 150; smaller blocks cost more because every renderFrames call reopens its pages). Default 3 since the compositor was pipelined
+// (2026-11-11); --browsers 1 = the original single call.
+const BROWSERS = Math.max(1, Number(arg("browsers", 3)) || 1), BLOCK = Math.max(10, Number(arg("block", 150)) || 150);
 const onFrameBuffer = (buf, frame) => { const h = Buffer.alloc(8); h.writeUInt32LE(frame, 0); h.writeUInt32LE(buf.length, 4); sock.write(h); sock.write(buf); sent++; const percent = Math.floor(sent / NF * 100); if (percent !== lastPercent) { lastPercent = percent; logProgress(`[جزء 1/1] ${percent}%`); } if (sent % 600 === 0) log(`graphics ${sent}/${NF}  ${(sent / ((Date.now() - tg0) / 1000)).toFixed(1)} fps`); };
 const renderRange = (a, b, puppeteerInstance) => renderFrames({
   composition, serveUrl, inputProps, imageFormat: "png", outputDir: null, concurrency: CONC, frameRange: [a, b], chromiumOptions: { gl: "angle" }, logLevel: "error", timeoutInMilliseconds: 180000,
@@ -125,8 +126,9 @@ let assetsInfo;
 if (BROWSERS === 1) ({ assetsInfo } = await renderRange(start, end));
 else {
   const { openBrowser } = await import("@remotion/renderer");
-  log(`graphics: ${BROWSERS} browsers × ${CONC} tabs, blocks of ${BLOCK} frames`);
-  const blocks = []; for (let a = start; a <= end; a += BLOCK) blocks.push([a, Math.min(end, a + BLOCK - 1)]);
+  log(`graphics: ${BROWSERS} browsers × ${CONC} tabs, blocks of ${Math.max(30, Math.min(BLOCK, Math.ceil(NF / BROWSERS)))} frames`);
+  const B = Math.max(30, Math.min(BLOCK, Math.ceil(NF / BROWSERS)));   // a short patch span is still shared by every browser
+  const blocks = []; for (let a = start; a <= end; a += B) blocks.push([a, Math.min(end, a + B - 1)]);
   const browsers = await Promise.all(Array.from({ length: BROWSERS }, () => openBrowser("chrome", { logLevel: "error", chromiumOptions: { gl: "angle" } })));
   const all = []; let next = 0;
   const worker = async (br, wi) => { while (next < blocks.length) { const [a, b] = blocks[next++]; let tries = 0; for (;;) { try { const tb = Date.now(); all.push(...(await renderRange(a, b, br)).assetsInfo.assets); if (arg("block-log", false)) log(`  browser ${wi}: block ${a}-${b} in ${((Date.now() - tb) / 1000).toFixed(1)}s`); break; } catch (e) { if (++tries >= 3) throw e; log(`block ${a}-${b} failed (${e.message.split("\n")[0]}), retry ${tries}`); } } } };

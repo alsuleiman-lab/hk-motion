@@ -4,7 +4,7 @@ on screen (affine matrix measured from the DOM: src/hybrid/Slot.tsx) to the HTTP
     static background image  ->  every video slot (decoded by NVDEC, warped/clipped/filtered on the GPU)  ->  the graphics PNG on top.
 No per-project geometry. Run with ComfyUI's python (torch+cuda+cv2).
 """
-import argparse, concurrent.futures, http.server, json, math, queue, socket, struct, subprocess, sys, threading, time
+import os, argparse, concurrent.futures, http.server, json, math, queue, socket, struct, subprocess, sys, threading, time
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -21,7 +21,7 @@ ap.add_argument("--h", type=int, default=1080)
 ap.add_argument("--fps", type=int, default=30)
 ap.add_argument("--start", type=int, default=0)
 ap.add_argument("--end", type=int, required=True)
-ap.add_argument("--cq", type=int, default=17)
+ap.add_argument("--cq", type=int, default=int(os.environ.get("HY_CQ", "15")))   # flat cartoon art needs a lower cq to reach the 14 Mbps floor
 ap.add_argument("--dump", default="")                  # debug: also write the composited frames at these indices as PNG (comma list) into this dir  "dir:1,2,3"
 a = ap.parse_args()
 W, H, FPS = a.w, a.h, a.fps
@@ -52,7 +52,7 @@ COEF = {(False, False): (1.164383, 1.792741, 0.213249, 0.532909, 2.112402), (Fal
 
 
 def nv12_to_rgb(buf, w, h, full=False, m601=False):
-    t = torch.frombuffer(buf, dtype=torch.uint8).to(dev, non_blocking=True)
+    t = (buf if torch.is_tensor(buf) else torch.frombuffer(buf, dtype=torch.uint8)).to(dev, non_blocking=True)
     y = t[: w * h].view(h, w).float()
     uv = t[w * h:].view(h // 2, w // 2, 2).float()
     u = F.interpolate(uv[..., 0][None, None], size=(h, w), mode="bilinear", align_corners=False)[0, 0]
@@ -102,6 +102,8 @@ class Stream:
         self.cur = None
         self.lock = threading.Lock()
         self.last_use = 0
+        self.gen = 0
+        self.q = None
 
     def _start(self, idx):
         self._kill()
@@ -111,6 +113,31 @@ class Stream:
         cmd += ["-i", self.path, "-vf", "hwdownload,format=nv12", "-f", "rawvideo", "-pix_fmt", "nv12", "-"]
         self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=self.w * self.h * 3 // 2 * 4)
         self.pos = idx
+        # read-ahead (2026-11-11): a thread reads the next frames into pinned memory while the GPU works on the current one
+        self.gen += 1
+        self.q = queue.Queue(maxsize=8)
+        threading.Thread(target=self._reader, args=(self.gen, self.proc, self.q), daemon=True).start()
+
+    def _reader(self, gen, proc, q):
+        n = self.w * self.h * 3 // 2
+        while gen == self.gen:
+            t = torch.empty(n, dtype=torch.uint8, pin_memory=True)
+            mv = memoryview(t.numpy())
+            got = 0
+            while got < n:
+                r = proc.stdout.readinto(mv[got:])
+                if not r:
+                    break
+                got += r
+            item = t if got == n else None
+            while gen == self.gen:
+                try:
+                    q.put(item, timeout=0.5)
+                    break
+                except queue.Full:
+                    continue
+            if item is None:
+                return
 
     def _kill(self):
         if self.proc is not None:
@@ -119,6 +146,7 @@ class Stream:
             except Exception:
                 pass
             self.proc = None
+        self.gen += 1
 
     def prepare(self, idx):  # called when the geometry arrives: launch ffmpeg early so its start-up overlaps with other work
         with self.lock:
@@ -134,8 +162,9 @@ class Stream:
                 self._start(idx)
             buf = None
             while self.pos <= idx:
-                b = read_exact(self.proc.stdout, self.w * self.h * 3 // 2)
+                b = self.q.get()
                 if b is None:  # past the end of the file: hold the last frame
+                    self.q.put(None)
                     print("EOF", self.path, idx, self.pos, self.n, flush=True)
                     break
                 buf = b
@@ -221,7 +250,9 @@ def decode_png(data):
     im = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_UNCHANGED)
     if im.shape[2] == 3:
         im = np.dstack([im, np.full(im.shape[:2], 255, np.uint8)])
-    return im  # BGRA
+    t = torch.empty(im.shape, dtype=torch.uint8, pin_memory=True)
+    t.numpy()[...] = im
+    return t  # BGRA, pinned (async upload)
 
 
 def t_top_socket():
@@ -238,9 +269,8 @@ def t_top_socket():
             break
         idx, ln = struct.unpack("<II", hdr)
         data = fh.read(ln)
-        fut = pool.submit(decode_png, data)
-        with cv:
-            pngs[idx] = fut
+        with cv:   # kept compressed; decoded only a few frames ahead of the compositor (several browsers send far ahead: 8 MB per decoded frame)
+            pngs[idx] = data
             cv.notify_all()
 
 
@@ -344,14 +374,16 @@ q_out = queue.Queue(maxsize=6)
 
 def t_write():
     enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "nv12", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-                            "-c:v", "h264_nvenc", "-preset", "p5", "-tune", "hq", "-rc", "vbr", "-cq", str(a.cq), "-b:v", "0", "-profile:v", "high",
+                            "-c:v", "h264_nvenc", "-preset", "p5", "-tune", "hq", "-rc", "vbr", "-cq", str(a.cq), "-b:v", "18M", "-maxrate", "26M", "-bufsize", "52M", "-profile:v", "high",   # R-RENDER-QUALITY.1: final >= 14 Mbps (cq alone gave 10.3 Mbps on a lesson)
+                           
                             "-bsf:v", "h264_metadata=colour_primaries=1:transfer_characteristics=1:matrix_coefficients=1:video_full_range_flag=0", a.out],
                            stdin=subprocess.PIPE, bufsize=FS * 6)
     while True:
         b = q_out.get()
         if b is None:
             break
-        enc.stdin.write(b)
+        b[1].synchronize()
+        enc.stdin.write(memoryview(b[0].numpy()))
     enc.stdin.close()
     enc.wait()
 
@@ -364,18 +396,30 @@ if a.dump:
     dump_set = set(int(x) for x in lst.split(",") if x)
 
 PROF = {"wait": 0.0, "gpu": 0.0, "put": 0.0}
+FINE = os.environ.get("HY_PROF")   # fine per-stage timing (synchronises the GPU after each stage: slower, for measurement only)
+PF = {"png": 0.0, "decode": 0.0, "draw": 0.0, "top": 0.0, "nv12": 0.0}
+def _pf(k, t):
+    if FINE:
+        torch.cuda.synchronize(); n = time.time(); PF[k] += n - t; return n
+    return t
+futs, LOOKAHEAD = {}, 14
 t0 = time.time()
 for i in range(NF):
     fno = START + i
     _a = time.time()
     with cv:
-        if not cv.wait_for(lambda: fno in geoms and fno in pngs, timeout=180):
+        if not cv.wait_for(lambda: fno in geoms and (fno in pngs or fno in futs), timeout=180):
             print(f"ERROR: no geometry/graphics for frame {fno} (is the composition wrapped in <HybridHost>?)", flush=True)
             sys.exit(2)
         slots = geoms.pop(fno)
-        fut = pngs.pop(fno)
+        for j in range(fno, fno + LOOKAHEAD):
+            if j not in futs and j in pngs:
+                futs[j] = pool.submit(decode_png, pngs.pop(j))
+        fut = futs.pop(fno)
+    _w = time.time()
     top = fut.result()
     _b = time.time()
+    if FINE: PF["png"] += _b - _w
     PROF["wait"] += _b - _a
     out = BG.clone()
     if os.environ.get("HY_DEBUG"): print("SLOTS", fno, json.dumps(slots)[:900], flush=True)
@@ -383,13 +427,22 @@ for i in range(NF):
         path = a.public + "/" + s["src"]
         st = stream_for(path, slot_key(s))
         st.last_use = fno
+        _t = time.time() if FINE else 0
         src = st.get(int(math.floor(s["t"] * st.fps + BIAS)))
+        _t = _pf("decode", _t)
         out = draw_slot(out, s, src)
-    T = torch.from_numpy(top).to(dev, non_blocking=True).permute(2, 0, 1).float()[[2, 1, 0, 3]]  # BGRA -> RGBA
+        _t = _pf("draw", _t)
+    _t = time.time() if FINE else 0
+    T = top.to(dev, non_blocking=True).permute(2, 0, 1).float()[[2, 1, 0, 3]]  # BGRA -> RGBA
     out = out * (1.0 - T[3:4] / 255.0) + T[:3] * (T[3:4] / 255.0)
     if fno in dump_set:
         cv2.imwrite(f"{dump_dir}/hy_{fno:06d}.png", out.round().clamp(0, 255).byte().permute(1, 2, 0).cpu().numpy()[..., ::-1])
-    nv = rgb_to_nv12(out).cpu().numpy().tobytes()
+    _t = _pf("top", _t)
+    nv_h = torch.empty(FS, dtype=torch.uint8, pin_memory=True)
+    nv_h.copy_(rgb_to_nv12(out), non_blocking=True)
+    ev = torch.cuda.Event(); ev.record()
+    nv = (nv_h, ev)
+    _t = _pf("nv12", _t)
     _d = time.time()
     PROF["gpu"] += _d - _b
     q_out.put(nv)
@@ -407,3 +460,4 @@ for stm in STREAMS.values():
 el = time.time() - t0
 print(f"DONE {NF} frames in {el:.1f}s => {NF / el:.1f} fps", flush=True)
 print("PROFILE", {k: round(v, 1) for k, v in PROF.items()}, flush=True)
+if FINE: print("FINE", {k: round(v, 1) for k, v in PF.items()}, flush=True)

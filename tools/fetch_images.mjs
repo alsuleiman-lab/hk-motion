@@ -79,7 +79,8 @@ else for (const n of rest) {
 
 // 3) download (original, else the thumbnail), keep jpg/png/webp, convert anything else to jpg
 const list = [];
-let k = 0;
+// never overwrite: numbering continues after the highest img_<n> already in the folder (2026-11-11: a second run overwrote img_7…img_11 used by the spec)
+let k = Math.max(0, ...fs.readdirSync(outDir).map((f) => Number(f.match(/^img_(\d+)\./)?.[1] ?? 0)));
 for (const n of names) {
   const f = found[n]; if (!f) continue;
   k++;
@@ -99,7 +100,9 @@ for (const n of names) {
   }
   if (saved) list.push({ name: n, said: said[n] ?? [], file: saved.replace(/\\/g, "/"), via: f.via, page: f.page, title: f.title, w: f.w, h: f.h });
 }
-fs.writeFileSync(path.join(T, "images.json"), JSON.stringify(list, null, 1));
+// merged with the earlier runs (the spec and the requirements ledger read every picture ever fetched); "verified" is set by me after LOOKING at the picture
+const prevList = (() => { try { return JSON.parse(fs.readFileSync(path.join(T, "images.json"), "utf8")); } catch { return []; } })();
+fs.writeFileSync(path.join(T, "images.json"), JSON.stringify([...prevList.filter((x) => !list.some((y) => y.file === x.file)), ...list], null, 1));
 
 // 4) one review sheet (name + source on each tile)
 const sheet = path.join(T, "images_sheet.jpg");

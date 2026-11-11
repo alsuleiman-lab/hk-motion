@@ -1,13 +1,15 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import { AbsoluteFill, OffthreadVideo, Sequence, staticFile, useVideoConfig } from "remotion";
 import {
-  Bars, BlurRise, BrushX, Clock, CollageAssemble, ConvergeMerge, CornerTags, DashArc, EllipseMark, FlashCut, GlowCaption, GlowCounter,
+  Bars, BlurRise, BrushX, Clock, CollageAssemble, ConvergeMerge, CornerTags, DashArc, EllipseMark, FlashCut, GlowCounter,
   Highlight, MGTheme, NoteCard, PanelToCanvas, PhoneChips, PinnedPhoto,
   HandheldShake, PaperBg, RewriteWindow, SakugaMove, SpotlightCard, Stamp, Strike, T, TimelineCounter, TimelineTravel, TypeBox, kufiF, naskhF,
 } from "./MG";
 import { Banner, Sources, StatRow, useFonts } from "./EuKit";
-import { MapRoute, Marker, PaperMap, Word } from "./PortraitKit";
-import { VerseWords, ReelVerseFull } from "./MGExtras";
+import { Marker, PaperMap, Word } from "./PortraitKit";
+import { VerseWords, ReelVerseFull, KeyChip } from "./MGExtras";
+import { DateCalendar } from "./PaperKit";
+import { FamilyTree, TreeFx } from "./PortraitKit";
 import { NameTag, Subscribe, Pic } from "./EuKit";
 import { PopCard, BAR_WARM, FullImage, PaperScene} from "./PortraitKit";
 import { KhBg } from "./KhKit";
@@ -15,12 +17,13 @@ import { MaskedVideo } from "./MaskedVideo";
 import { BACKGROUNDS } from "./Backgrounds";
 import { TitleBar } from "./TitleBar";
 import { PaperCoverKit } from "./CoverKit";
-import { LandFootage, Curtain, TailVoice } from "./MontageSpec";
+import { LandFootage, Curtain, TailVoice, PeekIn } from "./MontageSpec";
 import { realScene } from "./RealLab";
 import { NAME_CARDS } from "./NameCards";
 import LAB from "../data/elements_lab.json";
 import GRIDS from "../data/layout_grids.json";
 import { TRANSITIONS, TransitionScene } from "./TransitionsLab";
+import { Keycaps, Burst } from "./KhaamKit";
 import { BRAND, applyBrand } from "./brand";
 import type { BrandName } from "./brand";
 import { BrowserFrame, VideoFrame, PostCard, CommentCard, BookPage, CitationTag, ArticleMock } from "./SourceFrames";
@@ -53,8 +56,13 @@ const BgKhLive: React.FC<{ brand?: BrandName }> = () => <KhBg a={BRAND.navy} b={
 /** the montage engine's own pieces (src/MontageSpec.tsx), shown alone like the rest (user 2026-10-27: «استخدمت أموراً من خارجها، أضفها لأراها هنا») */
 const SPLIT = { from: 0, to: 99, clip: { x: 140, w: 632 }, sheikh: { x: 772, w: 1148 }, clipName: "اسم المقطع المعروض" };
 const SPEC_E: Record<string, { node: React.ReactNode; light?: boolean }> = {
+  PeekCorner: { node: <PeekIn src="saint_rambal/peek_filopateer.png" ar={1 / 1.186} at={0.2} until={2.9} w={400} dx={0} corner="bl" z={5} say="عادي" /> },
   VerseWords: { node: <VerseWords words={["مُّحَمَّدٌ", "رَّسُولُ", "ٱللَّهِ"]} times={[0.4, 0.9, 1.3]} x={560} y={300} w={800} size={64} title="سُورَةُ الفَتۡحِ" refText="الآية 29" until={2.7} /> },
   ReelVerseFull: { node: <div style={{ position: "absolute", left: 656, top: 0, width: 1080, height: 1920, transform: "scale(0.5625)", transformOrigin: "top left", overflow: "hidden" }}><ReelVerseFull to={2.8} refName="سُورَةُ الفَتۡحِ — الآية 29" lines={[{ words: ["مُّحَمَّدٌ", "رَّسُولُ", "ٱللَّهِ"], times: [0.4, 0.9, 1.3] }]} /></div> },
+  DateCalendar: { node: <DateCalendar at={0.1} until={2.9} x={160} y={300} w={380} text="١٠ محرّم ٦١ هـ" sub="يوم عاشوراء" /> },
+  KeyChip: { node: <KeyChip phrases={[{ text: "العبارة المفتاحية", at: 0.3 }]} until={2.9} x={560} y={845} size={54} /> },
+  FamilyTree: { node: <FamilyTree from={0.1} until={2.9} x={120} y={150} w={520} h={760} title="سلسلة النسب" titleAt={0.2} nodes={[{ id: "a", label: "الجد", at: 0.3, px: 0.5, py: 0.1 }, { id: "b", label: "الأب", at: 0.8, px: 0.5, py: 0.5 }, { id: "c", label: "الابن", at: 1.3, px: 0.5, py: 0.9 }] as never} links={[{ a: "a", to: "b", at: 0.7 }, { a: "b", to: "c", at: 1.2 }]} /> },
+  TreeFx: { node: <TreeFx skin="parchment" from={0.1} until={2.9} x={120} y={150} w={520} h={760} title="سلسلة النسب" titleAt={0.2} nodes={[{ id: "a", label: "الجد", at: 0.3, px: 0.5, py: 0.1 }, { id: "b", label: "الأب", at: 0.8, px: 0.5, py: 0.5 }, { id: "c", label: "الابن", at: 1.3, px: 0.5, py: 0.9 }] as never} links={[{ a: "a", to: "b", at: 0.7 }, { a: "b", to: "c", at: 1.2 }]} /> },
   PaperScene: { node: <PaperScene at={0.1} until={2.9} x={460} y={200} w={1000} h={640} pieces={[{ src: "collage/car.png", at: 0.3, x: 60, y: 160, w: 300, rot: -3, from: "left" }, { src: "collage/robe.png", at: 0.9, x: 380, y: 120, w: 260, rot: 2, from: "top" }, { src: "collage/ant.png", at: 1.5, x: 700, y: 220, w: 240, rot: -2, from: "right" }]} /> },
   BrowserFrame: { node: <BrowserFrame at={0.1} x={520} y={70} w={880} h={940} url="www.azhar.eg/news/article-2026" site="الأزهر" scroll={260} until={9}><ArticleMock w={880} img="people/azharMosque.jpg" title="عنوان الخبر كما في الموقع" /></BrowserFrame> },
   VideoFrame: { node: <VideoFrame at={0.1} x={700} y={110} w={600} h={860} src="gallery_opp_clip.mp4" channel="المقطع المردود عليه" title="مقطع من البث" until={9} /> },
@@ -97,6 +105,8 @@ const NAME_E: Record<string, { node: React.ReactNode }> = Object.fromEntries(Obj
 const E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   StatRow: { node: <><Banner at={0.1} x={560} y={170} w={800} text="إيطاليا: ضيق المعيشة" size={48} flag="it" /><StatRow at={0.4} countAt={0.6} x={560} y={330} w={800} h={170} icon="Banknote" label="بند فيه رقم (2024)" sub="سطر صغير يوضّح" to={322} unit="مليون يورو" rot={-1} big={84} flag="fr" /><StatRow at={0.8} x={560} y={530} w={800} h={150} icon="Wallet" label="والبند الثاني من كلامه" rot={1} /></> },
   Stamp: { node: <Stamp at={0.2} x={640} y={440} text="والشعوب تغلي" size={96} /> },
+  Keycaps: { node: <Keycaps x={960} y={760} size={72} words={[{ w: "كلمة", at: 0.2 }, { w: "بعد", at: 0.6 }, { w: "كلمة", at: 1.0 }, { w: "مفتاحية", at: 1.5 }]} /> },
+  Burst: { node: <><Stamp at={0.2} x={640} y={440} text="والشعوب تغلي" size={96} /><Burst at={0.55} x={960} y={500} r={230} /></> },
   Sources: { node: <Sources x={360} bottom={420} w={1200} size={26} links={[{ at: 0.1, url: "https://example.org/source-of-the-figure" }]} /> },
   BlurRise: { node: <BlurRise at={0.1} text="عبارة مفتاحية من كلامه" x={260} w={1400} y={440} size={100} /> },
   TypeBox: { node: <TypeBox at={0.1} x={440} y={380} w={1040} text="جملة مقتبسة تُكتب حرفاً حرفاً" title="اقتباس" chip="الفكرة" cps={20} size={56} /> },
@@ -112,7 +122,7 @@ const E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   PinnedPhoto: { node: <PinnedPhoto at={0.1} x={720} y={200} w={420} h={560} name="ابن عثيمين" sub="رحمه الله (ت 1421هـ)"><Real src="people/sheikh_ibn_uthaymeen_real.png" pos="50% 15%" /></PinnedPhoto> },
   PhoneChips: { node: <PhoneChips at={0.1} cx={960} cy={540} w={360} h={740} dur={3} chips={[{ text: "رسالة قصيرة", side: "left", at: 0.4 }, { text: "رد من كلامه", side: "right", at: 0.9, dy: 80 }]} screen={<Page />} /> },
   ConvergeMerge: { node: <ConvergeMerge at={0.1} mergeAt={1.9} x={260} y={260} w={1400} h={560} sources={["المصدر الأول", "المصدر الثاني", "المصدر الثالث"]} sourceAt={[0.1, 0.6, 1.1]} result="النتيجة الواحدة" rtl /> },
-  PanelToCanvas: { node: <PanelToCanvas at={0.1} panel={{ x: 1180, y: 150, w: 560, h: 780, title: "القائمة", button: "اختيار" }} canvas={{ x: 180, y: 220, w: 800, h: 620 }} rows={[{ title: "الأول" }, { title: "الثاني" }, { title: "الثالث" }, { title: "الرابع" }]} picks={[{ row: 0, check: 0.6, fly: 1.4 }, { row: 2, check: 0.9, fly: 1.6 }]} /> },
+  PanelToCanvas: { node: <PanelToCanvas at={0.1} panel={{ x: 1300, y: 150, w: 580, h: 780, title: "القائمة", button: "اختيار" }} canvas={{ x: 40, y: 150, w: 600, h: 680 }} rows={[{ title: "الأول" }, { title: "الثاني" }, { title: "الثالث" }, { title: "الرابع" }]} picks={[{ row: 0, check: 0.6, fly: 1.4 }, { row: 2, check: 0.9, fly: 1.6 }]} /> },
   NoteCard: { node: <NoteCard at={0.1} x={660} y={220} w={600} h={520} label="NOTE 01" tag="ملاحظة" title="عنوان الملاحظة" lines={4} /> },
   CollageAssemble: { node: <div style={{ position: "absolute", left: 360, top: 140, width: 1200, height: 800 }}><CollageAssemble at={0.1} bg="transparent" w={1200} h={800} pieces={[{ at: 0.2, x: 80, y: 120, w: 300, h: 380, rot: -4, from: "left", color: "#2f5a8a" }, { at: 0.6, x: 460, y: 200, w: 380, h: 260, rot: 3, from: "top", color: "#f4efe3", halftone: true }, { at: 1.0, x: 840, y: 360, w: 280, h: 330, rot: -2, from: "right", color: "#b8432f" }]} /></div> },
   Strike: { node: <><div style={{ position: "absolute", left: 640, top: 420, width: 640, textAlign: "center", fontFamily: kufiF, fontSize: 90, color: "#fff" }}>كلمة خاطئة</div><Strike at={0.1} x={640} y={480} w={640} /></> },
@@ -123,9 +133,7 @@ const E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   RewriteWindow: { node: <RewriteWindow x={500} y={300} w={920} oldText="العبارة القديمة" newText="العبارة الأحسن" oldAt={0.1} strikeAt={0.8} newAt={1.3} extra="سطر توضيحي" /> },
   Word: { node: <Word text="كلمة مفتاحية" at={0.1} until={3} x={560} y={430} size={120} /> },
   CornerTags: { node: <CornerTags right={["الموضوع", "الحكم"]} left={["محمد بن شمس الدين"]} y={120} size={34} /> },
-  GlowCaption: { node: <GlowCaption words={[{ t: "كلمة", at: 0.1 }, { t: "كلمة", at: 0.5 }, { t: "ذهبية", at: 0.9, gold: true }, { t: "متوهجة", at: 1.3 }]} x={360} y={440} w={1200} size={90} /> },
   DashArc: { node: <><PinnedPhoto at={0.1} x={1260} y={300} w={300} h={380} name="ابن عثيمين"><Real src="people/ibn_uthaymeen.jpg" pos="50% 15%" /></PinnedPhoto><PinnedPhoto at={0.5} x={360} y={300} w={300} h={380} name="أحمد الطيب"><Real src="broll/ahmed_el_tayeb.jpg" pos="50% 15%" /></PinnedPhoto><DashArc at={0.9} x1={1260} y1={420} x2={660} y2={420} lift={160} /></> },
-  MapRoute: { node: <MapRoute at={0.1} until={3} x={460} y={140} w={1000} h={800} center={[36, 38]} spanLat={10} highlight={["Syria"]} pts={[{ name: "دمشق", lon: 36.3, lat: 33.5, at: 0.3 }, { name: "حلب", lon: 37.2, lat: 36.2, at: 0.7 }]} legs={[{ from: [36.3, 33.5], to: [37.2, 36.2], at: 1.0, dur: 1 }]} /> },
   PaperMap: { node: <PaperMap at={0.1} until={3} x={460} y={140} w={1000} h={800} center={[36, 38]} spanLat={10} highlight={["Syria"]} pts={[{ name: "دمشق", lon: 36.3, lat: 33.5, at: 0.3 }, { name: "حلب", lon: 37.2, lat: 36.2, at: 0.7 }]} legs={[{ from: [36.3, 33.5], to: [37.2, 36.2], at: 1.0, dur: 1, car: true }]} /> },
   HandheldShake: { node: <HandheldShake windows={[{ from: 0.2, to: 2.8 }]} amp={6} rot={0.4}><OffthreadVideo src={staticFile(GALLERY_CUT)} muted /></HandheldShake> },
 };
@@ -207,8 +215,8 @@ const AT_SLOT: Record<string, (r: Rect, o: Orient) => React.ReactNode> = {
   TimelineCounter: (r, o) => <TimelineCounter at={0.1} x={r[0] + 20} y={r[1] + Math.round(r[3] * 0.3)} w={r[2] - 40} unit="سنة" stops={[{ t: 0, value: 0, label: "البداية" }, { t: 1.2, value: 40, label: "محطة" }, { t: 2.2, value: 60, label: "النهاية" }]} size={o === "land" ? 90 : 80} />,
   NoteCard: (r) => <NoteCard at={0.1} x={r[0] + 20} y={r[1] + 20} w={Math.min(560, r[2] - 40)} h={Math.min(480, r[3] - 40)} label="NOTE 01" tag="ملاحظة" title="عنوان الملاحظة" lines={4} />,
   Stamp: (r, o) => <Stamp at={0.2} x={r[0] + Math.round(r[2] * 0.08)} y={r[1] + Math.round(r[3] * (o === "land" ? 0.4 : 0.3))} text="والشعوب تغلي" size={o === "land" ? 84 : 76} />,
-  GlowCaption: (r, o) => <GlowCaption words={[{ t: "كلمة", at: 0.1 }, { t: "كلمة", at: 0.5 }, { t: "ذهبية", at: 0.9, gold: true }, { t: "متوهجة", at: 1.3 }]} x={r[0]} y={r[1] + Math.round(r[3] * (o === "land" ? 0.12 : 0.35))} w={r[2]} size={o === "land" ? 72 : 64} />,
-  Bars: (r) => <Bars at={0.1} x={r[0] + 60} y={r[1] + 40} w={Math.min(520, r[2] - 120)} h={Math.min(420, r[3] - 80)} vals={[1, 0.62, 0.38]} />,
+  // the bars sit on a framed card with its own background (user 2026-11-09: «ضع له اطار وخلفية»)
+  Bars: (r) => <><div style={{ position: "absolute", left: r[0], top: r[1], width: r[2], height: r[3], borderRadius: 26, background: BRAND.base3, border: `3px solid ${BRAND.accent}`, boxShadow: "0 20px 50px rgba(0,0,0,.4)" }} /><Bars at={0.1} x={r[0] + 60} y={r[1] + 40} w={Math.min(520, r[2] - 120)} h={Math.min(420, r[3] - 80)} vals={[1, 0.62, 0.38]} /></>,
   // the opponent's words under his window: dark ink on the dossier paper (landscape), light on the dark lower panel (portrait)
   BlurRise: (r, o) => <BlurRise at={0.1} text="عبارة مفتاحية من كلامه" x={r[0]} w={r[2]} y={r[1] + Math.round(r[3] * 0.12)} size={o === "land" ? 46 : 56} color={o === "land" ? BRAND.ink : "#fff"} canvasW={o === "land" ? 1920 : 1080} />,
   BookPage: (r) => <BookPage at={0.1} x={r[0]} y={r[1]} w={r[2]} h={r[3]} src="books/bukhari2.jpg" line={{ y: Math.round(r[3] * 0.35), h: 64 }} book="صحيح البخاري" part="1" page="45" until={9} />,
@@ -222,7 +230,6 @@ const AT_SLOT: Record<string, (r: Rect, o: Orient) => React.ReactNode> = {
   // his key word in the half screen: under his own window (landscape), under the source panel (portrait)
   Word: (r, o) => <Word text="كلمة مفتاحية" at={0.1} until={3} x={r[0] + r[2] / 2} y={r[1] + r[3] / 2} size={o === "land" ? 58 : 60} />,
   // the map fills the frame behind him (isolated background)
-  MapRoute: (r, o) => <MapRoute at={0.1} until={3} x={r[0]} y={r[1]} w={r[2]} h={r[3]} center={o === "land" ? [41.5, 34.93] : [39.44, 33.13]} spanLat={o === "land" ? 7 : 12} highlight={["Syria"]} pts={[{ name: "دمشق", lon: 36.3, lat: 33.5, at: 0.3 }, { name: "حلب", lon: 37.2, lat: 36.2, at: 0.7 }]} legs={[{ from: [36.3, 33.5], to: [37.2, 36.2], at: 1.0, dur: 1 }]} />,
   // the spotlight's dimming stays inside the slot: it never darkens his face (PREFERENCES: لا تغطية وجهه)
   SpotlightCard: (r) => <div style={{ position: "absolute", inset: 0, clipPath: `inset(${r[1]}px calc(100% - ${r[0] + r[2]}px) calc(100% - ${r[1] + r[3]}px) ${r[0]}px round 18px)` }}><SpotlightCard at={0.1} card={{ x: r[0], y: r[1], w: r[2], h: r[3] }} lockAt={1.2} stops={[[r[0] + r[2] * 0.3, r[1] + r[3] * 0.3], [r[0] + r[2] * 0.7, r[1] + r[3] * 0.6], [r[0] + r[2] * 0.5, r[1] + r[3] * 0.45]]}><Page /></SpotlightCard></div>,
   ConvergeMerge: (r) => <ConvergeMerge at={0.1} mergeAt={1.9} x={r[0] + 150} y={r[1] + 40} w={r[2] - 150} h={r[3] - 80} sources={["المصدر الأول", "المصدر الثاني", "المصدر الثالث"]} sourceAt={[0.1, 0.6, 1.1]} result="النتيجة الواحدة" rtl />,
@@ -235,12 +242,12 @@ const AT_SLOT: Record<string, (r: Rect, o: Orient) => React.ReactNode> = {
 
 /** one element alone in its screen mode; the live gallery plays this in Remotion Player (user 2026-10-28: «الصفحة تكتب العناصر برمجياً لا صوراً»).
  *  The orientation is the composition's shape; `slot` overrides the element's slot (gallery grid mode), dx/dy nudge it. */
-export const LabScene: React.FC<{ id: string; brand?: BrandName; slot?: string; dx?: number; dy?: number }> = ({ id, brand, slot, dx = 0, dy = 0 }) => {
+export const LabScene: React.FC<{ id: string; brand?: BrandName; slot?: string; dx?: number; dy?: number; scale?: number }> = ({ id, brand, slot, dx = 0, dy = 0, scale = 1 }) => {
   applyBrand(brand);
   useFonts();
   const { width, height } = useVideoConfig();
   const o: Orient = width > height ? "land" : "port";
-  const real = realScene(id, brand, dx, dy, o);
+  const real = realScene(id, brand, dx, dy, o, scale);
   if (real) return <AbsoluteFill style={{ overflow: "hidden" }}>{real}</AbsoluteFill>;
   if (TRANSITIONS[id]) return <TransitionScene id={id} brand={brand} />;
   const m = META[id] ?? { mode: "full" as Mode, slot: { land: "frame", port: "frame" } };
@@ -250,7 +257,10 @@ export const LabScene: React.FC<{ id: string; brand?: BrandName; slot?: string; 
   // a whole-frame drawing in portrait goes into the portrait grid of its mode (half → the source panel, iso → the whole frame, full → the band under the beard)
   const to = native || isBg(id) ? null : slotRect(o, m.mode, sl) ?? (o === "port" && sl === "frame" ? slotRect("port", m.mode, m.mode === "half" ? "panel" : m.mode === "iso" ? "back" : "band") : null);
   const own = AT_SLOT[id] && (to || sl === "frame") ? <div style={{ position: "absolute", inset: 0, transform: `translate(${dx}px, ${dy}px)` }}>{AT_SLOT[id](to ?? [0, 0, width, height], o)}</div> : null;
-  const node = native ?? own ?? (e ? (isBg(id) ? e.node : <Fit key={o + sl} to={to} dx={dx} dy={dy}>{e.node}</Fit>) : null);
+  const node0 = native ?? own ?? (e ? (isBg(id) ? e.node : <Fit key={o + sl} to={to} dx={dx} dy={dy}>{e.node}</Fit>) : null);
+  // the user's resize from the gallery grid mode: the element grows/shrinks about the centre of its own place (never the background or his picture)
+  const cx = (to ? to[0] + to[2] / 2 : width / 2) + dx, cy = (to ? to[1] + to[3] / 2 : height / 2) + dy;
+  const node = scale !== 1 && node0 && !isBg(id) ? <div style={{ position: "absolute", inset: 0, transform: `scale(${scale})`, transformOrigin: `${cx}px ${cy}px` }}>{node0}</div> : node0;
   return (
     <MGTheme theme="steel">
       <AbsoluteFill style={{ overflow: "hidden", background: BRAND.base }}>

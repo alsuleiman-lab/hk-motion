@@ -46,7 +46,7 @@ const walk = (f) => {
   }
 };
 // a data-driven montage (data/specs/<id>.json, src/MontageSpec.tsx): count each item as the kit component the renderer draws for it (2026-10-27)
-const SPEC_KIT = { blur: "BlurRise", pic: "SourceWalk", rewrite: "RewriteWindow", flash: "FlashCut", phone: "PhoneChips", word: "KeyChip", torn: "TornNote", rows: "StatRow", subscribe: "Subscribe", nameTag: "NameTag", tphoto: "TornPhoto", scraps: "WordScraps", clock: "Clock", verse: "VerseWords", news: "NewsClip" };
+const SPEC_KIT = { blur: "BlurRise", pic: "SourceWalk", rewrite: "RewriteWindow", flash: "FlashCut", phone: "PhoneChips", word: "KeyChip", torn: "TornNote", rows: "StatRow", subscribe: "Subscribe", nameTag: "NameTag", tphoto: "TornPhoto", scraps: "WordScraps", clock: "Clock", verse: "VerseWords", news: "NewsClip", brushx: "BrushX" };   // brushx = the red strike over a picture («شطب»)
 if (file.endsWith(".json")) {
   const spec = JSON.parse(fs.readFileSync(file, "utf8"));
   // one use = one item: a land-only copy and a port-only copy of the same element (same type, same start) are ONE use in the video

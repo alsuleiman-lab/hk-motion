@@ -1,7 +1,9 @@
+import { z } from "zod";
+import { galleryPlace } from "./galleryPlace";
 import React from "react";
-import { AbsoluteFill, Audio, Img, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Img, Sequence, continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { PaperTear } from "./PaperTear";
-import { Gfx, NoteCard, HandheldShake, SourceWalk, BlurRise, RewriteWindow, FlashCut, PinnedPhoto, TimelineTravel, PanelToCanvas, Clock, DashArc, useT } from "./MG";
+import { Gfx, BrushX, NoteCard, HandheldShake, SourceWalk, BlurRise, RewriteWindow, FlashCut, PinnedPhoto, TimelineTravel, PanelToCanvas, Clock, DashArc, useT } from "./MG";
 import { KeyChip, ReelVerseFull, VerseWords } from "./MGExtras";
 import { TitleBar } from "./TitleBar";
 import type { BarTheme } from "./TitleBar";
@@ -21,7 +23,9 @@ import { BRAND, applyBrand } from "./brand";
 import type { BrandName } from "./brand";
 import { MaskedVideo } from "./MaskedVideo";
 import { DEBATE_LAYOUTS } from "./DebateLayouts";
+import { HybridHost, HybridBg, VSlot, HY, hyBg } from "./hybrid/Slot";
 import type { DebateLayoutName } from "./DebateLayouts";
+import { BgClip, HClip, Watermark, FxStage, HorrorVeil, TailFade, TvOff, WeightsOnBack } from "./GazaFx";
 
 /**
  * MontageSpec — a montage as DATA (idea of the user, 2026-10-26: «write each element once, copy it from a database, change one place and everything follows»).
@@ -37,8 +41,10 @@ import type { DebateLayoutName } from "./DebateLayouts";
  */
 type Mark = { x: number; y: number; w: number; h: number; at: number };
 /** landscape override of one item (any field of the item that is a position/size, plus skip) */
-export type Land = { x?: number; y?: number; w?: number; h?: number; photoH?: number; size?: number; origin?: string; marker?: Mark; skip?: boolean };
-type Common = { only?: "port" | "land"; land?: Land };
+export type Land = { x?: number; y?: number; w?: number; h?: number; photoH?: number; size?: number; origin?: string; marker?: Mark; skip?: boolean; dx?: number; dy?: number; k?: number };
+/** every item, whatever its type, carries the same placement data in each orientation (user 2026-11-09: «لازم كل العناصر يكون لها بيانات كاملة»):
+ *  dx / dy = move in px, k = scale about the centre of what the item draws; portrait on the item, landscape in `land` */
+type Common = { only?: "port" | "land"; land?: Land; dx?: number; dy?: number; k?: number };
 export type SpecItem = Common & (
   | { t: "word"; text: string; at: number; until: number; x: number; y: number; size?: number; tone?: "gold" | "cream"; flag?: string }
   | { t: "blur"; text: string; at: number; until: number; y: number; size?: number; accentWords?: number[]; x?: number; w?: number }   // x/w (portrait): a narrow left column under the opponent's card, text left-aligned (gallery note on BlurRise)
@@ -72,7 +78,7 @@ export type SpecItem = Common & (
   /** family tree on a paper card (user 2026-10-29): landscape = left half of a split screen (his frame slides right through `shifts`), portrait = card under the beard; node/link positions are relative (0..1) */
   | { t: "tree"; from: number; to: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number; nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number }
   /** paper map (user 2026-10-29): landscape = the whole frame behind his shrunk cut-out (`mini`), portrait = a card under the beard */
-  | { t: "pmap"; iso?: boolean; from: number; to: number; x: number; y: number; w: number; h: number; center: [number, number]; spanLat: number; landCenter?: [number, number]; landSpan?: number; highlight?: string[]; highlightAt?: Record<string, number>; geo?: "levant" | "world"; pts: MapPt[]; legs?: MapLeg[]; carSrc?: string; carW?: number }
+  | { t: "pmap"; atlas?: boolean; iso?: boolean; from: number; to: number; x: number; y: number; w: number; h: number; center: [number, number]; spanLat: number; landCenter?: [number, number]; landSpan?: number; highlight?: string[]; highlightAt?: Record<string, number>; geo?: "levant" | "world"; pts: MapPt[]; legs?: MapLeg[]; carSrc?: string; carW?: number }
   /** his isolated cut-out (needs `matte`) over a map, landscape only: full size until `shrinkAt`, then scaled to `scale` with his face moved to (cx, cy) */
   /** historical stations travelling on a timeline under him (skill timeline-and-numbers; user 2026-10-29): landscape = the lower half dims, portrait = the same 1920×1080 piece scaled into the lower third */
   | { t: "timeline"; stages: { at: number; date: string; title: string; sub?: string }[]; hold?: number; travel?: number; bandY?: number; axisK?: number; from?: number; to?: number; portTop?: number }
@@ -95,10 +101,25 @@ export type SpecItem = Common & (
   /** a country's flag springing in (PopCard around EuKit Flag) when he names the country */
   | { t: "flag"; code: FlagCode; at: number; until: number; x?: number; y?: number; w?: number }
   /** a date as a ready-made calendar motion graphic (PaperKit DateCalendar) */
-  | { t: "date"; text: string; sub?: string; at: number; until?: number; x?: number; y?: number; w?: number; h?: number }
+  | { t: "date"; text: string; sub?: string; from?: number /* a spoken starting number: the pages count from it (calendar shows only true data) */; at: number; until?: number; x?: number; y?: number; w?: number; h?: number }
   /** an explainer motion clip (src/Poison*.tsx; user 2026-11-05: «كيف تعمل السموم»), landscape only: `half` = left 960×1080 half (add a `shifts` window so his face stays clear), `sticker` = scaled over the video */
   | { t: "poison"; id: string; at: number; until: number; mode: "half" | "sticker"; x?: number; y?: number; scale?: number; map?: [number, number][]; parts?: string[]; refs?: { n: number; at: number }[]; badges?: boolean }
   | { t: "mini"; from: number; to: number; shrinkAt: number; scale: number; cx: number; cy: number; matte?: { src: string; start?: number } }
+  /** user-ordered effects of one video (src/GazaFx.tsx): a clip fills the screen behind him (pair with a `behind` window), a clip on half the screen (pair with `shifts` / `psplits`),
+   *  a fading watermark, a zoom+flash transition at `at`, and the horror grade over everything */
+  | { t: "bgclip"; src: string; from: number; to: number; fade?: number; start?: number; dim?: number }
+  | { t: "hclip"; src: string; from: number; to: number; start?: number; zoom?: number; fx?: number; fy?: number; label?: string }
+  | { t: "wm"; text: string; from: number; to: number; opacity?: number; ramp?: number; x?: number; y: number; size?: number; rot?: number }
+  | { t: "zoomblend"; at: number; amt?: number }
+  | { t: "horror"; from: number; to: number }
+  /** CRT screen switching off over everything from `at` (user order inside «فضل شاكر», 2026-11-10) */
+  | { t: "tvoff"; at: number; dur?: number }
+  /** full-screen «الأوزار على ظهره» scene (src/GazaFx.tsx WeightsOnBack; user order inside «فضل شاكر», 2026-11-10) */
+  | { t: "weights"; at: number; until: number; fig: string; crowd: string; n?: number }
+  /** the gallery BrushX: a red hand-brushed X over a picture he rejects (user 2026-11-10: «حط عليها اكس»); x/y/w/h are landscape px of the picture */
+  | { t: "brushx"; at: number; x: number; y: number; w: number; h: number; until?: number }
+  /** a person's cut-out (background removed) that PEEKS in from the bottom-right corner like someone leaning in at a window, then draws back (user order inside «سانت رامبال», 2026-11-11); `ar` = height / width of the PNG, `dx` shifts it sideways (a second head behind the first) */
+  | { t: "peek"; src: string; ar: number; at: number; until: number; w?: number; dx?: number; corner?: "br" | "bl"; say?: string }
 );
 
 export type MontageSpec = {
@@ -108,6 +129,7 @@ export type MontageSpec = {
   showTitleBar?: boolean;             // whether to render TitleBar (in lessons and streams: NO title bar, user 2026-11-05)
   cams?: { from: number; to: number; cx: number }[];
   zooms?: { from: number; to: number; amt?: number }[];
+  /** gallery grid mode only (user 2026-11-09): moves / resizes the whole graphics layer for elements whose fields carry no x / y / size; (ox, oy) = the scale origin */
   shake?: { from: number; to: number }[];
   /** windows where the source recording has a baked-in split (clip left | him right): landscape = the reply model `layout` behind a curtain (default "dossier" = الملف, user 2026-10-30;
    *  blocks | dossier, src/DebateLayouts.tsx;); portrait = his slice + the clip as a tilted card at his shoulder (x/w are source px) */
@@ -115,7 +137,7 @@ export type MontageSpec = {
   /** an audio message added after his video: plays `src` from `from` s (+ voice card with a waveform and cycling photos) */
   tail?: { from: number; to: number; src: string; label: string; photos: string[] };
   /** light sound effects at transitions / element entries (user 2026-11-06: light, varied, not loud, not many): src under public/sfx, at = seconds on the cut timeline, vol relative to speech (≤ 0.06) */
-  sfx?: { src: string; at: number; vol: number }[];
+  sfx?: { src: string; at: number; vol: number; only?: "land" | "port"; dur?: number /* seconds the sound plays (default 1.5) */ }[];
   /** the colour palette of the one identity (src/brand.ts PALETTES; default steel) */
   brand?: BrandName;
   /** "full" = the whole video (landscape and/or full portrait, same timeline); "reel" = a chosen excerpt ≤ 3 min, portrait only (hook 10–15 s, full-screen verses) */
@@ -130,7 +152,9 @@ export type MontageSpec = {
   /** landscape split screen: his frame slides right by `dx` px between from and to (eased 0.4 s) so a left-hand panel (family tree) gets half the screen */
   shifts?: { from: number; to: number; dx: number }[];
   /** windows (cut seconds) where he is drawn over the full-screen pictures and the clip card (needs `matte`) */
-  behind?: { only?: "port" | "land"; from: number; to: number; matte?: { src: string; startFrom?: number; start?: number }; dx?: number }[];
+  behind?: { only?: "port" | "land"; from: number; to: number; matte?: { src: string; startFrom?: number; start?: number }; dx?: number; fade?: number /* his cut-out dissolves over the last `fade` s */ }[];
+  /** set by the gallery only: its item already carries the place being edited, so the saved gallery place is not added again */
+  galleryOwn?: boolean;
   items: SpecItem[];
 };
 
@@ -140,7 +164,42 @@ const ROWS = {
   land: { x: 40, w: 600, bannerY: 150, rowY: (i: number, t: boolean) => (t ? 285 : 150) + i * 185, rowH: 160, bannerSize: 38 },
 };
 
-const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.ReactNode => {
+/** a cut-out head leaning in from the bottom corner: it slides up with a tilt, holds, and draws back (no fading: position and rotation only) */
+// a head-and-shoulders cut-out leans in from the bottom corner, tilted, then drops back (user 2026-11-11); `say` = a paper speech bubble from his head (user: «فقاعة عادي»)
+export const PeekIn: React.FC<{ src: string; ar: number; at: number; until: number; w: number; dx: number; corner: "br" | "bl"; z: number; say?: string }> = ({ src, ar, at, until, w, dx, corner, z, say }) => {
+  const f = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const t = f / fps, IN = 0.5, OUT = 0.5;
+  const ease = (x: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
+  const p = Math.min(ease((t - at) / IN), ease((until - t) / OUT));
+  if (p <= 0) return null;
+  const h = w * ar, sx = corner === "br" ? 1 : -1;
+  const sway = Math.sin((t - at) * 3.2) * 1.2 * p;
+  const side = corner === "br" ? { right: 20 + dx } : { left: 20 + dx };
+  return <div style={{ position: "absolute", ...side, bottom: 0, width: w, height: h, zIndex: z, transformOrigin: corner === "br" ? "100% 100%" : "0% 100%", transform: `translate(${sx * (1 - p) * w * 0.55}px, ${(1 - p) * h * 1.02}px) rotate(${sx * (-(1 - p) * 16 + sway)}deg)`, filter: "drop-shadow(0 8px 14px rgba(0,0,0,.45))" }}>
+    <Img src={staticFile(src)} style={{ width: "100%", height: "100%" }} />
+    {say ? <PeekSay text={say} t={t - at - 0.45} out={until - t} corner={corner} w={w} h={h} /> : null}
+  </div>;
+};
+// the bubble pops out of the head once it is up (spring scale from the tail, no opacity fade), and shrinks back into it before the head drops
+const PeekSay: React.FC<{ text: string; t: number; out: number; corner: "br" | "bl"; w: number; h: number }> = ({ text, t, out, corner, w, h }) => {
+  const pop = (x: number) => { x = Math.min(1, Math.max(0, x)); return x <= 0 ? 0 : 1 + 0.18 * Math.sin(x * Math.PI * 1.15) * (1 - x) * 2.2 - (1 - x) * (1 - x); };
+  const k = Math.max(0, Math.min(pop(t / 0.32), pop(out / 0.28 - 0.4)));
+  if (k <= 0) return null;
+  const bw = Math.max(200, w * 0.62), bh = bw * 0.46, R = corner === "bl";
+  return <div style={{ position: "absolute", [R ? "left" : "right"]: w * 0.78, top: -bh * 0.55, width: bw, height: bh, transformOrigin: R ? "0% 100%" : "100% 100%", transform: `scale(${k}) rotate(${R ? -4 : 4}deg)` }}>
+    <svg width={bw} height={bh * 1.28} viewBox={`0 0 ${bw} ${bh * 1.28}`} style={{ position: "absolute", inset: 0, overflow: "visible", filter: "drop-shadow(0 6px 10px rgba(0,0,0,.4))" }}>
+      <path d={`M ${bw * 0.06} ${bh * 0.12} Q ${bw * 0.02} ${bh * 0.02} ${bw * 0.14} ${bh * 0.03} L ${bw * 0.9} 0 Q ${bw} ${bh * 0.02} ${bw * 0.97} ${bh * 0.16} L ${bw * 0.95} ${bh * 0.86} Q ${bw * 0.94} ${bh} ${bw * 0.82} ${bh * 0.97} L ${R ? bw * 0.3 : bw * 0.7} ${bh * 0.96} L ${R ? bw * 0.04 : bw * 0.96} ${bh * 1.26} L ${R ? bw * 0.18 : bw * 0.82} ${bh * 0.95} L ${bw * 0.12} ${bh * 0.94} Q ${bw * 0.03} ${bh * 0.92} ${bw * 0.04} ${bh * 0.8} Z`} fill="#f4ecd8" stroke="#2b2621" strokeWidth={4} strokeLinejoin="round" />
+    </svg>
+    <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontFamily: "Noto Kufi Arabic", fontWeight: 800, fontSize: bh * 0.46, color: "#2b2621", direction: "rtl" }}>{text}</div>
+  </div>;
+};
+const placed = (it: SpecItem, i: number, o: Orient, n: React.ReactNode): React.ReactNode => {
+  const p = o === "land" ? it.land : it, dx = p?.dx ?? 0, dy = p?.dy ?? 0, k = p?.k ?? 1;
+  return n && (dx || dy || k !== 1) ? <GxLayer key={"place" + i} gx={{ dx, dy, k }}>{n}</GxLayer> : n;
+};
+const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.ReactNode => placed(it, i, o, renderItemRaw(it, i, o, bar));
+const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.ReactNode => {
   if (it.only && it.only !== o) return null;
   const L = o === "land", ov: Land = it.land ?? {}, G = LANDSCAPE.left;
   if (L && ov.skip) return null;
@@ -159,6 +218,8 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
       const x = L ? ov.x ?? 40 : it.x ?? Math.round((1080 - w) / 2);
       return <Only key={i} from={it.at} to={it.until}><NoteCard at={it.at} x={x} y={L ? ov.y ?? 150 : it.y ?? 1440} w={w} h={h} label={it.label ?? "حديث شريف"} tag={it.tag} title={it.title} lines={0} size={size} cps={it.cps ?? Math.max(10, Math.round([...it.title].length / Math.max(2, it.until - it.at - 1.2)))} /></Only>;
     }
+    case "peek": return <Only key={i} from={it.at} to={it.until}><PeekIn src={it.src} ar={it.ar} at={it.at} until={it.until} w={it.w ?? (L ? 400 : 460)} dx={it.dx ?? 0} corner={it.corner ?? "bl"} z={i} say={it.say} /></Only>;
+    case "brushx": return L ?<BrushX key={i} at={it.at} x={ov.x ?? it.x} y={ov.y ?? it.y} w={ov.w ?? it.w} h={ov.h ?? it.h} until={it.until} /> : null;
     case "poison":
       return L ? <PoisonClip key={i} id={it.id} at={it.at} until={it.until} x={it.mode === "half" ? 0 : it.x ?? 16} y={it.mode === "half" ? 0 : it.y ?? 150} scale={it.mode === "half" ? 1 : it.scale ?? 0.7} cfg={{ map: it.map, only: it.parts, nobadges: !it.badges }} refs={it.refs ?? []} /> : null;
     case "nameTag": {   // the old NameTag was dropped in the gallery (2026-10-28): the approved name card 1, or 3 with style "pinned"
@@ -232,7 +293,7 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
       const x = L ? ov.x ?? 30 : it.x, y = L ? ov.y ?? 60 : it.y, w = L ? ov.w ?? 820 : it.w, h = L ? ov.h ?? 900 : it.h;
       return <FamilyTree key={i} from={it.from} until={it.to} x={x} y={y} w={w} h={h} title={it.title} titleAt={it.titleAt} nodes={it.nodes} links={it.links} nodeW={it.nodeW} nodeH={it.nodeH} font={it.font} />;
     }
-    case "pmap": return L || it.iso ? null : <PaperMap key={i} at={it.from} until={it.to} x={it.x} y={it.y} w={it.w} h={it.h} center={it.center} spanLat={it.spanLat} highlight={it.highlight} highlightAt={it.highlightAt} geo={it.geo} pts={it.pts} legs={it.legs} carSrc={it.carSrc} carW={it.carW} />;
+    case "pmap": return L || it.iso ? null : <PaperMap key={i} at={it.from} until={it.to} x={it.x} y={it.y} w={it.w} h={it.h} center={it.center} spanLat={it.spanLat} highlight={it.highlight} highlightAt={it.highlightAt} geo={it.geo} atlas={it.atlas} pts={it.pts} legs={it.legs} carSrc={it.carSrc} carW={it.carW} />;
     case "mini": return null;
     case "treefx": return L ? null : <TreeFx key={i} skin={it.skin} from={it.from} until={it.to} x={it.x} y={it.y} w={it.w} h={it.h} title={it.title} titleAt={it.titleAt} nodes={it.nodes} links={it.links} nodeW={it.nodeW} nodeH={it.nodeH} font={it.font} titleSize={it.titleSize} />;   // landscape: base layer under him, see MontageFromSpec
     case "torn": {
@@ -245,10 +306,10 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
     case "timeline": return L
       ? <TimelineTravel key={i} stages={it.stages} hold={it.hold} travel={it.travel} bandY={it.bandY} axisK={it.axisK} compact />
       : <div key={i} style={{ position: "absolute", left: 0, top: it.portTop ?? 1313, width: 1920, height: 1080, transform: "scale(0.5625)", transformOrigin: "0 0" }}><TimelineTravel stages={it.stages} hold={it.hold} travel={it.travel} compact /></div>;
-    case "scholar": return <Only key={i} from={it.at} to={it.until ?? it.at + 6}><PinnedPhoto at={it.at} x={L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 40} y={L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1360} w={it.w ?? 300} h={it.h ?? 370} name={it.name} sub={it.sub} rot={-3}><Pic src={it.src} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: it.pos ?? "50% 20%" }} /></PinnedPhoto></Only>;
+    case "scholar": return <Only key={i} from={it.at} to={it.until ?? it.at + 6}><PinnedPhoto at={it.at} x={L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 40} y={L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1360} w={(L ? ov.w : undefined) ?? it.w ?? 300} h={(L ? ov.h : undefined) ?? it.h ?? 370} name={it.name} sub={it.sub} rot={-3}><Pic src={it.src} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: it.pos ?? "50% 20%" }} /></PinnedPhoto></Only>;
     case "tphoto": {
       // several photos named in one breath (the books of one sentence) stand SIDE BY SIDE, each popping up at its word, all leaving together (user 2026-10-31)
-      const w = (L ? ov.w : undefined) ?? it.w ?? 300, h = (L ? ov.h : undefined) ?? it.h ?? 370, x0 = L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 40, y0 = L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1360;
+      const w = (L ? ov.w : it.w) ?? 300, h = (L ? ov.h : it.h) ?? 370, x0 = L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 40, y0 = L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1360;
       const all = [{ src: it.src, name: it.name, at: it.at }, ...(it.also ?? [])], n = all.length;
       return <React.Fragment key={i}>{all.map((p, j) => <TornPhoto key={j} at={p.at} until={it.until ?? it.at + 6} x={x0 + (n - 1 - j) * (w + 24)} y={y0} w={w} h={h} src={p.src} name={p.name} pos={it.pos} />)}</React.Fragment>;
     }
@@ -259,34 +320,41 @@ const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.Re
       const A = L && it.landA ? { ...it.a, ...it.landA } : it.a, B = L && it.landB ? { ...it.b, ...it.landB } : it.b;
       const photo = (q: typeof it.a, rot: number) => <PinnedPhoto at={it.at} x={q.x} y={q.y} w={q.w ?? 300} h={q.h ?? 380} name={q.name} rot={rot}><Pic src={q.src} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 20%" }} /></PinnedPhoto>;
       const ax = A.x + (A.w ?? 300) / 2, bx = B.x + (B.w ?? 300) / 2;
-      return <Only key={i} from={it.at} to={it.until}>{photo(A, -3)}{photo(B, 2)}<DashArc at={it.arcAt ?? it.at + 0.5} x1={ax} y1={A.y + (A.h ?? 380) + 60} x2={bx} y2={B.y + (B.h ?? 380) + 60} under lift={L ? it.landLift ?? 110 : 110} /></Only>;
+      return <Only key={i} from={it.at} to={it.until}>{photo(A, -3)}{photo(B, 2)}<DashArc at={it.arcAt ?? it.at + 0.5} x1={ax} y1={A.y + (A.h ?? 380) + 60} x2={bx} y2={B.y + (B.h ?? 380) + 60} under lift={L ? it.landLift ?? 200 : 110} /></Only>;
     }
-    case "date": return <DateCalendar key={i} at={it.at} until={it.until ?? it.at + 5} x={L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 300} y={L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1330} w={(L ? ov.w : undefined) ?? it.w ?? 340} text={it.text} sub={it.sub} />;
-    case "flag": { const w = it.w ?? 220; return <Only key={i} from={it.at} to={it.until}><PopCard at={it.at} x={L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 60} y={L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1360}><Flag c={it.code} w={w} h={Math.round(w * 0.67)} /></PopCard></Only>; }
-    default: return null; // "full" is a base-layer item and "cover" a top-layer item (below)
+    case "date": return <DateCalendar key={i} at={it.at} until={it.until ?? it.at + 5} x={L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 300} y={L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1330} w={(L ? ov.w : undefined) ?? it.w ?? 340} text={it.text} sub={it.sub} from={it.from} />;
+    case "flag": { const w = L ? ov.w ?? 220 : it.w ?? 220; /* each orientation reads ITS OWN size (user 2026-11-09: never mix landscape and portrait positions/sizes) */ return <Only key={i} from={it.at} to={it.until}><PopCard at={it.at} x={L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 60} y={L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1360}><Flag c={it.code} w={w} h={Math.round(w * 0.67)} /></PopCard></Only>; }
+    case "wm": return L ? <Watermark key={i} text={it.text} from={it.from} to={it.to} opacity={it.opacity} ramp={it.ramp} x={ov.x ?? it.x} y={ov.y ?? it.y} size={ov.size ?? it.size} rot={it.rot} /> : <Watermark key={i} text={it.text} from={it.from} to={it.to} opacity={it.opacity} ramp={it.ramp} x={it.x} y={it.y} size={it.size} rot={it.rot} />;
+    default: return null; // "full" is a base-layer item and "cover" a top-layer item (below); bgclip / hclip / zoomblend / horror are layers of MontageFromSpec
   }
 };
 
 
 /** push-in easing: smoothstep, no constant-speed ramp (user 2026-10-30: «فيه رجفة») */
-const ease = (x: number) => x * x * (3 - 2 * x);
+/** quintic smootherstep: zero velocity AND acceleration at both ends, so a push-in never jerks (user 2026-11-09: «فيه رجفة») */
+const smoother2 = (x: number) => x * x * x * (x * (x * 6 - 15) + 10);
 type Split = NonNullable<MontageSpec["splits"]>[number];
 const CARD_BORDER = 14, CARD_STRIP = 56, CARD_H = 800;
 /** one polaroid card showing the source-pixel column [x, x+w) of the cut at height CARD_H */
 const CropPolaroid: React.FC<{ cut: string; x: number; w: number; y?: number; h?: number; name: string; left: number; top: number; rot: number; innerH?: number; blur?: number }> = ({ cut, x, w, name, left, top, rot, innerH = CARD_H, blur, y = 0, h = 1080 }) => {
   const k = innerH / h, iw = Math.round(w * k);
   return (
-    <div style={{ position: "absolute", left, top, width: iw + CARD_BORDER * 2, height: innerH + CARD_BORDER * 2 + CARD_STRIP, background: BRAND.card, borderRadius: 12, transform: `rotate(${rot}deg)`, boxShadow: "0 14px 34px rgba(0,0,0,.45)" }}>
-      <div style={{ position: "absolute", left: CARD_BORDER, top: CARD_BORDER, width: iw, height: innerH, overflow: "hidden", background: "#000" }}>
-        <RV src={staticFile(cut)} style={{ position: "absolute", left: -x * k, top: -y * k, width: 1920 * k, height: 1080 * k, ...(blur ? { filter: `blur(${blur}px)` } : {}) }} />
+    <div style={{ position: "absolute", left, top, width: iw + CARD_BORDER * 2, height: innerH + CARD_BORDER * 2 + CARD_STRIP, background: hyBg(BRAND.card), borderRadius: 12, transform: `rotate(${rot}deg)`, boxShadow: "0 14px 34px rgba(0,0,0,.45)" }}>
+      {HY ? <>{/* hybrid: the video is composited under the graphics, so the card is drawn as a frame (an opaque card background would hide it) */}
+        <div style={{ position: "absolute", left: 0, top: 0, width: iw + CARD_BORDER * 2, height: CARD_BORDER, background: BRAND.card, borderRadius: "12px 12px 0 0" }} />
+        <div style={{ position: "absolute", left: 0, top: 0, width: CARD_BORDER, height: innerH + CARD_BORDER * 2 + CARD_STRIP, background: BRAND.card, borderRadius: "12px 0 0 12px" }} />
+        <div style={{ position: "absolute", right: 0, top: 0, width: CARD_BORDER, height: innerH + CARD_BORDER * 2 + CARD_STRIP, background: BRAND.card, borderRadius: "0 12px 12px 0" }} />
+        <div style={{ position: "absolute", left: 0, bottom: 0, width: iw + CARD_BORDER * 2, height: CARD_STRIP + CARD_BORDER, background: BRAND.card, borderRadius: "0 0 12px 12px" }} /></> : null}
+      <div style={{ position: "absolute", left: CARD_BORDER, top: CARD_BORDER, width: iw, height: innerH, overflow: "hidden", background: hyBg("#000") }}>
+        {HY ? <VSlot src={cut} w={iw} h={innerH} vx={-x * k} vy={-y * k} vw={1920 * k} vh={1080 * k} /> : <RV src={staticFile(cut)} style={{ position: "absolute", left: -x * k, top: -y * k, width: 1920 * k, height: 1080 * k, ...(blur ? { filter: `blur(${blur}px)` } : {}) }} />}
       </div>
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: CARD_STRIP, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", fontFamily: "Noto Kufi Arabic", fontWeight: 800, fontSize: 28, color: BRAND.ink }}>{name}</div>
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: CARD_STRIP, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", fontFamily: "Noto Kufi Arabic", fontWeight: 800, fontSize: Math.min(28, Math.floor((iw + CARD_BORDER * 2 - 16) / (name.length * 0.62))), whiteSpace: "nowrap", color: BRAND.ink }}>{name}</div>
     </div>
   );
 };
 /** landscape: only his slice of a baked-split recording, centred on the decorated base (the clip beside him is never shown) */
 const SoloLand: React.FC<{ cut: string; sp: NonNullable<MontageSpec["solos"]>[number]; zooms?: MontageSpec["zooms"] }> = ({ cut, sp, zooms = [] }) => {
-  const t = useT(0), zz = zooms.find((q) => t >= q.from - 0.01 && t <= q.to + 0.5), zm = zz ? 1 + (zz.amt ?? 0.08) * ease(Math.min(clamp((t - zz.from) / 0.6), clamp((zz.to + 0.5 - t) / 0.7))) : 1, s = sp.scale ?? 1, w = sp.sheikh.w * s, h = LANDSCAPE.H * s, centered = (sp.center ?? []).some((c) => t >= c.from && t < c.to);
+  const t = useT(0), zz = zooms.find((q) => t >= q.from - 0.01 && t <= q.to + 1.2), zm = zz ? 1 + (zz.amt ?? 0.08) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1, s = sp.scale ?? 1, w = sp.sheikh.w * s, h = LANDSCAPE.H * s, centered = (sp.center ?? []).some((c) => t >= c.from && t < c.to);
   return (
     <Only from={sp.from} to={sp.to}>
       <AbsoluteFill>
@@ -313,7 +381,7 @@ const PortPanel: React.FC<{ windows: NonNullable<MontageSpec["psplits"]>; top?: 
   const k = Math.min(clamp((t - w.from) / 0.4), clamp((w.to + 0.4 - t) / 0.4));
   return (
     <div style={{ position: "absolute", left: 0, top: top + (1 - k) * (1920 - top), width: 1080, height: 1920 - top, overflow: "hidden", borderTop: `8px solid ${BRAND.accent}`, boxSizing: "border-box" }}>
-      <div style={{ position: "absolute", left: 0, top: -top, width: 1080, height: 1920 }}>{w.panel === "parchment" ? <Parchment /> : <WarmBase />}</div>
+      <div style={{ position: "absolute", left: 0, top: -top, width: 1080, height: 1920 }}>{HY ? null : w.panel === "parchment" ? <Parchment /> : <WarmBase />}</div>
     </div>
   );
 };
@@ -369,11 +437,11 @@ export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: nu
   const dx = sh ? sh.dx * Math.min(clamp((t - sh.from) / 0.4), clamp((sh.to + 0.4 - t) / 0.4)) : 0;
   const sp = splits.find((x) => t >= x.from && t < x.to);
   if (sp) { const L = DEBATE_LAYOUTS[sp.layout ?? "dossier"]; return <L at={sp.from} main={{ src: cut, x: sp.sheikh.x, w: sp.sheikh.w }} guest={{ src: cut, x: sp.clip.x, w: sp.clip.w, y: sp.clip.y, h: sp.clip.h, blur: sp.blur }} guestName={sp.clipName} url={sp.clipUrl} />; }
-  const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 0.5);
-  const z = zz ? 1 + (zz.amt ?? 0.08) * ease(Math.min(clamp((t - zz.from) / 0.6), clamp((zz.to + 0.5 - t) / 0.7))) : 1;
+  const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 1.2);
+  const z = zz ? 1 + (zz.amt ?? 0.08) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1;
   return (
-    <AbsoluteFill style={{ background: BRAND.base, transform: `translate3d(${dx}px, 0, 0) scale(${Math.round(z * 10000) / 10000})`, willChange: "transform", transformOrigin: LANDSCAPE.faceOrigin }}>
-      <RV src={staticFile(cut)} style={{ position: "absolute", left: 0, top: 0, width: LANDSCAPE.W, height: LANDSCAPE.H }} />
+    <AbsoluteFill style={{ background: hyBg(BRAND.base), transform: `translate3d(${dx}px, 0, 0) scale(${z})`, willChange: "transform", transformOrigin: LANDSCAPE.faceOrigin }}>
+      {HY ? <VSlot src={cut} w={LANDSCAPE.W} h={LANDSCAPE.H} /> : <RV src={staticFile(cut)} style={{ position: "absolute", left: 0, top: 0, width: LANDSCAPE.W, height: LANDSCAPE.H }} />}
     </AbsoluteFill>
   );
 };
@@ -382,18 +450,18 @@ export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: nu
 const MaskedSheikh: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; o: Orient; cams?: MontageSpec["cams"]; zooms?: MontageSpec["zooms"]; dx?: number; from?: number }> = ({ cut, matte, o, cams, zooms = [], dx = 0, from = 0 }) => {
   const t = from + useCurrentFrame() / 30;     // inside a Sequence that starts at `from`
   const vStart = Math.round(from * 30), mStart = (matte.startFrom ?? 0) + Math.round((from - (matte.start ?? 0)) * 30);
-  const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 0.5);
-  const z = zz ? 1 + (zz.amt ?? 0.08) * ease(Math.min(clamp((t - zz.from) / 0.6), clamp((zz.to + 0.5 - t) / 0.7))) : 1;
+  const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 1.2);
+  const z = zz ? 1 + (zz.amt ?? 0.08) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1;
   if (o === "land") return (
-    <AbsoluteFill style={{ transform: `translate3d(${dx}px, 0, 0) scale(${Math.round(z * 10000) / 10000})`, willChange: "transform", transformOrigin: LANDSCAPE.faceOrigin }}>
-      <MaskedVideo video={cut} matte={matte.src} videoStartFrom={vStart} matteStartFrom={mStart} width={LANDSCAPE.W} height={LANDSCAPE.H} />
+    <AbsoluteFill style={{ transform: `translate3d(${dx}px, 0, 0) scale(${z})`, willChange: "transform", transformOrigin: LANDSCAPE.faceOrigin }}>
+      <MaskedVideo video={cut} matte={matte.src} videoStartFrom={vStart} matteStartFrom={mStart} width={LANDSCAPE.W} height={LANDSCAPE.H} floor={0.925} />
     </AbsoluteFill>
   );
   const cs = cams ?? [{ from: 0, to: 9999, cx: 990 }], cam = cs.find((c) => t >= c.from && t < c.to) ?? cs[cs.length - 1], K = 1920 / 1080;
   return (
     <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, transform: `scale(${z})`, transformOrigin: "540px 600px", overflow: "hidden" }}>
       <div style={{ position: "absolute", left: -(cam.cx - 304) * K, top: 0, width: 1920 * K, height: 1920 }}>
-        <MaskedVideo video={cut} matte={matte.src} videoStartFrom={vStart} matteStartFrom={mStart} width={Math.round(1920 * K)} height={1920} />
+        <MaskedVideo video={cut} matte={matte.src} videoStartFrom={vStart} matteStartFrom={mStart} width={Math.round(1920 * K)} height={1920} floor={0.925} />
       </div>
     </div>
   );
@@ -411,31 +479,83 @@ const MiniMe: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; 
 };
 
 /** every item type the renderer knows (= the elements approved in the gallery); anything else is an error, never silently skipped (user 2026-10-28) */
-const APPROVED_TYPES = new Set(["word", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "hadith", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date", "poison", "note"]);
+const APPROVED_TYPES = new Set(["word", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "hadith", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date", "poison", "note", "bgclip", "hclip", "wm", "zoomblend", "horror", "tvoff", "brushx", "peek", "weights"]);
 
-export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
+/** one item's placement data (dx, dy, k): moved by (dx, dy) and scaled by k about the CENTRE OF WHAT IT DRAWS, measured once on screen
+ *  (user 2026-11-09: «التكبير لم يعمل» — a fixed origin pushed left-column / top elements out of the frame); ox / oy, when given, win */
+const GxLayer: React.FC<{ gx: { dx: number; dy: number; k: number; ox?: number; oy?: number }; children: React.ReactNode }> = ({ gx, children }) => {
+  const { width } = useVideoConfig();
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [c, setC] = React.useState<[number, number] | null>(gx.ox !== undefined && gx.oy !== undefined ? [gx.ox, gx.oy] : null);
+  // the frame is laid out a moment after mount (its box is 0 × 0 at first), so the measure retries until it sees the element (≤ 2 s; renders wait for it)
+  React.useEffect(() => {
+    if (c) return;
+    const h = delayRender("gallery gx measure");
+    let n = 0, done = false;
+    const finish = () => { if (!done) { done = true; continueRender(h); } };
+    const id = setInterval(() => {
+      const root = ref.current; n++;
+      if (root) {
+        const b = root.getBoundingClientRect();
+        if (b.width > 10) {
+          const k = b.width / width;
+          let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+          const visit = (el: Element, d: number) => { for (const ch of Array.from(el.children)) {
+            const r = ch.getBoundingClientRect(), whole = r.width >= b.width * 0.95 && r.height >= b.height * 0.95;
+            if (r.width < 3 || r.height < 3 || whole) { if (d < 12) visit(ch, d + 1); continue; }
+            x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top); x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom);
+          } };
+          visit(root, 0);
+          if (x1 > x0) { setC([((x0 + x1) / 2 - b.left) / k, ((y0 + y1) / 2 - b.top) / k]); clearInterval(id); setTimeout(finish, 50); return; }
+        }
+      }
+      if (n > 40) { setC([width / 2, 0]); clearInterval(id); setTimeout(finish, 50); }
+    }, 50);
+    return () => { clearInterval(id); finish(); };
+  }, [c, width]);
+  // until measured the layer is drawn unscaled (only moved), so the measure is in the element's own coordinates
+  return <div ref={ref} style={{ position: "absolute", inset: 0, transform: `translate(${gx.dx}px, ${gx.dy}px)${c ? ` scale(${gx.k})` : ""}`, transformOrigin: c ? `${c[0]}px ${c[1]}px` : "0 0" }}>{children}</div>;
+};
+
+/** the gallery's place of each item type (src/galleryPlace.ts, user 2026-11-10: the gallery is the only reference) is added to every item, both orientations;
+ *  the gallery itself (spec.galleryOwn) shows the value being edited, so it is not added twice there */
+const withGallery = (s: MontageSpec): MontageSpec => s.galleryOwn ? s : { ...s, items: s.items.map((it) => {
+  const P = galleryPlace(it as { t: string; style?: string }, "port"), L = galleryPlace(it as { t: string; style?: string }, "land");
+  if (!P.dx && !P.dy && P.k === 1 && !L.dx && !L.dy && L.k === 1) return it;
+  const ld = it.land ?? {};
+  return { ...it, dx: (it.dx ?? 0) + P.dx, dy: (it.dy ?? 0) + P.dy, k: (it.k ?? 1) * P.k, land: { ...ld, dx: (ld.dx ?? 0) + L.dx, dy: (ld.dy ?? 0) + L.dy, k: (ld.k ?? 1) * L.k } } as SpecItem;
+}) };
+export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => {
+  const spec = withGallery(raw);
   for (const it of spec.items) if (!APPROVED_TYPES.has(it.t)) throw new Error(`عنصر غير معتمد في المعرض: «${it.t}» في ${spec.id} — المعتمد: ${[...APPROVED_TYPES].join("، ")}`);
   const f = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const o: Orient = width > height ? "land" : "port";
+  if (HY && ((o === "port" && spec.items.some((x) => x.t === "phone")) || (o === "land" && spec.psplits?.length) || spec.solos?.length || spec.items.some((x) => x.t === "mini" || x.t === "treefx"))) throw new Error(`المسار الهجين لا يدعم هذا المونتاج (${spec.id}): طولي أو solos/psplits/mini/treefx — استعمل الرندر العادي`);
   applyBrand(spec.brand);
   FONT_TITLE(); FONT_TEXT();
   const bar = spec.bar ?? BAR_WARM;
   const fulls = spec.items.filter((i): i is Extract<SpecItem, { t: "full" }> => i.t === "full" && (!i.only || i.only === o));
   const cover = spec.items.find((i): i is Extract<SpecItem, { t: "cover" }> => i.t === "cover" && (!i.only || i.only === o));
+  const mine = <T extends SpecItem["t"]>(k: T) => spec.items.filter((i): i is Extract<SpecItem, { t: T }> => i.t === k && (!i.only || i.only === o));
+  const bgclips = mine("bgclip"), hclips = mine("hclip"), pulses = mine("zoomblend"), horrors = mine("horror");
+  const hasFx = pulses.length > 0 || horrors.length > 0;
+  const wrapStage = (kids: React.ReactNode) => hasFx ? <FxStage pulses={pulses} horrors={horrors}>{kids}</FxStage> : <>{kids}</>;   // an element, not a component type: the videos inside never remount
   const body = o === "land"
     ? (spec.cut ? <LandFootage cut={spec.cut} zooms={spec.zooms} splits={spec.splits} shifts={spec.shifts} /> : null)
     : (spec.cut ? <SheikhLayers cut={spec.cut} cams={spec.cams ?? [{ from: 0, to: 9999, cx: 990 }]} zooms={spec.zooms} /> : null);
   return (
+    <HybridHost>
     <AbsoluteFill
       style={{
-        background: BRAND.base,
+        background: hyBg(BRAND.base),
         scale: 0.994
       }}
     >
       {spec.cut ? <Audio src={staticFile(spec.cut)} volume={0.8} /> : null}
-      {(spec.sfx ?? []).map((x, i) => <Sequence key={"sfx" + i} from={Math.max(0, Math.round(x.at * 30))} durationInFrames={45}><Audio src={staticFile(x.src)} volume={x.vol} /></Sequence>)}
-      {o === "port" || !spec.cut ? <WarmBase /> : null}
+      {(spec.sfx ?? []).filter((x) => !x.only || x.only === o).map((x, i) => <Sequence key={"sfx" + i} from={Math.max(0, Math.round(x.at * 30))} durationInFrames={x.dur ? Math.round(x.dur * 30) : 45}><Audio src={staticFile(x.src)} volume={x.vol} /></Sequence>)}
+      {o === "port" || !spec.cut ? (HY ? <HybridBg><WarmBase /></HybridBg> : <WarmBase />) : null}
+      {wrapStage(<>
       <Sequence from={0} durationInFrames={spec.tail ? Math.round(spec.tail.from * 30) : spec.frames}>{(() => { const b2 = o === "port" && spec.psplits?.length ? <PortSplit windows={spec.psplits}>{body}</PortSplit> : body; return spec.shake?.length ? <HandheldShake windows={spec.shake} amp={6} rot={0.4}>{b2}</HandheldShake> : b2; })()}</Sequence>
       {o === "port" && spec.psplits?.length ? <PortPanel windows={spec.psplits} /> : null}
       {o === "port" ? (spec.splits ?? []).map((sp, i) => spec.cut ? <PortraitClipCard key={i} cut={spec.cut} sp={cover && cover.style !== "kit" ? { ...sp, from: Math.max(sp.from, (cover.style === "pro" ? THUMBPRO_END : PAPER_COVER_END) / 30) } : sp} /> : null) : null}
@@ -446,19 +566,43 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
       {spec.tail ? <Sequence from={Math.round(spec.tail.from * 30)}><Audio src={staticFile(spec.tail.src)} volume={0.95} /></Sequence> : null}
       {spec.tail ? <TailVoice tl={spec.tail} /> : null}
       {fulls.map((x, i) => <FullImage key={i} src={x.src} from={x.from} to={x.to} origin={o === "land" ? x.land?.origin ?? x.origin : x.origin} marker={o === "land" ? x.land?.marker : x.marker} box={o === "land" ? undefined : x.box} />)}
+      {bgclips.map((x, i) => <BgClip key={"bg" + i} src={x.src} from={x.from} to={x.to} fade={x.fade} start={x.start} dim={x.dim} />)}
+      {hclips.map((x, i) => { const pv = hclips.find((y) => y !== x && x.from - y.to > -0.01 && x.from - y.to < 1), nx = hclips.find((y) => y !== x && y.from - x.to > -0.01 && y.from - x.to < 1);
+        return <HClip key={"hc" + i} src={x.src} from={pv ? (pv.to + x.from) / 2 : x.from} to={nx ? (x.to + nx.from) / 2 : x.to} start={Math.max(0, (x.start ?? 0) - (pv ? (x.from - (pv.to + x.from) / 2) : 0))} zoom={x.zoom} fx={x.fx} fy={x.fy} label={x.label} enter={!pv} leave={!nx} />; })}
       {/* the map is a base layer (under his isolated cut-out when the spec has `behind`); in portrait only for an isolated map (`iso`, user 2026-10-31: the map is an isolated-background element) */}
-      {spec.items.map((it, i) => it.t === "pmap" && !it.only && (o === "land" || it.iso) ? <PaperMap key={"pm" + i} at={it.from} until={it.to} x={o === "land" ? it.land?.x ?? 0 : it.x} y={o === "land" ? it.land?.y ?? 0 : it.y} w={o === "land" ? it.land?.w ?? 1920 : it.w} h={o === "land" ? it.land?.h ?? 1080 : it.h} center={o === "land" ? it.landCenter ?? it.center : it.center} spanLat={o === "land" ? it.landSpan ?? it.spanLat : it.spanLat} highlight={it.highlight} highlightAt={it.highlightAt} geo={it.geo} pts={it.pts} legs={it.legs} carSrc={it.carSrc} carW={it.carW} /> : null)}
+      {spec.items.map((it, i) => it.t === "pmap" && !it.only && (o === "land" || it.iso) ? placed(it, 1000 + i, o, <PaperMap key={"pm" + i} at={it.from} until={it.to} x={o === "land" ? it.land?.x ?? 0 : it.x} y={o === "land" ? it.land?.y ?? 0 : it.y} w={o === "land" ? it.land?.w ?? 1920 : it.w} h={o === "land" ? it.land?.h ?? 1080 : it.h} center={o === "land" ? it.landCenter ?? it.center : it.center} spanLat={o === "land" ? it.landSpan ?? it.spanLat : it.spanLat} highlight={it.highlight} highlightAt={it.highlightAt} geo={it.geo} atlas={it.atlas} pts={it.pts} legs={it.legs} carSrc={it.carSrc} carW={it.carW} />) : null)}
       {o === "land" && spec.cut ? spec.items.map((it, i) => it.t === "mini" && (it.matte ?? spec.matte) ? <Sequence key={"mi" + i} from={Math.round(it.from * 30)} durationInFrames={Math.round((it.to - it.from) * 30)}><MiniMe cut={spec.cut!} matte={(it.matte ?? spec.matte)!} it={it} /></Sequence> : null) : null}
-      {o === "land" ? spec.items.map((it, i) => it.t === "treefx" && !it.only ? <Only key={"tf" + i} from={it.from} to={it.to}>{it.skin === "parchment" ? <Parchment /> : <AbsoluteFill><WarmBase /></AbsoluteFill>}<TreeFx skin={it.skin} from={it.from} until={it.to} x={o === "land" ? it.land?.x ?? 20 : it.x} y={o === "land" ? it.land?.y ?? 50 : it.y} w={o === "land" ? it.land?.w ?? 880 : it.w} h={o === "land" ? it.land?.h ?? 980 : it.h} title={it.title} titleAt={it.titleAt} nodes={it.nodes} links={it.links} nodeW={o === "land" ? it.land?.nodeW ?? it.nodeW : it.nodeW} nodeH={o === "land" ? it.land?.nodeH ?? it.nodeH : it.nodeH} font={o === "land" ? it.land?.font ?? it.font : it.font} titleSize={o === "land" ? it.land?.titleSize ?? it.titleSize : it.titleSize} /></Only> : null) : null}
-      {spec.cut ? (spec.behind ?? []).map((w, i) => { const mt = w.matte ?? spec.matte; return mt && (!w.only || w.only === o) && (o === "land" || w.dx === undefined) ? <Sequence key={i} from={Math.round(w.from * 30)} durationInFrames={Math.round((w.to - w.from) * 30)}><MaskedSheikh cut={spec.cut!} matte={mt} o={o} cams={spec.cams} zooms={spec.zooms} dx={o === "land" ? w.dx : 0} from={w.from} /></Sequence> : null; }) : null}
+      {o === "land" ? spec.items.map((it, i) => it.t === "treefx" && !it.only ? <Only key={"tf" + i} from={it.from} to={it.to}>{it.skin === "parchment" ? <Parchment /> : <AbsoluteFill><WarmBase /></AbsoluteFill>}{placed(it, 2000 + i, o, <TreeFx skin={it.skin} from={it.from} until={it.to} x={o === "land" ? it.land?.x ?? 20 : it.x} y={o === "land" ? it.land?.y ?? 50 : it.y} w={o === "land" ? it.land?.w ?? 880 : it.w} h={o === "land" ? it.land?.h ?? 980 : it.h} title={it.title} titleAt={it.titleAt} nodes={it.nodes} links={it.links} nodeW={o === "land" ? it.land?.nodeW ?? it.nodeW : it.nodeW} nodeH={o === "land" ? it.land?.nodeH ?? it.nodeH : it.nodeH} font={o === "land" ? it.land?.font ?? it.font : it.font} titleSize={o === "land" ? it.land?.titleSize ?? it.titleSize : it.titleSize} />)}</Only> : null) : null}
+      {spec.cut ? (spec.behind ?? []).map((w, i) => { const mt = w.matte ?? spec.matte; return mt && (!w.only || w.only === o) && (o === "land" || w.dx === undefined) ? <Sequence key={i} from={Math.round(w.from * 30)} durationInFrames={Math.round((w.to - w.from) * 30)}><TailFade dur={w.to - w.from} fade={w.fade}><MaskedSheikh cut={spec.cut!} matte={mt} o={o} cams={spec.cams} zooms={spec.zooms} dx={o === "land" ? w.dx : 0} from={w.from} /></TailFade></Sequence> : null; }) : null}
+      </>)}
       <Gfx>
         {spec.items.map((it, i) => renderItem(it, i, o, bar))}
         {spec.showTitleBar ? <TitleBar title={spec.title} theme={bar} bottomHalf={o === "port"} /> : null}
       </Gfx>
+      {/* the ONLY transition of the user-ordered layers is the gallery Curtain (user 2026-11-09: no opacity transitions, nothing outside the gallery): where a clip hands over to the next clip of its group, and where a background clip / isolation ends */}
+      {o === "land" ? [...new Set([...hclips.flatMap((x) => hclips.filter((y) => y !== x && y.from - x.to > -0.01 && y.from - x.to < 1).map((y) => (x.to + y.from) / 2)), ...bgclips.map((x) => x.to), ...(spec.behind ?? []).filter((w) => w.dx !== undefined && (!w.only || w.only === "land")).flatMap((w) => [w.from, w.to])].map((v) => +v.toFixed(2)))].map((t) => <Curtain key={"gc" + t} at={t} />) : null}
+      {horrors.length ? <HorrorVeil windows={horrors} /> : null}
+      {mine("weights").map((x, i) => <WeightsOnBack key={"wt" + i} at={x.at} until={x.until} fig={x.fig} crowd={x.crowd} n={x.n} />)}
+      {mine("tvoff").map((x, i) => <TvOff key={"tv" + i} at={x.at} dur={x.dur} />)}
       {cover && cover.style === "image" && f < THUMBPRO_END ? <PaperTear from={3} to={THUMBPRO_TEAR_END} sheet={<AbsoluteFill style={{ background: "#0d0f14" }}>{o === "land" ? null : <Img src={staticFile(cover.src)} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "blur(40px) brightness(.55)", transform: "scale(1.2)" }} />}<Img src={staticFile(cover.src)} style={o === "land" ? { width: "100%", height: "100%", objectFit: "cover" } : { position: "absolute", left: 0, top: "50%", width: "100%", transform: "translateY(-50%)" }} /></AbsoluteFill>} /> : null}
       {cover && cover.style === "pro" && f < THUMBPRO_END ? <ThumbProOpen format={o === "land" ? "landscape" : "portrait"} tearOrder={cover.tearOrder} {...cover.pro} {...(o === "land" ? cover.proLand : {})} /> : null}
       {cover && cover.style !== "pro" && cover.style !== "image" && (cover.style ?? "paper") === "paper" && f < PAPER_COVER_END ? <PaperCoverKit format={o === "land" ? "landscape" : "portrait"} palette={COVER_PALETTES[cover.palette ?? "steel"]} tearOrder={cover.tearOrder} {...cover.kit} {...(o === "land" ? cover.kitLand : {})} /> : null}
       {cover && cover.style !== "image" && cover.style === "kit" && f < (cover.frames ?? 3) ? <CoverKit format={o === "land" ? "landscape" : "portrait"} palette={COVER_PALETTES[cover.palette ?? "steel"]} {...cover.kit} {...(o === "land" ? cover.kitLand : {})} /> : null}
     </AbsoluteFill>
+    </HybridHost>
   );
 };
+
+/** manual placement of the replied-to clip card in a reel (user 2026-11-11: «أريد أغيّر يدوياً مكان الفيديو المعروض في الريلز»): Studio's props panel edits these numbers and its Save writes them into `defaultProps` of the composition (src/ReelsComps.tsx); they replace `card` of every split window */
+export const reelCardSchema = z.object({
+  cardLeft: z.number().min(-600).max(700).step(1),
+  cardTop: z.number().min(0).max(1500).step(1),
+  cardRot: z.number().min(-20).max(20).step(0.5),
+  cardH: z.number().min(150).max(1000).step(5),
+});
+export type ReelCardProps = z.infer<typeof reelCardSchema>;
+export const withCard = (spec: MontageSpec, p: Partial<ReelCardProps>): MontageSpec => ({
+  ...spec,
+  splits: spec.splits?.map((s) => ({ ...s, card: { left: p.cardLeft ?? s.card?.left ?? 30, top: p.cardTop ?? s.card?.top ?? 600, rot: p.cardRot ?? s.card?.rot ?? -4, innerH: p.cardH ?? s.card?.innerH ?? 480 } })),
+});
+export const ReelFromSpec: React.FC<{ spec: MontageSpec } & Partial<ReelCardProps>> = ({ spec, ...card }) => <MontageFromSpec spec={withCard(spec, card)} />;

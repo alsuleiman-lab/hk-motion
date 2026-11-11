@@ -22,6 +22,8 @@ for (const w of wins) {
   const i = n++;
   if (w.matte && !force) continue;
   const s = (Math.round(w.from * 30) / 30).toFixed(4), d = (w.to - w.from + 0.3).toFixed(3), src = path.join(T, "w.mp4"), raw = path.join(T, "w_raw.mp4"), dst = path.join(out, `w_${w.from}_${w.to}.mp4`);   // a new name per window: Studio may hold the old file open
+  // the same window was already matted (a spec rebuild drops the `matte` field, not the file): reuse it instead of redoing 12 windows every rebuild (2026-11-11)
+  if (!force && fs.existsSync(dst) && fs.statSync(dst).mtimeMs > fs.statSync(cut).mtimeMs) { w.matte = { src: `${p}/mt/w_${w.from}_${w.to}.mp4`, start: w.from }; continue; }
   let r = low("ffmpeg", ["-v", "error", "-y", "-ss", s, "-i", cut, "-t", d, "-an", "-c:v", "h264_nvenc", "-preset", "p5", "-rc", "constqp", "-qp", "12", "-g", "15", "-threads", "4", src]);
   if (r.status !== 0) { console.error(`✘ trim ${w.from}: ${r.stderr}`); process.exit(1); }
   r = low(PY, ["-X", "utf8", "tools/matte_gpu.py", src, raw, "--ratio", "0.25", "--no-clean"]);

@@ -49,7 +49,9 @@ function build() {
       if (f.kind !== r.kind) { if (rows.some((x) => x.kind === f.kind && bare(x.text) === bare(f.name) && Math.abs(x.t - r.t) < 180)) return; r = { ...r, kind: f.kind, need: f.kind === "place" ? ["pmap"] : VISL }; }
       r = { ...r, text: f.name ?? r.text, ...(f.geo ? { geo: f.geo } : {}) };
     }
-    if (rows.some((x) => x.kind === r.kind && bare(x.text) === bare(r.text) && Math.abs(x.t - r.t) < (r.kind === "place" ? 180 : 60))) return;
+    if (rows.some((x) => x.kind === r.kind && bare(x.text) === bare(r.text))) return;
+    if (r.kind === "person" && rows.some((x) => x.kind === "person" && norm(x.text).split(" ").some((a) => a.length >= 4 && norm(r.text).split(" ").includes(a)))) return;
+    if (r.kind === "depict") { const root = (t) => bare(t).replace(/(يين|يه|ين|ي|ه)$/, ""); if (rows.some((x) => x.kind === "depict" && root(x.text) === root(r.text))) return; }   // الهندوسية = الهندوسي = الهندوس   // a name / thing is pictured once, at its first mention
     if (r.t != null && ["date", "place", "person"].includes(r.kind) && rows.some((x) => x.kind === r.kind && x.t != null && Math.abs(x.t - r.t) < (r.kind === "date" ? 4 : 2.5))) return;   // the same moment heard by both passes
     rows.push({ id: rows.length + 1, ...r });
   };
@@ -84,13 +86,13 @@ function build() {
     if (e.type === "LOC" && (lexPeople.some(([n, f]) => [n, ...f].some((x) => bare(x) === key)) || ner.some((o) => o.type === "PERS" && bare(o.core) === key && o.score > e.score))) continue;
     if (e.type === "LOC") {
       const last = placeLast.get(key);
-      if (last != null && e.s - last < 180) continue;
+      if (last != null) continue;   // first mention only («لا تكرر صورته كل ما يذكر»)
       placeLast.set(key, e.s);
       const g = geo.get(key);
       add({ kind: "place", text: e.core || e.text, t: e.s, need: ["pmap"], before: 2, after: 6, geo: g ? { lat: g.lat, lon: g.lon, cc: g.cc } : null, ctx: ctx(W, e.s) });
     } else if (e.type === "PERS") {
       const last = personLast.get(key);
-      if (last != null && e.s - last < 180) continue;
+      if (last != null) continue;   // first mention only («لا تكرر صورته كل ما يذكر»)
       personLast.set(key, e.s);
       add({ kind: "person", text: e.core || e.text, t: e.s, need: ["pic", "tphoto", "scholar", "peek", "bgclip", "full", "person"], before: 3, after: 5, ctx: ctx(W, e.s) });
     } else if (e.type === "ORG") {
@@ -103,9 +105,9 @@ function build() {
     const t = W[i].s;
     // the lexicon form keeps its «ال»: «مدينة» (a city) is not «المدينة» (Medina)
     const wn = norm(W[i].w).replace(/^(و|ف)?(ب|ل|ك)?/, ""), hitPlace = lexPlaces.find(([, forms]) => forms.some((f) => { const fn = norm(f); return fn.startsWith("ال") ? wn === fn || "ال" + wn === fn && false : bare(f) === k; }))?.[0] ?? (geo.has(k) && k.length > 3 && geo.get(k).pop > 200000 && wn.startsWith("ال") === norm(geo.get(k).name).startsWith("ال") && /^(في|مدينه|الى|من|ولايه|بلد|دوله|عاصمه|بمدينه|لمدينه|اسمها)$/.test(norm(W[i - 1]?.w ?? "")) ? geo.get(k).name : null);
-    if (hitPlace) { const key = bare(hitPlace), last = placeLast.get(key); if (last == null || t - last >= 180) { placeLast.set(key, t); const g = geo.get(key); add({ kind: "place", text: hitPlace, t, need: ["pmap"], before: 2, after: 6, geo: g ? { lat: g.lat, lon: g.lon, cc: g.cc } : null, ctx: ctx(W, t) }); } }
+    if (hitPlace) { const key = bare(hitPlace), last = placeLast.get(key); if (last == null) { placeLast.set(key, t); const g = geo.get(key); add({ kind: "place", text: hitPlace, t, need: ["pmap"], before: 2, after: 6, geo: g ? { lat: g.lat, lon: g.lon, cc: g.cc } : null, ctx: ctx(W, t) }); } }
     const hitPerson = lexPeople.find(([, forms]) => forms.some((f) => { const fw = norm(f).split(" "); return fw.every((x, j) => bare(x) === N[i + j]); }))?.[0];
-    if (hitPerson) { const key = bare(hitPerson), last = personLast.get(key); if (last == null || t - last >= 180) { personLast.set(key, t); add({ kind: "person", text: hitPerson, t, need: ["pic", "tphoto", "scholar", "peek", "bgclip", "full", "person"], before: 3, after: 5, ctx: ctx(W, t) }); } }
+    if (hitPerson) { const key = bare(hitPerson), last = personLast.get(key); if (last == null) { personLast.set(key, t); add({ kind: "person", text: hitPerson, t, need: ["pic", "tphoto", "scholar", "peek", "bgclip", "full", "person"], before: 3, after: 5, ctx: ctx(W, t) }); } }
   });
 
   // 2) dates
@@ -129,7 +131,7 @@ function build() {
   N.forEach((k, i) => {
     if (!terms.has(k)) return;
     const t = W[i].s, last = depLast.get(k);
-    if (last != null && t - last < 60) return;
+    if (last != null) return;   // first mention only
     depLast.set(k, t);
     add({ kind: "depict", text: W[i].w, group: terms.get(k), t, need: VIS, before: 3, after: 5, ctx: ctx(W, t) });
   });
@@ -174,7 +176,8 @@ function check(rows) {
   const items = (spec.items ?? []).filter((i) => i.t !== "cover").map((i) => ({ t: i.t, sp: span(i), i }));
   const behind = (spec.behind ?? []).map((w) => [w.from, w.to]);
   const skip = new Set(spec.skipRequired ?? []), waive = (spec.waiveOrders ?? []).map((s) => Number(String(s).split(":")[0]));
-  const has = (types, a, b) => items.some((x) => x.sp && types.includes(x.t) && x.sp[0] <= b && x.sp[1] >= a);
+  // "peek.say" = a peek item that carries a `say` bubble (a type with a required field)
+  const has = (types, a, b) => items.some((x) => x.sp && types.some((ty) => { const [t, fld] = ty.split("."); return x.t === t && (!fld || x.i[fld] != null); }) && x.sp[0] <= b && x.sp[1] >= a);
   const miss = [];
   for (const r of rows) {
     if (r.kind === "ordercand") { if (!r.covered && !waive.some((s) => Math.abs(s - r.src) < 20)) miss.push(`${KIND[r.kind]} عند أصل ${mm(r.src)}: «${r.text.slice(0, 70)}» — اسمعها: تعليمة؟ (montage_notes add … --at ${r.src.toFixed(0)}) أو "waiveOrders"`); continue; }

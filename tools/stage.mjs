@@ -258,6 +258,8 @@ if (stage === "check") {
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("source_crop", "node", ["tools/source_crop.mjs", path.join("data", "specs", `${p}.json`), "--write"], /✘|→|لا نوافذ/);
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("writing_sync", "node", ["tools/writing_sync.mjs", path.join("data", "specs", `${p}.json`)], /^s*✘|writing_sync/);
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("coverage_check", "node", ["tools/coverage_check.mjs", path.join("data", "specs", `${p}.json`)], /^✘|PASSED|FAILED/);
+  // after the review link the spec is frozen: a change outside a block applied with spec_block.mjs apply = a whole-video rebuild the user forbade (2026-11-11)
+  if (fs.existsSync(path.join(T, "spec_frozen.json"))) await step("spec_block", "node", ["tools/spec_block.mjs", "diff", p], /spec_block|^\s+\S/);
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("requirements", "node", ["tools/requirements.mjs", p, "--check"], /requirements|^\s+\S/);
   if (fs.existsSync(path.join(T, "montage_notes.json"))) await step("montage_notes", "node", ["tools/montage_notes.mjs", "check", p], /✘|✔/);
   // continuous captions lose no spoken word (user 2026-11-09): a report, judged by me

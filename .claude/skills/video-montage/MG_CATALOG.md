@@ -1,6 +1,6 @@
 # فهرس قطع الموشن (مولَّد آلياً من src/MG.tsx وPortraitKit وSourceFrames وPaperKit وPaperTear وDebateLayouts — لا تعدّله يدوياً)
 
-> يُولَّد بـ`node tools/gen_quickref.mjs`. الزمن بالثواني المطلقة ما لم يُذكر؛ كل قطعة تُوضع داخل `<Gfx>`؛ التفاصيل والضوابط الكاملة لكل قطعة في مهارة motion-graphics وأخواتها، وهنا ما يكفي لاستدعائها دون قراءة طويلة. عدد القطع: 58.
+> يُولَّد بـ`node tools/gen_quickref.mjs`. الزمن بالثواني المطلقة ما لم يُذكر؛ كل قطعة تُوضع داخل `<Gfx>`؛ التفاصيل والضوابط الكاملة لكل قطعة في مهارة motion-graphics وأخواتها، وهنا ما يكفي لاستدعائها دون قراءة طويلة. عدد القطع: 56.
 
 ### `MGTheme`
 one colour identity (src/brand.ts, user 2026-10-27): whatever `theme` an older composition passes, the brand (steel) is used
@@ -24,7 +24,7 @@ Orange kinetic caption chip (the reference changes its words every ~1 s with a s
 
 ### `NoteCard`
 Paper note card: slides in from the right (0.33 s, ease-out, fade) and settles with a tiny tilt; header mono label + black tag + typewritten title + grey lines.
-`props:` at: number; x: number; y: number; w: number; h: number; rot?: number; label?: string; tag?: string; title?: string; lines?: number; children?: React.ReactNode; fromX?: number
+`props:` at: number; x: number; y: number; w: number; h: number; rot?: number; label?: string; tag?: string; title?: string; lines?: number; children?: React.ReactNode; fromX?: number; cps?: number; size?: number
 
 ### `Strike`
 Strike-through line / red X drawn stroke by stroke.
@@ -49,10 +49,6 @@ Bars that grow one after the other (black / red / green in the reference).
 ### `Clock`
 A clock whose hands spin fast then ease (reference: the "24 hours" polaroid).
 `props:` at: number; size: number
-
-### `GlowCaption`
-A clock whose hands spin fast then ease (reference: the "24 hours" polaroid). */ export const Clock: React.FC<{ at: number; size: number }> = ({ at, size }) => { const t = useT(at); const m = 360 * 5 * ease(t / 1.6), h = m / 12; const c = size / 2; return ( <s
-`props:` words: { t: string; at: number; gold?: boolean }[]; x: number; y: number; w: number; size?: number
 
 ### `DashArc`
 `under`: the arc sags below the lower end instead of rising over the top (user 2026-10-31: «اجعل الخط من تحت لحيتي»)
@@ -143,7 +139,7 @@ render from pre-extracted JPEG frames (inputProps {"frames":true}; public/fr/<vi
 `props:` src: string; style: React.CSSProperties
 
 ### `Only`
-kept under its old name for the specs/compositions that import it: the brand bar (src/brand.ts)
+quintic smootherstep: zero velocity and acceleration at both ends, so a push-in never jerks (user 2026-11-09)
 `props:` from: number; to: number; children: React.ReactNode
 
 ### `Word`
@@ -158,13 +154,9 @@ phone with a playing clip (the clip file shares the cut's time base). Default: b
 phone with a playing clip (the clip file shares the cut's time base). Default: bottom-left, below the beard */ export const PhoneWin: React.FC<{ at: number; to: number; src: string; dur: number; cx?: number; cy?: number; w?: number; h?: number; blur?: number }
 `props:` cut: string; cams: Cam[]; zooms?: { from: number; to: number; amt?: number }[]; originY?: number
 
-### `MapRoute`
-(بلا وصف: مكوّن أساسي)
-`props:` at: number; until: number; x: number; y: number; w: number; h: number; center: [number, number]; spanLat: number; highlight?: string[]; pts?: MapPt[]; legs?: MapLeg[]
-
 ### `PaperMap`
 Paper map: torn paper country on kraft paper, paper name tags, a dashed paper road and a paper car that drives between the two cities in stop-motion
-`props:` at: number; until: number; x: number; y: number; w: number; h: number; center: [number, number]; spanLat: number; highlight?: string[]; highlightAt?: Record<string, number>; geo?: "levant" | "world"; pts?: MapPt[]; legs?: MapLeg[]; carSrc?: string; carW?: number
+`props:` at: number; until: number; x: number; y: number; w: number; h: number; center: [number, number]; spanLat: number; highlight?: string[]; highlightAt?: Record<string, number>; geo?: "levant" | "world"; pts?: MapPt[]; legs?: MapLeg[]; carSrc?: string; carW?: number; atlas?: boolean
 
 ### `PaperScene`
 Paper scene: a kraft card where described people/objects (faceless silhouettes) slide in one after another, stop-motion, e.g. a sheikh seated beside a made-up woman
@@ -212,7 +204,7 @@ a torn note for the key phrase: cream paper strip with ragged ends, the phrase i
 
 ### `WordScraps`
 a title made of torn paper scraps, one word per scrap (Arabic letters keep their joins), each arriving in stop-motion with its own tilt and stock
-`props:` at: number; until?: number; x?: number; y?: number; text: string; size?: number; gap?: number
+`props:` at: number; until?: number; x?: number; y?: number; text: string; size?: number; gap?: number; times?: number[]
 
 ### `TornPhoto`
 a photo of the person or place in a torn white border with tape and a hand-written-style name strip
@@ -223,7 +215,7 @@ paper grain over a paper scene (multiply, faint), so cut-outs and cards read as 
 `props:` opacity?: number
 
 ### `DateCalendar`
-a ready-made calendar motion graphic from the internet (LottieFiles free animation «calendar» by Zakaria Boukernafa, frames keyed to transparent) with the date written under it (user 2026-10-31: «جيب عنصر يعبر عن التاريخ… موشن جرافيك جاهز من الإنترنت»)
+(بلا وصف: مكوّن أساسي)
 `props:` at: number; until?: number; x: number; y: number; w: number; text: string; sub?: string
 
 ### `PaperTear`
@@ -233,3 +225,5 @@ a ready-made calendar motion graphic from the internet (LottieFiles free animati
 ### `SculptedBlocks07`
 the pasted call shape: <SculptedBlocks07 mainSrc guestSrc title /> (paths relative to public/, or staticFile URLs)
 `props:` mainSrc: string; guestSrc: string; title?: string
+
+- **صورة طالعة من الزاوية `peek` (في المعرض: PeekCorner، 2026-11-11):** `{ t: "peek", src: "<p>/peek_x.png", ar: الارتفاع÷العرض, at, until, corner: "bl", say?: "عادي" }` — رأس وكتفان بلا خلفية (قصّ RVM على الصورة الثابتة) تطلع مائلة من الزاوية السفلية اليسرى ثم تنزل؛ `say` فقاعة كلام ورقية من رأسه.

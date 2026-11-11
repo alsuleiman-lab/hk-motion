@@ -18,6 +18,7 @@ for (let m = 0; m * 60 < dur; m++) for (let k = 0; k < per; k++) {
   if (Math.abs(near - t) <= 8) t = near;
   pts.push(`s${String(pts.length).padStart(3, "0")}:${Math.round(t * fps)}`);
 }
+if (!pts.length) for (let k = 1; k <= 3; k++) pts.push(`s${String(pts.length).padStart(3, "0")}:${Math.round((dur * k / 4) * fps)}`);   // clips under ~10 s: no minute-sample fits, sample quarters
 const T = path.join(".tmp", spec.id), out = path.join(T, "grid_sheet_" + id), sheet = path.join(T, `grid_sheet_${id}.jpg`);
 fs.rmSync(out, { recursive: true, force: true }); fs.mkdirSync(out, { recursive: true });
 const r = spawnSync("node", ["tools/stills.mjs", id, out, ...pts, "--scale", scale], { stdio: ["ignore", "ignore", "inherit"] });

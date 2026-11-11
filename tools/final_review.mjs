@@ -15,10 +15,11 @@ const probe = JSON.parse(run("ffprobe", ["-v", "error", "-show_entries", "format
 const dur = Number(probe.format?.duration ?? 0);
 const v = (probe.streams ?? []).find((s) => s.codec_type === "video");
 const hasAudio = (probe.streams ?? []).some((s) => s.codec_type === "audio");
+let bumper = null; try { bumper = JSON.parse(fs.readFileSync(`.tmp/gates/${gateName}.bumper.json`, "utf8")); } catch { /* no bumper */ }   // فاصل الافتتاح: أول bumper.seconds ثانية فاصل (لا فحص سكتات فيها)
 const results = [];
 const add = (ok, msg) => { results.push(ok); console.log(`${ok ? "✔" : "✘"} ${msg}`); };
 
-add(dur > minSec && dur > 0, `المدة ${dur.toFixed(2)}ث`);
+add(dur > minSec && dur > 0, `المدة ${dur.toFixed(2)}ث${bumper ? ` (منها فاصل الافتتاح «${bumper.title}» ${bumper.seconds}ث)` : ""}`);
 // the audio gate (tools/audio_gate.mjs) is MANDATORY for every montage (user order 2026-10-21)
 import fs from "node:fs";
 import crypto from "node:crypto";
@@ -33,7 +34,8 @@ import crypto from "node:crypto";
   // judder gate (tools/judder_check.mjs, user 2026-10-26): the rendered file must have passed the frame-by-frame comparison with its source, and be the SAME file (size) that passed
   let j = null; try { j = JSON.parse(fs.readFileSync(`.tmp/gates/${gateName}.judder.ok`, "utf8")); } catch { /* none */ }
   const size = (() => { try { return fs.statSync(file).size; } catch { return -1; } })();
-  const hit = j?.files ? Object.entries(j.files).find(([p, s]) => s === size && size > 0) : null;
+  const jSize = bumper && bumper.size === size ? bumper.originalSize : size;   // البوابة نجحت على الملف قبل الفاصل
+  const hit = j?.files ? Object.entries(j.files).find(([p, s]) => s === jSize && jSize > 0) : null;
   add(gateName !== "" && !!hit, hit ? `بوابة الارتجاف (judder_check) نجحت لهذا الملف` : "بوابة الارتجاف لم تنجح لهذا الملف: node tools/judder_check.mjs <الناتج> --src <القص المنعَّم> --offset <إطار> --name <المشروع> (إلزامي)");
 }
 if (v) {
@@ -45,7 +47,9 @@ if (!hasAudio) { add(false, "لا مسار صوت"); process.exit(1); }
 const sil = run("ffmpeg", ["-hide_banner", "-i", file, "-af", `silencedetect=noise=${db}dB:d=${maxGap}`, "-f", "null", "-"]).stderr;
 const starts = [...sil.matchAll(/silence_start: ([\d.]+)/g)].map((m) => Number(m[1]));
 const durs = [...sil.matchAll(/silence_duration: ([\d.]+)/g)].map((m) => Number(m[1]));
-const gaps = starts.map((s, i) => ({ s, d: durs[i] ?? dur - s }));
+// a closing bumper (streams/lessons) starts right after the last word: the silence that runs from the speech into the bumper (begins ≤ 0.6 s before it) is the junction, not a pause in the talk
+const bAt = typeof bumper?.at === "number" ? bumper.at : 0, bEnd = bumper?.position === "end";
+const gaps = starts.map((s, i) => ({ s, d: durs[i] ?? dur - s })).filter((g) => !bumper || !(g.s >= bAt - (bEnd ? 0.6 : 0) && g.s < bAt + bumper.seconds));
 add(gaps.length === 0, gaps.length ? `سكتات > ${maxGap}ث: ${gaps.map((g) => `${g.s.toFixed(2)}→${(g.s + g.d).toFixed(2)} (${g.d.toFixed(2)}ث)`).join("، ")}` : `لا سكتة > ${maxGap}ث`);
 
 const vol = run("ffmpeg", ["-hide_banner", "-i", file, "-af", "volumedetect", "-f", "null", "-"]).stderr;

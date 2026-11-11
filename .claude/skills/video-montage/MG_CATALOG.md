@@ -227,3 +227,4 @@ the pasted call shape: <SculptedBlocks07 mainSrc guestSrc title /> (paths relati
 `props:` mainSrc: string; guestSrc: string; title?: string
 
 - **صورة طالعة من الزاوية `peek` (في المعرض: PeekCorner، 2026-11-11):** `{ t: "peek", src: "<p>/peek_x.png", ar: الارتفاع÷العرض, at, until, corner: "bl", say?: "عادي" }` — رأس وكتفان بلا خلفية (قصّ RVM على الصورة الثابتة) تطلع مائلة من الزاوية السفلية اليسرى ثم تنزل؛ `say` فقاعة كلام ورقية من رأسه.
+- **الخريطة الورقية `pmap` (أطلس، 2026-11-11):** تغطي الوطن العربي وجنوب آسيا ووسطها؛ في العرضي `landCenter`/`landSpan` يضعان البلد المظلَّل في الجانب الخالي، ومعها نافذة `behind` بإزاحة `dx` إن كان البلد في الوسط.

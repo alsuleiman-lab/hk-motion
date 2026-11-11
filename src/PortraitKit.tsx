@@ -1,7 +1,8 @@
-import React from "react";
+﻿import React from "react";
 import { BRAND_BAR, RED, alpha, currentStars } from "./brand";
+import { VSlot, HY, hyBg } from "./hybrid/Slot";
 import { AbsoluteFill, Img, OffthreadVideo, Sequence, getInputProps, getRemotionEnvironment, spring, staticFile, useCurrentFrame } from "remotion";
-import { PhoneChips, useT, useSp, kufiF, zainF, naskhF, GFX_ONLY } from "./MG";
+import { PhoneChips, useT, kufiF, zainF, naskhF, GFX_ONLY } from "./MG";
 import { Pic } from "./EuKit";
 import { KhBg } from "./KhKit";
 import { SafeVideo } from "./SafeMedia";
@@ -32,6 +33,8 @@ export const PK_FPS = 30;
 export const INK = BRAND.navyDeep;
 export const GOLD = BRAND.accent;
 export const clamp = (x: number, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+/** quintic smootherstep: zero velocity and acceleration at both ends, so a push-in never jerks (user 2026-11-09) */
+const smoother2 = (x: number) => x * x * x * (x * (x * 6 - 15) + 10);
 const K = 1920 / 1080; // webcam (1080 high) → portrait frame (1920 high)
 
 /** kept under its old name for the specs/compositions that import it: the brand bar (src/brand.ts) */
@@ -87,70 +90,26 @@ export type Cam = { from: number; to: number; cx: number };   // cx = x of his f
 export const SheikhLayers: React.FC<{ cut: string; cams: Cam[]; zooms?: { from: number; to: number; amt?: number }[]; originY?: number }> = ({ cut, cams, zooms = [], originY = 600 }) => {
   const t = useT(0);
   const cam = cams.find((c) => t >= c.from && t < c.to) ?? cams[cams.length - 1];
-  const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 0.5);
-  const z = zz ? 1 + (zz.amt ?? 0.08) * Math.min(clamp((t - zz.from) / 0.35), clamp((zz.to + 0.5 - t) / 0.45)) : 1;
+  const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 1.2);
+  const z = zz ? 1 + (zz.amt ?? 0.08) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1;
   return (
     <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, transform: `scale(${z})`, transformOrigin: `540px ${originY}px` }}>
-      <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: BRAND.ink }}>
-        <RV src={staticFile(cut)} style={{ position: "absolute", left: -(cam.cx - 304) * K, top: 0, width: 1920 * K, height: 1920 }} />
+      <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: hyBg(BRAND.ink) }}>
+        {HY ? <VSlot src={cut} w={1080} h={1920} vx={-(cam.cx - 304) * K} vy={0} vw={1920 * K} vh={1920} /> : <RV src={staticFile(cut)} style={{ position: "absolute", left: -(cam.cx - 304) * K, top: 0, width: 1920 * K, height: 1920 }} />}
       </div>
     </div>
   );
 };
 
-/* ───────── MapRoute — «عند ذكر الانتقال بين البلاد/المدن تُرسم خريطة» (user rule 2026-10-22; own component, Natural Earth outlines in src/levantMap.ts) ───────── */
+/* ───────── map types (PaperMap below; Natural Earth outlines in src/levantMap.ts) ───────── */
 import { LEVANT } from "./levantMap";
 import { WORLD } from "./worldMap";
+import { ASIA } from "./asiaMap";
+// the paper atlas draws the Arab region + South/Central Asia (India and its neighbours, 2026-11-11)
+const ATLAS_LAND: Record<string, number[][][][]> = { ...ASIA, ...LEVANT };
 import { BRAND } from "./brand";
 export type MapPt = { name: string; lon: number; lat: number; at: number; down?: boolean };
 export type MapLeg = { from: [number, number]; to: [number, number]; at: number; dur?: number; car?: boolean };
-export const MapRoute: React.FC<{
-  at: number; until: number; x: number; y: number; w: number; h: number;
-  center: [number, number]; spanLat: number; highlight?: string[]; pts?: MapPt[]; legs?: MapLeg[];
-}> = ({ at, until, x, y, w, h, center, spanLat, highlight = ["SYR"], pts = [], legs = [] }) => {
-  const t = useT(0);
-  const sp = useSp(at, 15, 120);
-  if (t < at || t > until) return null;
-  const out = clamp((until - t) / 0.3);
-  const [clon, clat] = center;
-  const cosl = Math.cos((clat * Math.PI) / 180);
-  const pxPerLat = h / spanLat;
-  const P = (lon: number, lat: number): [number, number] => [w / 2 + (lon - clon) * cosl * pxPerLat, h / 2 - (lat - clat) * pxPerLat];
-  const path = (poly: number[][][]) => poly.map((ring) => "M" + ring.map(([lo, la]) => P(lo, la).map((v) => v.toFixed(1)).join(",")).join("L") + "Z").join("");
-  return (
-    <div style={{ position: "absolute", left: x, top: y, width: w, height: h, opacity: out * clamp(sp * 1.5), transform: `scale(${0.9 + 0.1 * sp})`, borderRadius: 22, overflow: "hidden", border: "5px solid #f6efe0", background: "#9eb4bd", boxShadow: "0 14px 30px rgba(40,24,10,.55)" }}>
-      <svg width={w} height={h} style={{ position: "absolute", left: 0, top: 0 }}>
-        <defs><marker id="mh" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9b2f1a" /></marker></defs>
-        {Object.entries(LEVANT).map(([code, polys]) => polys.map((poly, i) => <path key={code + i} d={path(poly)} fill={highlight.includes(code) ? "#e2c88f" : "#efe5cf"} stroke="#6b4a2c" strokeWidth={highlight.includes(code) ? 2.4 : 1.2} />))}
-        {legs.map((l, i) => {
-          const g = clamp((t - l.at) / (l.dur ?? 1.0));
-          if (g <= 0) return null;
-          const [x1, y1] = P(...l.from), [x2, y2] = P(...l.to);
-          const mx = (x1 + x2) / 2 + (y2 - y1) * 0.22, my = (y1 + y2) / 2 - (x2 - x1) * 0.22;
-          const e = 1 - Math.pow(1 - g, 3);
-          const px = (1 - e) * (1 - e) * x1 + 2 * (1 - e) * e * mx + e * e * x2, py = (1 - e) * (1 - e) * y1 + 2 * (1 - e) * e * my + e * e * y2;
-          return (
-            <g key={i}>
-              <path d={`M${x1},${y1} Q${mx},${my} ${x2},${y2}`} fill="none" stroke="#9b2f1a" strokeWidth={7} strokeLinecap="round" strokeDasharray="1 14" pathLength={1} style={{ strokeDasharray: `${e * 1000} 1000` }} markerEnd={g >= 0.98 ? "url(#mh)" : undefined} opacity={0.95} />
-              <circle cx={px} cy={py} r={l.car ? 13 : 9} fill="#fff4dc" stroke="#9b2f1a" strokeWidth={4} />
-            </g>
-          );
-        })}
-        {pts.map((p, i) => {
-          if (t < p.at) return null;
-          const [px, py] = P(p.lon, p.lat);
-          const s = clamp((t - p.at) / 0.35);
-          return (
-            <g key={i} transform={`translate(${px},${py}) scale(${0.6 + 0.4 * s})`} opacity={s}>
-              <circle r={11} fill="#9b2f1a" stroke="#fff4dc" strokeWidth={4} />
-              <text x={0} y={-22} textAnchor="middle" fontFamily={kufiF} fontSize={34} fill="#fff" stroke="#35200f" strokeWidth={7} paintOrder="stroke" direction="rtl">{p.name}</text>
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
-};
 
 /* ───────── Paper motion (user 2026-10-22: «موشن ورقي»): stop-motion paper cut-outs on kraft paper ───────── */
 const SM = 3;                       // stop-motion: the picture updates every 3rd frame
@@ -160,10 +119,12 @@ const Grain: React.FC = () => <div style={{ position: "absolute", inset: 0, back
 const useStop = () => { const f = useCurrentFrame(); const q = Math.floor(f / SM) * SM; return { q, t: q / PK_FPS, k: Math.round(q / SM) }; };
 
 /** Paper map: torn paper country on kraft paper, paper name tags, a dashed paper road and a paper car that drives between the two cities in stop-motion */
+const ATLAS_NAMES: Record<string, string> = { IND: "الهند", PAK: "باكستان", NPL: "نيبال", BGD: "بنغلاديش", CHN: "الصين", AFG: "أفغانستان", LKA: "سريلانكا", MMR: "ميانمار", BTN: "بوتان", TKM: "تركمانستان", UZB: "أوزبكستان", TJK: "طاجيكستان", KGZ: "قرغيزستان", KAZ: "كازاخستان", MNG: "منغوليا", THA: "تايلاند", LAO: "لاوس", SYR: "سوريا", LBN: "لبنان", TUR: "تركيا", IRQ: "العراق", JOR: "الأردن", PSX: "فلسطين", SAU: "السعودية", IRN: "إيران", EGY: "مصر", CYP: "قبرص" };
+const ATLAS_DX: Record<string, number> = { SYR: -1.1, LBN: 0.05, JOR: 0, IRQ: -0.8 }, ATLAS_DY: Record<string, number> = { LBN: 0.05, SYR: 0.15 };
 export const PaperMap: React.FC<{
   at: number; until: number; x: number; y: number; w: number; h: number; center: [number, number]; spanLat: number;
-  highlight?: string[]; highlightAt?: Record<string, number>; geo?: "levant" | "world"; pts?: MapPt[]; legs?: MapLeg[]; carSrc?: string; carW?: number;
-}> = ({ at, until, x, y, w, h, center, spanLat, highlight = ["SYR"], highlightAt, geo, pts = [], legs = [], carSrc = "collage/car.png", carW = 140 }) => {
+  highlight?: string[]; highlightAt?: Record<string, number>; geo?: "levant" | "world"; pts?: MapPt[]; legs?: MapLeg[]; carSrc?: string; carW?: number; atlas?: boolean;
+}> = ({ at, until, x, y, w, h, center, spanLat, highlight = ["SYR"], highlightAt, geo, pts = [], legs = [], carSrc = "collage/car.png", carW = 140, atlas = false }) => {
   const { t, k } = useStop();
   if (t < at || t > until) return null;
   const pop = clamp((t - at) / 0.35), out = clamp((until - t) / 0.3);
@@ -183,10 +144,27 @@ export const PaperMap: React.FC<{
       <svg width={w} height={h} style={{ position: "absolute", left: 0, top: 0 }}>
         <defs>
           <filter id="rough" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="4" result="n" /><feDisplacementMap in="SourceGraphic" in2="n" scale="8" /></filter>
+          <radialGradient id="seaglow" cx="50%" cy="45%" r="75%"><stop offset="0%" stopColor="#b7d0dc" stopOpacity="0.55" /><stop offset="100%" stopColor="#5f8399" stopOpacity="0.45" /></radialGradient>
           <filter id="shd" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx="3" dy="6" stdDeviation="3.5" floodColor="#3b2410" floodOpacity="0.55" /></filter>
         </defs>
-        <g filter="url(#shd)"><g filter="url(#rough)">
-          {Object.entries(geo === "world" ? WORLD : LEVANT).map(([code, polys]) => polys.map((poly, i) => <path key={code + i} d={path(poly)} fill={highlight.includes(code) && (!highlightAt || t >= (highlightAt[code] ?? 0)) ? "#f4ead2" : "#dcc296"} stroke={highlight.includes(code) ? "#fffaf0" : "#efe0bf"} strokeWidth={highlight.includes(code) ? 5 : 3} />))}
+        <g filter={atlas ? undefined : "url(#shd)"}><g filter={atlas ? undefined : "url(#rough)"}>
+          {atlas ? (
+          <g>
+            <rect x={0} y={0} width={w} height={h} fill="#8fb0c2" />
+            <rect x={0} y={0} width={w} height={h} fill="url(#seaglow)" />
+            {Object.entries(ATLAS_LAND).map(([code, polys]) => { const on = highlight.includes(code) && (!highlightAt || t >= (highlightAt[code] ?? 0)); return polys.map((poly, i) => <path key={code + i} d={path(poly)} fill={on ? (code === "LBN" ? "#f3d27a" : "#e9b765") : "#e7dcc2"} stroke={on ? "#4a2f17" : "#8a7352"} strokeWidth={on ? 3.4 : 1.6} strokeLinejoin="round" />); })}
+            {Object.entries(ATLAS_LAND).map(([code, polys]) => {
+              const name = ATLAS_NAMES[code]; if (!name) return null;
+              const big = polys.reduce((a, b) => (b[0].length > a[0].length ? b : a)), xs = big[0].map((q) => q[0]), ys = big[0].map((q) => q[1]);
+              const [lx, ly] = P((Math.min(...xs) + Math.max(...xs)) / 2 + (ATLAS_DX[code] ?? 0), (Math.min(...ys) + Math.max(...ys)) / 2 + (ATLAS_DY[code] ?? 0)), on = highlight.includes(code);
+              if (lx < 20 || lx > w - 20 || ly < 20 || ly > h - 20) return null;
+              return <text key={"nm" + code} x={lx} y={ly} textAnchor="middle" fontFamily={kufiF} fontWeight={800} fontSize={on ? 58 : 34} fill={on ? "#3a220d" : "#6e5a3a"} stroke={on ? "#fff6dc" : "#f1e8d2"} strokeWidth={on ? 7 : 5} paintOrder="stroke" direction="rtl">{name}</text>;
+            })}
+            <rect x={6} y={6} width={w - 12} height={h - 12} fill="none" stroke="#4a2f17" strokeWidth={5} />
+          </g>
+        ) : (
+          <>{Object.entries(geo === "world" ? WORLD : LEVANT).map(([code, polys]) => polys.map((poly, i) => <path key={code + i} d={path(poly)} fill={highlight.includes(code) && (!highlightAt || t >= (highlightAt[code] ?? 0)) ? "#f4ead2" : "#dcc296"} stroke={highlight.includes(code) ? "#fffaf0" : "#efe0bf"} strokeWidth={highlight.includes(code) ? 5 : 3} />))}</>
+        )}
         </g></g>
         {car.map((c, i) => c ? Array.from({ length: 16 }, (_, j) => {
           const s = (j + 0.5) / 16; if (s > c.e) return null;
@@ -205,7 +183,7 @@ export const PaperMap: React.FC<{
           );
         })}
       </svg>
-      {car.map((c, i) => c ? (
+      {car.map((c, i) => c && c.l.car !== false ? (   // `car:false` (user 2026-11-09): the leg is only the transition line, no car
         <Pic key={i} src={carSrc} style={{ position: "absolute", left: c.px - carW / 2, top: c.py - carW * 0.3 + (k % 2 ? -3 : 3), width: carW, opacity: Math.max(0, Math.min(1, 1 - (t - c.l.at - (c.l.dur ?? 1.2) - 0.4) / 0.5)), transform: `rotate(${k % 2 ? 4 : -4}deg) scaleX(${c.dx >= 0 ? -1 : 1})`, filter: "drop-shadow(3px 6px 4px rgba(40,24,10,.55))" }} />
       ) : null)}
     </div>
@@ -413,7 +391,12 @@ export const FullImage: React.FC<{ src: string; from: number; to: number; origin
       <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
         <div style={{ width: "100%", height: "100%", transform: `scale(${k})`, transformOrigin: origin }}>
           {/\.mp4$/i.test(src)
-            ? <Sequence from={Math.round(from * PK_FPS)}>{getRemotionEnvironment().isRendering ? <OffthreadVideo src={staticFile(src)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <SafeVideo src={staticFile(src)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</Sequence>
+            ? <Sequence
+              from={Math.round(from * PK_FPS)}
+              style={{
+                translate: "2471px 1072.2px"
+              }}
+            >{getRemotionEnvironment().isRendering ? <OffthreadVideo src={staticFile(src)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <SafeVideo src={staticFile(src)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</Sequence>
             : <Pic src={src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
         </div>
       </div>

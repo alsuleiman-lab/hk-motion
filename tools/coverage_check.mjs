@@ -64,7 +64,7 @@ const span = (it) => {
   return a == null ? null : [a, b];
 };
 const items = (spec.items ?? []).filter((i) => i.t !== "cover");
-const VISUAL = new Set(["pic", "full", "flash", "crop", "scholar", "tphoto", "arc", "flag", "person", "phone", "scene"]);
+const VISUAL = new Set(["bgclip", "peek", "pmap", "pic", "full", "flash", "crop", "scholar", "tphoto", "arc", "flag", "person", "phone", "scene"]);
 const visual = items.filter((i) => VISUAL.has(i.t)).map(span).filter(Boolean);
 
 // 1) mentions
@@ -129,6 +129,20 @@ if (missing.length) fails++;
   if (miss.length) fails++;
 }
 
+// 1b) a map shows the place BESIDE him, never behind his head (user 2026-11-11, said twice): in landscape every point of a full-frame map (pmap with a `behind` window)
+//     and the centre of each highlighted country must fall outside his head/body zone (x 700–1500 shifted by the window's dx, y < 760)
+{
+  const bad = [];
+  for (const it of spec.items ?? []) if (it.t === "pmap") {
+    const w = it.land?.w ?? 1920, h = it.land?.h ?? 1080, [clon, clat] = it.landCenter ?? it.center, span = it.landSpan ?? it.spanLat;
+    const P = (lon, lat) => [w / 2 + (lon - clon) * Math.cos((clat * Math.PI) / 180) * (h / span), h / 2 - (lat - clat) * (h / span)];
+    const win = (spec.behind ?? []).find((b) => (!b.only || b.only === "land") && b.from <= it.from + 0.01 && b.to >= it.to - 0.01), dx = win?.dx ?? 0;
+    for (const p of it.pts ?? []) { const [x, y] = P(p.lon, p.lat); if (x > 700 + dx && x < 1500 + dx && y < 760) bad.push(`«${p.name}» عند ${mm(it.from)} خلف رأسه (x ${Math.round(x)})`); if (x < 30 || x > w - 30 || y < 30 || y > h - 30) bad.push(`«${p.name}» عند ${mm(it.from)} خارج الإطار`); }
+  }
+  console.log(bad.length ? `✘ الخريطة: ${bad.join("، ")} — حرّك مركز الخريطة (landCenter) أو أزِحه جانباً (dx في نافذة behind)` : "✔ كل نقطة على الخريطة بجانبه لا خلف رأسه");
+  if (bad.length) fails++;
+}
+
 // 2) empty stretches (any item or baked split counts as something on screen)
 const spans = [...items.map(span).filter(Boolean), ...(spec.splits ?? []).map((s) => [s.from, s.to]), ...(spec.zooms ?? []).map((z) => [z.from, z.to]), ...(spec.shake ?? []).map((z) => [z.from, z.to])].sort((a, b) => a[0] - b[0]);
 const gaps = [];
@@ -140,7 +154,7 @@ if (gaps.length) fails++;
 
 // 2a) the sheikh's name card (nameTag) appears alone: no other item or baked split overlaps it
 {
-  const others = [...items.filter((i) => i.t !== "nameTag" && i.t !== "blur").map((i) => ({ n: i.t, s: span(i) })), ...(spec.splits ?? []).map((s) => ({ n: "split", s: [s.from, s.to] }))].filter((o) => o.s);
+  const others = [...items.filter((i) => i.t !== "nameTag" && i.t !== "blur" && i.t !== "bgclip").map((i) => ({ n: i.t, s: span(i) })), ...(spec.splits ?? []).map((s) => ({ n: "split", s: [s.from, s.to] }))].filter((o) => o.s);
   const clash = [];
   for (const nt of items.filter((i) => i.t === "nameTag")) {
     const s = span(nt); if (!s) continue;

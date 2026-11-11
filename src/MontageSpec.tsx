@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { galleryPlace } from "./galleryPlace";
 import React from "react";
-import { AbsoluteFill, Audio, Img, Sequence, continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Img, Sequence, continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig , getRemotionEnvironment } from "remotion";
 import { PaperTear } from "./PaperTear";
 import { Gfx, BrushX, NoteCard, HandheldShake, SourceWalk, BlurRise, RewriteWindow, FlashCut, PinnedPhoto, TimelineTravel, PanelToCanvas, Clock, DashArc, useT } from "./MG";
 import { KeyChip, ReelVerseFull, VerseWords } from "./MGExtras";
@@ -509,7 +509,9 @@ const GxLayer: React.FC<{ gx: { dx: number; dy: number; k: number; ox?: number; 
           if (x1 > x0) { setC([((x0 + x1) / 2 - b.left) / k, ((y0 + y1) / 2 - b.top) / k]); clearInterval(id); setTimeout(finish, 50); return; }
         }
       }
-      if (n > 40) { setC([width / 2, 0]); clearInterval(id); setTimeout(finish, 50); }
+      // (2026-11-11) the old fallback scaled about the top centre, which threw a left-side picture off the frame in the phone preview (the element was not drawn yet):
+      // in the Studio/preview keep measuring until the element is there (drawn unscaled meanwhile); only a real render falls back after 2 s, about the element's last seen box or not at all
+      if (n > 40) { finish(); if (getRemotionEnvironment().isRendering) { clearInterval(id); setC(null); } }
     }, 50);
     return () => { clearInterval(id); finish(); };
   }, [c, width]);

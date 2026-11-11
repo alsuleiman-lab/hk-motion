@@ -582,7 +582,7 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) 
         {spec.showTitleBar ? <TitleBar title={spec.title} theme={bar} bottomHalf={o === "port"} /> : null}
       </Gfx>
       {/* the ONLY transition of the user-ordered layers is the gallery Curtain (user 2026-11-09: no opacity transitions, nothing outside the gallery): where a clip hands over to the next clip of its group, and where a background clip / isolation ends */}
-      {o === "land" ? [...new Set([...hclips.flatMap((x) => hclips.filter((y) => y !== x && y.from - x.to > -0.01 && y.from - x.to < 1).map((y) => (x.to + y.from) / 2)), ...bgclips.map((x) => x.to), ...(spec.behind ?? []).filter((w) => w.dx !== undefined && (!w.only || w.only === "land")).flatMap((w) => [w.from, w.to])].map((v) => +v.toFixed(2)))].map((t) => <Curtain key={"gc" + t} at={t} />) : null}
+      {o === "land" ? [...new Set([...hclips.flatMap((x) => hclips.filter((y) => y !== x && y.from - x.to > -0.01 && y.from - x.to < 1).map((y) => (x.to + y.from) / 2)), /* no curtain when a background clip ends or an isolation window (moved or not) starts/ends: the isolation just goes away (user 2026-11-11) */].map((v) => +v.toFixed(2)))].map((t) => <Curtain key={"gc" + t} at={t} />) : null}
       {horrors.length ? <HorrorVeil windows={horrors} /> : null}
       {mine("weights").map((x, i) => <WeightsOnBack key={"wt" + i} at={x.at} until={x.until} fig={x.fig} crowd={x.crowd} n={x.n} />)}
       {mine("tvoff").map((x, i) => <TvOff key={"tv" + i} at={x.at} dur={x.dur} />)}

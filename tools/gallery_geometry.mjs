@@ -7,6 +7,19 @@
 // date (DateCalendar), flag (PopCard), clock (Clock). An item the user placed himself by hand carries "placeOwn": true and is left alone.
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
+// THE WHOLE PICTURE, NEVER CROPPED (user 2026-11-11: «الصور يجب أن تظهر كاملة، لا تأكل من الصور»): a photo card keeps the gallery's WIDTH and its height follows the
+// picture's own ratio (frame margins per card: tphoto 40×20, scholar 20×(name band), pic 10×10); a very tall picture keeps the gallery height ×1.5 and gets narrower, centred.
+const dims = (src) => { const r = spawnSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", path.join("public", src)], { encoding: "utf8" }); const [w, h] = String(r.stdout).trim().split(",").map(Number); return w && h ? [w, h] : null; };
+const band = (it, w) => (it.name ? Math.max(1, Math.ceil(it.name.length * 15.5 / (w - 24))) * 38 + 40 + (it.sub ? 22 : 0) : 0);
+const fit = (it, w, h) => {   // → [w, h, dx] for a card of gallery width w and gallery height h
+  const d = it.src ? dims(it.src) : null; if (!d) return [w, h, 0];
+  const r = d[1] / d[0], mx = it.t === "tphoto" ? 40 : it.t === "scholar" ? 20 : 10;
+  const extra = it.t === "tphoto" ? 20 : it.t === "scholar" ? band(it, w) : 10;
+  let W = w, H = Math.round((W - mx) * r + extra);
+  if (H > h * 1.5) { H = Math.round(h * 1.5); W = Math.round((H - extra) / r + mx); }
+  return [W, H, Math.round((w - W) / 2)];
+};
 
 const argv = process.argv.slice(2), specF = argv.find((a) => a.endsWith(".json")), WRITE = argv.includes("--write");
 if (!specF) { console.error("usage: node tools/gallery_geometry.mjs data/specs/<p>.json [--write]"); process.exit(2); }
@@ -39,6 +52,12 @@ for (const it of spec.items ?? []) {
   const s = sample[it.t]; if (!s) { diffs.push(`${it.t}: لا عيّنة في المعرض`); continue; }
   const want = {}; for (const k of GEO) if (s[k] !== undefined) want[k] = s[k];
   const wantLand = {}; for (const k of GEO) if (s.land?.[k] !== undefined) wantLand[k] = s.land[k];
+  if (["tphoto", "scholar", "pic"].includes(it.t) && want.w && want.h) {
+    const [W, H, dx] = fit(it, want.w, want.h); want.w = W; want.h = H; if (want.x !== undefined) want.x += dx;
+    // landscape: the engine's base box (left column; tphoto/scholar 300×370, pic 600×400) unless the gallery sample gives one
+    const lw = wantLand.w ?? (it.t === "pic" ? 600 : 300), lh = wantLand.h ?? (it.t === "pic" ? 400 : 370), [LW, LH, ldx] = fit(it, lw, lh);
+    wantLand.w = LW; wantLand.h = LH; if (ldx) wantLand.x = (wantLand.x ?? 40) + ldx;
+  }
   const bad = [];
   for (const k of PGEO) if ((it[k] ?? undefined) !== (want[k] ?? undefined) && !(it.t === "pic" && k === "h" && Math.abs((it.h ?? 0) - (want.h ?? 0)) <= 1)) bad.push(`${k} ${it[k]}→${want[k]}`);
   for (const k of GEO) if ((it.land?.[k] ?? undefined) !== (wantLand[k] ?? undefined)) bad.push(`land.${k} ${it.land?.[k]}→${wantLand[k]}`);

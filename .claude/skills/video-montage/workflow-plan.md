@@ -29,6 +29,8 @@
 
 **4) اختيار المهارات والقطع لكل دقيقة ولكل نافذة.** من المهارات: `hook`، `thumbnail-design`، `video-cutting`، `book-source-display`، `website-source-display`، `video-source-display`، `source-motions`، `timeline-and-numbers`، `enumeration-and-flow`، `motion-graphics`، `comparisons`، `pixabay-search`، `collage-broll-local`. اكتب لكل بند: **ما القطعة ولماذا ومتى (زمن النطق)**. شرط التنويع: أنواع ≥ max(4، ⌈الدقائق×0.8⌉) ولا نوع فوق 3 مرات. اعرض الخطة للمستخدم في رسالة واحدة (الجدولان) ثم **تابع مباشرة دون انتظار** ما لم يكن فيها سؤال بالنقر.
 
+**4أ) الكتابة (2026-11-11):** اقرأ تفريغ الصوت النهائي الدقيق كله واكتب في `.tmp/<p>/writing.json` العبارات المختارة (`torn` خلاصة تامة، `scraps` كلامه المهم بنصه ≤ 7)، ثم `node tools/writing_place.mjs <p> --write` و`scraps_times` و`writing_sync --fix` و`writing_place --hold`. لا تقطيع آلي.
+
 **5) البناء** على الخطة، ويبدأ من المسودة `node tools/spec_draft.mjs <المشروع> --title "…"`. أي تعديل عليها يُسجَّل فيها بسطر. **الطولي والعرضي:** البناء ملف `data/specs/<id>.json` واحد + تركيبتان `MontageFromSpec` (`<Id>` و`<Id>-L`) (انظر `PREFERENCES.md` القسم 6 أول بند): العناصر من `MG_CATALOG.md`، والناقص يُكتب مرة في `PortraitKit.tsx` مع نوعه في `MontageSpec.tsx`، والغلاف عنصر `cover`.
 
 **6) قائمة التشيك كل 3 دقائق** (تُمرّ على كل نافذة بعد بنائها، وتُكتب نتيجتها سطراً لكل بند):

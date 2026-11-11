@@ -495,7 +495,7 @@
   },
   {
    "t": "bgclip",
-   "src": "saint_rambal/bg/hx_rama.mp4",
+   "src": "saint_rambal/bg/hx_rama_real.mp4",
    "from": 114.39,
    "to": 118.59,
    "start": 0,
@@ -627,7 +627,7 @@
   },
   {
    "t": "bgclip",
-   "src": "saint_rambal/bg/hx_krishna.mp4",
+   "src": "saint_rambal/bg/hx_krishna_real.mp4",
    "from": 177.82,
    "to": 182.02,
    "start": 0,
@@ -2719,6 +2719,17 @@
   {
    "from": 114.39,
    "to": 118.59,
+   "only": "land",
+   "dx": 420,
+   "matte": {
+    "src": "saint_rambal/mt/w_114.39_118.59.mp4",
+    "start": 114.39
+   }
+  },
+  {
+   "from": 114.39,
+   "to": 118.59,
+   "only": "port",
    "matte": {
     "src": "saint_rambal/mt/w_114.39_118.59.mp4",
     "start": 114.39
@@ -2743,6 +2754,17 @@
   {
    "from": 177.82,
    "to": 182.02,
+   "only": "land",
+   "dx": 420,
+   "matte": {
+    "src": "saint_rambal/mt/w_177.82_182.02.mp4",
+    "start": 177.82
+   }
+  },
+  {
+   "from": 177.82,
+   "to": 182.02,
+   "only": "port",
    "matte": {
     "src": "saint_rambal/mt/w_177.82_182.02.mp4",
     "start": 177.82

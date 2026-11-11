@@ -194,9 +194,22 @@ const PeekSay: React.FC<{ text: string; t: number; out: number; corner: "br" | "
     <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontFamily: "Noto Kufi Arabic", fontWeight: 800, fontSize: bh * 0.46, color: "#2b2621", direction: "rtl" }}>{text}</div>
   </div>;
 };
+// the centre the gallery size grows about, from the element's OWN declared box (2026-11-11: measuring the drawn element failed in the phone preview —
+// the picture stayed small and stuck to the frame edge while the render was right); types not listed here are still measured on screen
+const boxCentre = (it: SpecItem, o: Orient): [number, number] | null => {
+  const L = o === "land", ov = ((it as { land?: Land }).land ?? {}) as Land & { w?: number; h?: number; x?: number; y?: number }, G = LANDSCAPE.left;
+  const q = it as unknown as { t: string; x?: number; y?: number; w?: number; h?: number; also?: unknown[] };
+  if (q.t === "tphoto") { const w = (L ? ov.w : q.w) ?? 300, h = (L ? ov.h : q.h) ?? 370, x = L ? ov.x ?? G.x : q.x ?? 40, y = L ? ov.y ?? G.y : q.y ?? 1360, n = 1 + (q.also?.length ?? 0); return [x + (n * w + (n - 1) * 24) / 2, y + h / 2]; }
+  if (q.t === "scholar") { const w = (L ? ov.w : undefined) ?? q.w ?? 300, h = (L ? ov.h : undefined) ?? q.h ?? 370, x = L ? ov.x ?? G.x : q.x ?? 40, y = L ? ov.y ?? G.y : q.y ?? 1360; return [x + w / 2, y + h / 2]; }
+  if (q.t === "pic" && q.w && q.h) { const w = L ? ov.w ?? G.w : q.w, h = L ? ov.h ?? Math.round((q.h * w) / q.w) : q.h, x = L ? ov.x ?? G.x : q.x ?? 40, y = L ? ov.y ?? G.y : q.y ?? 1360; return [x + w / 2, y + h / 2]; }
+  if (q.t === "news" && q.w && q.h) { const w = L ? ov.w ?? 600 : q.w, h = Math.round((q.h * w) / q.w), x = L ? ov.x ?? G.x : q.x ?? 40, y = L ? ov.y ?? G.y : q.y ?? 1360; return [x + w / 2, y + h / 2]; }
+  if (q.t === "date") { const w = (L ? ov.w : undefined) ?? q.w ?? 340, x = L ? ov.x ?? G.x : q.x ?? 300, y = L ? ov.y ?? G.y : q.y ?? 1330; return [x + w / 2, y + w * 0.55]; }
+  return null;
+};
 const placed = (it: SpecItem, i: number, o: Orient, n: React.ReactNode): React.ReactNode => {
   const p = o === "land" ? it.land : it, dx = p?.dx ?? 0, dy = p?.dy ?? 0, k = p?.k ?? 1;
-  return n && (dx || dy || k !== 1) ? <GxLayer key={"place" + i} gx={{ dx, dy, k }}>{n}</GxLayer> : n;
+  const c = k !== 1 ? boxCentre(it, o) : null;
+  return n && (dx || dy || k !== 1) ? <GxLayer key={"place" + i} gx={{ dx, dy, k, ...(c ? { ox: c[0], oy: c[1] } : {}) }}>{n}</GxLayer> : n;
 };
 const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.ReactNode => placed(it, i, o, renderItemRaw(it, i, o, bar));
 const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.ReactNode => {

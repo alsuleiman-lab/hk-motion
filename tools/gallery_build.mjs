@@ -63,7 +63,7 @@ const cut = (file, id) => {   // the "  Id: { … }," entry of a Record literal,
 };
 const TL = fs.readFileSync("src/TransitionsLab.tsx", "utf8").replace(/\r\n/g, "\n");
 const transitions = [...TL.matchAll(/^  (\w+): \{ ar: "([^"]+)", kit: "([^"]+)", where: "([^"]+)",\n    node: ([\s\S]*?) \},\n/gm)]
-  .map((m) => ({ id: m[1], kind: "transition", ar: m[2], kit: m[3], group: m[3] === "Transitions" ? "انتقالات جديدة للاختيار" : "الانتقالات الحالية", where: m[4], note: "", code: m[5].trim(), still: { PaperCover: 20, PushIn: 40, HandheldShake: 40, TrSection: 40 }[m[1]] ?? 45 }));
+  .map((m) => ({ id: m[1], kind: "transition", ar: m[2], kit: m[3], group: m[3] === "Transitions" ? "انتقالات جديدة للاختيار" : "الانتقالات الحالية", where: m[4], note: "", code: m[5].trim(), still: { PaperCover: 20, PushIn: 40, HandheldShake: 40, TrSection: 40, TvOff: 56 }[m[1]] ?? 45 }));
 const tIds = new Set(transitions.map((t) => t.id));
 const lab = JSON.parse(fs.readFileSync("data/elements_lab.json", "utf8"));
 const elements = lab.filter((m) => !tIds.has(m.id)).map((m) => ({
@@ -77,13 +77,14 @@ for (const t of transitions) { const m = META[t.id]; if (m?.note) t.note = m.not
 const IN = (s) => new Set(s.split(/s+/));
 // which gallery elements each kind of the grid (data/layout_grids.json "kinds") stands for — names shown inside the slots of the grid tab
 const KIND_ELEMENTS = {
-  key: IN("Word BlurRise GlowCaption TornNote WordScraps TypeBox TimelineCounter"),
+  key: IN("Word BlurRise TornNote WordScraps TypeBox TimelineCounter"),
   photo: IN("PinnedPhoto PopCard TornPhoto NewsClip PhotoFrame Clock RewriteWindow BrowserFrame PostCard CommentCard VideoFrame SakugaMove SpotlightCard CollageAssemble BrushX Marker NoteCard Stamp GlowCounter Bars Strike EllipseMark CitationTag"),
   list: IN("StatRow"), solo: IN("NameCard1 NameCard3 Subscribe"), source: IN("BookPage"),
-  exclusive: IN("VerseWords ReelVerseFull MapRoute PaperMap BgFullImage TimelineTravel PanelToCanvas DashArc"),
+  exclusive: IN("VerseWords ReelVerseFull PaperMap BgFullImage TimelineTravel PanelToCanvas DashArc"),
   ignore: IN("Sources PaperCover TitleBar CornerTags"),
 };
-const items = [...elements, ...transitions].map((it) => { const m = META[it.id] ?? {}; return { ...it, section: m.section ?? (it.kind === "transition" ? "transition" : "text"), group: m.group ?? it.group, mode: m.mode ?? "full", slot: m.slot ?? { land: "frame", port: "frame" }, orient: m.orient ?? "both" }; });
+const COSTS = (() => { try { return JSON.parse(fs.readFileSync("data/element_costs.json", "utf8")); } catch { return { items: {} }; } })();   // tools/element_bench.mjs + element_report.mjs
+const items = [...elements, ...transitions].map((it) => { const m = META[it.id] ?? {}; return { ...it, cost: COSTS.items?.[it.id] ?? null, section: m.section ?? (it.kind === "transition" ? "transition" : "text"), group: m.group ?? it.group, mode: m.mode ?? "full", slot: m.slot ?? { land: "frame", port: "frame" }, orient: m.orient ?? "both" }; });
 const missing = items.filter((it) => !META[it.id]).map((it) => it.id);
 if (missing.length) console.log("⚠ لا بيانات وضع/خانة في data/elements_lab.json لـ: " + missing.join(" "));
 

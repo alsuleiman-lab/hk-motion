@@ -672,21 +672,6 @@
     "orient": "both"
   },
   {
-    "id": "GlowCaption",
-    "ar": "كابشن متوهج",
-    "kit": "MG",
-    "group": "العبارات والكلمات",
-    "where": "كلمة كلمة فوق الفيديو في الشريط السفلي أو الجانبين.",
-    "note": "",
-    "section": "text",
-    "mode": "full",
-    "slot": {
-      "land": "key",
-      "port": "band"
-    },
-    "orient": "both"
-  },
-  {
     "id": "DashArc",
     "ar": "قوس منقّط",
     "kit": "MG",
@@ -698,21 +683,6 @@
     "slot": {
       "land": "engine",
       "port": "engine"
-    },
-    "orient": "both"
-  },
-  {
-    "id": "MapRoute",
-    "ar": "خريطة المسار",
-    "kit": "PortraitKit",
-    "group": "الخرائط",
-    "where": "عند الانتقال بين بلاد أو مدن.",
-    "note": "",
-    "section": "image",
-    "mode": "iso",
-    "slot": {
-      "land": "back",
-      "port": "back"
     },
     "orient": "both"
   },
@@ -939,6 +909,130 @@
     "slot": {
       "land": "frame",
       "port": "frame"
+    },
+    "orient": "both"
+  },
+  {
+    "id": "DateCalendar",
+    "ar": "تقويم التاريخ",
+    "kit": "PaperKit",
+    "group": "الأرقام والزمن",
+    "where": "عند ذكر تاريخ أو يوم محدد (هجري أو ميلادي): ورقة تقويم بالتاريخ والسطر تحته.",
+    "note": "",
+    "still": 36,
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "both"
+  },
+  {
+    "id": "KeyChip",
+    "ar": "عبارة مفتاحية (العرضي)",
+    "kit": "MGExtras",
+    "group": "العبارات والكلمات",
+    "where": "العرضي: العبارة المفتاحية الموجزة في شريط تحت الفيديو عند نطقها (يقابل Word في الطولي).",
+    "note": "",
+    "still": 36,
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
+    },
+    "orient": "land"
+  },
+  {
+    "id": "FamilyTree",
+    "ar": "شجرة التفرعات",
+    "kit": "PortraitKit",
+    "group": "التدفق والربط",
+    "where": "كلما احتجنا إلى شجرة تفرعات، نسباً كانت أو غيره (أقسام، فرق، تفرع مسألة).",
+    "note": "",
+    "still": 36,
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "both"
+  },
+  {
+    "id": "TreeFx",
+    "ar": "شجرة بالرق",
+    "kit": "PortraitKit",
+    "group": "التدفق والربط",
+    "where": "الطولي: شجرة بنمط الرق (parchment) تحت الشيخ لسلاسل طويلة؛ في العرضي تُبنى طبقة خلفية.",
+    "note": "",
+    "still": 36,
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "port"
+  },
+  {
+    "id": "Keycaps",
+    "ar": "كابشن مفاتيح الكيبورد",
+    "kit": "KhaamKit",
+    "group": "العبارات والكلمات",
+    "where": "كلمات الجملة المهمة تهبط كل كلمة على مفتاح عند نطقها، والأخيرة منها مضيئة؛ بديل عن الكلمة المفردة إذا أردتَ جملة قصيرة بإيقاع.",
+    "note": "مأخوذ من حزمة «موشن خام»؛ للتجربة قبل اعتماده.",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
+  },
+  {
+    "id": "Burst",
+    "ar": "شرارات الإبراز",
+    "kit": "KhaamKit",
+    "group": "علامات على النص",
+    "where": "خطوط قصيرة تنطلق من نقطة نصف ثانية عند ختم أو رقم تريد إبرازه لحظة نطقه.",
+    "note": "مأخوذ من حزمة «موشن خام»؛ للتجربة قبل اعتماده.",
+    "section": "text",
+    "mode": "full",
+    "slot": {
+      "land": "left",
+      "port": "band"
+    },
+    "orient": "both"
+  },
+  {
+    "id": "TrHalftone",
+    "ar": "انتقال النقاط",
+    "kit": "Transitions",
+    "group": "بين الفصول",
+    "where": "بين فصلين أو مشهدين مختلفين: نقاط مطبوعة تكبر من الوسط حتى تغطي الإطار ثم تتلاشى.",
+    "note": "مأخوذ من حزمة «موشن خام»؛ للتجربة قبل اعتماده.",
+    "section": "transition",
+    "mode": "full",
+    "slot": {
+      "land": "frame",
+      "port": "frame"
+    },
+    "orient": "both"
+  },
+  {
+    "id": "TvOff",
+    "ar": "إطفاء الشاشة",
+    "kit": "MontageSpec",
+    "group": "الانتقالات الحالية",
+    "where": "عند أمره بإطفاء الشاشة أو لإغلاق مشهد كشاشة تلفاز تنطفئ.",
+    "note": "في ملف المونتاج: { t: \"tvoff\", at, dur } (الافتراضي 0.6 ث).",
+    "section": "transition",
+    "mode": "full",
+    "slot": {
+      "land": "engine",
+      "port": "engine"
     },
     "orient": "both"
   }

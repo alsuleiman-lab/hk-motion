@@ -7,8 +7,9 @@ import { Curtain, LandFootage } from "./MontageSpec";
 import { DebateDossier } from "./DebateLayouts";
 import { BRAND, applyBrand } from "./brand";
 import type { BrandName } from "./brand";
-import { TrSection } from "./Transitions";
+import { TrSection, TrHalftone } from "./Transitions";
 import { GALLERY_CUT } from "./galleryCut";
+import { TvOff } from "./GazaFx";
 
 /**
  * TransitionsLab — every transition and camera move of the montage, played between two real photos (the scene-to-scene ones) or on his recording (the camera moves, the curtain, the cover),
@@ -43,6 +44,10 @@ export const TRANSITIONS: Record<string, { ar: string; where: string; kit: strin
     node: <HandheldShake windows={[{ from: 0.2, to: 2.8 }]} amp={6} rot={0.4}><SceneA /></HandheldShake> },
   TrSection: { ar: "بطاقة القسم", kit: "Transitions", where: "عند تغيير الموضوع: الخلفية المزخرفة تصعد وعليها عنوان القسم الجديد، ثم ترتفع عن المشهد التالي.",
     node: <TrSection at={SWITCH - 0.9} dur={1.8} title="عنوان القسم التالي" sub="الجزء الثاني" a={<PhotoA />} b={<PhotoB />} /> },
+  TrHalftone: { ar: "انتقال النقاط", kit: "Transitions", where: "بين فصلين أو مشهدين مختلفين: نقاط مطبوعة تكبر من الوسط حتى تغطي الإطار، يتبدّل المشهد تحتها، ثم تتلاشى؛ بديل للستارة إن وافقتَ عليه.",
+    node: <TrHalftone at={SWITCH - 0.5} dur={1.0} a={<PhotoA />} b={<PhotoB />} /> },
+  TvOff: { ar: "إطفاء الشاشة", kit: "MontageSpec", where: "عند أمره بإطفاء الشاشة أو لإغلاق مشهد كشاشة تلفاز تنطفئ: شريطان أسودان يغلقان من الأعلى والأسفل ثم يتقلص خط أبيض إلى نقطة، حركة بلا تدرج شفافية.",
+    node: <><SceneA /><TvOff at={SWITCH} dur={0.6} /></> },
 };
 
 export const TransitionScene: React.FC<{ id: string; brand?: BrandName }> = ({ id, brand }) => {

@@ -1,5 +1,5 @@
 // GENERIC GPU HYBRID RENDER — one command renders ANY composition that uses <HybridHost> / <VSlot> / <HybridBg> (src/hybrid/Slot.tsx).
-//   node tools/hybrid_any.mjs --comp EU-Protests-Landscape --out "C:/Users/mshms/Videos/جاهز/عرضي/أساسية/<العنوان>.mp4" [--start 0] [--end N] [--conc 3] [--report render_work/x]
+//   node tools/hybrid_any.mjs --comp EU-Protests-Landscape --out "C:/Users/mshms/Videos/جاهز/عرضي/أساسية/<العنوان>.mp4" [--start 0] [--end N] [--conc 3] [--browsers 3 [--block 120]] [--report render_work/x]
 // Remotion draws ONLY the graphics (transparent PNG frames, no video decoding) and reports each video slot's on-screen matrix per frame;
 // tools/hybrid_generic.py decodes the videos on NVDEC, composites on CUDA and encodes on NVENC. Audio is mixed by ffmpeg from the assets Remotion registered.
 // Writes a measurement report (time, GPU/encoder/decoder utilisation sampled by nvidia-smi, CPU) next to the output.
@@ -11,15 +11,21 @@ import path from "node:path";
 import { bundle } from "@remotion/bundler";
 import { renderFrames, renderStill, selectComposition } from "@remotion/renderer";
 import { startMonitor } from "./monitor.mjs";
+import { acquireRenderLock } from "./render_lock.mjs";
 
 process.env.TEMP = process.env.TMP = "S:/AI_Tools/Remotion_Workspace/.tmp"; // project rule: never write temp files to C:
 const arg = (k, d) => { const i = process.argv.indexOf("--" + k); return i < 0 ? d : (process.argv[i + 1] && !process.argv[i + 1].startsWith("--") ? process.argv[i + 1] : true); };
 const root = path.resolve(import.meta.dirname, "..").replace(/\\/g, "/");
 const compId = arg("comp", null);
 if (!compId || compId === true) { console.error("usage: node tools/hybrid_any.mjs --comp <CompositionId> --out <file.mp4> [--start N --end N --conc 3 --dump 'dir:frames,...']"); process.exit(1); }
+process.chdir(root);
+const PARENT = process.env.HYBRID_PARENT_LOCK;   // set by tools/hybrid_parallel.mjs, which holds the render lock for the whole job
+let parentOk = false; try { parentOk = !!PARENT && JSON.parse(fs.readFileSync(".tmp/render.lock", "utf8")).pid === Number(PARENT); } catch { /* no lock */ }
+if (!parentOk) acquireRenderLock("hybrid " + compId);   // one render at a time, like every other render entry point
 const out = path.resolve(root, arg("out", `render_work/hybrid/${compId}.mp4`));
-const logProgress = startMonitor(path.join(root, ".tmp", "render_logs", `hybrid_any_${compId}.log`), path.basename(out, path.extname(out)));
-const work = path.join(root, ".tmp/hybrid_any", compId);
+const PART = arg("part", "") === true ? "" : String(arg("part", ""));
+const logProgress = startMonitor(path.join(root, ".tmp", "render_logs", `hybrid_any_${compId}${PART ? "_p" + PART : ""}.log`), path.basename(out, path.extname(out)));
+const work = path.join(root, ".tmp/hybrid_any", compId + (PART ? "_p" + PART : ""));
 fs.mkdirSync(work, { recursive: true });
 fs.mkdirSync(path.dirname(out), { recursive: true });
 const PNG_PORT = Number(arg("png-port", 47741)), GEOM_PORT = Number(arg("geom-port", 47742));
@@ -45,7 +51,7 @@ const sync = (src, dst) => {
   fs.mkdirSync(dst, { recursive: true });
   for (const e of fs.readdirSync(src, { withFileTypes: true })) {
     const s = path.join(src, e.name), d = path.join(dst, e.name);
-    if (e.isDirectory()) { sync(s, d); continue; }
+    if (e.isDirectory()) { if (src === path.join(root, "public") && /^(fr|_vprobe_fr|matte_cache)$/.test(e.name)) continue; sync(s, d); continue; }   // fr/ = extracted JPEG frames (tens of GB, never used by the hybrid)
     if (VID.test(e.name)) continue;
     const st = fs.statSync(s);
     if (st.size > 12e6) continue;
@@ -59,12 +65,16 @@ timing.slimPublicSec = (Date.now() - t) / 1000;
 
 t = Date.now();
 log("bundling…");
-const serveUrl = await bundle({ entryPoint: path.join(root, "src/index.ts"), rspack: true, publicDir: slim, outDir: path.join(root, ".tmp/hybrid_any/bundle_" + compId), onProgress: () => {} });
+const serveUrl = await bundle({ entryPoint: path.join(root, "src/index.ts"), rspack: true, publicDir: slim, outDir: path.join(root, ".tmp/hybrid_any/bundle_" + compId + (PART ? "_p" + PART : "")), onProgress: () => {} });
 // Chrome never plays the videos, but Remotion downloads the files of <Audio> elements from the bundle: hard-link (zero copy) the real videos into it
 const linkVideos = (src, dst) => { for (const e of fs.readdirSync(src, { withFileTypes: true })) { const s2 = path.join(src, e.name), d2 = path.join(dst, e.name); if (e.isDirectory()) { fs.mkdirSync(d2, { recursive: true }); linkVideos(s2, d2); } else if (VID.test(e.name) && !fs.existsSync(d2)) { try { fs.linkSync(s2, d2); } catch (err) { log("link failed " + e.name + ": " + err.message); } } } };
 linkVideos(path.join(root, "public"), path.join(serveUrl, "public"));
+// --fr name1,name2 : hard-link these extracted-frame folders (public/fr/<name>) into the bundle for <MaskedVideo> windows (his isolated cut-out is drawn by Remotion into the graphics layer; it needs JPEG frames of the cut and of each matte)
+const FR = String(arg("fr", "")).split(",").filter(Boolean);
+for (const d of FR) { const sd = path.join(root, "public/fr", d), dd = path.join(serveUrl, "public/fr", d); fs.mkdirSync(dd, { recursive: true }); for (const f of fs.readdirSync(sd)) { try { fs.linkSync(path.join(sd, f), path.join(dd, f)); } catch { fs.copyFileSync(path.join(sd, f), path.join(dd, f)); } } }
 timing.bundleSec = (Date.now() - t) / 1000;
-const inputProps = { hybrid: "top", hybridPort: GEOM_PORT };
+process.on("exit", () => { try { fs.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });   // a failed run must not leave a 30-60 GB bundle behind (disk filled 2026-11-09)
+const inputProps = { hybrid: "top", hybridPort: GEOM_PORT, ...(FR.length ? { frames: true } : {}) };
 const composition = await selectComposition({ serveUrl, id: compId, inputProps, chromiumOptions: { gl: "angle" } });
 const W = composition.width, H = composition.height, FPS = composition.fps;
 const start = Number(arg("start", 0)), end = Math.min(Number(arg("end", composition.durationInFrames - 1)), composition.durationInFrames - 1);
@@ -91,6 +101,8 @@ exited.catch((e) => { console.error("the compositor stopped: " + e.message); pro
 await Promise.race([readyP, exited]);
 const sock = net.connect(PNG_PORT, "127.0.0.1");
 await new Promise((res) => sock.on("connect", res));
+let sockEnded = false;
+sock.on("error", (e) => { if (sockEnded) return; console.error("compositor socket: " + e.message); process.exit(1); });   // ECONNRESET after the compositor closed (2026-11-11) crashed the mux step
 
 // ---- graphics layer ----
 log("rendering the graphics layer (Remotion, transparent PNG, no video decoding)…");
@@ -98,12 +110,30 @@ const tg0 = Date.now();
 let sent = 0;
 let lastPercent = -1;
 const conc = arg("conc", null);
-const { assetsInfo } = await renderFrames({
-  composition, serveUrl, inputProps, imageFormat: "png", outputDir: null, concurrency: conc && conc !== true ? Number(conc) : 3, frameRange: [start, end], chromiumOptions: { gl: "angle" }, logLevel: "error", timeoutInMilliseconds: 180000,
-  onFrameUpdate: () => {},
-  onFrameBuffer: (buf, frame) => { const h = Buffer.alloc(8); h.writeUInt32LE(frame, 0); h.writeUInt32LE(buf.length, 4); sock.write(h); sock.write(buf); sent++; const percent = Math.floor(sent / NF * 100); if (percent !== lastPercent) { lastPercent = percent; logProgress(`[جزء 1/1] ${percent}%`); } if (sent % 600 === 0) log(`graphics ${sent}/${NF}  ${(sent / ((Date.now() - tg0) / 1000)).toFixed(1)} fps`); },
+const CONC = conc && conc !== true ? Number(conc) : 3;
+// --browsers K (2026-11-11): K independent Chromium instances render at the same time. One Chromium is latency-bound (each tab waits
+// ~200 ms per frame while using little CPU) and extra tabs barely help, but separate browsers do (measured on Mufti-Iraq-L: 3×3 = 22–23 fps
+// vs 11–15 for 1×3). The range is handed out in blocks of --block frames (default 120) so the compositor, which consumes frames in order
+// and buffers early ones, never holds more than about K blocks. K=1 (default) = the original single call, unchanged.
+const BROWSERS = Math.max(1, Number(arg("browsers", 1)) || 1), BLOCK = Math.max(10, Number(arg("block", 120)) || 120);
+const onFrameBuffer = (buf, frame) => { const h = Buffer.alloc(8); h.writeUInt32LE(frame, 0); h.writeUInt32LE(buf.length, 4); sock.write(h); sock.write(buf); sent++; const percent = Math.floor(sent / NF * 100); if (percent !== lastPercent) { lastPercent = percent; logProgress(`[جزء 1/1] ${percent}%`); } if (sent % 600 === 0) log(`graphics ${sent}/${NF}  ${(sent / ((Date.now() - tg0) / 1000)).toFixed(1)} fps`); };
+const renderRange = (a, b, puppeteerInstance) => renderFrames({
+  composition, serveUrl, inputProps, imageFormat: "png", outputDir: null, concurrency: CONC, frameRange: [a, b], chromiumOptions: { gl: "angle" }, logLevel: "error", timeoutInMilliseconds: 180000,
+  onFrameUpdate: () => {}, onFrameBuffer, ...(puppeteerInstance ? { puppeteerInstance } : {}),
 });
-sock.end();
+let assetsInfo;
+if (BROWSERS === 1) ({ assetsInfo } = await renderRange(start, end));
+else {
+  const { openBrowser } = await import("@remotion/renderer");
+  log(`graphics: ${BROWSERS} browsers × ${CONC} tabs, blocks of ${BLOCK} frames`);
+  const blocks = []; for (let a = start; a <= end; a += BLOCK) blocks.push([a, Math.min(end, a + BLOCK - 1)]);
+  const browsers = await Promise.all(Array.from({ length: BROWSERS }, () => openBrowser("chrome", { logLevel: "error", chromiumOptions: { gl: "angle" } })));
+  const all = []; let next = 0;
+  const worker = async (br, wi) => { while (next < blocks.length) { const [a, b] = blocks[next++]; let tries = 0; for (;;) { try { const tb = Date.now(); all.push(...(await renderRange(a, b, br)).assetsInfo.assets); if (arg("block-log", false)) log(`  browser ${wi}: block ${a}-${b} in ${((Date.now() - tb) / 1000).toFixed(1)}s`); break; } catch (e) { if (++tries >= 3) throw e; log(`block ${a}-${b} failed (${e.message.split("\n")[0]}), retry ${tries}`); } } } };
+  try { await Promise.all(browsers.map((br, wi) => worker(br, wi))); } finally { await Promise.all(browsers.map((br) => br.close({ silent: true }).catch(() => {}))); }
+  assetsInfo = { assets: all };
+}
+sockEnded = true; sock.end();
 const tg1 = Date.now();
 timing.graphicsSec = (tg1 - tg0) / 1000;
 log(`graphics done in ${timing.graphicsSec.toFixed(0)}s — waiting for the compositor`);
@@ -129,20 +159,23 @@ for (const f of frames) {
   for (const [id, o] of open) if (!present.has(id)) open.delete(id);
 }
 const toPath = (s) => { if (s.startsWith("file:")) return decodeURIComponent(new URL(s).pathname.replace(/^\//, "")); const u = new URL(s); const m = decodeURIComponent(u.pathname).match(/\/public\/(.*)$/); return m ? `${root}/public/${m[1]}` : s; };
-const inputs = [], parts = [], mixIn = [];
+const inputs = [], parts = [], mixIn = [], uniq = new Map();   // one -i per distinct source (hundreds of sfx hits of the same file overflowed the Windows command line)
 segs.forEach((o, k) => {
   const v = o.vols.reduce((a, b) => a + b, 0) / o.vols.length;
   if (Math.max(...o.vols) - Math.min(...o.vols) > 0.02) log(`audio ${o.id}: volume varies (${Math.min(...o.vols).toFixed(2)}–${Math.max(...o.vols).toFixed(2)}), using the mean`);
   const dur = (o.last - o.startRel + 1) / FPS, ms = Math.round((o.startRel / FPS) * 1000);
-  inputs.push("-i", toPath(o.src));
-  parts.push(`[${k}:a]atrim=start=${(o.trim / FPS).toFixed(4)}:duration=${(dur * o.rate).toFixed(4)},asetpts=PTS-STARTPTS${o.rate !== 1 ? `,atempo=${o.rate}` : ""},volume=${v.toFixed(4)},adelay=${ms}:all=1[a${k}]`);
+  const sp = toPath(o.src); if (!uniq.has(sp)) { uniq.set(sp, { idx: uniq.size, n: 0 }); inputs.push("-i", sp); } const u = uniq.get(sp); o.inLabel = `u${u.idx}_${u.n++}`;
+  parts.push(`[${o.inLabel}]atrim=start=${(o.trim / FPS).toFixed(4)}:duration=${(dur * o.rate).toFixed(4)},asetpts=PTS-STARTPTS${o.rate !== 1 ? `,atempo=${o.rate}` : ""},volume=${v.toFixed(4)},adelay=${ms}:all=1[a${k}]`);
   mixIn.push(`[a${k}]`);
 });
 const audio = path.join(work, "audio.aac");
 let hasAudio = false;
 if (segs.length) {
-  const fc = parts.join(";") + ";" + mixIn.join("") + `amix=inputs=${mixIn.length}:duration=longest:normalize=0:dropout_transition=0,aresample=48000,atrim=duration=${(NF / FPS).toFixed(4)}[a]`;
-  execFileSync("ffmpeg", ["-v", "error", "-y", ...inputs, "-filter_complex", fc, "-map", "[a]", "-c:a", "aac", "-b:a", "192k", audio]);
+  const splits = [...uniq.values()].map((u) => `[${u.idx}:a]aresample=48000,${u.n > 1 ? `asplit=${u.n}${Array.from({ length: u.n }, (_, j) => `[u${u.idx}_${j}]`).join("")}` : `anull[u${u.idx}_0]`}`);
+  parts.unshift(...splits);
+  const fc = parts.join(";\n") + ";\n" + mixIn.join("") + `amix=inputs=${mixIn.length}:duration=longest:normalize=0:dropout_transition=0,aresample=48000,atrim=duration=${(NF / FPS).toFixed(4)}[a]`;
+  const fcFile = path.join(work, "audio_fc.txt"); fs.writeFileSync(fcFile, fc);   // filter graph in a file: no command-line length limit
+  execFileSync("ffmpeg", ["-v", "error", "-y", ...inputs, "-/filter_complex", fcFile, "-map", "[a]", "-c:a", "aac", "-b:a", "192k", audio]);
   hasAudio = true;
 }
 timing.audioSec = (Date.now() - t) / 1000;

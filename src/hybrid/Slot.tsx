@@ -19,7 +19,7 @@ export const HY: "top" | "bg" | undefined = P.hybrid;
 export const hyBg = <T,>(c: T): T | undefined => (HY === "top" ? undefined : c);
 
 type Rec = { id: string; src: string; t: number; f: number; rate: number; m: number[]; w: number; h: number; r: number; o: number; vx: number; vy: number; vw: number; vh: number; fx: Record<string, number> };
-const G: { frame: number; slots: Map<string, Rec>; flushedFrame: number } = { frame: -1, slots: new Map(), flushedFrame: -2 };
+const G: { frame: number; slots: Map<string, Rec>; flushedFrame: number; host: HTMLDivElement | null } = { frame: -1, slots: new Map(), flushedFrame: -2, host: null };
 
 const MEAS = new Map<string, () => void>(); // latest measuring function of every mounted slot
 const flush = (frame: number) => {
@@ -42,11 +42,19 @@ export const HybridHost: React.FC<{ children: React.ReactNode }> = ({ children }
     if (HY !== "top") return;
     flush(frame);
     // layout can still settle after the commit (first frame of a tab, images/fonts): measure once more one animation frame later, before the screenshot is taken
+    // On the first frame of every new tab Remotion still holds the composition in its hidden container (top -999999px); measured there,
+    // the video went off-screen = black frames at the start of every render range (found 2026-11-11). Wait until the host is on screen.
     const h = delayRender("hybrid-remeasure", { timeoutInMilliseconds: 60000 });
-    requestAnimationFrame(() => { try { MEAS.forEach((m) => m()); flush(frame); } finally { continueRender(h); } });
+    let tries = 0;
+    const settle = () => {
+      const y = G.host?.getBoundingClientRect().y ?? 0;
+      if (y < -10000 && tries++ < 120) { requestAnimationFrame(settle); return; }
+      try { MEAS.forEach((m) => m()); flush(frame); } finally { continueRender(h); }
+    };
+    requestAnimationFrame(settle);
   });
   return (
-    <AbsoluteFill style={{ visibility: HY === "bg" ? "hidden" : undefined }}>
+    <AbsoluteFill ref={(el) => { G.host = el; }} style={{ visibility: HY === "bg" ? "hidden" : undefined }}>
       {P.noshadow ? <style>{"*{box-shadow:none !important;text-shadow:none !important}"}</style> : null}
       {children}
     </AbsoluteFill>

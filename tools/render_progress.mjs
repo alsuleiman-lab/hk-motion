@@ -10,12 +10,19 @@ const port = Number(process.argv.includes("--port") ? process.argv[process.argv.
 const DIR = path.resolve("render_work");
 const MAX_AGE = 12 * 3600e3;
 
+/* Arabic title of a composition id from src/compositionTitles.ts */
+const arTitle = (id) => { try { const m = fs.readFileSync("src/compositionTitles.ts", "utf8").match(new RegExp(`"${id}"\\s*:\\s*"([^"]+)"`)); return m ? m[1] : id; } catch { return id; } };
 const parse = (file) => {
   const st = fs.statSync(file);
   const lines = fs.readFileSync(file, "utf8").split(/\r?\n/).filter(Boolean);
-  let part = null, done = null, head = null;
-  for (const l of lines) {
+  let part = null, done = null, head = null, fr = null;
+  for (const raw of lines) for (const l of raw.split("\r")) {
     if (/^TITLE\s/.test(l)) head = l.replace(/^TITLE\s+/, "");
+    /* hybrid render (.tmp/b2_render_<p>.log): «SaintRambal-L: 1920x1080 …» names it, «frame a/b  f fps» measures it, the final mux ends it */
+    const hc = l.match(/\]\s*([\w-]+):\s*\d+x\d+ @/); if (hc) head = arTitle(hc[1]);
+    const fm = l.match(/frame (\d+)\/(\d+)\s+([\d.]+) fps/); if (fm) fr = { a: +fm[1], b: +fm[2], fps: +fm[3] };
+    if (/HYBRID FAILED/.test(l)) done = null;
+    if (/^\[hybrid-any[^\]]*\]\s*(done|✔)/i.test(l)) done = head ?? "done";
     const m = l.match(/\[جزء (\d+)\/(\d+)\]\s*(\d+)%(?:\s+([\d.]+)\s*د)?/);
     if (m) part = { i: +m[1], n: +m[2], p: +m[3], min: m[4] ? +m[4] : null };
     if (/^DONE\b/.test(l)) done = l.replace(/^DONE\s+/, "");
@@ -23,7 +30,8 @@ const parse = (file) => {
   const pct = done ? 100 : part ? Math.min(99, ((part.i - 1) * 100 + part.p) / part.n) : 0;
   const idleMin = (Date.now() - st.mtimeMs) / 60000;
   const min = part?.min ?? null;
-  const eta = !done && part && min && pct > 1 ? Math.max(0, (min / pct) * (100 - pct)) : null;
+  let eta = !done && part && min && pct > 1 ? Math.max(0, (min / pct) * (100 - pct)) : null;
+  if (!done && fr && fr.fps > 0) eta = (fr.b - fr.a) / fr.fps / 60;
   return {
     id: path.basename(file).replace(/^progress_chunked_|\.log$/g, ""),
     title: (done && done.match(/->\s*(.+?)\s*\(/)?.[1]?.split(/[\\/]/).pop()?.replace(/\.mp4$/, "")) || head || path.basename(file).replace(/^progress_chunked_|\.log$/g, ""),
@@ -32,8 +40,11 @@ const parse = (file) => {
   };
 };
 const state = () => {
-  if (!fs.existsSync(DIR)) return [];
-  return fs.readdirSync(DIR).filter((f) => /^progress_chunked_.*\.log$/.test(f)).map((f) => path.join(DIR, f))
+  const files = [];
+  if (fs.existsSync(DIR)) files.push(...fs.readdirSync(DIR).filter((f) => /^progress_chunked_.*\.log$/.test(f)).map((f) => path.join(DIR, f)));
+  const TMP = path.resolve(".tmp"); /* hybrid renders of the render queue */
+  if (fs.existsSync(TMP)) files.push(...fs.readdirSync(TMP).filter((f) => /^b2_render_.*\.log$/.test(f)).map((f) => path.join(TMP, f)));
+  return files
     .filter((f) => Date.now() - fs.statSync(f).mtimeMs < MAX_AGE).map(parse).filter((r) => !/_probe.mp4|probe.mp4/.test(r.out ?? "")).filter((r) => r.done ? Date.now() - r.mtime < 3600e3 : !r.stalled)
     .sort((a, b) => (a.done - b.done) || (b.mtime - a.mtime));
 };

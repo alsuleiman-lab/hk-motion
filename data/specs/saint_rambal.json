@@ -12,6 +12,11 @@
  ],
  "zooms": [
   {
+   "from": 0,
+   "to": 0.55,
+   "amt": 0.04
+  },
+  {
    "from": 30.35,
    "to": 35.35
   },
@@ -289,7 +294,7 @@
   {
    "t": "bgclip",
    "src": "saint_rambal/bg/intro_feet.mp4",
-   "from": 0,
+   "from": 0.55,
    "to": 69.4,
    "start": 0,
    "dim": 0.42,

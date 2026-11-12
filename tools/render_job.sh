@@ -19,7 +19,9 @@ if true; then
   node tools/mix_audio.mjs $p $p >/dev/null 2>&1
   # hybrid (user 2026-11-09): Remotion draws graphics only, FFmpeg composites on NVDEC/NVENC; STRICT: no fallback to the old path (a failure stops and is fixed)
   tmpv=".tmp/hyb_$p.mp4"; rm -f "$tmpv"
-  until node tools/hybrid_any.mjs --comp $id --out "$tmpv" > .tmp/b2_render_$p.log 2>&1; do grep -aq "ممنوع رندر" .tmp/b2_render_$p.log || break; sleep 60; done
+  # isolation windows: his cut-out is drawn from pre-extracted JPEG frames (seeking videos in Chrome ran at ~2.5 fps, 2026-11-12); deleted after the render
+  fr=$(node tools/window_frames.mjs $p)
+  until node tools/hybrid_any.mjs --comp $id --out "$tmpv" ${fr:+--fr "$fr"} > .tmp/b2_render_$p.log 2>&1; do grep -aq "ممنوع رندر" .tmp/b2_render_$p.log || break; sleep 60; done
   hasA=$(ffprobe -v error -select_streams a -show_entries stream=codec_type -of csv=p=0 "$tmpv" 2>/dev/null | head -1)
   if [ -s "$tmpv" ]; then
     # hybrid_any already mixes the audio and prepends the opening bumper (user 2026-11-11): never replace its audio with the unshifted wav
@@ -30,4 +32,5 @@ if true; then
   else echo "HYBRID FAILED — لا رندر بالقديم (أمر 2026-11-09)" >> .tmp/b2_render_$p.log; false
   fi
 fi
-echo "$p RENDER exit $? -> $o/$name"
+rc=$?; node tools/window_frames.mjs $p clean >/dev/null 2>&1
+echo "$p RENDER exit $rc -> $o/$name"; (exit $rc)

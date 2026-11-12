@@ -38,9 +38,14 @@ export const BgClip: React.FC<{ src: string; from: number; to: number; fade?: nu
 };
 const BgClipInner: React.FC<{ src: string; d: number; fade: number; start: number; dim: number }> = ({ src, start, dim }) => {
   // no opacity transition (user 2026-11-09: dissolves are forbidden; only gallery transitions): hard edges, the end is covered by the Curtain placed by MontageFromSpec
+  const { width: W, height: H } = useVideoConfig();
+  /* hybrid render: the clip is decoded by the GPU compositor (a <VSlot>), never by Chrome — Chrome seeking it per frame made these spans 2.5 fps (2026-11-12).
+     Background clips are 16:9 (1920×1080); "cover" = scale to fill, centred. */
+  const k = Math.max(W / 1920, H / 1080), vw = 1920 * k, vh = 1080 * k;
   return (
     <AbsoluteFill>
-      <ClipVideo src={src} start={start} style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+      {HY ? <VSlot src={src} startFrom={Math.round(start * FPS)} w={W} h={H} vx={(W - vw) / 2} vy={(H - vh) / 2} vw={vw} vh={vh} />
+        : <ClipVideo src={src} start={start} style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
       <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 45%, rgba(6,12,22,${dim * 0.5}) 0%, rgba(6,12,22,${dim + 0.25}) 100%)` }} />
     </AbsoluteFill>
   );

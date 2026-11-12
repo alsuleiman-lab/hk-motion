@@ -144,6 +144,20 @@ if (missing.length) fails++;
   if (bad.length) fails++;
 }
 
+// 1c) (user 2026-11-12, «عزل والخريطة في الخلفية، افهم يا هذا»): in LANDSCAPE every map outside a clip window is a FULL-FRAME map BEHIND him, isolated —
+//     a behind window over it and land w×h = 1920×1080; a small map card left his own video visible under it and his isolated copy on top (two of him)
+{
+  const inSplit = (t) => (spec.splits ?? []).some((w) => t >= w.from - 0.05 && t < w.to);
+  const bad = [];
+  for (const it of items.filter((x) => x.t === "pmap" && !x.only && !inSplit(x.from ?? 0))) {
+    const L = it.land ?? {}, full = (L.w ?? 0) >= 1900 && (L.h ?? 0) >= 1060 && (L.x ?? 0) <= 10 && (L.y ?? 0) <= 10;
+    const win = (spec.behind ?? []).some((w) => (w.only === "land" || !w.only) && w.from <= (it.from ?? 0) + 0.3 && w.to >= (it.to ?? 0) - 0.3);
+    if (!full || !win) bad.push(`${mm(it.from ?? 0)} ${!full ? "ليست ملء الإطار" : ""}${!full && !win ? " و" : ""}${!win ? "بلا نافذة عزل خلفها" : ""}`);
+  }
+  console.log(bad.length ? `✘ الخريطة في العرضي ملء الإطار خلفه وهو معزول: ${bad.join("، ")}` : "✔ كل خريطة في العرضي ملء الإطار خلفه وهو معزول");
+  if (bad.length) fails++;
+}
+
 // 2) empty stretches (any item or baked split counts as something on screen)
 const spans = [...items.map(span).filter(Boolean), ...(spec.splits ?? []).map((s) => [s.from, s.to]), ...(spec.zooms ?? []).map((z) => [z.from, z.to + 1.2]), ...(spec.shake ?? []).map((z) => [z.from, z.to])].sort((a, b) => a[0] - b[0]);   /* a push-in moves until it has zoomed back out (to + 1.2 s) */
 const gaps = [];

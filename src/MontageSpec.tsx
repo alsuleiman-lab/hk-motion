@@ -602,7 +602,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => 
   /* portrait isolation layout (user 2026-11-12): the experiment's inputProps win over the spec */
   /* the user's choice (2026-11-12, «B»): the clip fills the frame lightly blurred behind him, a tilted paper card of the same clip on its subject top-left,
      he slid right at 66 % — the default for every portrait background-clip isolation; the experiment's inputProps or the spec may override it */
-  const portIso = ((getInputProps() as { portIso?: PortIso }).portIso ?? (spec as { portIso?: PortIso }).portIso ?? PORT_ISO_DEFAULT) as PortIso | undefined;
+  const portIso = (((getRemotionEnvironment().isPlayer ? {} : getInputProps()) as { portIso?: PortIso }).portIso ?? (spec as { portIso?: PortIso }).portIso ?? PORT_ISO_DEFAULT) as PortIso | undefined;
   const bgUnder = (w: { from: number; to: number }) => spec.items.some((x) => x.t === "bgclip" && (x as { from: number }).from < w.to && (x as { to: number }).to > w.from);   /* the B layout only where a background clip is behind him */
   const bgclips = mine("bgclip"), hclips = mine("hclip"), pulses = mine("zoomblend"), horrors = mine("horror");
   const hasFx = pulses.length > 0 || horrors.length > 0;

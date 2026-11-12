@@ -5,7 +5,7 @@ import fs from "node:fs";
 const [sura, aya, from, to] = process.argv.slice(2).map(Number);
 const db = JSON.parse(fs.readFileSync(new URL("../data/quran/quran-uthmani.json", import.meta.url), "utf8"));
 let text = db.data.surahs[sura - 1].ayahs.find((a) => a.numberInSurah === aya).text;
-if (sura !== 1 && aya === 1) text = text.replace(/^بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ\s*/, ""); // the basmala is prefixed to ayah 1 in this edition
+if (sura !== 1 && sura !== 9 && aya === 1) { const w = text.trim().split(/\s+/); if (w.length > 4 && /^بِسْ?مِ?/.test(w[0])) text = w.slice(4).join(" "); }   // the edition prefixes the basmala (its letters vary, so drop the first four words) // the basmala is prefixed to ayah 1 in this edition
 const words = text.replace(/[۞۩]/g, "").trim().split(/\s+/);
 const sel = from ? words.slice(from - 1, to ?? words.length) : words;
 console.log(JSON.stringify({ sura, aya, name: db.data.surahs[sura - 1].name, words: sel, text: sel.join(" ") }, null, 1));

@@ -24,6 +24,9 @@ import LAB from "../data/elements_lab.json";
 import GRIDS from "../data/layout_grids.json";
 import { TRANSITIONS, TransitionScene } from "./TransitionsLab";
 import { Keycaps, Burst } from "./KhaamKit";
+import { VerseNoor } from "./VerseKit";
+import { HadithQuote, HadithIsnad } from "./HadithKit";
+
 import { BRAND, applyBrand } from "./brand";
 import type { BrandName } from "./brand";
 import { BrowserFrame, VideoFrame, PostCard, CommentCard, BookPage, CitationTag, ArticleMock } from "./SourceFrames";
@@ -142,7 +145,7 @@ const E: Record<string, { node: React.ReactNode; light?: boolean }> = {
 const LAB_ITEMS = LAB.filter((m) => !(m.id in TRANSITIONS) || m.id in SPEC_E);
 export const ELEMENTS_LAB_FRAMES = LAB_ITEMS.length * LAB_LEN;
 /** the drawing of one element by id: the same node the studio composition shows */
-export const labNode = (id: string) => E[id] ?? SPEC_E[id] ?? NAME_E[id];
+export const labNode = (id: string) => E[id] ?? SPEC_E[id] ?? NAME_E[id] ?? (VERSE_SCENES[id] ? { node: VERSE_SCENES[id]("land") } : undefined);
 
 // ── the gallery scene (user 2026-10-31): three screen modes, each with its grid (data/layout_grids.json), in both orientations ─────────────────────
 type Orient = "land" | "port";
@@ -159,6 +162,16 @@ const HimCut: React.FC<{ o: Orient }> = ({ o }) => (o === "land"
   ? <MaskedVideo video={GALLERY_CUT} matte={GALLERY_MATTE} width={1920} height={1080} />
   : <div style={{ position: "absolute", top: 0, left: PORT_LEFT, width: PORT_W, height: 1920 }}><MaskedVideo video={GALLERY_CUT} matte={GALLERY_MATTE} width={PORT_W} height={1920} /></div>);
 const OPP = "gallery_opp_clip.mp4";
+/** the verse ways of 2026-11-12 (src/VerseKit.tsx): whole-frame scenes over his real clip, landscape (long videos); sample = النور 35 from the Qur'an database */
+const NUR = { words: ["ٱللَّهُ", "نُورُ", "ٱلسَّمَٰوَٰتِ", "وَٱلْأَرْضِ"], times: [0.5, 0.9, 1.3, 1.8], surah: "سُورَةُ النُّورِ", aya: 35 };
+/** the hadith sample: «إنما الأعمال بالنيات» (صحيح البخاري 1، صحيح مسلم 1907 — checked in Shamela) */
+const HAD = { lead: "قال رسول الله ﷺ", phrases: [{ text: "إنما الأعمال بالنيات", at: 0.5, key: "بالنيات" }, { text: "وإنما لكل امرئ ما نوى", at: 1.4 }], src: "صحيح البخاري (١) — صحيح مسلم (١٩٠٧)" };
+const ISNAD = ["الحميدي", "سفيان بن عيينة", "يحيى بن سعيد الأنصاري", "محمد بن إبراهيم التيمي", "علقمة بن وقاص الليثي", "عمر بن الخطاب", "النبي ﷺ"];
+const VERSE_SCENES: Record<string, (o: Orient) => React.ReactNode> = {
+  VerseNoor: () => <VerseNoor {...NUR} him={<Rec />} />,
+  HadithQuote: () => <HadithQuote him={<Rec />} {...HAD} />,
+  HadithIsnad: () => <><Rec /><HadithIsnad chain={ISNAD.map((name, i) => ({ name, at: 0.15 + i * 0.2 }))} lead={HAD.lead} phrases={HAD.phrases.map((p, i) => ({ ...p, at: 1.65 + i * 0.6 }))} src={HAD.src} cardAt={1.45} /></>,
+};
 /** half screen = a source shown beside him. Landscape: the engine's split layout (DebateDossier: the source window left, his window right).
  *  Portrait: the engine's psplits (he is scaled 0.66 from the top centre, the source fills the lower panel). */
 const HalfBase: React.FC<{ o: Orient; source: boolean }> = ({ o, source }) => {
@@ -248,6 +261,7 @@ export const LabScene: React.FC<{ id: string; brand?: BrandName; slot?: string; 
   const { width, height } = useVideoConfig();
   const o: Orient = width > height ? "land" : "port";
   const real = realScene(id, brand, dx, dy, o, scale);
+  if (VERSE_SCENES[id]) return <AbsoluteFill style={{ overflow: "hidden", background: BRAND.base }}><AbsoluteFill style={{ transform: `translate(${dx}px, ${dy}px)` }}>{VERSE_SCENES[id](o)}</AbsoluteFill></AbsoluteFill>;
   if (real) return <AbsoluteFill style={{ overflow: "hidden" }}>{real}</AbsoluteFill>;
   if (TRANSITIONS[id]) return <TransitionScene id={id} brand={brand} />;
   const m = META[id] ?? { mode: "full" as Mode, slot: { land: "frame", port: "frame" } };

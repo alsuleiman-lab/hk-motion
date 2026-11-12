@@ -23,3 +23,4 @@ export const FONT_TEXT = () => { load("Almarai", "Almarai-Regular.ttf", "400"); 
 /** Qur'an text: ALWAYS a King Fahd Glorious Quran Printing Complex font — the user chose the *Sousi* one (2026-10-20). File: public/fonts/UthmanicSousi_V20.ttf (KFGQPC Uthmanic Script Sousi V20, via github.com/nuqayah/qpc-fonts). */
 export const FONT_QURAN = () => load("KFGQPC Uthmanic Sousi", "UthmanicSousi_V20.ttf", "400");
 export const QURAN_FONT = "KFGQPC Uthmanic Sousi";
+export const FONT_NASKH = () => { load("Amiri", "Amiri-Regular.ttf", "400"); return load("Amiri", "Amiri-Bold.ttf", "700"); };

@@ -32,7 +32,16 @@
     "TrAccentWipe",
     "TrDoors",
     "TrPaperTear",
-    "TiltNote"
+    "TiltNote",
+    "GlowCaption",
+    "MapRoute",
+    "HalftoneImage",
+    "VerseQalam",
+    "VerseLift",
+    "VerseBeads",
+    "VerseWall",
+    "VerseMihrab",
+    "VerseCine"
   ],
   "itemTypes": [
     "neon",

@@ -41,6 +41,17 @@ http.createServer((req, res) => {
     }
     res.writeHead(405); res.end(); return;
   }
+  // a temporary choice page (scratch/choose_page, user 2026-11-12): GET /choose/… serves it, POST /api/choice saves his picks to data/choice_pick.json
+  if (url.pathname.startsWith("/choose/")) {
+    const f = path.resolve("scratch/choose_page", "." + decodeURIComponent(url.pathname.slice(7) || "/index.html").replace(/^\/$/, "/index.html"));
+    if (!f.startsWith(path.resolve("scratch/choose_page")) || !fs.existsSync(f) || !fs.statSync(f).isFile()) { res.writeHead(404); res.end("not found"); return; }
+    res.writeHead(200, { "Content-Type": MIME[path.extname(f).toLowerCase()] ?? "application/octet-stream", "Cache-Control": "no-store" }); fs.createReadStream(f).pipe(res); return;
+  }
+  if (url.pathname === "/api/choice" && req.method === "POST") {
+    let body = ""; req.on("data", (c) => { body += c; if (body.length > 1e6) req.destroy(); });
+    req.on("end", () => { try { const d = JSON.parse(body); fs.writeFileSync(path.resolve("data/choice_pick.json"), JSON.stringify({ ...d, savedAt: new Date().toISOString() }, null, 1)); res.writeHead(200, { "Content-Type": MIME[".json"] }); res.end("{}"); } catch { res.writeHead(400); res.end(); } });
+    return;
+  }
   if (url.pathname === "/api/notes") {
     if (req.method === "GET") { res.writeHead(200, { "Content-Type": MIME[".json"], "Cache-Control": "no-store" }); res.end(JSON.stringify(readNotes())); return; }
     if (req.method === "POST") {

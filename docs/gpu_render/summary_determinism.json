@@ -1,0 +1,80 @@
+{
+ "frames": 10,
+ "psnrMin": Infinity,
+ "psnrMean": Infinity,
+ "framesBelow45": [],
+ "timingChecked": 0,
+ "timingFail": [],
+ "rows": [
+  {
+   "frame": 600,
+   "psnr": Infinity,
+   "maxAbs": 0,
+   "pctOver2": 0.0,
+   "pctOver8": 0.0
+  },
+  {
+   "frame": 660,
+   "psnr": Infinity,
+   "maxAbs": 0,
+   "pctOver2": 0.0,
+   "pctOver8": 0.0
+  },
+  {
+   "frame": 720,
+   "psnr": Infinity,
+   "maxAbs": 0,
+   "pctOver2": 0.0,
+   "pctOver8": 0.0
+  },
+  {
+   "frame": 780,
+   "psnr": Infinity,
+   "maxAbs": 0,
+   "pctOver2": 0.0,
+   "pctOver8": 0.0
+  },
+  {
+   "frame": 840,
+   "psnr": Infinity,
+   "maxAbs": 0,
+   "pctOver2": 0.0,
+   "pctOver8": 0.0
+  },
+  {
+   "frame": 900,
+   "psnr": Infinity,
+   "maxAbs": 0,
+   "pctOver2": 0.0,
+   "pctOver8": 0.0
+  },
+  {
+   "frame": 960,
+   "psnr": Infinity,
+   "maxAbs": 0,
+   "pctOver2": 0.0,
+   "pctOver8": 0.0
+  },
+  {
+   "frame": 1020,
+   "psnr": Infinity,
+   "maxAbs": 0,
+   "pctOver2": 0.0,
+   "pctOver8": 0.0
+  },
+  {
+   "frame": 1080,
+   "psnr": Infinity,
+   "maxAbs": 0,
+   "pctOver2": 0.0,
+   "pctOver8": 0.0
+  },
+  {
+   "frame": 1140,
+   "psnr": Infinity,
+   "maxAbs": 0,
+   "pctOver2": 0.0,
+   "pctOver8": 0.0
+  }
+ ]
+}

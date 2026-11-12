@@ -24,7 +24,10 @@ if true; then
   tmpv=".tmp/hyb_${p}_$o.mp4"; rm -f "$tmpv"   # one temp name per orientation: the bumper and judder records of L and R must not overwrite each other (2026-11-12)
   # isolation windows: his cut-out is made on the GPU (masked VSlot, 2026-11-12); graphics UNDER him (a map in a window) go in the under layer = these frames
   under=$(node tools/window_frames.mjs $p under $o)
-  until node tools/hybrid_any.mjs --comp $id --out "$tmpv" ${under:+--under "$under"} > .tmp/b2_render_$p.log 2>&1; do grep -aq "ممنوع رندر" .tmp/b2_render_$p.log || break; sleep 60; done
+  # render engine (R-RENDER-GPU.1, user 2026-11-12): the all-GPU renderer by default; RENDER_ENGINE=hybrid = the previous path (fallback, with the user's permission).
+  # Same arguments, same output (audio mixed, opening bumper prepended), same lock and retry: nothing else in this job changes.
+  engine=tools/gpu_render.mjs; [ "${RENDER_ENGINE:-gpu}" = hybrid ] && engine=tools/hybrid_any.mjs
+  until node $engine --comp $id --out "$tmpv" ${under:+--under "$under"} > .tmp/b2_render_$p.log 2>&1; do grep -aq "ممنوع رندر" .tmp/b2_render_$p.log || break; sleep 60; done
   hasA=$(ffprobe -v error -select_streams a -show_entries stream=codec_type -of csv=p=0 "$tmpv" 2>/dev/null | head -1)
   if [ -s "$tmpv" ]; then
     # hybrid_any already mixes the audio and prepends the opening bumper (user 2026-11-11): never replace its audio with the unshifted wav

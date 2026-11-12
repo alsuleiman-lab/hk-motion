@@ -41,7 +41,7 @@ const wins = [];
 
 const makeWindow = async (k, spec) => {
   const pre = {
-    timeout: cfg.timeout, mainTab: k === 0, mediaCache: cfg.mediaCache, memory: os.freemem(), sampleRate: cfg.sampleRate, inputProps: spec.inputProps, mode: spec.mode,
+    timeout: cfg.timeout, mainTab: k === 0, mediaCache: cfg.mediaCache, memory: os.freemem(), sampleRate: cfg.sampleRate, inputProps: spec.inputProps, mode: spec.mode, noAssets: !!process.env.GR_NOASSETS,
     initialFrame: spec.initialFrame, proxyPort: cfg.proxyPort, height: H, markRows: MR, profile: !!process.env.GR_PROFILE,
   };
   const win = new BrowserWindow({
@@ -101,11 +101,12 @@ const doFrame = async (st, f) => {
   let rejectWait;
   const painted = new Promise((res, rej) => { st.waiter = { f, res }; rejectWait = rej; });
   st.expect = f;
-  const { assets, geom, seen } = await st.win.webContents.executeJavaScript(`window.__gr_frame(${f}, ${JSON.stringify(cfg.compId)})`);
+  const { prev, geom, seen } = await st.win.webContents.executeJavaScript(`window.__gr_frame(${f}, ${JSON.stringify(cfg.compId)})`);
   const t1 = performance.now();
   if (st.mode === "top") send({ t: "geom", f, g: geom, seen });   /* the video-slot geometry of this frame (src/hybrid/Slot.tsx), before the compositor needs it */
-  if (DEBUG) log(`w${st.k} frame ${f}: ready in ${(t1 - t0).toFixed(0)} ms, ${assets.length} assets, geometry ${geom ? geom.slots.length + " slots" : "none"}; waiting for its paint`);
-  if (st.mode === "top" && assets.length) st.assets.push({ frame: f, audioAndVideoAssets: assets });
+  if (DEBUG) log(`w${st.k} frame ${f}: ready in ${(t1 - t0).toFixed(0)} ms, prev assets ${prev ? prev.assets.length : "-"}, geometry ${geom ? geom.slots.length + " slots" : "none"}; waiting for its paint`);
+  /* every frame is recorded, even with no asset (the audio mix closes a segment on a frame where its asset is absent) */
+  if (st.mode === "top" && prev) st.assets.push({ frame: prev.frame, audioAndVideoAssets: prev.assets });
   let tries = 0;
   const kick = () => {   /* a paint normally arrives within one frame interval; nudge the compositor if it does not */
     if (st.waiter?.f !== f) return;
@@ -126,6 +127,8 @@ const runQueue = async (st) => {
     while (st.queue.length) {
       const [a, b] = st.queue[0];
       for (let f = a; f <= b; f++) await doFrame(st, f);
+      const last = await st.win.webContents.executeJavaScript("window.__gr_flush_assets()");
+      if (st.mode === "top" && last) st.assets.push({ frame: last.frame, audioAndVideoAssets: last.assets });
       st.queue.shift();
       st.expect = -1;
       if (process.env.GR_PROFILE) log(`w${st.k} block ${a}-${b} page profile (ms/frame): ` + JSON.stringify(await st.win.webContents.executeJavaScript("window.__gr_prof()")));
@@ -175,6 +178,22 @@ app.whenReady().then(async () => {
     setTimeout(async () => {
       await contentTracing.startRecording({ included_categories: ["toplevel", "cc", "gpu", "viz", "blink", "v8", "disabled-by-default-devtools.timeline", "base"] });
       setTimeout(async () => { const p = await contentTracing.stopRecording(process.env.GR_TRACE.replace("PID", process.pid)); log("trace written: " + p); }, 1000 * Number(process.env.GR_TRACE_SEC || 3));
+    }, 1000 * Number(process.env.GR_TRACE_AT || 4));
+  }
+  if (process.env.GR_CDPTRACE) {   /* debug: DevTools-protocol trace (JSON) of window 0 for GR_TRACE_SEC s, GR_TRACE_AT s after start */
+    const wc = made[0].win.webContents, dbg = wc.debugger; dbg.attach("1.3");
+    const chunks = [];
+    dbg.on("message", (_e, method, params) => { if (method === "Tracing.dataCollected") chunks.push(...params.value); if (method === "Tracing.tracingComplete") { fs.writeFileSync(process.env.GR_CDPTRACE.replace("PID", process.pid), JSON.stringify({ traceEvents: chunks })); log("cdp trace written: " + chunks.length + " events"); } });
+    setTimeout(async () => {
+      await dbg.sendCommand("Tracing.start", { traceConfig: { includedCategories: ["toplevel", "cc", "blink", "v8", "gpu", "viz", "disabled-by-default-devtools.timeline", "devtools.timeline", "blink.user_timing", "loading"] }, transferMode: "ReportEvents" });
+      setTimeout(() => dbg.sendCommand("Tracing.end"), 1000 * Number(process.env.GR_TRACE_SEC || 3));
+    }, 1000 * Number(process.env.GR_TRACE_AT || 4));
+  }
+  if (process.env.GR_JSPROF) {   /* debug: V8 sampling profile of window 0 (DevTools protocol), GR_TRACE_SEC s from GR_TRACE_AT s */
+    const dbg = made[0].win.webContents.debugger; try { dbg.attach("1.3"); } catch {}
+    setTimeout(async () => {
+      await dbg.sendCommand("Profiler.enable"); await dbg.sendCommand("Profiler.setSamplingInterval", { interval: 200 }); await dbg.sendCommand("Profiler.start");
+      setTimeout(async () => { const { profile } = await dbg.sendCommand("Profiler.stop"); fs.writeFileSync(process.env.GR_JSPROF.replace("PID", process.pid), JSON.stringify(profile)); log("js profile written"); }, 1000 * Number(process.env.GR_TRACE_SEC || 3));
     }, 1000 * Number(process.env.GR_TRACE_AT || 4));
   }
   send({ t: "hello", pid: process.pid, windows: made.map((st) => ({ w: st.k, mode: st.mode })), loadSec: (Date.now() - t0) / 1000 });

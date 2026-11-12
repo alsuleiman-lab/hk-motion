@@ -107,6 +107,12 @@ const server = http.createServer((req, res) => {
 });
 await new Promise((res) => server.listen(HTTP_PORT, "127.0.0.1", res));
 
+// ---- the D3D11 -> CUDA bridge (tools/gpu/bridge.cpp) is built from source with Visual Studio 2022 when missing ----
+if (!fs.existsSync(path.join(root, "tools/gpu/bridge.dll"))) {
+  log("building tools/gpu/bridge.dll (Visual Studio 2022)…");
+  const r = spawnSync("cmd", ["/c", path.join(root, "tools/gpu/build_bridge.bat").split("/").join("\\")], { cwd: root, stdio: "inherit", windowsHide: true });
+  if (r.status !== 0 || !fs.existsSync(path.join(root, "tools/gpu/bridge.dll"))) { console.error("could not build tools/gpu/bridge.dll"); process.exit(1); }
+}
 // ---- compositor ----
 const UNDER = String(arg("under", "") === true ? "" : arg("under", "")).split(",").filter(Boolean).map((r) => r.split("-").map(Number)).map(([a, b]) => [Math.max(a, start), Math.min(b, end)]).filter(([a, b]) => b >= a);
 const NU = UNDER.reduce((n, [a, b]) => n + b - a + 1, 0);

@@ -67,6 +67,12 @@ function setup(cfg) {
 
   w.__gr_init = async (bundleMode) => {
     await ready("initial load");
+    /* the viewport is cfg.markRows taller than the composition (marker strip). Elements anchored to the bottom of the INITIAL containing block
+       (position:absolute; bottom:… with no positioned ancestor, e.g. TitleBar) would move down by those rows: #remotion-canvas (0,0, exactly
+       W x H) becomes their containing block instead, i.e. the same box as the headless renderer's W x H viewport. */
+    const st = document.createElement("style");
+    st.textContent = "#remotion-canvas{position:relative}";
+    document.head.appendChild(st);
     w.remotion_setBundleMode(bundleMode);
     await ready("bundle mode");
     setMarker(0xFFFFFFFE);
@@ -83,10 +89,22 @@ function setup(cfg) {
   const geoms = new Map();
   w.__gr_geom = (p) => { geoms.set(p.frame, JSON.parse(JSON.stringify(p))); };
   w.__gr_prof = () => { const o = {}; for (const k in T) o[k] = k === "n" || k === "xhrN" ? T[k] : +(T[k] / Math.max(1, T.n)).toFixed(2); return o; };
+  /* audio/video assets of a frame (what renderFrames collects after each screenshot). remotion_collectAssets() empties a React state, which costs a
+     second render of the tree per frame (measured: 47 -> 24 ms per frame without it). So the assets of frame f are collected at the start of the
+     next step, in the SAME task as setFrame(f+1): React batches both updates into one render. The set collected is still the one of frame f. */
+  let pendingFrame = null;
+  const collect = () => {
+    if (pendingFrame === null || cfg.noAssets || typeof w.remotion_collectAssets !== "function") { pendingFrame = null; return null; }
+    const out = { frame: pendingFrame, assets: w.remotion_collectAssets().filter((a) => a.type === "audio" || a.type === "video") };
+    pendingFrame = null;
+    return out;
+  };
+  w.__gr_flush_assets = async () => { await ready("flush assets"); return collect(); };   /* end of a block: the last frame's assets */
   w.__gr_frame = async (f, comp) => {
     const t0 = performance.now();
     await ready("before frame " + f);
     const t1 = performance.now();
+    const prev = collect();
     w.remotion_setFrame(f, comp, 1);
     const t2 = performance.now();
     await ready("frame " + f);
@@ -99,14 +117,15 @@ function setup(cfg) {
     const t3 = performance.now();
     await document.fonts.ready;
     const t4 = performance.now();
-    const assets = typeof w.remotion_collectAssets === "function" ? w.remotion_collectAssets() : [];
+    document.body.style.background = "transparent";   /* what @remotion/renderer's takeFrame does before every PNG capture (the bundle's page is Studio-dark) */
     setMarker(f);
+    pendingFrame = f;
     const t5 = performance.now();
     T.n++; T.pre += t1 - t0; T.set += t2 - t1; T.ready += t3 - t2; T.fonts += t4 - t3; T.assets += t5 - t4;
     const g = geoms.get(f) || null;
     const seen = [...geoms.keys()];
     geoms.clear();
-    return { assets: assets.filter((a) => a.type === "audio" || a.type === "video"), geom: g, seen };
+    return { prev, geom: g, seen };
   };
 }
 

@@ -24,12 +24,23 @@ function setup(cfg) {
   w.remotion_audioEnabled = true;
   w.remotion_videoEnabled = true;
   w.remotion_logLevel = "error";
-  /* the frame HybridHost (src/hybrid/Slot.tsx) last COMMITTED. remotion_setFrame() lets readiness return on the next requestAnimationFrame;
-     offscreen windows tick rAF at up to 240 Hz, faster than a time-sliced React render (~14 ms here), so "ready" can come before the new frame is
-     committed and a paint would carry the new marker over the OLD picture (seen: frame 9198 with no geometry). A frame is accepted only once
-     HybridHost has committed it. */
-  let committed = -1;
-  w.__gr_commit = (f) => { committed = f; };
+  /* React commit counter (a minimal devtools hook, the interface React DOM calls on every commit). remotion_setFrame() lets readiness return on
+     the next requestAnimationFrame; offscreen windows tick rAF at up to 240 Hz, faster than a time-sliced React render (~14 ms here), so "ready"
+     can come before the new frame is committed and a paint would carry the new marker over the OLD picture (seen: frame 9198 had no geometry).
+     A changed frame is accepted only after a commit that followed setFrame (and, in the top layer, after its slot geometry arrived). */
+  let commits = 0;
+  if (!w.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
+    w.__REACT_DEVTOOLS_GLOBAL_HOOK__ = { supportsFiber: true, isDisabled: false, renderers: new Map(), inject() { return 1; }, checkDCE() {}, onScheduleFiberRoot() {}, onCommitFiberRoot() { commits++; }, onCommitFiberUnmount() {}, onPostCommitFiberRoot() {}, setStrictMode() {} };
+  }
+  /* video-slot geometry: src/hybrid/Slot.tsx posts it with a SYNCHRONOUS XHR to 127.0.0.1:<hybridPort>/g (~7 ms per call, twice a frame).
+     Those requests are answered here, in the page, without any network: the body is kept for the frame and travels with it over the worker's
+     control channel. Nothing in src/ changes. */
+  const geoms = new Map();
+  let hyPort = null; try { hyPort = JSON.parse(cfg.inputProps).hybridPort; } catch { /* no hybrid port: nothing to catch */ }
+  const XO = XMLHttpRequest.prototype.open, XS = XMLHttpRequest.prototype.send, XH = XMLHttpRequest.prototype.setRequestHeader;
+  XMLHttpRequest.prototype.open = function (m, url, ...r) { this.__gr = hyPort != null && String(url) === `http://127.0.0.1:${hyPort}/g`; return this.__gr ? undefined : XO.call(this, m, url, ...r); };
+  XMLHttpRequest.prototype.setRequestHeader = function (...a) { return this.__gr ? undefined : XH.apply(this, a); };
+  XMLHttpRequest.prototype.send = function (body) { if (!this.__gr) return XS.call(this, body); const p = JSON.parse(body); geoms.set(p.frame, p); };
   w.alert = (m) => { w.remotion_cancelledError = new Error(`alert("${m}") was called`).stack; };
   w.confirm = (m) => { w.remotion_cancelledError = new Error(`confirm("${m}") was called`).stack; return false; };
 
@@ -80,15 +91,9 @@ function setup(cfg) {
   };
 
   /* seek, wait for every delayRender(), fonts; collect the audio assets of the frame; then stamp the marker (same DOM state as the picture) */
-  const T = { n: 0, pre: 0, set: 0, ready: 0, fonts: 0, assets: 0, xhr: 0, xhrN: 0 };
-  if (cfg.profile) {   /* debug: time the synchronous geometry XHRs of the page */
-    const send0 = XMLHttpRequest.prototype.send;
-    XMLHttpRequest.prototype.send = function (...a) { const t = performance.now(); try { return send0.apply(this, a); } finally { T.xhr += performance.now() - t; T.xhrN++; } };
-  }
-  /* geometry of the video slots (src/hybrid/Slot.tsx flush): the last report of each frame wins, as with the XHR it replaces */
-  const geoms = new Map();
-  w.__gr_geom = (p) => { geoms.set(p.frame, JSON.parse(JSON.stringify(p))); };
-  w.__gr_prof = () => { const o = {}; for (const k in T) o[k] = k === "n" || k === "xhrN" ? T[k] : +(T[k] / Math.max(1, T.n)).toFixed(2); return o; };
+  const T = { n: 0, pre: 0, set: 0, ready: 0, fonts: 0, assets: 0 };
+  w.__gr_prof = () => { const o = {}; for (const k in T) o[k] = k === "n" ? T[k] : +(T[k] / Math.max(1, T.n)).toFixed(2); return o; };
+  let shown = cfg.initialFrame;   /* the frame the page shows (Remotion's timeline state) */
   /* audio/video assets of a frame (what renderFrames collects after each screenshot). remotion_collectAssets() empties a React state, which costs a
      second render of the tree per frame (measured: 47 -> 24 ms per frame without it). So the assets of frame f are collected at the start of the
      next step, in the SAME task as setFrame(f+1): React batches both updates into one render. The set collected is still the one of frame f. */
@@ -104,16 +109,19 @@ function setup(cfg) {
     const t0 = performance.now();
     await ready("before frame " + f);
     const t1 = performance.now();
+    const c0 = commits;
     const prev = collect();
     w.remotion_setFrame(f, comp, 1);
     const t2 = performance.now();
     await ready("frame " + f);
-    /* wait for the commit of frame f (and, in the top layer, its slot geometry, posted in the commit's layout effect), then for readiness again */
-    for (let tries = 0; committed !== f || (cfg.mode === "top" && !geoms.has(f)); tries++) {
-      if (tries > 5000) throw new Error(`frame ${f} was never committed by HybridHost (last commit: ${committed})`);
+    /* wait for React's commit of frame f (a changed frame) and, in the top layer, for its slot geometry (posted in HybridHost's layout effect of
+       that commit), then for readiness again */
+    for (let tries = 0; (f !== shown && commits === c0) || (cfg.mode === "top" && !geoms.has(f)); tries++) {
+      if (tries > 5000) throw new Error(`frame ${f} was never committed (commits ${c0} -> ${commits}, geometry ${geoms.has(f)})`);
       await new Promise((r) => setTimeout(r, 1));
       await ready("frame " + f + " (after commit)");
     }
+    shown = f;
     const t3 = performance.now();
     await document.fonts.ready;
     const t4 = performance.now();

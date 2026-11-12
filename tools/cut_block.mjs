@@ -75,6 +75,8 @@ for (const s of map.segments) {
 // the replacement piece goes right where cut time A falls (after the pieces that sum to A)
 if (SA != null) { let t = 0, k = 0; while (k < segs.length && t + (segs[k].b - segs[k].a) <= A + 1e-4) { t += segs[k].b - segs[k].a; k++; } segs.splice(k, 0, { ...segs[Math.max(0, k - 1)], a: SA, b: SB }); }
 map.segments = segs; fs.writeFileSync(mapF, JSON.stringify(map));
+// the chosen writing list (search starts) moves too
+{ const wf = path.join(T, "writing.json"); if (fs.existsSync(wf)) { const Wj = JSON.parse(fs.readFileSync(wf, "utf8")); for (const it of Wj.items ?? []) if (typeof it.from === "number") it.from = mv(it.from); fs.writeFileSync(wf, JSON.stringify(Wj, null, 1)); } }
 // the order plans («مونتاج» notes) point at cut seconds too
 { const nf = path.join(T, "montage_notes.json"); if (fs.existsSync(nf)) { const N = JSON.parse(fs.readFileSync(nf, "utf8")); for (const n of N) if (n.plan) n.plan = n.plan.map((x) => (x.at != null ? { ...x, at: mv(x.at) } : x)); fs.writeFileSync(nf, JSON.stringify(N, null, 1)); } }
 // the verse list (verse_scan): a recitation inside the block goes, the ones after move

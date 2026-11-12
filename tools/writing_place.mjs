@@ -25,7 +25,7 @@ const bad = [], out = [];
 for (const it of W.items) {
   const q = it.text.split(/\s+/).map(norm).filter(Boolean);
   let hit = -1;
-  for (let i = 0; i < N.length; i++) { if (fresh[i].s < (it.from ?? 0) - 1) continue; if (q.every((x, j) => N[i + j] === x)) { hit = i; break; } }
+  for (let i = 0; i < N.length; i++) { if (fresh[i].s < (it.from ?? 0) - 15) continue; /* later cut blocks move the words earlier */ if (q.every((x, j) => N[i + j] === x)) { hit = i; break; } }
   if (hit < 0) { bad.push(`«${it.text}» ليست كلماته متتابعة كما نطقها (من ${it.from}ث)`); continue; }
   if (it.t === "scraps" && q.length > 7) bad.push(`«${it.text}» قصاصات أطول من 7 كلمات`);
   if (DANGLE.has(q[q.length - 1])) bad.push(`«${it.text}» تنتهي بكلمة معلّقة «${it.text.split(/\s+/).pop()}»`);

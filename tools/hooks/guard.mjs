@@ -43,6 +43,13 @@ const guard = (...args) => { const r = spawnSync("node", ["tools/montage_guard.m
 
 if (mode === "prompt") {
   const p = String(input.prompt ?? "");
+  // SLEEP MODE (user 2026-11-12: «لم تفِ بعهدك… نمت واستيقظت والكمبيوتر شغال»): a message saying he goes to sleep sets .tmp/user_sleeping;
+  // any other message from him means he is awake and clears it. The Stop handler below hibernates the PC when I stop while he sleeps.
+  try {
+    const flag = path.join(ROOT, ".tmp", "user_sleeping");
+    if (/(سأنام|سانام|راح انام|راح أنام|رايح انام|رايح أنام|بروح انام|بروح أنام|ذاهب للنوم|ذاهب لأنام|أنا نائم|انا نائم|سوف أنام|سوف انام|نايم الحين|قبل ما انام|وانا نايم|وأنا نائم|سأخلد للنوم|good night|going to sleep)/i.test(p)) { fs.mkdirSync(path.dirname(flag), { recursive: true }); fs.writeFileSync(flag, new Date().toISOString()); }
+    else if (fs.existsSync(flag)) fs.rmSync(flag, { force: true });
+  } catch { /* never block a prompt */ }
   const contract = [
     "عقد الالتزام (PREFERENCES.md القسم 0 — ملزم، لا استثناء إلا بنص المستخدم في رسالته الحالية):",
     "• القواعد ← `PREFERENCES.md`، والتنفيذ ← المهارات، والفحص ← `WORKFLOW_CHECKLIST.md`. لا تحِد عن بند منها ولا تؤوّله لصالح الاختصار.",
@@ -169,6 +176,25 @@ if (mode === "post") {
 }
 
 if (mode === "stop") {
+  // SLEEP MODE: he is asleep and I am stopping (done, a question, a blocker). A render worker running → the hibernate watcher (armed here if missing) sleeps the PC
+  // after the queue; .tmp/keep_awake (an ISO time, written by me for a background job I will come back to) holds it until then; otherwise → hibernate in 90 s.
+  try {
+    const flag = path.join(ROOT, ".tmp", "user_sleeping");
+    if (fs.existsSync(flag)) {
+      const pidF = path.join(ROOT, "data", "render_queue", "worker.pid"); let rendering = false;
+      try { const pid = Number(fs.readFileSync(pidF, "utf8")); process.kill(pid, 0); rendering = true; } catch { /* no worker */ }
+      let keep = false; try { keep = new Date(fs.readFileSync(path.join(ROOT, ".tmp", "keep_awake"), "utf8").trim()).getTime() > Date.now(); } catch { /* none */ }
+      const log = (m) => fs.appendFileSync(path.join(ROOT, ".tmp", "sleep_hook.log"), `${new Date().toISOString()} ${m}
+`);
+      if (rendering) {
+        const armed = path.join(ROOT, ".tmp", "hibernate_watcher.pid"); let alive = false; try { process.kill(Number(fs.readFileSync(armed, "utf8")), 0); alive = true; } catch { /* not running */ }
+        if (!alive) { const ch = spawn("bash", [path.join(ROOT, "tools", "hibernate_after_queue.sh")], { cwd: ROOT, detached: true, stdio: "ignore", windowsHide: true }); fs.writeFileSync(armed, String(ch.pid)); ch.unref(); log("rendering: hibernate watcher armed"); }
+      } else if (!keep) {
+        log("asleep and I stopped with no render: hibernating in 90 s");
+        spawn("powershell.exe", ["-NoProfile", "-WindowStyle", "Hidden", "-Command", "Start-Sleep 90; shutdown.exe /h"], { detached: true, stdio: "ignore", windowsHide: true }).unref();
+      } else log("asleep, keep_awake until " + fs.readFileSync(path.join(ROOT, ".tmp", "keep_awake"), "utf8").trim());
+    }
+  } catch { /* the stop hook never fails the turn */ }
   // AUTO CLEANUP: at the end of every reply, in the background, at most every 15 min (at once when S: has < 50 GB free). clean_temp skips anything touched in the last 30 min.
   try {
     const stamp = path.join(ROOT, ".tmp", "last_clean.txt");

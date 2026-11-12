@@ -91,20 +91,67 @@ export const BlendPanel: React.FC<{ k: number; t: number; w?: number; solid?: nu
   );
 };
 
-/** half screen of light: `him` = his landscape video layer (moved right while the verse is on) */
-export const VerseNoor: React.FC<VerseProps & { him: React.ReactNode; size?: number; dx?: number }> = ({ words, times, surah, aya, until, him, size = 112, dx = 470 }) => {
-  FONT_QURAN();
-  const t = useT();
-  const inn = ease((t - times[0] + 0.55) / 0.5), out = until === undefined ? 1 : ease((until - t) / 0.45), k = Math.min(inn, out);
+/** HALF-SCREEN WAYS (user 2026-11-12: «اجعله هو الأصلي والأساسي»): his video slides right by HALF_DX while the panel is on. The engine slides him through
+ *  spec shifts (halfShift gives the window, see MontageSpec), the gallery through HalfScene. The panel starts `lead` s before the first spoken word. */
+export const HALF_DX = 470;
+export const HALF_LEAD = 0.55;
+export const halfK = (t: number, start: number, until?: number) => Math.min(ease((t - start) / 0.5), until === undefined ? 1 : ease((until - t) / 0.45));
+/** the matching shift window for LandFootage (its ramp is 0.4 s at both ends, ending 0.4 s after `to`) */
+export const halfShift = (start: number, until: number) => ({ from: start, to: Math.max(start + 0.5, until - 0.4), dx: HALF_DX });
+/** gallery only: his clip slid right + the panel (the engine does the slide itself) */
+export const HalfScene: React.FC<{ him: React.ReactNode; start: number; until?: number; children: React.ReactNode }> = ({ him, start, until, children }) => {
+  const t = useT(), k = halfK(t, start, until);
   return (
     <AbsoluteFill style={{ background: BRAND.base, overflow: "hidden" }}>
-      <AbsoluteFill style={{ transform: `translateX(${dx * k}px)` }}>{him}</AbsoluteFill>
-      <BlendPanel k={k} t={t} id="vn">
-        <div style={{ position: "absolute", left: 60, width: 680, top: 130, direction: "rtl" }}><Header surah={surah} size={44} k={(t - times[0] + 0.3) / 0.5} /></div>
-        <div style={{ position: "absolute", left: 40, width: 720, top: 240, bottom: 140, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", textAlign: "center", fontFamily: Q, fontSize: size, lineHeight: 1.75 }}>
-          <div>{words.map((w, i) => <GoldWord key={i} w={w} at={times[i]} t={t} size={size} />)}<AyahEnd n={aya} size={size * 0.62} k={(t - times[times.length - 1] - 0.35) / 0.3} /></div>
-        </div>
-      </BlendPanel>
+      <AbsoluteFill style={{ transform: `translateX(${HALF_DX * k}px)` }}>{him}</AbsoluteFill>
+      {children}
     </AbsoluteFill>
   );
 };
+const chars = (ws: string[]) => ws.reduce((s, w) => s + [...cleanQuran(w)].length + 1, 0);
+/** a font size that fits `n` characters into a w×h box (Uthmani ≈ 0.45 em per character) */
+const fitSize = (n: number, w: number, h: number, lh: number, max: number, min: number) => Math.round(Math.max(min, Math.min(max, Math.sqrt((w * h) / (0.45 * lh * Math.max(1, n))))));
+
+/** 1) the panel of light: the words huge in gold, a light sweep over each word as he says it */
+export const VerseNoorPanel: React.FC<VerseProps & { size?: number }> = ({ words, times, surah, aya, until, size }) => {
+  FONT_QURAN();
+  const t = useT(), k = halfK(t, times[0] - HALF_LEAD, until);
+  const s = size ?? fitSize(chars(words), 720, 700, 1.75, 112, 52);
+  return (
+    <BlendPanel k={k} t={t} id="vn">
+      <div style={{ position: "absolute", left: 60, width: 680, top: 130, direction: "rtl" }}><Header surah={surah} size={44} k={(t - times[0] + 0.3) / 0.5} /></div>
+      <div style={{ position: "absolute", left: 40, width: 720, top: 240, bottom: 140, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", textAlign: "center", fontFamily: Q, fontSize: s, lineHeight: 1.75 }}>
+        <div>{words.map((w, i) => <GoldWord key={i} w={w} at={times[i]} t={t} size={s} />)}<AyahEnd n={aya} size={s * 0.62} k={(t - times[times.length - 1] - 0.35) / 0.3} /></div>
+      </div>
+    </BlendPanel>
+  );
+};
+/** 2) the big word then the verse: each word he says appears alone, huge, then shrinks down into its place in the verse line; the line completes with its roundel */
+export const VerseBigWordPanel: React.FC<VerseProps & { size?: number }> = ({ words, times, surah, aya, until, size }) => {
+  FONT_QURAN();
+  const t = useT(), k = halfK(t, times[0] - HALF_LEAD, until);
+  const s = size ?? fitSize(chars(words), 740, 330, 1.6, 78, 42);
+  let cur = -1; times.forEach((x, i) => { if (t >= x) cur = i; });
+  const land = 0.8;   // the word reaches the line this long after it is said
+  const a = cur >= 0 ? t - times[cur] : 0, u = ease(a / 0.25), d = ease((a - 0.55) / 0.4);
+  const bigOn = cur >= 0 && a < land + 0.2 && (until === undefined || t < until - 0.3);
+  const w0 = cur >= 0 ? [...cleanQuran(words[cur])].length : 1, big = Math.min(230, Math.round(1300 / Math.max(3, w0)));
+  return (
+    <BlendPanel k={k} t={t} id="vb">
+      <div style={{ position: "absolute", left: 60, width: 680, top: 110, direction: "rtl" }}><Header surah={surah} size={42} k={(t - times[0] + 0.3) / 0.5} /></div>
+      {bigOn ? (
+        <div style={{ position: "absolute", left: 40, width: 740, top: 220, height: 380, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", fontFamily: Q, fontSize: big, opacity: 1 - d,
+          transform: `translateY(${d * 330}px) scale(${(0.7 + 0.3 * u) * (1 - 0.65 * d)})`,
+          backgroundImage: "linear-gradient(180deg, #fff3c4 0%, #f3c95a 42%, #c88e22 72%, #8a5a12 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
+          filter: "drop-shadow(0 6px 0 rgba(70,40,5,.9)) drop-shadow(0 0 30px rgba(243,201,90,.4))" }}>{cleanQuran(words[cur])}</div>
+      ) : null}
+      <div style={{ position: "absolute", left: 30, width: 760, top: 640, bottom: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", direction: "rtl", textAlign: "center", fontFamily: Q, fontSize: s, lineHeight: 1.6 }}>
+        <div>{words.map((w, i) => <GoldWord key={i} w={w} at={times[i] + land} t={t} size={s} />)}<AyahEnd n={aya} size={s * 0.66} k={(t - times[times.length - 1] - land - 0.3) / 0.3} /></div>
+      </div>
+    </BlendPanel>
+  );
+};
+
+/** gallery scenes (his clip slid right + the panel) */
+export const VerseNoor: React.FC<VerseProps & { him: React.ReactNode; size?: number }> = (p) => <HalfScene him={p.him} start={p.times[0] - HALF_LEAD} until={p.until}><VerseNoorPanel {...p} /></HalfScene>;
+export const VerseBigWord: React.FC<VerseProps & { him: React.ReactNode; size?: number }> = (p) => <HalfScene him={p.him} start={p.times[0] - HALF_LEAD} until={p.until}><VerseBigWordPanel {...p} /></HalfScene>;

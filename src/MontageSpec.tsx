@@ -5,6 +5,8 @@ import { AbsoluteFill, Audio, Img, Sequence, Video, continueRender, delayRender,
 import { PaperTear } from "./PaperTear";
 import { Gfx, BrushX, Stamp, NoteCard, HandheldShake, SourceWalk, BlurRise, RewriteWindow, FlashCut, PinnedPhoto, TimelineTravel, PanelToCanvas, Clock, DashArc, useT } from "./MG";
 import { KeyChip, ReelVerseFull, VerseWords } from "./MGExtras";
+import { VerseNoorPanel, VerseBigWordPanel, halfShift, HALF_LEAD } from "./VerseKit";
+import { HadithQuotePanel, HadithBooksPanel, HadithIsnad } from "./HadithKit";
 import { TitleBar } from "./TitleBar";
 import type { BarTheme } from "./TitleBar";
 import { NameCard1, NameCard3 } from "./NameCards";
@@ -60,11 +62,17 @@ export type SpecItem = Common & (
   | { t: "credit"; text: string; from?: number; to?: number }
   /** a verse written word by word at the second he recites it (text copied from data/quran by tools/quran_ayah.mjs, never typed) */
   | { t: "subscribe"; at: number; x: number; y: number; dur?: number }
-  | { t: "verse"; words: string[]; times: number[]; title: string; refText: string; x: number; y: number; w: number; size?: number; until?: number; full?: boolean }
+  /** landscape (user 2026-11-12: the approved ways are the main ones, one picked AT RANDOM for every verse): `way` noor | bigword (half screen, he slides right) — left out = random;
+   *  "card" = the old VerseWords card. `aya` = the verse number (else read from refText). Portrait is unchanged. */
+  | { t: "verse"; words: string[]; times: number[]; title: string; refText: string; x: number; y: number; w: number; size?: number; until?: number; full?: boolean; way?: "noor" | "bigword" | "card"; aya?: number }
   /** a hadith in the full-screen box (user 2026-11-02): matn from sunnah.com / الدرر السنية / الشاملة word by word as he says it; `source` = book + number, e.g. «صحيح البخاري (5115)» */
   | { t: "hadith"; words: string[]; times: number[]; source: string; until?: number }
   /** a hadith on a paper NoteCard (MG NoteCard; user's gallery note 2026-11-05: «مخصصة لكتابة الأحاديث النبوية»): the matn typed as `title`, the book + number as `tag`; he stays on screen */
-  | { t: "note"; at: number; until: number; title: string; tag: string; label?: string; x?: number; y?: number; w?: number; h?: number; size?: number; cps?: number }
+  /** landscape with `phrases` (each = the words he says + the second he starts them; `key` = a word underlined): one approved hadith way picked AT RANDOM per hadith (user 2026-11-12):
+   *  quote | books (half screen, he slides right); `chain` (the narrators he names, with their seconds) = he recited the isnad → isnad (the chain then the matn).
+   *  `books` = the sources with their numbers (else `tag`), `narrator` = «عن …», `lead` = «قال رسول الله ﷺ». Without `phrases`, or in portrait: the NoteCard as before. */
+  | { t: "note"; at: number; until: number; title: string; tag: string; label?: string; x?: number; y?: number; w?: number; h?: number; size?: number; cps?: number;
+      phrases?: { text: string; at: number; key?: string }[]; lead?: string; narrator?: string; books?: { book: string; n: number | string }[]; chain?: { name: string; at: number }[]; cardAt?: number; way?: "quote" | "books" | "isnad" | "card" }
   /** a column of written cards (EU-Protests style): dark `Banner` title + one `StatRow` card per spoken item; placed by the orientation's layout (no x/y) */
   | { t: "rows"; side?: "right"; from: number; to: number; y0?: number; step?: number; rowH?: number; pin?: { x: number; w: number }; title?:{ at: number; text: string }; rows: { at: number; label: string; sub?: string; subAt?: number; icon?: string; photo?: string }[]; /** condition → consequence: two boxes per row, the condition (icon) right, its consequence (own box) left at subAt (user 2026-11-12 sketch) */ pair?: boolean }
   /** a scholar he quotes: polaroid with the name in the white band (empty side of his frame; portrait: below the beard) */
@@ -228,6 +236,11 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
         ? <KeyChip key={i} phrases={[{ text: it.text, at: it.at }]} until={it.until} x={ov.x ?? 431} y={ov.y ?? 880} size={ov.size ?? 29} rot={-7} theme={bar} />
         : <Only key={i} from={it.at} to={it.until}><BlurRise at={it.at} times={[it.at, it.at + 0.4]} text={it.text} x={it.x ?? Math.round((1080 - (it.w ?? 820)) / 2)} w={it.w ?? 820} y={it.y} size={it.size ?? 58} color="#fff" accentColor={BRAND.accent} accentWords={it.accentWords ?? []} canvasW={1080} align={it.w ? "left" : undefined} /></Only>;
     case "note": {
+      if (L && it.phrases?.length && it.way && it.way !== "card") {
+        if (it.way === "isnad" && it.chain?.length) return <HadithIsnad key={i} chain={it.chain} lead={it.lead} phrases={it.phrases} src={it.tag} cardAt={it.cardAt ?? it.phrases[0].at - 0.4} until={it.until} />;
+        if (it.way === "books") return <HadithBooksPanel key={i} lead={it.lead} narrator={it.narrator} phrases={it.phrases} src={it.tag} books={it.books} until={it.until} />;
+        return <HadithQuotePanel key={i} lead={it.lead} phrases={it.phrases} src={it.tag} until={it.until} />;
+      }
       const w = L ? ov.w ?? it.w ?? 600 : it.w ?? 820, size = it.size ?? 38;
       const lines = Math.max(1, Math.ceil([...it.title].length / Math.max(1, Math.floor((w - 70) / (size * 0.5))))), h = ov.h ?? it.h ?? Math.round(130 + lines * size * 1.6);
       const x = L ? ov.x ?? 40 : it.x ?? Math.round((1080 - w) / 2);
@@ -290,6 +303,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
       // a verse he recites INSIDE his talk = the known verse card (VerseWords) in the writing area / the empty side, his picture visible (user 2026-11-01); full screen (full:true) only for a lone recitation
       const to = it.until ?? it.times[it.times.length - 1] + 1.2;
       if (it.full) return <ReelVerseFull key={i} to={to} refName={`${it.title} — ${it.refText}`} lines={[{ words: it.words, times: it.times }]} />;
+      if (L && (it.way === "noor" || it.way === "bigword")) { const P = it.way === "noor" ? VerseNoorPanel : VerseBigWordPanel; return <P key={i} words={it.words} times={it.times} surah={it.title} aya={ayaOf(it)} until={to} />; }
       return <VerseWords key={i} words={it.words} times={it.times} x={L ? ov.x ?? G.x : it.x} y={L ? ov.y ?? G.y : it.y} w={L ? ov.w ?? G.w : it.w} size={L ? ov.size ?? 38 : it.size ?? 44} title={it.title} refText={it.refText} until={to} />;
     }
     case "hadith": return <ReelVerseFull key={i} hadith to={it.until ?? it.times[it.times.length - 1] + 1.2} refName={it.source} lines={[{ words: it.words, times: it.times }]} />;
@@ -565,9 +579,28 @@ const withGallery = (s: MontageSpec): MontageSpec => s.galleryOwn ? s : { ...s, 
   if (!P.dx && !P.dy && P.k === 1 && !L.dx && !L.dy && L.k === 1) return it;
   const ld = it.land ?? {};
   /* (2026-11-12) a picture placed in the GAP between the two cards of a split window (land.panel) keeps that exact place: no gallery offset on top of it */
-  const inPanel = (ld as { panel?: boolean }).panel === true;
+  const inPanel = (ld as { panel?: boolean }).panel === true || isHalfWay(it);   // a half-screen verse/hadith way has its own fixed place
   return { ...it, dx: (it.dx ?? 0) + P.dx, dy: (it.dy ?? 0) + P.dy, k: (it.k ?? 1) * P.k, land: inPanel ? ld : { ...ld, dx: (ld.dx ?? 0) + L.dx, dy: (ld.dy ?? 0) + L.dy, k: (ld.k ?? 1) * L.k } } as SpecItem;
 }) };
+/* VERSE / HADITH WAYS AT RANDOM (user 2026-11-12: «كل ما تمر آية أو حديث يختار واحد عشوائي… دائماً عشوائي»): every landscape verse and every hadith with `phrases`
+   that has no `way` gets one of the approved ways, drawn from a hash of the video + the item's second — a different draw for every verse/hadith and every episode,
+   and the same draw in Studio and in the render. A recited isnad (`chain`) always shows the chain. The half-screen ways slide him right (an extra `shifts` window). */
+const VERSE_WAYS = ["noor", "bigword"] as const, HADITH_WAYS = ["quote", "books"] as const;
+const draw = (key: string, n: number) => { let h = 2166136261; for (const c of key) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) % n; };
+const ayaOf = (it: { aya?: number; refText: string }) => it.aya ?? Number((it.refText.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).match(/\d+/) ?? ["0"])[0]);
+const isHalfWay = (it: SpecItem) => (it.t === "verse" && !it.full && (it.way === "noor" || it.way === "bigword")) || (it.t === "note" && !!it.phrases?.length && (it.way === "quote" || it.way === "books"));
+const withHalfWays = (s: MontageSpec): MontageSpec => {
+  const seed = s.cut ?? (s as { title?: string }).title ?? "";
+  const items = s.items.map((it) => {
+    if (it.only === "port") return it;
+    if (it.t === "verse" && !it.full && !it.way) return { ...it, way: VERSE_WAYS[draw(`${seed}|v|${it.times[0]}`, VERSE_WAYS.length)] } as SpecItem;
+    if (it.t === "note" && it.phrases?.length && !it.way) return { ...it, way: it.chain?.length ? "isnad" : HADITH_WAYS[draw(`${seed}|h|${it.phrases[0].at}`, HADITH_WAYS.length)] } as SpecItem;
+    return it;
+  });
+  const extra = items.filter(isHalfWay).map((it) => it.t === "verse" ? halfShift(it.times[0] - HALF_LEAD, it.until ?? it.times[it.times.length - 1] + 1.2)
+    : halfShift((it as { phrases: { at: number }[] }).phrases[0].at - HALF_LEAD, (it as { until: number }).until));
+  return extra.length ? { ...s, items, shifts: [...(s.shifts ?? []), ...extra].sort((a, b) => a.from - b.from) } : { ...s, items };
+};
 /* OPENING BUMPER IN STUDIO TOO (user 2026-11-12, binding law: «دائماً قبل أن أقول للمرة الأولى في الفيديو (طيب السلام عليكم / طيب بسم الله / السلام عليكم / بسم الله)
    تضع الفاصل، فاصل عشوائي… ما عدا الريلز»): spec.bumper = { id, at } (tools/bumper_at.mjs --write). The render inserts it into the final file (prepend_bumper --at --id);
    Studio shows the same thing: the talk stops at `at`, the bumper plays 5 s with its sound, then the talk goes on. Composition frames in Studio = spec.frames + 150. */
@@ -587,7 +620,7 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
   );
 };
 const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => {
-  const spec = withGallery(raw);
+  const spec = withGallery(withHalfWays(raw));
   for (const it of spec.items) if (!APPROVED_TYPES.has(it.t)) throw new Error(`عنصر غير معتمد في المعرض: «${it.t}» في ${spec.id} — المعتمد: ${[...APPROVED_TYPES].join("، ")}`);
   const f = useCurrentFrame();
   const { width, height } = useVideoConfig();

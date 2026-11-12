@@ -24,8 +24,8 @@ import LAB from "../data/elements_lab.json";
 import GRIDS from "../data/layout_grids.json";
 import { TRANSITIONS, TransitionScene } from "./TransitionsLab";
 import { Keycaps, Burst } from "./KhaamKit";
-import { VerseNoor } from "./VerseKit";
-import { HadithQuote, HadithIsnad } from "./HadithKit";
+import { VerseNoor, VerseBigWord } from "./VerseKit";
+import { HadithQuote, HadithBooks, HadithIsnad } from "./HadithKit";
 
 import { BRAND, applyBrand } from "./brand";
 import type { BrandName } from "./brand";
@@ -169,7 +169,9 @@ const HAD = { lead: "قال رسول الله ﷺ", phrases: [{ text: "إنما 
 const ISNAD = ["الحميدي", "سفيان بن عيينة", "يحيى بن سعيد الأنصاري", "محمد بن إبراهيم التيمي", "علقمة بن وقاص الليثي", "عمر بن الخطاب", "النبي ﷺ"];
 const VERSE_SCENES: Record<string, (o: Orient) => React.ReactNode> = {
   VerseNoor: () => <VerseNoor {...NUR} him={<Rec />} />,
+  VerseBigWord: () => <VerseBigWord {...NUR} times={[0.4, 0.75, 1.1, 1.45]} him={<Rec />} />,
   HadithQuote: () => <HadithQuote him={<Rec />} {...HAD} />,
+  HadithBooks: () => <HadithBooks him={<Rec />} {...HAD} narrator="عن عمر بن الخطاب رضي الله عنه" books={[{ book: "صحيح البخاري", n: 1 }, { book: "صحيح مسلم", n: 1907 }]} />,
   HadithIsnad: () => <><Rec /><HadithIsnad chain={ISNAD.map((name, i) => ({ name, at: 0.15 + i * 0.2 }))} lead={HAD.lead} phrases={HAD.phrases.map((p, i) => ({ ...p, at: 1.65 + i * 0.6 }))} src={HAD.src} cardAt={1.45} /></>,
 };
 /** half screen = a source shown beside him. Landscape: the engine's split layout (DebateDossier: the source window left, his window right).

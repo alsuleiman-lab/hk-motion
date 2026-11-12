@@ -15,7 +15,9 @@ const probe = JSON.parse(run("ffprobe", ["-v", "error", "-show_entries", "format
 const dur = Number(probe.format?.duration ?? 0);
 const v = (probe.streams ?? []).find((s) => s.codec_type === "video");
 const hasAudio = (probe.streams ?? []).some((s) => s.codec_type === "audio");
-let bumper = null; try { bumper = JSON.parse(fs.readFileSync(`.tmp/gates/${gateName}.bumper.json`, "utf8")); } catch { /* no bumper */ }   // فاصل الافتتاح: أول bumper.seconds ثانية فاصل (لا فحص سكتات فيها)
+let bumper = null; try { bumper = JSON.parse(fs.readFileSync(`.tmp/gates/${gateName}.bumper.json`, "utf8")); } catch { /* no bumper */ }
+/* (2026-11-12) the hybrid writes the record under its temp name (hyb_<p>_<L|R>): find the record whose size IS this file */
+if (!bumper || bumper.size !== (() => { try { return fs.statSync(file).size; } catch { return -1; } })()) { try { const sz = fs.statSync(file).size; for (const f of fs.readdirSync(".tmp/gates").filter((x) => x.endsWith(".bumper.json"))) { const b = JSON.parse(fs.readFileSync(`.tmp/gates/${f}`, "utf8")); if (b.size === sz) { bumper = b; break; } } } catch { /* none */ } }   // فاصل الافتتاح: أول bumper.seconds ثانية فاصل (لا فحص سكتات فيها)
 const results = [];
 const add = (ok, msg) => { results.push(ok); console.log(`${ok ? "✔" : "✘"} ${msg}`); };
 
@@ -35,7 +37,7 @@ import crypto from "node:crypto";
   let j = null; try { j = JSON.parse(fs.readFileSync(`.tmp/gates/${gateName}.judder.ok`, "utf8")); } catch { /* none */ }
   const size = (() => { try { return fs.statSync(file).size; } catch { return -1; } })();
   const jSize = bumper && bumper.size === size ? bumper.originalSize : size;   // البوابة نجحت على الملف قبل الفاصل
-  const hit = j?.files ? Object.entries(j.files).find(([p, s]) => s === jSize && jSize > 0) : null;
+  const hit = j?.files ? Object.entries(j.files).find(([p, s]) => (s === jSize || s === size) && s > 0) : null;   /* the gate may have run on the original (before the bumper) or on the final file */
   add(gateName !== "" && !!hit, hit ? `بوابة الارتجاف (judder_check) نجحت لهذا الملف` : "بوابة الارتجاف لم تنجح لهذا الملف: node tools/judder_check.mjs <الناتج> --src <القص المنعَّم> --offset <إطار> --name <المشروع> (إلزامي)");
 }
 if (v) {

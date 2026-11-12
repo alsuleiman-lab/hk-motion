@@ -16,6 +16,8 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 
 const [stage, p, ...rest] = process.argv.slice(2);
+/* (user 2026-11-12: «وين عم تروح تعليماتي؟») no montage stage while an order of the user is still an unmerged draft/proposal in rules_registry/ */
+if (["prep", "cut", "check"].includes(stage)) { const { spawnSync: _sp } = await import("node:child_process"); const r = _sp(process.execPath, ["tools/rules_pending.mjs"], { encoding: "utf8" }); if (r.status !== 0) { console.log(r.stdout.trim()); console.log("✘ stage: أدمج أوامر المستخدم في الملفات الملزمة أولاً (أو اعرض التعارض عليه)"); process.exit(1); } }
 const opt = (n, d) => (rest.includes("--" + n) ? rest[rest.indexOf("--" + n) + 1] : d);
 if (!["prep", "cut", "check"].includes(stage) || !p) { console.error("usage: node tools/stage.mjs prep|cut|check <project> …  (see the header)"); process.exit(2); }
 const PY = process.env.PY ?? "S:/AI_Tools/ComfyUI_windows_portable/python_embeded/python.exe";   // has faster_whisper + torch (system python does not)

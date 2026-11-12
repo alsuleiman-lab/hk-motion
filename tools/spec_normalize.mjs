@@ -4,7 +4,7 @@
 //   1. scraps whose words are not in the speech (.tmp/<id>/cut_words.json) are dropped; `times` are rebuilt from the speech (never a word before it is spoken)
 //   2. degenerate items (until <= at) are dropped
 //   3. nameTag + subscribe exist, sit at coordinates the grid accepts (landscape: nameTag land {692,800}, subscribe land {410,838} = inside the solo slot and left of the face zone), and nothing else overlaps them
-//   4. gaps (first minute > 0.3 s, anywhere > 5 s): filled with scraps built from the speech; a gap with no speech gets a slow zoom
+//   4. gaps (first minute > 0.3 s, anywhere > 5 s): filled with a slow zoom (never with mechanically cut speech: writing is chosen, 2026-11-12)
 //   5. the grid planner runs with --write, every item it cannot place (over the face, no free slot, quote font < 26) becomes a zoom instead, and the loop repeats
 //   6. fewer than 4 kit kinds → the question as it is read/asked becomes a torn note (never a generated or filler picture)
 //   7. «mention without picture» / «required element missing» are NOT skipped silently: they are listed; `--allow-skips` writes documented skipMentions/skipRequired (disclose them in the report)
@@ -74,7 +74,9 @@ for (let round = 0; round < 6; round++) {
     const [a, b] = g[1] != null ? [+g[1] * 60 + +g[2], +g[3] * 60 + +g[4]] : [+g[5], +g[6]];
     // only words that START inside the gap: a word spoken before the gap would make its caption «written before spoken» in the timing check (and the loop would drop and re-add it forever)
     const ws = words.filter((w) => w.s >= a - 0.05 && w.s < b - 0.05);
-    if (!ws.length) { s2.zooms = [...(s2.zooms || []), { from: +a.toFixed(2), to: +b.toFixed(2), amt: 0.05 }].sort((x, y) => x.from - y.from); ch++; continue; }
+    /* (2026-11-12, constitution stage 4) writing is CHOSEN by reading (.tmp/<p>/writing.json, one torn + one scraps a minute): a gap is never filled with
+       mechanically cut speech any more — always a slow push-in (gap_zooms.mjs does the same before this tool) */
+    if (true) { s2.zooms = [...(s2.zooms || []), { from: +a.toFixed(2), to: +b.toFixed(2), amt: 0.05 }].sort((x, y) => x.from - y.from); ch++; continue; }
     for (let k = 0; k < ws.length; k += 6) {
       const c = ws.slice(k, k + 6), nxt = ws[k + 6];
       // the timing check ignores words under 3 letters: a caption must open with a word it can see (else it reads as «written before spoken»)
@@ -97,6 +99,8 @@ for (let round = 0; round < 6; round++) {
 gridW();
 // the grid's --write snaps the landscape solo cards back to the slot centre (over the face/title zone): put them back where the plain check accepts them
 if (o === "land") { const s = read(); let n = 0; for (const i of s.items) { const c = i.t === "nameTag" ? { x: 686, y: 800 } : i.t === "subscribe" ? { x: 410, y: 838 } : null; if (c && (i.land?.x !== c.x || i.land?.y !== c.y)) { i.land = c; n++; } } if (n) write(s); }
+// the grid's --write resizes cards to its slots; the gallery size and place is the last word on every card (stage check verifies it)
+sh(`node tools/gallery_geometry.mjs ${f} --write`);
 const g = grid(), c = cov(), m = mg(), ws = sh(`node tools/writing_sync.mjs ${f}`);
 if (dry) {
   const now = read(), was = JSON.parse(ORIG);

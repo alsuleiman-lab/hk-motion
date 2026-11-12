@@ -101,7 +101,7 @@ const area = (r) => Math.max(0, r[2] - r[0]) * Math.max(0, r[3] - r[1]);
 const zoneOver = (o, a, b) => { let z = null; for (let t = a; t <= b; t += 0.5) { const q = zoneAt(t, o); z = z ? [Math.min(z[0], q[0]), Math.min(z[1], q[1]), Math.max(z[2], q[2]), Math.max(z[3], q[3])] : q; } return z; };
 // the largest part of a slot that stays clear of the face zone (below / above / left / right of it)
 const trim = (s, z) => {
-  if (!inter(s, z)) return s;
+  if (!z || !inter(s, z)) return s;
   const c = [[s[0], Math.max(s[1], z[3] + 8), s[2], s[3]], [s[0], s[1], s[2], Math.min(s[3], z[1] - 8)], [s[0], s[1], Math.min(s[2], z[0] - 8), s[3]], [Math.max(s[0], z[2] + 8), s[1], s[2], s[3]]];
   // full-width strips first (writing runs across, a 200-px side strip only wraps it), sides only when no strip ≥ 90 px is left
   const strips = c.slice(0, 2).filter((r) => r[3] - r[1] >= 90);
@@ -178,7 +178,7 @@ for (const o of orients) {
       if (free && free[0] !== want && write) { if (free[0] === "right") x.it.side = "right"; else delete x.it.side; }
     } else free = slots.find(([n]) => !busy(n));
     const r = rectOf(x.it, o);
-    if (r && inter(r, z) > FACE_TOL * area(r)) fails.push(`${label}: فوق الوجه (${r.map(Math.round).join(",")} ∩ ${z.map(Math.round).join(",")})`);
+    if (r && z && inter(r, z) > FACE_TOL * area(r)) fails.push(   /* z is null where no face zone is defined (2026-11-12 crash) */`${label}: فوق الوجه (${r.map(Math.round).join(",")} ∩ ${z.map(Math.round).join(",")})`);
     if (!free) { fails.push(`${label}: لا خانة ${x.k} فارغة في وضع ${mode} — أخّره أو قدّمه`); continue; }
     const [name, slot] = free, box = trim(slot.rect, z);
     (res[mode + name] ??= []).push([a, b]);

@@ -1,4 +1,5 @@
 # مقترح قواعد (من سؤال المستخدم عن الحسابين، 2026-10-31)
+- **الحالة:** مدمج في MONTAGE_BRIEF.md §7 (المرجع الوحيد للحسابين) (تدقيق 2026-11-12)
 المستخدم يعمل من حسابين على claude.ai، ويجب أن يعتمدا على المهارات والتعليمات والمعرض نفسها.
 1. **المرجع الوحيد هو مجلد العمل `S:\AI_Tools\Remotion_Workspace`:** القواعد (`PREFERENCES.md`، `MONTAGE_BRIEF.md`، `WORKFLOW_CHECKLIST.md`) والمهارات (`.claude/skills`) والأدوات والأكواد (`tools/`، `src/`، `data/`). لا مهارة ولا قاعدة تُحفظ في مكان خاص بحساب (`~/.claude/skills/synced`، موصّلات، Artifacts).
 2. **المعرض المرجعي هو الصفحة المحلية `http://localhost:5601`** (`node tools/gallery_serve.mjs`)، وملاحظات المستخدم في `data/gallery_notes.json` (تُقرأ بـ`node tools/gallery_serve.mjs --notes`) والشبكة المحفوظة في `data/gallery_grid_saved.json`. صفحات claude.ai المنشورة للعرض فقط، ولا يُعتمد عليها ولا يُوعَد برابطها.

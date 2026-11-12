@@ -53,7 +53,7 @@ const shift = (it) => {
 };
 const apply = (s) => {
   const gone = [];
-  for (const k of ["items", "zooms", "shake", "behind", "splits", "solos", "shifts", "psplits"]) if (Array.isArray(s[k])) s[k] = s[k].filter((it) => { if (it.t !== "cover" && inside(it)) { gone.push(`${k}:${it.t ?? ""}@${(span(it)[0] ?? 0).toFixed(1)}`); return false; } return true; }).map(shift);
+  for (const k of ["items", "zooms", "shake", "behind", "splits", "solos", "shifts", "psplits", "cams"]) if (Array.isArray(s[k])) s[k] = s[k].filter((it) => { if (it.t !== "cover" && inside(it)) { gone.push(`${k}:${it.t ?? ""}@${(span(it)[0] ?? 0).toFixed(1)}`); return false; } return true; }).map(shift);
   s.frames = s.frames - (fB - fA) + fL; s.cut = outName;
   return gone;
 };
@@ -62,7 +62,7 @@ fs.writeFileSync(specF, JSON.stringify(spec, null, 1));
 if (fs.existsSync(frozenF)) fs.copyFileSync(specF, frozenF);   // the frozen review copy = the result (outside the block nothing moved but time)
 
 // the build's base draft (if any) gets the same cut, length and camera moves, so a later rebuild starts from the cut video
-{ const df = path.join(T, "spec_draft_base.json"); if (fs.existsSync(df)) { const d = JSON.parse(fs.readFileSync(df, "utf8")); d.cut = outName; d.frames = spec.frames; for (const k of ["zooms", "shake"]) if (Array.isArray(d[k])) d[k] = d[k].filter((z) => !inside(z)).map(shift); fs.writeFileSync(df, JSON.stringify(d, null, 1)); } }
+{ const df = path.join(T, "spec_draft_base.json"); if (fs.existsSync(df)) { const d = JSON.parse(fs.readFileSync(df, "utf8")); apply(d); d.frames = spec.frames; fs.writeFileSync(df, JSON.stringify(d, null, 1));   /* (2026-11-12) the WHOLE draft is shifted like the spec — only zooms/shakes were, so a rebuild put the clip windows 4 s late */ } }
 // map: remove the cut-time span from the segments (cut time = running sum of segment lengths)
 const mapF = path.join("public", `${p}_map.json`), map = JSON.parse(fs.readFileSync(mapF, "utf8"));
 fs.copyFileSync(mapF, path.join(T, `map_before_block_${fA}.json`));

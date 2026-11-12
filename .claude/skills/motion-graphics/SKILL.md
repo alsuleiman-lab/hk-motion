@@ -1,6 +1,6 @@
 ---
 name: motion-graphics
-description: «مكتبة الموشن جرافيك» — explanatory graphics for keywords, numbers, comparisons, steps, lists, and source cards, with ready Remotion primitives in src/MG.tsx and practice compositions. Use whenever a video needs explanatory motion graphics or a reference style reproduced. Project backgrounds follow PREFERENCES.md; light paper is a card treatment, not a full-screen background.
+description: «مكتبة الموشن جرافيك» — explanatory graphics for keywords, numbers, comparisons, steps, lists, and source cards, with ready Remotion primitives in src/MG.tsx and practice compositions. Use whenever a video needs explanatory motion graphics or a reference style reproduced. Project backgrounds follow PREFERENCES.md; a scene background may be light when it serves the topic (user 2026-10-23, confirmed 2026-11-12) with clear text contrast; the background of his talking video stays dark.
 ---
 
 # الموشن جرافيك (مدرسة «مكتب المونتير»)

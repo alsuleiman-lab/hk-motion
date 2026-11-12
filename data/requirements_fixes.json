@@ -1,10 +1,78 @@
 {
  "_": "Corrections to what tools/requirements.mjs extracts (the model's mistakes), kept for every next video. kind: place | person | depict | none. Add a line the moment a row is wrong.",
- "هانومان": { "kind": "depict", "name": "هانومان (إله هندوسي)" },
- "هنومان": { "kind": "depict", "name": "هانومان (إله هندوسي)" },
- "فرانسي": { "kind": "place", "name": "فاراناسي", "geo": { "lat": 25.32, "lon": 83.01, "cc": "IN" } },
- "بيجاك": { "kind": "depict", "name": "كتاب بيجاك" },
- "جيان جانجا": { "kind": "depict", "name": "كتاب جيان جانجا" },
- "هاريانا": { "kind": "place", "name": "هاريانا", "geo": { "lat": 29.0, "lon": 76.3, "cc": "IN" } },
- "بنارس": { "kind": "place", "name": "بنارس (فاراناسي)", "geo": { "lat": 25.32, "lon": 83.01, "cc": "IN" } }
+ "هانومان": {
+  "kind": "depict",
+  "name": "هانومان (إله هندوسي)"
+ },
+ "هنومان": {
+  "kind": "depict",
+  "name": "هانومان (إله هندوسي)"
+ },
+ "فرانسي": {
+  "kind": "place",
+  "name": "فاراناسي",
+  "geo": {
+   "lat": 25.32,
+   "lon": 83.01,
+   "cc": "IN"
+  }
+ },
+ "بيجاك": {
+  "kind": "depict",
+  "name": "كتاب بيجاك"
+ },
+ "جيان جانجا": {
+  "kind": "depict",
+  "name": "كتاب جيان جانجا"
+ },
+ "هاريانا": {
+  "kind": "place",
+  "name": "هاريانا",
+  "geo": {
+   "lat": 29.0,
+   "lon": 76.3,
+   "cc": "IN"
+  }
+ },
+ "بنارس": {
+  "kind": "place",
+  "name": "بنارس (فاراناسي)",
+  "geo": {
+   "lat": 25.32,
+   "lon": 83.01,
+   "cc": "IN"
+  }
+ },
+ "أبا": {
+  "kind": "none",
+  "why": "صحابية/امرأة: بلا صورة (أمر المستخدم) — أو كلمة مبتورة"
+ },
+ "أبا بكر": {
+  "kind": "person",
+  "name": "أبو بكر الصديق"
+ },
+ "لأبي بكر": {
+  "kind": "person",
+  "name": "أبو بكر الصديق"
+ },
+ "ابو بكر": {
+  "kind": "person",
+  "name": "أبو بكر الصديق"
+ },
+ "أبو بكر": {
+  "kind": "person",
+  "name": "أبو بكر الصديق"
+ },
+ "ابا بكر": {
+  "kind": "person",
+  "name": "أبو بكر الصديق"
+ },
+ "لابي بكر": {
+  "kind": "person",
+  "name": "أبو بكر الصديق"
+ },
+ "أبي بكر": {
+  "kind": "person",
+  "name": "أبو بكر الصديق"
+ }
 }

@@ -1,0 +1,329 @@
+{
+ "id": "tirm31_wayh",
+ "title": "«ويه» في أسماء العلماء: راهَوَيْه أم راهُويَه؟ الشيخ يبين النطق",
+ "frames": 2451,
+ "cut": "tirm31_wayh_cut_s.mp4",
+ "cams": [
+  {
+   "from": 0,
+   "to": 9999,
+   "cx": 1476
+  }
+ ],
+ "zooms": [
+  {
+   "from": 0,
+   "to": 2,
+   "amt": 0.05
+  },
+  {
+   "from": 5,
+   "to": 10,
+   "amt": 0.05
+  },
+  {
+   "from": 13,
+   "to": 18
+  },
+  {
+   "from": 21.6,
+   "to": 22,
+   "amt": 0.05
+  },
+  {
+   "from": 29,
+   "to": 31.5,
+   "amt": 0.05
+  },
+  {
+   "from": 34,
+   "to": 40,
+   "amt": 0.05
+  },
+  {
+   "from": 34.5,
+   "to": 40.7,
+   "amt": 0.05
+  },
+  {
+   "from": 47.7,
+   "to": 49.4,
+   "amt": 0.05
+  },
+  {
+   "from": 54.9,
+   "to": 55.4,
+   "amt": 0.05
+  },
+  {
+   "from": 59,
+   "to": 65,
+   "amt": 0.05
+  },
+  {
+   "from": 59.5,
+   "to": 60,
+   "amt": 0.05
+  }
+ ],
+ "shake": [],
+ "items": [
+  {
+   "t": "cover",
+   "style": "pro",
+   "pro": {
+    "layout": "word",
+    "bg": "tirm31_wayh/img_4.jpg",
+    "bgPos": "50% 40%",
+    "words": {
+     "main": "راهَوَيْه أم راهُويَه؟",
+     "accent": "«ويه»",
+     "sub": "كيف ننطقها"
+    },
+    "sheikh": {
+     "src": "cov/sheikh_poses/06_sheikh_brown_hands_open_explain.png",
+     "headX": 714,
+     "headTop": 14,
+     "headW": 248,
+     "srcW": 1448
+    }
+   }
+  },
+  {
+   "t": "nameTag",
+   "at": 2,
+   "x": 540,
+   "y": 1381,
+   "dur": 3,
+   "land": {
+    "x": 955,
+    "y": 800
+   }
+  },
+  {
+   "t": "rows",
+   "from": 10,
+   "to": 16.9,
+   "title": {
+    "at": 10,
+    "text": "نطق «ويه»"
+   },
+   "rows": [
+    {
+     "at": 10,
+     "label": "اللغويون",
+     "sub": "راهَوَيْه — بفتح الواو",
+     "icon": "Quote"
+    },
+    {
+     "at": 13.16,
+     "label": "المحدّثون",
+     "sub": "راهُويَه — يسكّنون الواو",
+     "icon": "Quote"
+    }
+   ]
+  },
+  {
+   "t": "tphoto",
+   "src": "scholar_images/general/scholar_03.png",
+   "name": "نفطويه",
+   "at": 18.1,
+   "until": 21.6,
+   "x": 410,
+   "y": 1312,
+   "w": 260,
+   "h": 295,
+   "land": {
+    "w": 300,
+    "h": 345
+   }
+  },
+  {
+   "t": "torn",
+   "text": "هي الأصل فيها إضافة فارسية تضاف إلى الأسماء",
+   "at": 22.03,
+   "until": 29.03,
+   "land": {
+    "size": 37,
+    "y": 776
+   }
+  },
+  {
+   "t": "subscribe",
+   "at": 31.5,
+   "x": 260,
+   "y": 1401,
+   "dur": 3,
+   "land": {
+    "x": 684,
+    "y": 840
+   }
+  },
+  {
+   "t": "scraps",
+   "text": "ذهبت هذه الكلمة إلى العرب وعادت إليهم",
+   "at": 40.66,
+   "until": 47.66,
+   "times": [
+    40.66,
+    41.25,
+    41.39,
+    41.89,
+    41.99,
+    42.33,
+    42.69
+   ],
+   "y": 1500,
+   "land": {
+    "size": 34
+   }
+  },
+  {
+   "t": "pic",
+   "src": "tirm31_wayh/img_4.jpg",
+   "at": 49.4,
+   "until": 54.9,
+   "cap": "الأسماء الفارسية القديمة",
+   "y": 1312,
+   "h": 600,
+   "w": 395,
+   "x": 343,
+   "land": {
+    "x": 143,
+    "w": 395,
+    "h": 600
+   }
+  },
+  {
+   "t": "tphoto",
+   "src": "tirm31_wayh/img_5.png",
+   "name": "ابن بابويه القمي",
+   "at": 55.44,
+   "until": 59.5,
+   "x": 410,
+   "y": 1312,
+   "w": 260,
+   "h": 240,
+   "land": {
+    "w": 300,
+    "h": 280
+   }
+  },
+  {
+   "t": "scraps",
+   "text": "ولهذا أنا أنطقها عمروية راهوية",
+   "at": 65.24,
+   "until": 66.53,
+   "times": [
+    65.22,
+    65.74,
+    65.84,
+    66.32,
+    66.88
+   ],
+   "y": 1500,
+   "land": {
+    "size": 34
+   }
+  },
+  {
+   "t": "tphoto",
+   "src": "scholar_images/general/scholar_07.png",
+   "name": "إسحاق بن راهويه",
+   "at": 66.88,
+   "until": 70.2,
+   "x": 410,
+   "w": 260,
+   "h": 295,
+   "land": {
+    "w": 300,
+    "h": 345
+   },
+   "y": 1341
+  },
+  {
+   "t": "torn",
+   "text": "يلقب بعمروية من باب التصغير والتحبيب",
+   "at": 70.38,
+   "until": 77.1,
+   "land": {
+    "size": 37,
+    "y": 776
+   }
+  },
+  {
+   "t": "tphoto",
+   "src": "scholar_images/general/scholar_07.png",
+   "name": "إسحاق بن راهويه",
+   "at": 77.45,
+   "until": 81.5,
+   "x": 410,
+   "y": 1312,
+   "w": 260,
+   "h": 295,
+   "land": {
+    "w": 300,
+    "h": 345
+   }
+  }
+ ],
+ "showTitleBar": false,
+ "brand": "steel",
+ "sfx": [
+  {
+   "src": "sfx/el_ding.wav",
+   "at": 10,
+   "vol": 0.05
+  },
+  {
+   "src": "sfx/el_ding.wav",
+   "at": 13.16,
+   "vol": 0.05
+  },
+  {
+   "src": "sfx/el_tick.wav",
+   "at": 40.66,
+   "vol": 0.04
+  },
+  {
+   "src": "sfx/el_tick.wav",
+   "at": 41.25,
+   "vol": 0.04
+  },
+  {
+   "src": "sfx/el_tick.wav",
+   "at": 41.89,
+   "vol": 0.04
+  },
+  {
+   "src": "sfx/el_tick.wav",
+   "at": 42.33,
+   "vol": 0.04
+  },
+  {
+   "src": "sfx/el_tick.wav",
+   "at": 42.69,
+   "vol": 0.04
+  },
+  {
+   "src": "sfx/el_tick.wav",
+   "at": 65.22,
+   "vol": 0.04
+  },
+  {
+   "src": "sfx/el_tick.wav",
+   "at": 65.74,
+   "vol": 0.04
+  },
+  {
+   "src": "sfx/el_tick.wav",
+   "at": 66.32,
+   "vol": 0.04
+  },
+  {
+   "src": "sfx/el_tick.wav",
+   "at": 66.88,
+   "vol": 0.04
+  }
+ ]
+}

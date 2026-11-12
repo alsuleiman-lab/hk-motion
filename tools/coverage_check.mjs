@@ -123,6 +123,7 @@ if (missing.length) fails++;
   for (const v of read(path.join(T, "verses.json"), [])) {
     if (!v.inCut || !v.cut?.length) continue;
     const at = v.cut[0], kinds = (v.matched ?? 0) >= 6 ? ["verse"] : ["verse", "torn", "word"];
+    if (skipR.has(`آية ${v.sura}:${v.aya}@${Math.round(at)}`)) continue;   /* a documented exception (e.g. a du'a in Quranic words, not a recitation) — reported to the user */
     if (!items.some((it) => { const s = span(it); return kinds.includes(it.t) && s && s[0] <= at + 2.5 && s[1] >= at; })) miss.push(`آية ${v.sura}:${v.aya} (${v.matched} كلمة) بلا ${kinds.length === 1 ? "بطاقة آية" : "كتابة"} عند ${mm(at)}`);
   }
   console.log(miss.length ? `✘ كلام بلا عنصره المطلوب (${miss.length}): ${miss.join("، ")} — أضفه أو اكتب "skipRequired": ["<الاسم>@<الثانية>"] بسببه في الخطة` : `✔ كل رحلة وتاريخ وخبر وحلقة سابقة وآية لها عنصرها`);

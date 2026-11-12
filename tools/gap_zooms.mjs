@@ -16,5 +16,10 @@ for (const [a, b] of gaps) {
   let t = a + 0.3;
   while (b - t > GAP - 0.5) { const to = Math.min(t + 8, b - 0.3); add.push({ from: +t.toFixed(2), to: +to.toFixed(2), amt: 0.06 }); t = to + 3; }
 }
+/* first minute: no moment > 0.3 s without an element (coverage 2b) — the small gaps there are joined into slow push-ins (one per stretch ≤ 6 s apart, ≥ 1.5 s long) */
+{ const fg = []; let e = 0; const all = [...spans, ...add.map((z) => [z.from, z.to])].sort((x, y) => x[0] - y[0]);
+  for (const [a, b] of all) { if (a >= 60) break; if (a - e > 0.3) fg.push([e, a]); e = Math.max(e, b); } if (e < 60 && 60 - e > 0.3) fg.push([e, 60]);
+  const m = []; for (const g of fg) { if (m.length && g[0] - m[m.length - 1][1] <= 6) m[m.length - 1][1] = g[1]; else m.push([...g]); }
+  for (const [a, b] of m) add.push({ from: +a.toFixed(2), to: +Math.max(b, a + 1.5).toFixed(2), amt: 0.05 }); }
 console.log(`gap_zooms: ${gaps.length} فراغ ← ${add.length} تقريب بطيء`);
 if (WRITE) { spec.zooms = [...(spec.zooms ?? []), ...add].sort((x, y) => x.from - y.from); fs.writeFileSync(specF, JSON.stringify(spec, null, 1)); }

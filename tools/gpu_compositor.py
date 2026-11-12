@@ -321,6 +321,9 @@ def on_geom(obj):
         path = a.public + "/" + s["src"]
         st = stream_for(path, slot_key(s))
         st.prepare(int(math.floor(s["t"] * st.fps + BIAS)))
+    if obj.get("levels"):   # extra layers below the videos for this frame (<HyLayer z>): queue them for the level windows
+        note_levels(obj["frame"], obj["levels"])
+        threading.Thread(target=schedule, daemon=True).start()
     with cv:
         geoms[obj["frame"]] = obj["slots"]
         if obj.get("under"):  # (2026-11-12) this frame also has an under-him layer
@@ -353,9 +356,24 @@ WINS = {}                                        # window id -> {"conn", "mode",
 CONNS = []
 blocks = {"top": [[x, min(END, x + a.block - 1)] for x in range(START, END + 1, a.block)],
           "under": [[x, min(y, x + a.block - 1)] for (ua, y) in UNDER_RANGES for x in range(ua, y + 1, a.block)]}
-STATS = {"tex": 0, "stale": 0, "fetch": 0.0, "seek": [], "paint": []}
+STATS = {"tex": 0, "stale": 0, "fetch": 0.0, "seek": [], "paint": [], "layerFrames": 0}
 FATAL = []
 wlock = threading.Lock()
+# (2026-11-12) extra graphics layers BELOW the videos (<HyLayer z> in src/hybrid/Slot.tsx): the top layer's geometry of a frame lists the levels it
+# needs; one Electron window per level renders those frames ({hybrid:"below", hybridLevel:z}), scheduled on demand.
+level_need = {}                                  # frame -> [levels]
+ltops = {}                                       # (level, frame) -> CUDA uint8 layer
+lpend = {}                                       # level -> sorted list of frames still to hand to that level's window
+
+
+def note_levels(frame, levels):
+    with wlock:
+        level_need[frame] = list(levels)
+        for z in levels:
+            L = lpend.setdefault(z, [])
+            if frame not in L:
+                L.append(frame)
+                L.sort()
 
 
 def csend(conn, obj):
@@ -368,6 +386,15 @@ def schedule():
     with wlock:
         for wid, w in sorted(WINS.items()):
             if w["busy"]:
+                continue
+            if w["mode"] == "below":   # on demand: the next run of consecutive frames that need this level
+                L = lpend.get(w.get("level", 0), [])
+                if L:
+                    x = y = L.pop(0)
+                    while L and L[0] == y + 1 and y - x + 1 < a.block:
+                        y = L.pop(0)
+                    w["busy"] = True
+                    csend(w["conn"], {"t": "do", "w": wid, "a": x, "b": y})
                 continue
             q = blocks[w["mode"]]
             if q and q[0][0] < consumed[0] + a.lookahead:
@@ -392,7 +419,12 @@ def t_conn(sock):
             ok = mk == m["e"]
             if ok:
                 with cv:
-                    (utops if WINS[m["w"]]["mode"] == "under" else tops)[mk] = scratch
+                    wm = WINS[m["w"]]
+                    if wm["mode"] == "below":
+                        ltops[(wm.get("level", 0), mk)] = scratch
+                        STATS["layerFrames"] += 1
+                    else:
+                        (utops if wm["mode"] == "under" else tops)[mk] = scratch
                     cv.notify_all()
                 scratch = torch.empty((H + MR, W, 4), dtype=torch.uint8, device=dev)
             else:
@@ -408,7 +440,7 @@ def t_conn(sock):
         elif t == "hello":
             with wlock:
                 for x in m["windows"]:
-                    WINS[x["w"]] = {"conn": conn, "mode": x["mode"], "busy": False}
+                    WINS[x["w"]] = {"conn": conn, "mode": x["mode"], "busy": False, "level": x.get("level", 0)}
             print(f"worker {m['pid']}: {len(m['windows'])} windows ready in {m['loadSec']:.1f}s", flush=True)
             schedule()
         elif t == "done":
@@ -603,7 +635,8 @@ for i in range(NF):
     _a = time.time()
     with cv:
         consumed[0] = fno
-        if not cv.wait_for(lambda: FATAL or (fno in geoms and fno in tops and (fno not in under_frames or not in_under(fno) or fno in utops)), timeout=300):
+        if not cv.wait_for(lambda: FATAL or (fno in geoms and fno in tops and (fno not in under_frames or not in_under(fno) or fno in utops)
+                                             and all((z, fno) in ltops for z in level_need.get(fno, ()))), timeout=300):
             print(f"ERROR: no geometry/graphics for frame {fno} (is the composition wrapped in <HybridHost>?)", flush=True)
             os._exit(2)
         if FATAL:
@@ -614,18 +647,29 @@ for i in range(NF):
         utop = utops.pop(fno, None) if fno in under_frames else None
         utops.pop(fno, None)
         under_frames.discard(fno)
+        need = level_need.pop(fno, [])
+        layers = {z: ltops.pop((z, fno)) for z in need}
     if i % 10 == 0:
         schedule()
     _b = time.time()
     PROF["wait"] += _b - _a
     out = BG.clone()
     if os.environ.get("HY_DEBUG"): print("SLOTS", fno, json.dumps(slots)[:900], flush=True)
-    # stacking (2026-11-12): plain videos → under-him layer → masked cut-outs → top layer
-    slots = [x for x in slots if not x.get("mt")] + [None] + [x for x in slots if x.get("mt")]
+    # stacking (2026-11-12): layer 0 → plain videos z=0 → layer 1 → plain videos z=1 → … → under-him layer → masked cut-outs → top layer
+    plain = [x for x in slots if not x.get("mt")]
+    order = []
+    for z in sorted(set(layers) | {x.get("z", 0) for x in plain}):
+        if z in layers:
+            order.append(("layer", z))
+        order += [x for x in plain if x.get("z", 0) == z]
+    slots = order + [None] + [x for x in slots if x.get("mt")]
     for s in slots:
         if s is None:
             if utop is not None:
                 out = put_pm(out, utop)
+            continue
+        if isinstance(s, tuple):
+            out = put_pm(out, layers[s[1]])
             continue
         path = a.public + "/" + s["src"]
         st = stream_for(path, slot_key(s))
@@ -679,6 +723,6 @@ for _ in range(100):
 print(f"DONE {NF} frames in {el:.1f}s => {NF / el:.1f} fps", flush=True)
 print("PROFILE", {k: round(v, 1) for k, v in PROF.items()}, flush=True)
 sk, pt = STATS["seek"], STATS["paint"]
-print("GRAPHICS " + json.dumps({"textures": STATS["tex"], "stale": STATS["stale"], "fetchMsPerTex": round(1000 * STATS["fetch"] / max(1, STATS["tex"]), 2),
+print("GRAPHICS " + json.dumps({"layerFrames": STATS["layerFrames"], "textures": STATS["tex"], "stale": STATS["stale"], "fetchMsPerTex": round(1000 * STATS["fetch"] / max(1, STATS["tex"]), 2),
                                 "seekMs": round(sum(sk) / max(1, len(sk)), 1), "paintWaitMs": round(sum(pt) / max(1, len(pt)), 1)}), flush=True)
 if FINE: print("FINE", {k: round(v, 1) for k, v in PF.items()}, flush=True)

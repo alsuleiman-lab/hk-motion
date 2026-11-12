@@ -35,7 +35,8 @@ const log = (m) => process.stderr.write(`[gpu-worker ${process.pid}] ${m}\n`);
 const W = cfg.width, H = cfg.height, MR = cfg.markRows;
 let sock, sbuf = "";
 const send = (o) => sock.write(JSON.stringify(o) + "\n");
-const held = new Map();   /* paint id -> texture, until the compositor has copied it */
+const held = new Map();
+const CHROME = {};   /* videos still decoded by Chromium (OffthreadVideo /proxy, <video>): src -> frames, first, last */   /* paint id -> texture, until the compositor has copied it */
 let paintSeq = 0;
 const wins = [];
 
@@ -50,7 +51,7 @@ const makeWindow = async (k, spec) => {
   });
   win.setContentSize(W, H + MR);
   win.webContents.setFrameRate(cfg.paintRate || 240);
-  const st = { k, win, mode: spec.mode, expect: -1, waiter: null, queue: [], busy: false, assets: [], frames: 0, tSeek: 0, tPaint: 0 };
+  const st = { k, win, mode: spec.mode, level: spec.level ?? 0, expect: -1, waiter: null, queue: [], busy: false, assets: [], frames: 0, tSeek: 0, tPaint: 0 };
   win.webContents.on("paint", (e) => {
     const tex = e.texture;
     if (DEBUG) log(`w${k} paint tex=${!!tex} img=${e.image && !e.image.isEmpty() ? JSON.stringify(e.image.getSize()) : "-"} dirty=${JSON.stringify(e.dirtyRect||null)} expect=${st.expect}`);
@@ -101,11 +102,12 @@ const doFrame = async (st, f) => {
   let rejectWait;
   const painted = new Promise((res, rej) => { st.waiter = { f, res }; rejectWait = rej; });
   st.expect = f;
-  const { prev, geom, seen } = await st.win.webContents.executeJavaScript(`window.__gr_frame(${f}, ${JSON.stringify(cfg.compId)})`);
+  const { prev, geom, seen, chrome } = await st.win.webContents.executeJavaScript(`window.__gr_frame(${f}, ${JSON.stringify(cfg.compId)})`);
   const t1 = performance.now();
   if (st.mode === "top") send({ t: "geom", f, g: geom, seen });   /* the video-slot geometry of this frame (src/hybrid/Slot.tsx), before the compositor needs it */
   if (DEBUG) log(`w${st.k} frame ${f}: ready in ${(t1 - t0).toFixed(0)} ms, prev assets ${prev ? prev.assets.length : "-"}, geometry ${geom ? geom.slots.length + " slots" : "none"}; waiting for its paint`);
   /* every frame is recorded, even with no asset (the audio mix closes a segment on a frame where its asset is absent) */
+  if (chrome) for (const k in chrome) { const c = (CHROME[k] ??= { frames: 0, first: f, last: f }); c.frames++; c.first = Math.min(c.first, f); c.last = Math.max(c.last, f); }
   if (st.mode === "top" && prev) st.assets.push({ frame: prev.frame, audioAndVideoAssets: prev.assets });
   let tries = 0;
   const kick = () => {   /* a paint normally arrives within one frame interval; nudge the compositor if it does not */
@@ -156,6 +158,7 @@ const onMsg = (m) => {
     st.queue.push([m.a, m.b]);
     runQueue(st);
   } else if (m.t === "quit") {
+    fs.writeFileSync(path.join(cfg.workDir, `chromevideo_${process.pid}.json`), JSON.stringify(CHROME));
     for (const st of wins) if (st.mode === "top") fs.writeFileSync(path.join(cfg.workDir, `assets_${process.pid}_${st.k}.json`), JSON.stringify(st.assets));
     send({ t: "bye" });
     setTimeout(() => app.exit(0), 200);
@@ -196,6 +199,6 @@ app.whenReady().then(async () => {
       setTimeout(async () => { const { profile } = await dbg.sendCommand("Profiler.stop"); fs.writeFileSync(process.env.GR_JSPROF.replace("PID", process.pid), JSON.stringify(profile)); log("js profile written"); }, 1000 * Number(process.env.GR_TRACE_SEC || 3));
     }, 1000 * Number(process.env.GR_TRACE_AT || 4));
   }
-  send({ t: "hello", pid: process.pid, windows: made.map((st) => ({ w: st.k, mode: st.mode })), loadSec: (Date.now() - t0) / 1000 });
+  send({ t: "hello", pid: process.pid, windows: made.map((st) => ({ w: st.k, mode: st.mode, level: st.level })), loadSec: (Date.now() - t0) / 1000 });
 }).catch((e) => { log(e.stack || String(e)); app.exit(3); });
 app.on("window-all-closed", () => {});

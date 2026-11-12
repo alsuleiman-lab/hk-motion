@@ -72,7 +72,7 @@ const linkVideos = (src, dst) => { for (const e of fs.readdirSync(src, { withFil
 if (!KEEP) linkVideos(path.join(root, "public"), path.join(serveUrl, "public"));   // hard links: zero copy (audio assets of <Audio>/<Video> point into the bundle)
 timing.bundleSec = (Date.now() - t) / 1000;
 if (!process.env.GR_KEEP_BUNDLE && !KEEP) process.on("exit", () => { try { fs.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
-const inputProps = { hybrid: "top", hybridPort: GEOM_PORT };
+const inputProps = { hybrid: "top", hybridPort: GEOM_PORT, hybridLayers: true };   /* hybridLayers: <HyLayer>/<VSlot z> active (GPU renderer only) */
 const composition = await selectComposition({ serveUrl, id: compId, inputProps, chromiumOptions: { gl: "angle" } });
 const W = composition.width, H = composition.height, FPS = composition.fps;
 const start = Number(arg("start", 0)), end = Math.min(Number(arg("end", composition.durationInFrames - 1)), composition.durationInFrames - 1);
@@ -82,7 +82,7 @@ log(`${compId}: ${W}x${H} @${FPS}, frames ${start}-${end} (${NF})`);
 // ---- static background (rendered once, as in hybrid_any) ----
 t = Date.now();
 const bgPng = path.join(work, "bg.png");
-await renderStill({ composition, serveUrl, inputProps: { hybrid: "bg", hybridPort: GEOM_PORT }, output: bgPng, imageFormat: "png", frame: start, chromiumOptions: { gl: "angle" }, overwrite: true });
+await renderStill({ composition, serveUrl, inputProps: { hybrid: "bg", hybridPort: GEOM_PORT, hybridLayers: true }, output: bgPng, imageFormat: "png", frame: start, chromiumOptions: { gl: "angle" }, overwrite: true });
 timing.bgSec = (Date.now() - t) / 1000;
 
 // ---- the bundle is served by @remotion/renderer's OWN server (RenderInternals.prepareServer, as renderFrames does): same files, and its /proxy
@@ -137,6 +137,7 @@ if (!fs.existsSync(path.join(root, "tools/gpu/bridge.dll"))) {
 const UNDER = String(arg("under", "") === true ? "" : arg("under", "")).split(",").filter(Boolean).map((r) => r.split("-").map(Number)).map(([a, b]) => [Math.max(a, start), Math.min(b, end)]).filter(([a, b]) => b >= a);
 const NU = UNDER.reduce((n, [a, b]) => n + b - a + 1, 0);
 if (NU) log(`under-him layer: ${NU} frames (${UNDER.map(([a, b]) => a + "-" + b).join(", ")})`);
+const LEVELS = Math.max(0, Number(arg("levels", 3)) || 0);
 const PROCS = Math.max(1, Number(arg("procs", 2)) || 1), WINDOWS = Math.max(1, Number(arg("windows", 3)) || 1), BLOCK = Math.max(5, Number(arg("block", 60)) || 60);
 log("starting the GPU compositor…");
 const video = path.join(work, "video_noaudio.mp4");
@@ -170,6 +171,8 @@ let wBase = 0;
 for (let p = 0; p < PROCS; p++) {
   const wins = Array.from({ length: WINDOWS }, () => ({ mode: "top", inputProps: ser(inputProps), initialFrame: start }));
   if (NU && p === 0) wins.push({ mode: "under", inputProps: ser({ ...inputProps, hybrid: "under" }), initialFrame: UNDER[0][0] });
+  /* one window per extra layer level below the videos (<HyLayer z>); they only work for the frames whose geometry asks for their level */
+  if (p === 0) for (let k = 0; k < LEVELS; k++) wins.push({ mode: "below", level: k, inputProps: ser({ ...inputProps, hybrid: "below", hybridLevel: k }), initialFrame: start });
   const cfgFile = path.join(work, `worker_${p}.json`);
   fs.writeFileSync(cfgFile, JSON.stringify({ url: pageUrl, compId: composition.id, bundleMode, width: W, height: H, markRows: 8, ctlPort: CTL_PORT, proxyPort, timeout: 180000, mediaCache: null, sampleRate: composition.defaultSampleRate ?? 48000, windows: wins, windowBase: wBase, workDir: work, paintRate: Number(arg("paint-rate", 240)) }));
   wBase += wins.length;
@@ -233,6 +236,10 @@ smi.kill(); clearInterval(cpuTimer);
 if (!process.env.GR_KEEP_BUNDLE && !KEEP) { try { fs.rmSync(serveUrl, { recursive: true, force: true }); } catch {} }
 spawnSync("node", ["tools/clean_temp.mjs"], { cwd: root, stdio: "ignore" });
 
+// ---- videos that were still decoded by Chromium (not on the GPU path): listed in the report and shouted in the log ----
+const chromeVideo = {};
+for (const f of fs.readdirSync(work)) if (/^chromevideo_.*.json$/.test(f)) for (const [k, v] of Object.entries(JSON.parse(fs.readFileSync(path.join(work, f), "utf8")))) { const c = (chromeVideo[k] ??= { frames: 0, first: v.first, last: v.last }); c.frames += v.frames; c.first = Math.min(c.first, v.first); c.last = Math.max(c.last, v.last); }
+if (Object.keys(chromeVideo).length) log("WARNING: videos still decoded by Chromium, not on the GPU path (port them to <VSlot>): " + JSON.stringify(chromeVideo));
 // ---- report (same fields as hybrid_any, plus the graphics-path counters) ----
 const probe = JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_name,width,height,nb_frames,duration", "-of", "json", out]).toString());
 const comp_fps = /DONE (\d+) frames in ([\d.]+)s/.exec(pyOut);
@@ -245,7 +252,7 @@ const rep = {
   fpsGraphicsPlusComposite: +(NF / timing.graphicsPlusCompositeSec).toFixed(2),
   fpsEndToEnd: +(NF / ((T_END - T_START) / 1000)).toFixed(2),
   timing, compositor: comp_fps ? { frames: +comp_fps[1], sec: +comp_fps[2] } : null, compositorProfile: profile, graphics: graphics ? JSON.parse(graphics) : null,
-  config: { procs: PROCS, windows: WINDOWS, block: BLOCK, underFrames: NU },
+  chromeVideo, config: { procs: PROCS, windows: WINDOWS, block: BLOCK, underFrames: NU },
   gpuDuringRender: { util: stats(gpuSamples, "gpu", tg0, tc1), encoder: stats(gpuSamples, "enc", tg0, tc1), decoder: stats(gpuSamples, "dec", tg0, tc1), memMB: stats(gpuSamples, "mem", tg0, tc1) },
   cpuDuringRender: stats(cpuSamples, "cpu", tg0, tc1),
   cpuWholeRun: stats(cpuSamples, "cpu", T_START, T_END),

@@ -133,7 +133,18 @@ function setup(cfg) {
     const g = geoms.get(f) || null;
     const seen = [...geoms.keys()];
     geoms.clear();
-    return { prev, geom: g, seen };
+    /* videos still decoded by CHROMIUM in this frame (not a VSlot): <OffthreadVideo> fetches /proxy?src=…, <Video>/<Html5Video> are <video> elements */
+    let chrome = null;
+    const px = performance.getEntriesByType("resource").filter((e) => e.name.includes("/proxy?src="));
+    if (px.length) performance.clearResourceTimings();
+    const vids = document.querySelectorAll("video");
+    if (px.length || vids.length) {
+      chrome = {};
+      const name = (u) => { try { return decodeURIComponent(String(u)).replace(/^.*\/public\//, "").replace(/[?&].*$/, ""); } catch { return String(u); } };
+      for (const e of px) { const s = name(new URL(e.name).searchParams.get("src") || e.name); chrome["proxy:" + s] = 1; }
+      for (const v of vids) chrome["video:" + name(v.currentSrc || v.src)] = 1;
+    }
+    return { prev, geom: g, seen, chrome };
   };
 }
 

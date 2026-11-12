@@ -22,43 +22,6 @@
    "state": "held",
    "at": "2026-11-12T13:35:47.369Z",
    "why": "held for gpu-render tests (user choice 2026-11-12: Hold portrait); restore: state=queued, then node tools/render_queue.mjs run"
-  },
-  {
-   "spec": "tirm31_wayh",
-   "comp": "Tirm31-Wayh",
-   "orient": "R",
-   "dest": "C:/Users/mshms/Videos/جاهز/دروس",
-   "title": "«ويه» في أسماء العلماء: راهَوَيْه أم راهُويَه؟ الشيخ يبين النطق",
-   "bumper": "end",
-   "state": "done",
-   "at": "2026-11-12T14:50:56.533Z",
-   "to": "C:\\Users\\mshms\\Videos\\جاهز\\دروس\\ويه في أسماء العلماء راهَوَيْه أم راهُويَه الشيخ يبين النطق #محمد_بن_شمس_الدين.mp4",
-   "file": "render_work\\export\\R\\ويه في أسماء العلماء راهَوَيْه أم راهُويَه الشيخ يبين النطق #محمد_بن_شمس_الدين.mp4"
-  },
-  {
-   "spec": "tirm31_sayrafi",
-   "comp": "Tirm31-Sayrafi",
-   "orient": "R",
-   "dest": "C:/Users/mshms/Videos/جاهز/دروس",
-   "title": "لماذا قال الفلاس «لست بفلاس»؟ ومعنى «الصيرفي» عند المحدثين",
-   "bumper": "end",
-   "state": "done",
-   "at": "2026-11-12T14:50:57.564Z",
-   "to": "C:\\Users\\mshms\\Videos\\جاهز\\دروس\\لماذا قال الفلاس لست بفلاس ومعنى الصيرفي عند المحدثين #محمد_بن_شمس_الدين.mp4",
-   "file": "render_work\\export\\R\\لماذا قال الفلاس لست بفلاس ومعنى الصيرفي عند المحدثين #محمد_بن_شمس_الدين.mp4"
-  },
-  {
-   "spec": "tirm31_tayammum",
-   "comp": "Tirm31-Tayammum",
-   "orient": "R",
-   "dest": "C:/Users/mshms/Videos/جاهز/دروس",
-   "title": "التيمم: تمسح الوجه أولاً أم الكفين؟ الشيخ يرجع عن قوله ويبين الدليل",
-   "bumper": "end",
-   "state": "done",
-   "at": "2026-11-12T14:50:58.372Z",
-   "to": "C:\\Users\\mshms\\Videos\\جاهز\\دروس\\التيمم تمسح الوجه أولاً أم الكفين الشيخ يرجع عن قوله ويبين الدليل #محمد_بن_شمس_الدين.mp4",
-   "file": "render_work\\export\\R\\التيمم تمسح الوجه أولاً أم الكفين الشيخ يرجع عن قوله ويبين الدليل #محمد_بن_شمس_الدين.mp4",
-   "note": "judder re-judged with full-screen verses avoided: 99.0% PASSED"
   }
  ]
 }

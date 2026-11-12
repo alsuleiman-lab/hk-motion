@@ -7,6 +7,7 @@ import { COMPOSITION_TITLES } from "./compositionTitles";
  * The ORIGINAL frame number under the timeline timecode is left untouched (it toggles frames/time ticks). Runs only inside Remotion Studio (never in renders) and is
  * wrapped in try/catch so it can never break the Studio.
  */
+const MOBILE_MQ = "(max-width: 900px)";
 const install = () => {
   const w = window as unknown as { __frameCopy?: { timer?: number; badge?: HTMLElement | null; toast?: HTMLElement | null } };
   if (w.__frameCopy?.timer) window.clearInterval(w.__frameCopy.timer);
@@ -121,7 +122,14 @@ const install = () => {
         const r = b2.getBoundingClientRect();
         if (r.width > 0 && Math.abs(r.top - pr.top) < 8 && r.left + r.width / 2 < pc - 200 && r.left + r.width / 2 < pc - 40) minLeft = Math.max(minLeft, r.right + 12);
       }
-      const l = Math.round(Math.max(minLeft, pc - OFFSET)), tp = Math.round(pr.top + (pr.height - 24) / 2);
+      // phone layout (user 2026-11-12): the badge sits at the far left, ends before the «go to start» button, and never overlaps the other transport buttons
+      const nat = document.querySelector<HTMLElement>('button[aria-label="Go to beginning"]');
+      const mob = window.matchMedia(MOBILE_MQ).matches && !(nat && nat.getBoundingClientRect().width > 0);
+      const l = mob ? 6 : Math.round(Math.max(minLeft, pc - OFFSET)), tp = Math.round(pr.top + (pr.height - 24) / 2);
+      const bw = mob ? `${Math.max(60, Math.round(pc - 94 - 6))}px` : "118px", bf = mob ? "12px" : "13px", bp = mob ? "0 3px" : "0 6px";
+      if (badge.style.width !== bw) badge.style.width = bw;
+      if (badge.style.fontSize !== bf) badge.style.fontSize = bf;
+      if (badge.style.padding !== bp) badge.style.padding = bp;
       const txt = `الإطار ${n}`;
       if (badge.textContent !== txt) badge.textContent = txt;
       if (badge.style.display !== "block") badge.style.display = "block";
@@ -211,10 +219,22 @@ const installMobile = () => {
   const MQ = "(max-width: 900px)";
   const css = document.createElement("style");
   css.id = "__mobile_tools_css";
-  css.textContent = `@media ${MQ}{[data-mt="left"]{flex:0 0 170px !important;min-width:170px !important}[data-mt="left"]>*{display:none !important}[data-mt="head"]{width:170px !important}[data-mt="ruler"]{left:173px !important;width:calc(100% - 173px) !important}}`;
+  // Phone layout (user 2026-11-12): (1) the layer column goes away so the tracks use the full width; (2) the timecode + zoom bar sits alone on top; (3) the navigation ruler is a full-width bar under it;
+  // (4) touch-action:none on the ruler so a finger can drag the red playhead (Studio's own scrub handler needs it; otherwise the browser turns the drag into a page pan); (5) the Render rocket + arrow are hidden
+  // (a speed button replaces them), Studio's left cluster (more actions, mute) moves to the right edge.
+  css.textContent = `@media ${MQ}{`
+    + `[data-mt="left"],[data-mt="split"],[data-mt="rside"]{display:none !important}`
+    + `[data-mt="head"]{width:100% !important}`
+    + `[data-mt="ruler"]{left:0 !important;width:100% !important;top:39px !important}`
+    + `[data-mt="tracks"]>div:first-child{margin-top:39px !important;height:calc(100% - 39px) !important}`
+    + `[data-mt="ruler"],[data-mt="ruler"] *,[data-timeline-scrubber],[data-timeline-scrubber] *{touch-action:none !important}`
+    + `[data-mt="lside"]{position:absolute !important;right:4px !important;left:auto !important;top:5px !important;width:auto !important}`
+    + `[data-mt="lside"]>div:first-child{display:none !important}`
+    + `}`;
   document.head.appendChild(css);
 
   const FPS = 30;
+  const BW = 36;
   const comp = () => decodeURIComponent(location.pathname.split("/").filter(Boolean)[0] ?? "");
   const frameNow = (): number | null => {
     const real = document.querySelector<HTMLElement>('button[aria-label^="Show timeline ticks"]');
@@ -227,46 +247,89 @@ const installMobile = () => {
   const mk = (id: string, label: string, svg: string, on: () => void) => {
     const b = document.createElement("button");
     b.id = id; b.type = "button"; b.title = label; b.setAttribute("aria-label", label);
-    b.style.cssText = "position:fixed;z-index:2147483000;display:none;width:40px;height:40px;padding:0;border:0;border-radius:20px;background:transparent;color:#fff;cursor:pointer;align-items:center;justify-content:center;touch-action:manipulation";
+    b.style.cssText = `position:fixed;z-index:2147483000;display:none;width:${BW}px;height:${BW}px;padding:0;border:0;border-radius:18px;background:transparent;color:#fff;cursor:pointer;align-items:center;justify-content:center;touch-action:manipulation`;
     b.innerHTML = svg;
     b.addEventListener("click", (e) => { e.stopPropagation(); on(); });
     document.body.appendChild(b);
     return b;
   };
-  const arrow = (dir: 1 | -1) => `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="transform:${dir === 1 ? "scaleX(-1)" : "none"}"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.2h4.2"/><text x="12" y="15.6" text-anchor="middle" font-size="8.5" font-weight="700" fill="currentColor" stroke="none" font-family="Arial,sans-serif">10</text></svg>`;
+  // playback speed (replaces the Render rocket): tap cycles 0.5 → 1 → 1.5 → 2 → 4. Studio keeps the rate in a React state whose setter is passed as a prop to its «More actions» button,
+  // so we read that prop from the React fiber of that button; the current value is read back from Studio's own persisted key.
+  const RATES = [0.5, 1, 1.5, 2, 4];
+  const rateNow = (): number => { try { const n = Number(localStorage.getItem("remotion.playbackrate")); return Number.isFinite(n) && n !== 0 ? n : 1; } catch { return 1; } };
+  const rateSetter = (): ((v: number) => void) | null => {
+    try {
+      const btn = document.querySelector<HTMLElement>('button[aria-label="More actions"]');
+      if (!btn) return null;
+      const key = Object.keys(btn).find((k) => k.startsWith("__reactFiber$"));
+      let f = key ? (btn as unknown as Record<string, unknown>)[key] as { memoizedProps?: Record<string, unknown>; return?: unknown } | null : null;
+      for (let i = 0; f && i < 40; i++, f = f.return as typeof f) {
+        const p = f.memoizedProps;
+        if (p && typeof p.setPlaybackRate === "function") return p.setPlaybackRate as (v: number) => void;
+      }
+    } catch { /* ignore */ }
+    return null;
+  };
+  const cycleRate = () => {
+    const set = rateSetter(); if (!set) return;
+    const cur = rateNow(), i = RATES.indexOf(cur);
+    set(RATES[i < 0 ? 1 : (i + 1) % RATES.length]);
+  };
+  const arrow = (dir: 1 | -1) => `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="transform:${dir === 1 ? "scaleX(-1)" : "none"}"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.2h4.2"/><text x="12" y="15.6" text-anchor="middle" font-size="8.5" font-weight="700" fill="currentColor" stroke="none" font-family="Arial,sans-serif">10</text></svg>`;
   const startSvg = `<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="5" width="2.6" height="14" rx="1"/><path d="M19 5.5v13a1 1 0 0 1-1.6.8l-9-6.5a1 1 0 0 1 0-1.6l9-6.5A1 1 0 0 1 19 5.5z"/></svg>`;
   const bStart = mk("__mt_start", "رجوع للبداية", startSvg, () => seekTo(0));
   const bBack = mk("__mt_back", "رجوع 10 ثوانٍ", arrow(-1), () => { const n = frameNow(); if (n !== null) seekTo(n - 10 * FPS); });
   const bFwd = mk("__mt_fwd", "تقديم 10 ثوانٍ", arrow(1), () => { const n = frameNow(); if (n !== null) seekTo(n + 10 * FPS); });
-  const all = [bStart, bBack, bFwd];
+  const bSpeed = mk("__mt_speed", "سرعة التشغيل", "", cycleRate);
+  bSpeed.style.width = "42px"; bSpeed.style.height = "28px"; bSpeed.style.borderRadius = "14px";
+  bSpeed.style.border = "1px solid rgba(255,255,255,.35)"; bSpeed.style.background = "rgba(22,54,92,.96)";
+  bSpeed.style.font = "700 13px Tahoma,Arial,sans-serif"; bSpeed.style.direction = "ltr";
+  const all = [bStart, bBack, bFwd, bSpeed];
   w.__mobileTools.box = bStart;
   const hideAll = () => { for (const b of all) if (b.style.display !== "none") b.style.display = "none"; };
   const show = (b: HTMLElement, left: number, top: number) => { if (b.style.display !== "flex") b.style.display = "flex"; b.style.left = `${left}px`; b.style.top = `${top}px`; };
+  // the layout CSS depends on widths Studio measures at mount: ask it to re-measure after we re-flow the panes
+  let resizeTimers: number[] = [];
+  const remeasure = () => { for (const id of resizeTimers) window.clearTimeout(id); resizeTimers = [150, 600].map((ms) => window.setTimeout(() => window.dispatchEvent(new Event("resize")), ms)); };
+  let lastMq = window.matchMedia(MQ).matches;
 
   const tick = () => {
     try {
-      // ---- hide the layer column (narrow screens only): mark the split panes by structure
+      // ---- mark the timeline panes by structure (CSS above re-flows them on narrow screens only)
       const t = document.querySelector<HTMLElement>('button[aria-label^="Show timeline ticks"]');
       let H: HTMLElement | null = t;
       while (H && !(H.style.position === "absolute" && H.style.left === "0%")) H = H.parentElement;
+      let changed = false;
+      const mark = (el: HTMLElement, v: string) => { if (el.getAttribute("data-mt") !== v) { el.setAttribute("data-mt", v); changed = true; } };
       if (H?.parentElement) {
-        H.setAttribute("data-mt", "head");
+        mark(H, "head");
         for (const c of Array.from(H.parentElement.children) as HTMLElement[]) {
           if (c === H) continue;
-          if (c.style.position === "absolute" && c.style.left !== "0%") c.setAttribute("data-mt", "ruler");
-          else if (c.style.minWidth === "240px") c.setAttribute("data-mt", "left");
+          if (c.classList.contains("remotion-splitter")) mark(c, "split");
+          else if (c.style.position === "absolute" && c.style.left !== "0%") mark(c, "ruler");
+          else if (c.style.minWidth === "240px") mark(c, "left");
+          else if (c.style.position !== "absolute") mark(c, "tracks");
         }
       }
+      // transport row: Studio's left cluster (more actions, mute) and right cluster (Render rocket + arrow)
+      const pl = document.querySelector<HTMLElement>('button[aria-label="Play"], button[aria-label="Pause"]');
+      const trow = pl?.closest<HTMLElement>(".css-reset");
+      if (trow && trow.children.length > 3) { mark(trow.children[0] as HTMLElement, "lside"); mark(trow.children[trow.children.length - 1] as HTMLElement, "rside"); }
+      const mq = window.matchMedia(MQ).matches;
+      if (changed || mq !== lastMq) { lastMq = mq; remeasure(); }
       // ---- buttons beside Play (only when Studio's own navigation buttons are not shown)
       const play = document.querySelector<HTMLElement>('button[aria-label="Play"], button[aria-label="Pause"]');
       const nat = document.querySelector<HTMLElement>('button[aria-label="Go to beginning"]');
       if (!play || !window.matchMedia(MQ).matches || (nat && nat.getBoundingClientRect().width > 0)) { hideAll(); return; }
       const pr = play.getBoundingClientRect();
       if (pr.width === 0) { hideAll(); return; }
-      const top = Math.round(pr.top + (pr.height - 40) / 2);
-      show(bBack, Math.round(pr.left + pr.width / 2 - 20 - 46), top);
-      show(bStart, Math.round(pr.left + pr.width / 2 - 20 - 92), top);
-      show(bFwd, Math.round(pr.left + pr.width / 2 - 20 + 46), top);
+      const pc = pr.left + pr.width / 2, top = Math.round(pr.top + (pr.height - BW) / 2);
+      show(bBack, Math.round(pc - 52), top);
+      show(bStart, Math.round(pc - 90), top);
+      show(bFwd, Math.round(pc + 16), top);
+      show(bSpeed, Math.round(pc + 56), Math.round(pr.top + (pr.height - 28) / 2));
+      const label = `${rateNow()}x`;
+      if (bSpeed.textContent !== label) bSpeed.textContent = label;
     } catch { /* never break the Studio */ }
   };
   w.__mobileTools.timer = window.setInterval(tick, 200);

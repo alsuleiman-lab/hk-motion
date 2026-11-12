@@ -33,12 +33,6 @@ import kitabSunnaSpec from "../data/specs/kitab_sunna.json";
 const KitabSunnaComp: React.FC = () => <MontageFromSpec spec={kitabSunnaSpec as unknown as MontageSpec} />;
 import fatimaSheikhaynSpec from "../data/specs/fatima_sheikhayn.json";
 const FatimaSheikhaynComp: React.FC = () => <MontageFromSpec spec={fatimaSheikhaynSpec as unknown as MontageSpec} />;
-import L_tirm31_wayhSpec from "../data/specs/tirm31_wayh.json";
-const L_tirm31_wayhComp: React.FC = () => <MontageFromSpec spec={L_tirm31_wayhSpec as unknown as MontageSpec} />;
-import L_tirm31_tayammumSpec from "../data/specs/tirm31_tayammum.json";
-const L_tirm31_tayammumComp: React.FC = () => <MontageFromSpec spec={L_tirm31_tayammumSpec as unknown as MontageSpec} />;
-import L_tirm31_sayrafiSpec from "../data/specs/tirm31_sayrafi.json";
-const L_tirm31_sayrafiComp: React.FC = () => <MontageFromSpec spec={L_tirm31_sayrafiSpec as unknown as MontageSpec} />;
 import saintRambalSpec from "../data/specs/saint_rambal.json";
 const SaintRambalComp: React.FC = () => <MontageFromSpec spec={saintRambalSpec as unknown as MontageSpec} />;
 const StreamMayyitIlmRComp: React.FC = () => <MontageFromSpec spec={streamMayyitIlmSpec as unknown as MontageSpec} />;
@@ -61,11 +55,6 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="FatimaSheikhayn" component={FatimaSheikhaynComp} durationInFrames={fatimaSheikhaynSpec.frames} fps={30} width={1080} height={1920} />
         <Composition id="SaintRambal-L" component={SaintRambalComp} durationInFrames={saintRambalSpec.frames} fps={30} width={1920} height={1080} />
         <Composition id="SaintRambal" component={SaintRambalComp} durationInFrames={saintRambalSpec.frames} fps={30} width={1080} height={1920} />
-      </Folder>
-      <Folder name="الدروس">
-        <Composition id="Tirm31-Sayrafi" component={L_tirm31_sayrafiComp} durationInFrames={L_tirm31_sayrafiSpec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="Tirm31-Tayammum" component={L_tirm31_tayammumComp} durationInFrames={L_tirm31_tayammumSpec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="Tirm31-Wayh" component={L_tirm31_wayhComp} durationInFrames={L_tirm31_wayhSpec.frames} fps={30} width={1080} height={1920} />
       </Folder>
       <Folder name="البثوث">
         {/* بث للحوار مع المخالفين (1) */}

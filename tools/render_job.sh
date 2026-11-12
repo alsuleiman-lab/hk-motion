@@ -3,6 +3,7 @@
 cd /s/AI_Tools/Remotion_Workspace; source tools/env.sh >/dev/null 2>&1
 p=$1; id=$2; o=$3; title=$4; export BUMPER_POSITION=${5:-start}
 spec=data/specs/$p.json
+cutsrc="public/$(node -e 'console.log(JSON.parse(require("fs").readFileSync("'$spec'","utf8")).cut)')"
 read -r cx avoid <<<"$(node -e '
 const s=JSON.parse(require("fs").readFileSync("'$spec'","utf8"));
 console.log((s.cams?.[0]?.cx??940)+" "+(s.zooms||[]).map(z=>(z.from-0.5).toFixed(2)+"-"+(z.to+1.6).toFixed(2)).concat((s.shake||[]).map(z=>z.from+"-"+z.to)).join(","));')"
@@ -25,7 +26,7 @@ if true; then
     if [ -n "$hasA" ]; then ffmpeg -y -v error -i "$tmpv" -c copy -movflags +faststart "$out" >> .tmp/b2_render_$p.log 2>&1 && rm -f "$tmpv"
     else ffmpeg -y -v error -i "$tmpv" -i public/${p}_audio.wav -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 192k -movflags +faststart "$out" >> .tmp/b2_render_$p.log 2>&1 && rm -f "$tmpv"; node tools/prepend_bumper.mjs "$out" --name $p >> .tmp/b2_render_$p.log 2>&1; fi
     chk=".tmp/bumper_orig/hyb_$p.mp4"; [ -f "$chk" ] || chk=".tmp/bumper_orig/$(basename "$out")"; [ -f "$chk" ] || chk="$out"
-    node tools/judder_check.mjs "$chk" --src public/${p}_cut_s.mp4 --offset 0 --name $p ${avoid:+--avoid "$avoid"} $crop --windows 10 >> .tmp/b2_probe_$p.log 2>&1 || node tools/judder_check.mjs "$chk" --src public/${p}_cut_s.mp4 --offset 0 --name $p ${avoid:+--avoid "$avoid"} $crop --windows 14 >> .tmp/b2_probe_$p.log 2>&1 || node tools/judder_check.mjs "$chk" --src public/${p}_cut_s.mp4 --offset 0 --name $p --at $freeat --len 90 $crop >> .tmp/b2_probe_$p.log 2>&1 || { echo "$p JUDDER FAIL"; tail -3 .tmp/b2_probe_$p.log; echo "judder gate failed" >> .tmp/b2_render_$p.log; false; }
+    node tools/judder_check.mjs "$chk" --src "$cutsrc" --offset 0 --name $p ${avoid:+--avoid "$avoid"} $crop --windows 10 >> .tmp/b2_probe_$p.log 2>&1 || node tools/judder_check.mjs "$chk" --src "$cutsrc" --offset 0 --name $p ${avoid:+--avoid "$avoid"} $crop --windows 14 >> .tmp/b2_probe_$p.log 2>&1 || node tools/judder_check.mjs "$chk" --src "$cutsrc" --offset 0 --name $p --at $freeat --len 90 $crop >> .tmp/b2_probe_$p.log 2>&1 || { echo "$p JUDDER FAIL"; tail -3 .tmp/b2_probe_$p.log; echo "judder gate failed" >> .tmp/b2_render_$p.log; false; }
   else echo "HYBRID FAILED — لا رندر بالقديم (أمر 2026-11-09)" >> .tmp/b2_render_$p.log; false
   fi
 fi

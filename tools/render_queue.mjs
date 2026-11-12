@@ -33,7 +33,7 @@ const admit = (spec, orient) => {
 if (cmd === "add") {
   const spec = arg("spec"), comp = arg("comp"), orient = arg("orient"), dest = arg("dest");
   if (!spec || !comp || !/^[RL]$/.test(orient) || !dest) { console.error("usage: add --spec <id> --comp <Comp> --orient R|L --dest <folder> [--title <t>]"); process.exit(2); }
-  const s = load(); s.jobs = s.jobs.filter((j) => j.spec !== spec);
+  const s = load(); s.jobs = s.jobs.filter((j) => !(j.spec === spec && j.orient === orient));   // one job per project AND orientation (the portrait add erased the landscape one, 2026-11-11)
   const why = admit(spec, orient);
   if (why) { s.jobs.push({ spec, comp, orient, dest, title: arg("title"), bumper: arg("bumper", "start"), state: "rejected", why }); save(s); console.log(`✘ مرفوض ${spec}: ${why}\n  أصلحه بـ node tools/spec_normalize.mjs data/specs/${spec}.json --o ${orient === "L" ? "land" : "port"} ثم أضِفه من جديد`); process.exit(1); }
   s.jobs.push({ spec, comp, orient, dest, title: arg("title"), bumper: arg("bumper", "start"), state: "queued", at: new Date().toISOString() }); save(s);

@@ -17,6 +17,10 @@ for (const f of fs.readdirSync(pub)) {
   if (f === prefix && st.isDirectory()) for (const g of fs.readdirSync(p)) if (/.(mp4|mov|wav|m4a|webm)$/i.test(g)) paths.push(path.join(p, g)); // heavy files only: NEVER the transcripts (words*.json) inside
 }
 paths.push(path.join(pub, "stock", "prep"), path.join(root, ".tmp"), path.join(root, "out"));
+// the hybrid render's frame caches (public/fr/<cut name>, 52 GB of finished projects were left there until 2026-11-11) and render work folders of this project
+for (const dir of [path.join(pub, "fr"), path.join(root, "render_work")]) if (fs.existsSync(dir)) for (const g of fs.readdirSync(dir)) if (g.startsWith(prefix)) paths.push(path.join(dir, g));
+// the project's own matte windows (public/<prefix>/mt) are derived too
+if (fs.existsSync(path.join(pub, prefix, "mt"))) paths.push(path.join(pub, prefix, "mt"));
 const ei = rest.indexOf("--exported"); const exportedAt = ei >= 0 ? new Date(rest[ei + 1]) : new Date();
 const when = new Date(exportedAt.getTime() + hours * 3600 * 1000);
 const manifest = { name, prefix, exported: exportedAt.toISOString(), deleteAt: when.toISOString(), paths: [...new Set(paths)].filter(fs.existsSync), keepInOut: ["README"] };

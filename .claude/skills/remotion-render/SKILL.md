@@ -6,6 +6,11 @@ version: 4.0.535
 
 > **HYBRID ONLY (user order 2026-11-09):** every final render = `node tools/hybrid_any.mjs --comp <Id> --out <file>`. `render_final`/`render_chunked`/`render_clip` refuse to run (`tools/hybrid_gate.mjs`, hook), and a failed hybrid is FIXED, never replaced by the old path. A composition the hybrid cannot draw is ported to `HybridHost`/`VSlot`. Old path only when the user's current message asks for it (`LEGACY_RENDER_USER_OK="<his words>"`).
 
+> **HYBRID SPEED — nothing is decoded in Chrome (user 2026-11-12: «5 إطارات للثانية قليل جداً»).** Measured on SaintRambal-L: plain spans 15.4 fps, but spans where he is isolated over a background clip 2.6 fps (more browsers did not help: 7 browsers = 2.4 fps; the cost is Chrome seeking videos per frame, not CPU).
+> 1. Every video in the hybrid "top"/"bg" layer is a `<VSlot>` (GPU compositor, NVDEC) — never `OffthreadVideo`/`<Video>`/`ClipVideo`. `BgClip` (src/GazaFx.tsx) does this; a new video component must too.
+> 2. His isolated cut-out (`MaskedVideo` in `behind` windows) reads pre-extracted JPEG frames: `node tools/window_frames.mjs <p>` extracts ONLY the window spans of the cut (file frame number = cut frame) + each window matte, prints the `--fr` list; `render_job.sh` passes it to `hybrid_any --fr` and runs `window_frames.mjs <p> clean` after the render. Result: 2.6 → 6.4 fps on those spans.
+> 3. Keep `--browsers 3 --conc 3` (5 or 7 browsers measured slower). Benchmark a slow span with `hybrid_any --start A --end B` before guessing; compare a plain span with an isolated one.
+
 ## General rendering strategy
 
 Render a video using:

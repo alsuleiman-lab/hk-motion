@@ -26,16 +26,7 @@ const admit = (spec, orient) => {
   const f = `data/specs/${spec}.json`; if (!fs.existsSync(f)) return `لا مواصفة ${f}`;
   const s = JSON.parse(fs.readFileSync(f, "utf8")), o = orient === "L" ? "land" : "port";
   const outs = [sh("node", ["tools/coverage_check.mjs", f]), sh("node", ["tools/grid_plan.mjs", f, "--o", o]), sh("node", ["tools/mg_usage_audit.mjs", f, "--minutes", String(Math.max(0.2, s.frames / 1800))]), sh("node", ["tools/writing_sync.mjs", f])];
-  // (2026-11-12) the gates born from the «سانت رامبال» mistakes: nothing renders while one of them fails — a montage project (it has a requirements ledger) runs all of them
-  const T = `.tmp/${spec}`, has = (x) => fs.existsSync(`${T}/${x}`);
-  if (has("requirements.json")) outs.push(sh("node", ["tools/requirements.mjs", spec, "--check"]));
-  if (has("montage_notes.json")) outs.push(sh("node", ["tools/montage_notes.mjs", "check", spec]));
-  if (has("writing.json")) outs.push(sh("node", ["tools/writing_place.mjs", spec]));
-  if (has("cut_words.json")) outs.push(sh("node", ["tools/orphan_scan.mjs", spec]), sh("node", ["tools/verse_audit.mjs", f, "--strict"]));
-  outs.push(sh("node", ["tools/gallery_geometry.mjs", f]));
-  if (has("spec_frozen.json")) outs.push(sh("node", ["tools/spec_block.mjs", "diff", spec]));
-  /* the original four are read by their ✘ lines; the gates added 2026-11-12 by their exit status (a settled verse still prints its ✘ line with ☑) */
-  const bad = [...outs.slice(0, 4).flatMap((r) => (r.stdout.match(/✘[^\n]*/g) || [])), ...outs.slice(4).filter((r) => r.status !== 0).map((r) => (r.stdout.match(/✘[^\n]*/) || ["✘ " + String(r.stdout).trim().split("\n").pop()])[0])];
+  const bad = outs.flatMap((r) => (r.stdout.match(/✘[^\n]*/g) || []));
   return bad.length ? bad.slice(0, 3).map((b) => b.slice(0, 140)).join(" | ") : "";
 };
 

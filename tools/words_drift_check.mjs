@@ -43,11 +43,12 @@ else console.log(`words_drift: ✔ cut_words.json matches the cut audio (${rows.
 // leftover correction / instruction words in the FINAL audio (2026-11-11: «عفواً» survived three cuts because only the transcript was searched, never the cut audio).
 // The fresh pass is the cut audio itself; words inside a replied-to clip window (spec splits) belong to the other speaker and are not his corrections.
 {
-  let splits = [];
-  try { for (const f of fs.readdirSync("data/specs")) { const s = JSON.parse(fs.readFileSync(path.join("data/specs", f), "utf8")); if (s.id === p || f === `${p}.json`) splits = s.splits ?? []; } } catch { /* no spec yet */ }
+  let splits = [], keep = [];
+  /* spec.keepMarks [{t, w, why}]: a word decided to be PART of his speech (e.g. a rhetorical «عفواً، لا لا»), told to the user with its link (2026-11-12) */
+  try { for (const f of fs.readdirSync("data/specs")) { const s = JSON.parse(fs.readFileSync(path.join("data/specs", f), "utf8")); if (s.id === p || f === `${p}.json`) { splits = s.splits ?? []; keep = s.keepMarks ?? []; } } } catch { /* no spec yet */ }
   const MARK = /^(عفو|عفوا|عفواً|عفوني|اعيد|أعيد|اعيدها|معليش|أفوان|أفون|مونتاج|موتاج|منتاج)$/;
   const raw = JSON.parse(fs.readFileSync(freshF, "utf8"));
-  const hits = raw.filter((x) => MARK.test(String(x.w).replace(/[.،؟?!]/g, "").trim()) && !splits.some((sp) => x.s >= sp.from && x.s <= sp.to));
+  const hits = raw.filter((x) => MARK.test(String(x.w).replace(/[.،؟?!]/g, "").trim()) && !splits.some((sp) => x.s >= sp.from && x.s <= sp.to) && !keep.some((k) => Math.abs(k.t - x.s) < 0.6 && k.why));
   if (hits.length) { bad++; console.log(`words_drift: ✘ correction/instruction words still audible in the cut (${hits.length}): ` + hits.map((x) => `${x.s.toFixed(1)}s «${x.w}»`).join("، ") + " — cut them at the real silence (large-model word times), re-cut, re-run"); }
   else console.log("words_drift: ✔ no «عفواً/أعيد/مونتاج» left in the cut audio");
 }

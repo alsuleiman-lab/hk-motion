@@ -33,6 +33,8 @@ ff(["-hwaccel", "cuda", "-i", src, ...(SA != null ? ["-ss", String(SA), "-t", St
     ? `[1:v]fps=30,trim=end_frame=${fL},setpts=PTS-STARTPTS[vs];[1:a]aresample=48000,atrim=end=${L},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.012,afade=t=out:st=${Math.max(0, L - 0.012)}:d=0.012[as];[v0][vs][v1]concat=n=3:v=1:a=0[v];[a0][as][a1]concat=n=3:v=0:a=1[a]`
     : `[v0][v1]concat=n=2:v=1:a=0[v];[a0][a1]concat=n=2:v=0:a=1[a]`),
   "-map", "[v]", "-map", "[a]", "-c:v", "h264_nvenc", "-preset", "p5", "-rc", "vbr", "-cq", "16", "-b:v", "0", "-c:a", "aac", "-b:a", "256k", out]);
+// older versions (each ~1.7 GB; they filled the disk on 2026-11-11): keep only the new one and the one before it (Studio may still hold that)
+for (let k = 1; k < n - 1; k++) { for (const f of fs.readdirSync("public").filter((x) => x.startsWith(`${p}_cut_s_b${k}.`) || x.startsWith(`${p}_cut_s_b${k}_prev_`))) { try { fs.rmSync(path.join("public", f)); } catch { /* still open in Studio: next time */ } } }
 ff(["-i", out, "-vn", "-ac", "1", "-ar", "48000", path.join(T, "cut.wav")]);
 ff(["-i", path.join(T, "cut.wav"), "-ar", "16000", "-ac", "1", path.join(T, "cut16k.wav")]);
 

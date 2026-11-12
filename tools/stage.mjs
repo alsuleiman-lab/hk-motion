@@ -260,6 +260,10 @@ if (stage === "check") {
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("coverage_check", "node", ["tools/coverage_check.mjs", path.join("data", "specs", `${p}.json`)], /^✘|PASSED|FAILED/);
   // every card at the gallery's size and place (user 2026-11-11: «حل مشكلة عدم الالتزام بمواقع المعرض جذرياً»): exact gallery-sample geometry, run gallery_geometry --write last in every build
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("gallery_geometry", "node", ["tools/gallery_geometry.mjs", path.join("data", "specs", `${p}.json`)], /gallery_geometry|^s+S/);
+  // fragments left by cuts or trailing-off speech (user 2026-11-11, third time «صوت غريب… نصف كلمة»): each decided before any link
+  await step("orphan_scan", "node", ["tools/orphan_scan.mjs", p], /orphan_scan|^s+S/);
+  // the writing is the chosen list, verbatim and complete (user 2026-11-11)
+  if (fs.existsSync(path.join(T, "writing.json"))) await step("writing_place", "node", ["tools/writing_place.mjs", p], /writing_place|^s+S/);
   // after the review link the spec is frozen: a change outside a block applied with spec_block.mjs apply = a whole-video rebuild the user forbade (2026-11-11)
   if (fs.existsSync(path.join(T, "spec_frozen.json"))) await step("spec_block", "node", ["tools/spec_block.mjs", "diff", p], /spec_block|^\s+\S/);
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("requirements", "node", ["tools/requirements.mjs", p, "--check"], /requirements|^\s+\S/);

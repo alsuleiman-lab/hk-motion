@@ -6,20 +6,24 @@ const specF = process.argv[2], WRITE = process.argv.includes("--write"), GAP = 5
 const spec = JSON.parse(fs.readFileSync(specF, "utf8"));
 /* same span rule as coverage_check.mjs */
 const span = (i) => { const a = i.at ?? i.from ?? i.oldAt ?? i.times?.[0]; if (a == null) return null; const b = i.until ?? i.to ?? (i.dur != null ? a + i.dur : a + 3); return [a, b]; };
-const spans = [...spec.items.map(span).filter(Boolean), ...(spec.splits ?? []).map((s) => [s.from, s.to]), ...(spec.zooms ?? []).map((z) => [z.from, z.to]), ...(spec.shake ?? []).map((z) => [z.from, z.to])].sort((a, b) => a[0] - b[0]);
+const spans = [...spec.items.map(span).filter(Boolean), ...(spec.splits ?? []).map((s) => [s.from, s.to]), ...(spec.zooms ?? []).map((z) => [z.from, z.to + 1.2]), ...(spec.shake ?? []).map((z) => [z.from, z.to])].sort((a, b) => a[0] - b[0]);
 const dur = spec.frames ? spec.frames / (spec.fps ?? 30) : Math.max(...spans.map((s) => s[1]));
 const gaps = []; let end = 0;
 for (const [a, b] of spans) { if (a - end > GAP) gaps.push([end, a]); end = Math.max(end, b); }
 if (dur - 3 - end > GAP) gaps.push([end, dur - 3]);
 const add = [];
-for (const [a, b] of gaps) {
-  let t = a + 0.3;
-  while (b - t > GAP - 0.5) { const to = Math.min(t + 8, b - 0.3); add.push({ from: +t.toFixed(2), to: +to.toFixed(2), amt: 0.06 }); t = to + 3; }
+for (const [a, b0] of gaps) {
+  /* the zoom-out takes 1.2 s after \`to\`: the last push-in ends 1.3 s before the next element, so the face is back to size when a card appears */
+  const end = b0 - 1.3; let t = a + 0.2;
+  while (end - t >= 1.2) { const to = Math.min(t + 8, end); add.push({ from: +t.toFixed(2), to: +to.toFixed(2), amt: 0.06 }); t = to + 3; }
 }
 /* first minute: no moment > 0.3 s without an element (coverage 2b) — the small gaps there are joined into slow push-ins (one per stretch ≤ 6 s apart, ≥ 1.5 s long) */
 { const fg = []; let e = 0; const all = [...spans, ...add.map((z) => [z.from, z.to])].sort((x, y) => x[0] - y[0]);
   for (const [a, b] of all) { if (a >= 60) break; if (a - e > 0.3) fg.push([e, a]); e = Math.max(e, b); } if (e < 60 && 60 - e > 0.3) fg.push([e, 60]);
-  const m = []; for (const g of fg) { if (m.length && g[0] - m[m.length - 1][1] <= 6) m[m.length - 1][1] = g[1]; else m.push([...g]); }
-  for (const [a, b] of m) add.push({ from: +a.toFixed(2), to: +Math.max(b, a + 1.5).toFixed(2), amt: 0.05 }); }
+    /* a small gap is closed by letting the element that ends at its start stay until the next one (≤ 3.5 s more); a push-in only when none can */
+  const HOLD = new Set(["tphoto", "pic", "torn", "scraps", "date", "flag", "news", "scholar", "verse", "rows", "note"]);
+  for (const [a, b] of fg) { const prev = spec.items.filter((i) => HOLD.has(i.t) && span(i) && Math.abs(span(i)[1] - a) < 0.06).sort((x, y) => span(y)[1] - span(x)[1])[0];
+    if (prev && b - a <= 3.5) { if (prev.until != null) prev.until = +(b - 0.30).toFixed(2); else if (prev.to != null) prev.to = +(b - 0.30).toFixed(2); continue;   /* the slot needs 0.3 s between two users */ }
+    if (b - a >= 2.6) add.push({ from: +a.toFixed(2), to: +(b - 1.3).toFixed(2), amt: 0.05 }); } }
 console.log(`gap_zooms: ${gaps.length} فراغ ← ${add.length} تقريب بطيء`);
 if (WRITE) { spec.zooms = [...(spec.zooms ?? []), ...add].sort((x, y) => x.from - y.from); fs.writeFileSync(specF, JSON.stringify(spec, null, 1)); }

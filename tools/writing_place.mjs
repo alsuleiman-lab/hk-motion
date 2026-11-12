@@ -20,6 +20,8 @@ const fresh = JSON.parse(fs.readFileSync(path.join(T, "drift_fresh.json"), "utf8
 const norm = (s) => String(s).replace(/[ً-ْٰـ]/g, "").replace(/[إأآٱا]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/[^\p{L}\p{N}]/gu, "");
 const FIX = Object.fromEntries(Object.entries(W.fix ?? {}).map(([k, v]) => [norm(k), norm(v)]));
 const N = fresh.map((w) => { const n = norm(w.w); return FIX[n] ?? n; });
+const cwRaw = fs.existsSync(path.join(T, "cut_words.json")) ? JSON.parse(fs.readFileSync(path.join(T, "cut_words.json"), "utf8")) : [];
+const CW = (cwRaw.words ?? cwRaw).map((w) => ({ s: +(w.s ?? w.start), n: norm(w.w ?? w.word) }));
 const DANGLE = new Set(["و", "مع", "ان", "انه", "انها", "له", "لها", "علي", "في", "من", "الي", "عن", "الذي", "التي", "اللي", "بين", "او", "ثم", "لكن", "ولكن", "قد", "هو", "هي", "يعني", "بس", "ف"].map(norm));
 const bad = [], out = [];
 for (const it of W.items) {
@@ -30,7 +32,8 @@ for (const it of W.items) {
   if (it.t === "scraps" && q.length > 7) bad.push(`«${it.text}» قصاصات أطول من 7 كلمات`);
   if (DANGLE.has(q[q.length - 1])) bad.push(`«${it.text}» تنتهي بكلمة معلّقة «${it.text.split(/\s+/).pop()}»`);
   if (DANGLE.has(q[0]) && !["و", "ولكن", "لكن", "هو", "هي"].includes(it.text.split(/\s+/)[0].replace(/[إأآ]/g, "ا"))) bad.push(`«${it.text}» تبدأ بكلمة معلّقة`);
-  const times = q.map((_, j) => +fresh[hit + j].s.toFixed(2)), lastEnd = fresh[hit + q.length]?.s ?? times[times.length - 1] + 0.6;
+  /* two transcripts disagree on word starts by up to 0.7 s: a word shows at the LATER of the two, so writing is never ahead of his voice */
+  const times = q.map((x, j) => { const s0 = fresh[hit + j].s, c = CW.find((w) => Math.abs(w.s - s0) < 0.8 && (w.n === x || w.n.endsWith(x))); return +Math.max(s0, c?.s ?? 0).toFixed(2); }), lastEnd = fresh[hit + q.length]?.s ?? times[times.length - 1] + 0.6;
   out.push({ ...it, times, at: times[0], lastEnd });
 }
 /* (user 2026-11-12) «القصاصات والملاحظة الممزقة: كل واحدة منهما مرة واحدة في الدقيقة، ولا يجوز تكرارها»: per minute of the video at most ONE scraps and ONE torn */

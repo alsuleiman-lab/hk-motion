@@ -85,7 +85,16 @@ const bgPng = path.join(work, "bg.png");
 await renderStill({ composition, serveUrl, inputProps: { hybrid: "bg", hybridPort: GEOM_PORT }, output: bgPng, imageFormat: "png", frame: start, chromiumOptions: { gl: "angle" }, overwrite: true });
 timing.bgSec = (Date.now() - t) / 1000;
 
-// ---- static file server for the bundle (what @remotion/renderer's own server does for Chromium) ----
+// ---- the bundle is served by @remotion/renderer's OWN server (RenderInternals.prepareServer, as renderFrames does): same files, and its /proxy
+//      endpoint extracts frames for any <OffthreadVideo> still left in the graphics layer (FatimaSheikhayn-L uses one at frame 0), exactly as in
+//      the hybrid. Page and proxy share the origin http://localhost:<port>, so no CORS. --own-server = the minimal static server below (no /proxy).
+let pageUrl, proxyPort, closeRemotionServer = null;
+if (!process.argv.includes("--own-server")) {
+  const { RenderInternals } = await import("@remotion/renderer");
+  const srv = await RenderInternals.prepareServer({ webpackConfigOrServeUrl: serveUrl, port: HTTP_PORT, remotionRoot: root, offthreadVideoThreads: 2, logLevel: "error", indent: false, offthreadVideoCacheSizeInBytes: null, binariesDirectory: null, forceIPv4: false, sampleRate: composition.defaultSampleRate ?? 48000 });
+  pageUrl = srv.serveUrl.replace(/\/$/, ""); proxyPort = srv.offthreadPort; closeRemotionServer = srv.closeServer;
+  log(`bundle served by Remotion's server at ${pageUrl} (proxy port ${proxyPort})`);
+}
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "application/javascript", ".mjs": "application/javascript", ".css": "text/css", ".json": "application/json", ".map": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif", ".avif": "image/avif", ".ico": "image/x-icon", ".woff": "font/woff", ".woff2": "font/woff2", ".ttf": "font/ttf", ".otf": "font/otf", ".mp3": "audio/mpeg", ".wav": "audio/wav", ".m4a": "audio/mp4", ".aac": "audio/aac", ".ogg": "audio/ogg", ".mp4": "video/mp4", ".webm": "video/webm", ".txt": "text/plain" };
 const missing = new Set();
 const server = http.createServer((req, res) => {
@@ -105,7 +114,7 @@ const server = http.createServer((req, res) => {
     fs.createReadStream(f).pipe(res);
   }
 });
-await new Promise((res) => server.listen(HTTP_PORT, "127.0.0.1", res));
+if (!pageUrl) { await new Promise((res) => server.listen(HTTP_PORT, "127.0.0.1", res)); pageUrl = `http://127.0.0.1:${HTTP_PORT}`; proxyPort = HTTP_PORT; }
 
 // ---- parity guard: the compositing code (rrect_sdf … draw_slot) is a copy of tools/hybrid_generic.py; warn loudly when the hybrid changed it ----
 {
@@ -162,7 +171,7 @@ for (let p = 0; p < PROCS; p++) {
   const wins = Array.from({ length: WINDOWS }, () => ({ mode: "top", inputProps: ser(inputProps), initialFrame: start }));
   if (NU && p === 0) wins.push({ mode: "under", inputProps: ser({ ...inputProps, hybrid: "under" }), initialFrame: UNDER[0][0] });
   const cfgFile = path.join(work, `worker_${p}.json`);
-  fs.writeFileSync(cfgFile, JSON.stringify({ url: `http://127.0.0.1:${HTTP_PORT}`, compId: composition.id, bundleMode, width: W, height: H, markRows: 8, ctlPort: CTL_PORT, proxyPort: HTTP_PORT, timeout: 180000, mediaCache: null, sampleRate: composition.defaultSampleRate ?? 48000, windows: wins, windowBase: wBase, workDir: work, paintRate: Number(arg("paint-rate", 240)) }));
+  fs.writeFileSync(cfgFile, JSON.stringify({ url: pageUrl, compId: composition.id, bundleMode, width: W, height: H, markRows: 8, ctlPort: CTL_PORT, proxyPort, timeout: 180000, mediaCache: null, sampleRate: composition.defaultSampleRate ?? 48000, windows: wins, windowBase: wBase, workDir: work, paintRate: Number(arg("paint-rate", 240)) }));
   wBase += wins.length;
   const ew = spawn(ELECTRON, [path.join(root, "tools/gpu/electron_worker.cjs"), cfgFile], { cwd: root, stdio: ["ignore", "inherit", "inherit"], env: { ...process.env, ELECTRON_ENABLE_LOGGING: "" }, windowsHide: true });
   ew.on("exit", (c) => { if (c) log(`electron worker ${p} exited with ${c}`); });
@@ -174,7 +183,8 @@ const tc1 = Date.now();
 timing.graphicsPlusCompositeSec = (tc1 - tg0) / 1000;
 await new Promise((r) => setTimeout(r, 500));
 killWorkers();
-server.close();
+if (server.listening) server.close();
+if (closeRemotionServer) { try { await closeRemotionServer(); } catch {} }
 
 // ---- audio: same mix as hybrid_any, from the audio assets each window collected (window.remotion_collectAssets, as renderFrames does) ----
 t = Date.now();

@@ -3,6 +3,6 @@
 
 1. أداة تقسيم دائمة `tools/stream/clip_split.mjs`: حدّ المقطع على نهاية آخر كلمة (التفريغ الكبير) + ذيل حتى أدنى صوت، والدمج متعدد المقاطع بإعادة ترميز بمعدل ثابت لا `-c copy`.
 2. `merge_words_large.mjs`: سدّ ثغرة النموذج الكبير (لا كلمات ≥ 2ث والتفريغ المحاذى فيه كلمات) بكلمات المحاذى.
-3. `montage_guard.mjs end`: حذف `.tmp/*<p>*` وسجلات `b2_*_<p>` و`data/stream_queue/<p>*` ومدخلات `data/preview_proxies.json` ومهام `resume_after_reboot` للمشروع، وسرد الباقي.
+3. `montage_guard.mjs end`: حذف `.tmp/hybrid_any/<Comp>*` و`.tmp/hybrid_any/bundle_<Comp>*` و`.tmp/*<p>*` وسجلات `b2_*_<p>` و`data/stream_queue/<p>*` ومدخلات `data/preview_proxies.json` ومهام `resume_after_reboot` للمشروع، وسرد الباقي.
 4. `requirements.mjs --check`: قبول صورة الشخص المعروضة عند أي ذكر سابق له بصيغة أخرى من اسمه.
 5. فحص «آخر كلمة كاملة» قبل الرندر: طاقة الصوت في آخر 0.3ث من القص وكلمة التفريغ الأخيرة لا تتجاوز نهاية الملف.

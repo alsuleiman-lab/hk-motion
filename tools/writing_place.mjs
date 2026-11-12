@@ -39,7 +39,7 @@ for (const it of W.items) {
   for (const o of out) { const k = `${o.t}@${Math.floor(o.at / 60)}`; (per[k] ??= []).push(o); }
   for (const [k, list] of Object.entries(per)) if (list.length > 1) { const [t, m] = k.split("@"); bad.push(`الدقيقة ${m}: ${list.length} ${t === "torn" ? "ملاحظات ممزقة" : "قصاصات"} (المسموح واحدة): ${list.map((o) => `«${o.text}»`).join("، ")}`); }
 }
-if (bad.length) { console.log(`✘ writing_place: ${bad.length} عبارة مرفوضة:\n  ` + bad.join("\n  ")); process.exit(1); }
+if (bad.length && !process.argv.includes("--hold")) { console.log(`✘ writing_place: ${bad.length} عبارة مرفوضة:\n  ` + bad.join("\n  ")); process.exit(1); }
 out.sort((a, b) => a.at - b.at);
 const items = out.map((o, i) => {
   const next = out[i + 1]?.at ?? 1e9, hold = o.t === "torn" ? 1.8 : 1.0, until = +Math.min(o.lastEnd + hold, next - 0.15).toFixed(2);

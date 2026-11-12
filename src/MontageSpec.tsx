@@ -295,16 +295,26 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
     case "hadith": return <ReelVerseFull key={i} hadith to={it.until ?? it.times[it.times.length - 1] + 1.2} refName={it.source} lines={[{ words: it.words, times: it.times }]} />;
     case "credit": return <Only key={i} from={it.from ?? 0.5} to={it.to ?? 9999}><Sources links={[{ at: it.from ?? 0.5, url: it.text }]} x={40} bottom={L ? 24 : 178} w={L ? 1100 : 1000} size={L ? 22 : 24} /></Only>;
     case "rows": {
-      const g = ROWS[o], titled = !!it.title && (L || it.rows.length < 3), gx = L && it.side === "right" ? 1920 - 40 - g.w : g.x;
+      const g = ROWS[o], gx = L && it.side === "right" ? 1920 - 40 - g.w : g.x;
+      /* (user 2026-11-12, frame 2886: «لا يلزم شريط العنوان، المهم ألا يخرج شيء أسفل الشاشة») the list never runs off the screen: the title goes first,
+         then the rows tighten until the last one ends above the limit (landscape 1050, portrait 1780 — above the portrait title bar) */
+      const nR = it.rows.length, LIM = L ? 1050 : 1780, pitch0 = g.rowY(1, true) - g.rowY(0, true);
+      const titled = !!it.title && (L || nR < 3) && g.rowY(0, true) + (nR - 1) * pitch0 + g.rowH <= LIM;
+      const start = g.rowY(0, titled);
+      /* portrait: a list too long for the band under the beard splits into TWO columns side by side (first column on the right, RTL) */
+      const twoCol = !L && it.y0 === undefined && start + (nR - 1) * pitch0 + g.rowH > LIM, perCol = twoCol ? Math.ceil(nR / 2) : nR, colW = twoCol ? Math.floor((g.w - 20) / 2) : g.w;
+      let pitch = pitch0, rhFit = g.rowH;
+      if (start + (perCol - 1) * pitch + rhFit > LIM) { pitch = Math.floor((LIM - rhFit - start) / Math.max(1, perCol - 1)); if (pitch < rhFit + 8) rhFit = Math.max(90, pitch - 8); }
       // `y0/step/rowH` (portrait) pack a long list under the beard: first row top, row pitch, row height
-      const rowY = (n: number) => (!L && it.y0 !== undefined ? it.y0 + n * (it.step ?? 112) : g.rowY(n, titled)), rowH = !L && it.rowH ? it.rowH : g.rowH;
+      const rowY = (n: number) => (!L && it.y0 !== undefined ? it.y0 + n * (it.step ?? 112) : start + (n % perCol) * pitch), rowH = !L && it.rowH ? it.rowH : rhFit;
+      const rowX = (n: number) => (twoCol ? gx + (n < perCol ? colW + 20 : 0) : gx), rowW = colW;
       return (
         <Only key={i} from={it.from} to={it.to}>
           {titled && it.title ? <Banner at={it.title.at} x={L && it.pair ? 16 : gx} y={g.bannerY} w={L && it.pair ? 1170 : g.w} text={it.title.text} size={g.bannerSize} /> : null}
           {L && it.pair ? it.rows.map((r, n) => [
               <StatRow key={"c" + n} at={r.at} x={16 + 590} y={rowY(n)} w={580} h={rowH} icon={r.icon ?? "Quote"} label={r.label} rot={n % 2 ? 1 : -1} />,
               r.sub ? <StatRow key={"r" + n} at={r.subAt ?? r.at} x={16} y={rowY(n)} w={580} h={rowH} icon="" noIcon label={r.sub} rot={n % 2 ? -1 : 1} /> : null])
-            : it.rows.map((r, n) => <StatRow key={n} at={r.at} x={!L && it.pin ? it.pin.x : gx} y={rowY(n)} w={!L && it.pin ? it.pin.w : g.w} h={rowH} icon={r.icon ?? "Quote"} label={r.label} sub={r.sub} subAt={r.subAt} photo={r.photo} rot={n % 2 ? 1 : -1} />)}
+            : it.rows.map((r, n) => <StatRow key={n} at={r.at} x={!L && it.pin ? it.pin.x : rowX(n)} y={rowY(n)} w={!L && it.pin ? it.pin.w : rowW} h={rowH} icon={r.icon ?? "Quote"} label={r.label} sub={r.sub} subAt={r.subAt} photo={r.photo} rot={n % 2 ? 1 : -1} />)}
         </Only>
       );
     }

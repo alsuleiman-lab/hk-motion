@@ -439,7 +439,8 @@ const PortPanel: React.FC<{ windows: NonNullable<MontageSpec["psplits"]>; top?: 
   const k = Math.min(clamp((t - w.from) / 0.4), clamp((w.to + 0.4 - t) / 0.4));
   return (
     <div style={{ position: "absolute", left: 0, top: top + (1 - k) * (1920 - top), width: 1080, height: 1920 - top, overflow: "hidden", borderTop: `8px solid ${BRAND.accent}`, boxSizing: "border-box" }}>
-      <div style={{ position: "absolute", left: 0, top: -top, width: 1080, height: 1920 }}>{HY ? null : w.panel === "parchment" ? <Parchment /> : <WarmBase />}</div>
+      {/* hybrid: the ground would cover the clip (drawn under the graphics); GPU renderer (2026-11-12): in layer 1, above his footage, under the clip (level 1) */}
+      <div style={{ position: "absolute", left: 0, top: -top, width: 1080, height: 1920 }}>{HY && !HYL ? null : <HyLayer z={1}>{w.panel === "parchment" ? <Parchment /> : <WarmBase />}</HyLayer>}</div>
     </div>
   );
 };
@@ -514,7 +515,9 @@ export const PORT_ISO_DEFAULT: PortIso = { boxX: 30, boxY: 90, boxW: 760, boxH: 
    windows is drawn in the "under" layer (UnderHim), which the compositor puts between the videos and his cut-out. `mini` (a second Chrome cut-out) is not
    an under item: it is drawn above him as before. tools/window_frames.mjs `under` lists the same frames for hybrid_any --under. */
 export const UNDER_TYPES = new Set(["pmap", "full", "treefx"]);
-const underHim = (spec: MontageSpec, o: Orient, x: { t?: string; from?: number; to?: number }) => UNDER_TYPES.has(x.t ?? "full") && (spec.behind ?? []).some((w) => (w.matte ?? spec.matte) && (!w.only || w.only === o) && (o === "land" || w.dx === undefined) && (x.from ?? 0) < w.to && (x.to ?? 0) > w.from);
+const underHim = (spec: MontageSpec, o: Orient, x: { t?: string; from?: number; to?: number }) => UNDER_TYPES.has(x.t ?? "full") && ((spec.behind ?? []).some((w) => (w.matte ?? spec.matte) && (!w.only || w.only === o) && (o === "land" || w.dx === undefined) && (x.from ?? 0) < w.to && (x.to ?? 0) > w.from)
+  /* (2026-11-12) a `mini` window (landscape) cuts him out on the GPU as well: its map lies under him (same test in tools/window_frames.mjs) */
+  || (o === "land" && spec.items.some((m) => m.t === "mini" && (m.matte ?? spec.matte) && (x.from ?? 0) < m.to && (x.to ?? 0) > m.from)));
 const MaskedSheikh: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; o: Orient; cams?: MontageSpec["cams"]; zooms?: MontageSpec["zooms"]; dx?: number; from?: number; gpu?: boolean; pscale?: number; pdx?: number; pdy?: number }> = ({ cut, matte, o, cams, zooms = [], dx = 0, from = 0, gpu, pscale, pdx = 0, pdy = 0 }) => {
   const t = from + useCurrentFrame() / 30;     // inside a Sequence that starts at `from`
   const vStart = Math.round(from * 30), mStart = (matte.startFrom ?? 0) + Math.round((from - (matte.start ?? 0)) * 30);
@@ -539,6 +542,15 @@ const MaskedSheikh: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matt
 const MiniMe: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; it: Extract<SpecItem, { t: "mini" }> }> = ({ cut, matte, it }) => {
   const t = it.from + useCurrentFrame() / 30;     // inside a Sequence that starts at it.from
   const e = miniEase(t, it.shrinkAt), [fx, fy] = [990, 330];
+  if (HY) {   /* hybrid / GPU render (2026-11-12): his cut-out on the GPU (a masked <VSlot>, the matte as one more NVDEC stream); the CSS drop shadow is drawn
+                 by the compositor from the cut-out's own alpha (fx.shadow*, same numbers, scaled with him); what lies under him is in the under layer */
+    return (
+      <AbsoluteFill style={{ transformOrigin: `${fx}px ${fy}px`, transform: `translate(${(it.cx - fx) * e}px, ${(it.cy - fy) * e}px) scale(${1 + (it.scale - 1) * e})` }}>
+        <VSlot src={cut} startFrom={Math.round(it.from * 30)} w={LANDSCAPE.W} h={LANDSCAPE.H} matte={{ src: matte.src, startFrom: (matte.startFrom ?? 0) + Math.round((it.from - (matte.start ?? 0)) * 30) }}
+          fx={e > 0.05 ? { shadowY: 10, shadowBlur: 18, shadowA: 0.55, shR: 20, shG: 12, shB: 4 } : undefined} />
+      </AbsoluteFill>
+    );
+  }
   return (
     <AbsoluteFill style={{ transformOrigin: `${fx}px ${fy}px`, transform: `translate(${(it.cx - fx) * e}px, ${(it.cy - fy) * e}px) scale(${1 + (it.scale - 1) * e})`, filter: e > 0.05 ? "drop-shadow(0 10px 18px rgba(20,12,4,.55))" : undefined }}>
       <MaskedVideo video={cut} matte={matte.src} videoStartFrom={Math.round(it.from * 30)} matteStartFrom={(matte.startFrom ?? 0) + Math.round((it.from - (matte.start ?? 0)) * 30)} width={LANDSCAPE.W} height={LANDSCAPE.H} />
@@ -604,11 +616,20 @@ const VERSE_WAYS = ["noor", "bigword"] as const, HADITH_WAYS = ["quote", "books"
 const draw = (key: string, n: number) => { let h = 2166136261; for (const c of key) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) % n; };
 const ayaOf = (it: { aya?: number; refText: string }) => it.aya ?? Number((it.refText.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).match(/\d+/) ?? ["0"])[0]);
 const isHalfWay = (it: SpecItem) => (it.t === "verse" && !it.full && (it.way === "noor" || it.way === "bigword")) || (it.t === "note" && !!it.phrases?.length && (it.way === "quote" || it.way === "books"));
+/** a note with only `title`: split the matn into short phrases (at punctuation, then ≤5 words) and spread them over the spoken span by length */
+const autoPhrases = (title: string, at: number, until: number) => {
+  const parts = title.replace(/[«»"]/g, "").split(/[،,.؛:!؟?\n]+/).map((p) => p.trim()).filter(Boolean)
+    .flatMap((p) => { const w = p.split(/\s+/), out: string[] = []; for (let i = 0; i < w.length; i += 5) out.push(w.slice(i, i + 5).join(" ")); return out; });
+  const total = parts.reduce((a, p) => a + p.length, 0) || 1, span = Math.max(0.4, until - at - 1.5);
+  let acc = 0;
+  return parts.map((text) => { const p = { text, at: +(at + 0.2 + (acc / total) * span).toFixed(2) }; acc += text.length; return p; });
+};
 const withHalfWays = (s: MontageSpec): MontageSpec => {
   const seed = s.cut ?? (s as { title?: string }).title ?? "";
   const items = s.items.map((it) => {
     if (it.only === "port") return it;
     if (it.t === "verse" && !it.full && !it.way) return { ...it, way: VERSE_WAYS[draw(`${seed}|v|${it.times[0]}`, VERSE_WAYS.length)] } as SpecItem;
+    if (it.t === "note" && !it.phrases?.length && it.way !== "card") it = { ...it, phrases: autoPhrases(it.title, it.at, it.until) };   // (user 2026-11-12: «اعتمدنا طريقة جديدة وخلاص») every hadith takes the new ways
     if (it.t === "note" && it.phrases?.length && !it.way) return { ...it, way: it.chain?.length ? "isnad" : HADITH_WAYS[draw(`${seed}|h|${it.phrases[0].at}`, HADITH_WAYS.length)] } as SpecItem;
     return it;
   });
@@ -634,14 +655,23 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
     </>
   );
 };
+/** TESTS ONLY (2026-11-12): inputProps {specTest: {items?, psplits?, dropBehind?: [index…]}} adds elements to the spec for ONE render or still
+ *  (gpu_render --props / stills.mjs --props) — the spec files are never touched while a queue may be rendering from them. Absent: no effect. */
+type SpecTest = { items?: SpecItem[]; psplits?: NonNullable<MontageSpec["psplits"]>; dropBehind?: number[] };
+const withSpecTest = (s: MontageSpec): MontageSpec => {
+  const x = (getInputProps() as { specTest?: SpecTest }).specTest;
+  if (!x) return s;
+  return { ...s, items: [...s.items, ...(x.items ?? [])], psplits: [...(s.psplits ?? []), ...(x.psplits ?? [])], behind: (s.behind ?? []).filter((_, i) => !(x.dropBehind ?? []).includes(i)) };
+};
 const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => {
-  const spec = withGallery(withHalfWays(raw));
+  const spec = withGallery(withHalfWays(withSpecTest(raw)));
   for (const it of spec.items) if (!APPROVED_TYPES.has(it.t)) throw new Error(`عنصر غير معتمد في المعرض: «${it.t}» في ${spec.id} — المعتمد: ${[...APPROVED_TYPES].join("، ")}`);
   const f = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const o: Orient = width > height ? "land" : "port";
-  /* solos: drawn on the GPU by the GPU renderer (SoloLand, HYL, 2026-11-12); the hybrid (hybrid_any) still cannot */
-  if (HY && ((o === "port" && spec.items.some((x) => x.t === "phone")) || (o === "land" && spec.psplits?.length) || (spec.solos?.length && !HYL) || spec.items.some((x) => x.t === "mini" || x.t === "treefx"))) throw new Error(`المسار الهجين لا يدعم هذا المونتاج (${spec.id}): طولي أو solos/psplits/mini/treefx — استعمل الرندر العادي`);
+  /* (2026-11-12) the GPU renderer (HYL) draws every element: solos (SoloLand), phone (PhoneWin), mini (MiniMe), treefx, psplits. Only the hybrid
+     fallback (hybrid_any, no extra layers) still refuses the ones it cannot draw */
+  if (HY && !HYL && ((o === "port" && spec.items.some((x) => x.t === "phone")) || (o === "land" && spec.psplits?.length) || spec.solos?.length || spec.items.some((x) => x.t === "mini" || x.t === "treefx"))) throw new Error(`المسار الهجين لا يدعم هذا المونتاج (${spec.id}): طولي أو solos/psplits/mini/treefx — استعمل المحرّك الجديد tools/gpu_render.mjs`);
   applyBrand(spec.brand);
   FONT_TITLE(); FONT_TEXT();
   const bar = spec.bar ?? BAR_WARM;

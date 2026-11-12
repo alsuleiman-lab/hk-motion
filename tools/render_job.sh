@@ -6,10 +6,11 @@ p=$1; id=$2; o=$3; title=$4; export BUMPER_POSITION=${5:-start}
 [ "$BUMPER_POSITION" = start ] && export BUMPER_AT=$(node tools/bumper_at.mjs $p) && export BUMPER_ID=$(node tools/bumper_at.mjs $p --id)
 spec=data/specs/$p.json
 cutsrc="public/$(node -e 'console.log(JSON.parse(require("fs").readFileSync("'$spec'","utf8")).cut)')"
+# cx = the camera that covers MOST of the video, not cams[0] (the opening split framed him at 1326 → 0 % judder on a clean portrait, 2026-11-12)
 # avoid: zooms, shakes, full-screen verses (he is hidden, 2026-11-12) AND isolation windows shifted aside (dx) — the face crop sees the shifted figure there (false judder, 2026-11-12)
 read -r cx avoid <<<"$(node -e '
 const s=JSON.parse(require("fs").readFileSync("'$spec'","utf8"));
-console.log((s.cams?.[0]?.cx??940)+" "+(s.zooms||[]).map(z=>(z.from-0.5).toFixed(2)+"-"+(z.to+1.6).toFixed(2)).concat((s.shake||[]).map(z=>z.from+"-"+z.to)).concat((s.behind||[]).filter(w=>w.dx).map(w=>(w.from-0.3).toFixed(2)+"-"+(w.to+0.3).toFixed(2))).concat((s.items||[]).filter(i=>i.t==="verse"&&i.full).map(i=>((i.at??i.times[0])-0.4).toFixed(2)+"-"+((i.until??i.times[i.times.length-1]+2)+0.6).toFixed(2))).join(","));')"
+const cm=(s.cams||[]).map(c=>({cx:c.cx,d:Math.min(c.to,s.frames/30)-c.from})).sort((a,b)=>b.d-a.d)[0];console.log((cm?.cx??940)+" "+(s.zooms||[]).map(z=>(z.from-0.5).toFixed(2)+"-"+(z.to+1.6).toFixed(2)).concat((s.shake||[]).map(z=>z.from+"-"+z.to)).concat((s.behind||[]).filter(w=>w.dx).map(w=>(w.from-0.3).toFixed(2)+"-"+(w.to+0.3).toFixed(2))).concat((s.items||[]).filter(i=>i.t==="verse"&&i.full).map(i=>((i.at??i.times[0])-0.4).toFixed(2)+"-"+((i.until??i.times[i.times.length-1]+2)+0.6).toFixed(2))).join(","));')"
 freeat=$(node -e 'const s=JSON.parse(require("fs").readFileSync("'$spec'","utf8"));const d=s.frames/30;const b=[...(s.zooms||[]),...(s.shake||[])].map(z=>[z.from-0.5,z.to+1.6]).concat((s.items||[]).filter(i=>i.t==="verse"&&i.full).map(i=>[(i.at??i.times[0])-0.4,(i.until??i.times[i.times.length-1]+2)+0.6])).sort((x,y)=>x[0]-y[0]);let best=[0,0],t=0;for(const [a,c] of [...b,[d,d]]){if(a-t>best[1]-best[0])best=[t,a];t=Math.max(t,c)}console.log((best[0]+0.6).toFixed(2))')
 safe=$(node -e 'console.log(process.argv[1].replace(/[:?؟«»"]/g,""))' "$title")
 if [ "$o" = R ]; then
@@ -27,7 +28,8 @@ if true; then
   # render engine (R-RENDER-GPU.1, user 2026-11-12): the all-GPU renderer by default; RENDER_ENGINE=hybrid = the previous path (fallback, with the user's permission).
   # Same arguments, same output (audio mixed, opening bumper prepended), same lock and retry: nothing else in this job changes.
   engine=tools/gpu_render.mjs; [ "${RENDER_ENGINE:-gpu}" = hybrid ] && engine=tools/hybrid_any.mjs
-  until node $engine --comp $id --out "$tmpv" ${under:+--under "$under"} > .tmp/b2_render_$p.log 2>&1; do grep -aq "ممنوع رندر" .tmp/b2_render_$p.log || break; sleep 60; done
+  eng_opt=""; [ "$engine" = tools/gpu_render.mjs ] && eng_opt="--procs 1 --windows 3 --name $p"   # the measured best (remotion-render step 4); also one process = one asset file
+  until node $engine --comp $id --out "$tmpv" ${under:+--under "$under"} $eng_opt > .tmp/b2_render_$p.log 2>&1; do grep -aq "ممنوع رندر" .tmp/b2_render_$p.log || break; sleep 60; done
   hasA=$(ffprobe -v error -select_streams a -show_entries stream=codec_type -of csv=p=0 "$tmpv" 2>/dev/null | head -1)
   if [ -s "$tmpv" ]; then
     # hybrid_any already mixes the audio and prepends the opening bumper (user 2026-11-11): never replace its audio with the unshifted wav

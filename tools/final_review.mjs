@@ -53,7 +53,9 @@ const starts = [...sil.matchAll(/silence_start: ([\d.]+)/g)].map((m) => Number(m
 const durs = [...sil.matchAll(/silence_duration: ([\d.]+)/g)].map((m) => Number(m[1]));
 // a closing bumper (streams/lessons) starts right after the last word: the silence that runs from the speech into the bumper (begins ≤ 0.6 s before it) is the junction, not a pause in the talk
 const bAt = typeof bumper?.at === "number" ? bumper.at : 0, bEnd = bumper?.position === "end";
-const gaps = starts.map((s, i) => ({ s, d: durs[i] ?? dur - s })).filter((g) => !bumper || !(g.s >= bAt - (bEnd ? 0.6 : 0) && g.s < bAt + bumper.seconds));
+/* (2026-11-12) only the PART of a silence inside the bumper is excused: a silence that starts in the bumper and runs on after it (6 s of lost audio after a
+   start bumper) was dropped whole and the file passed */
+const gaps = starts.map((s, i) => ({ s, d: durs[i] ?? dur - s })).map((g) => { if (!bumper) return g; const a = bAt - (bEnd ? 0.6 : 0), b = bAt + bumper.seconds; if (g.s >= a && g.s < b) { const e = g.s + g.d; return { s: b, d: e - b }; } return g; }).filter((g) => g.d > maxGap);
 add(gaps.length === 0, gaps.length ? `سكتات > ${maxGap}ث: ${gaps.map((g) => `${g.s.toFixed(2)}→${(g.s + g.d).toFixed(2)} (${g.d.toFixed(2)}ث)`).join("، ")}` : `لا سكتة > ${maxGap}ث`);
 
 const vol = run("ffmpeg", ["-hide_banner", "-i", file, "-af", "volumedetect", "-f", "null", "-"]).stderr;

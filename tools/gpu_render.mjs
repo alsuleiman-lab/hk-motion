@@ -187,7 +187,9 @@ log(`graphics: ${PROCS} Electron process(es) × ${WINDOWS} offscreen windows${NU
 await exited;
 const tc1 = Date.now();
 timing.graphicsPlusCompositeSec = (tc1 - tg0) / 1000;
-await new Promise((r) => setTimeout(r, 500));
+/* (2026-11-12) wait for EVERY Electron worker to exit on its own (each writes assets_<pid>_<k>.json on "quit"): killing them after 0.5 s lost the second
+   process's audio records → the first 6 s and ~20 blocks of all four delivered videos were silent */
+await Promise.all(workers.map((w) => (w.exitCode !== null ? null : new Promise((r) => { const t = setTimeout(r, 60000); w.once("exit", () => { clearTimeout(t); r(); }); }))));
 killWorkers();
 if (server.listening) server.close();
 if (closeRemotionServer) { try { await closeRemotionServer(); } catch {} }
@@ -197,6 +199,9 @@ t = Date.now();
 const frames = [];
 for (const f of fs.readdirSync(work)) if (/^assets_.*\.json$/.test(f)) frames.push(...JSON.parse(fs.readFileSync(path.join(work, f), "utf8")));
 frames.sort((a, b) => a.frame - b.frame);
+/* every rendered frame must have its audio record: a missing block = silent audio there. Refuse to mux instead of delivering a silent stretch (2026-11-12) */
+{ const have = new Set(frames.map((f) => f.frame)), miss = []; for (let f = start; f <= end; f++) if (!have.has(f)) miss.push(f);
+  if (miss.length) { console.error(`✘ audio records missing for ${miss.length} frame(s) (first ${miss.slice(0, 5).join(", ")}): a graphics worker did not write its assets — the audio would be silent there. Not muxing.`); process.exit(1); } }
 const open = new Map(), segs = [];
 for (const f of frames) {
   const rel = f.frame - start, present = new Set();

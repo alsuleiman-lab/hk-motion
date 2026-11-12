@@ -11,7 +11,7 @@
 //   --legacy = the old behaviour (bundle with the real public/), env PD=<dir> = bundle with that publicDir as-is.
 import { bundle } from "@remotion/bundler";
 import { openBrowser, renderStill, selectComposition } from "@remotion/renderer";
-import path from "path"; import fs from "fs";
+import path from "path"; import fs from "fs"; import os from "os";
 import { cachedServeUrl, privateTemp } from "./lib/cached_bundle.mjs";
 privateTemp("stills");   // per-still asset folders go to a private temp that is deleted on exit (2026-10-25)
 
@@ -36,6 +36,7 @@ if (flag("legacy") || process.env.PD) {
 
 // SPEED (2026-10-22, from the official Remotion skills: one call for many frames): ONE shared headless browser for every still (no launch per frame) and the frames are rendered
 // sequentially by default (--jobs N or env STILLS_JOBS for parallel: MEASURED slower here — 3 workers 12.2-13.0 s vs 1 worker 9.4-9.7 s for 6 stills, GPU/CPU contention). Output names/format are unchanged.
+{ let freeGB = Infinity; try { const s = fs.statfsSync(process.cwd()); freeGB = (s.bavail * s.bsize) / 1073741824; } catch { /* unknown: go on */ } if (freeGB < 15) { console.error(`مساحة S الحرة ${freeGB.toFixed(1)} GB أقل من 15 GB: أوقفتُ اللقطات (حدّ المساحة، PREFERENCES القسم القرص). حرّر مؤقتاتك أولاً.`); process.exit(3); } }
 const browser = await openBrowser("chrome", { chromiumOptions: { gl: "angle" }, logLevel: "error" });
 const comp = await selectComposition({ serveUrl, id, port: Number(process.env.STILLS_PORT ?? 3457), puppeteerInstance: browser });
 const jobs = Math.max(1, Math.min(pts.length, Number(opt("jobs", process.env.STILLS_JOBS ?? "1"))));
@@ -46,6 +47,8 @@ await Promise.all(Array.from({ length: jobs }, async () => {
     const [name, fr] = p.split(":");
     await renderStill({ composition: comp, serveUrl, port: Number(process.env.STILLS_PORT ?? 3457), frame: Number(fr), output: path.join(outDir, name + ".png"), scale, puppeteerInstance: browser, timeoutInMilliseconds: Number(process.env.RT || 30000), chromiumOptions: { gl: "angle" } });
     console.log("still", name);
+    // every renderStill leaves a ~1.6 GB remotion-*-assets* folder (audio preprocessing of the long cut) until exit: 35 stills = 58 GB = a full S: (2026-11-09). Delete them right after each still (single job only: parallel jobs may still use theirs).
+    if (jobs === 1) for (const d of fs.readdirSync(os.tmpdir())) if (/^remotion-v[\d.]+-assets/.test(d)) { try { fs.rmSync(path.join(os.tmpdir(), d), { recursive: true, force: true }); } catch { /* in use */ } }
   }
 }));
 await browser.close({ silent: true });

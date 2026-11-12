@@ -13,7 +13,7 @@ const ROOT = process.cwd(), SRC = path.join(ROOT, "src"), PUB = path.join(ROOT, 
 const ENTRY = path.resolve(process.env.ENTRY ?? "src/index.ts");
 const MEDIA = /\.(mp4|webm|mov|m4v|png|jpe?g|svg|gif|webp|avif|wav|mp3|m4a|ogg|ttf|otf|woff2?|json|txt|csv)$/i;
 const readSrc = (f) => { try { return fs.readFileSync(f, "utf8"); } catch { return ""; } };
-const walk = (dir) => { const out = []; for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name); if (e.isDirectory()) out.push(...walk(p)); else out.push(p); } return out; };
+const walk = (dir) => { const out = []; for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name); if (e.isDirectory()) { for (const q of walk(p)) out.push(q); } else out.push(p); } return out; };
 const resolveImport = (from, spec) => {
   const base = path.resolve(path.dirname(from), spec);
   for (const c of [base, base + ".tsx", base + ".ts", base + ".jsx", base + ".js", path.join(base, "index.tsx"), path.join(base, "index.ts")]) {

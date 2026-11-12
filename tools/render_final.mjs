@@ -7,19 +7,21 @@ import path from "node:path";
 import { nvencOverride } from "./nvenc.mjs";
 import { startMonitor } from "./monitor.mjs";
 import { acquireRenderLock } from "./render_lock.mjs";
+import { requireHybrid } from "./hybrid_gate.mjs";
 import { cachedServeUrl, privateTemp } from "./lib/cached_bundle.mjs";
 
 privateTemp("render_final");
 
 const [id, out, title = "فيديو", monitorId] = process.argv.slice(2);
 // ONE render at a time, always (user order 2026-10-22) — exclusive lock shared by every render entry point (tools/render_lock.mjs).
+requireHybrid("render_final");   // strict hybrid (2026-11-09)
 acquireRenderLock(title);
 let log = () => {};
 try { os.setPriority(0, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch { /* ignore */ }
 fs.mkdirSync(path.dirname(out), { recursive: true });
 const { serveUrl } = await cachedServeUrl(id, { tag: "render" });
 const composition = await selectComposition({ serveUrl, id, port: Number(process.env.RENDER_PORT ?? 3458) });
-log = startMonitor(".tmp/render_final.log", title, monitorId);
+log = startMonitor(`render_work/progress_chunked_${id}.log`, title, monitorId);
 let lastP = -1;
 await renderMedia({
   composition, serveUrl, port: Number(process.env.RENDER_PORT ?? 3458), codec: "h264", crf: 18, outputLocation: out, concurrency: 3,

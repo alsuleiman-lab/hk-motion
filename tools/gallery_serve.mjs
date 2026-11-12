@@ -10,10 +10,16 @@ import path from "node:path";
 const ROOT = path.resolve("scratch/gallery_site"), NOTES = path.resolve("data/gallery_notes.json");
 const GRID = path.resolve("data/gallery_grid_saved.json");   // the grid tab's «احفظ» when served locally: { grids, notes, savedAt }
 const readNotes = () => { try { return JSON.parse(fs.readFileSync(NOTES, "utf8")); } catch { return {}; } };
+const normOne = (q = {}) => ({ ...(q.slot ? { slot: q.slot } : {}), dx: Math.round(q.dx ?? 0), dy: Math.round(q.dy ?? 0), scale: Math.round((q.scale ?? 1) * 100) / 100 });
+export const normPlace = (p = {}) => ({ land: normOne(p.land), port: normOne(p.port) });
+if (process.argv.includes("--normalize")) {   // rewrite every element's place complete and rounded
+  const n = readNotes(); for (const v of Object.values(n)) v.place = normPlace(v.place);
+  fs.writeFileSync(NOTES, JSON.stringify(n, null, 1)); console.log("gallery_notes: place normalized for", Object.keys(n).length, "elements"); process.exit(0);
+}
 
 if (process.argv.includes("--notes")) {
   const n = readNotes(), L = { keep: "أبقِه", change: "عدّله", drop: "احذفه" };
-  const rows = Object.entries(n).filter(([, v]) => v.status || v.note || v.when || v.place?.dx || v.place?.dy).map(([id, v]) => `${id}: ${L[v.status] ?? "-"}${v.note ? " — " + v.note : ""}${v.request ? " [طلب: " + v.request + "]" : ""}${v.when ? " | متى يُستعمل: " + v.when : ""}${v.place && (v.place.dx || v.place.dy) ? " | مكانه: إزاحة " + Math.round(v.place.dx) + "," + Math.round(v.place.dy) + (v.place.slot ? " خانة " + v.place.slot + " (" + (v.place.mode ?? "normal") + ")" : "") : ""}`);
+  const rows = Object.entries(n).filter(([, v]) => v.status || v.note || v.when || v.place?.dx || v.place?.dy || v.place?.scale || v.place?.land || v.place?.port).map(([id, v]) => `${id}: ${L[v.status] ?? "-"}${v.note ? " — " + v.note : ""}${v.request ? " [طلب: " + v.request + "]" : ""}${v.when ? " | متى يُستعمل: " + v.when : ""}${v.place ? " | مكانه وحجمه: " + JSON.stringify(v.place) : ""}`);
   if (fs.existsSync(GRID)) rows.push("الشبكة: محفوظة في data/gallery_grid_saved.json (" + JSON.parse(fs.readFileSync(GRID, "utf8")).savedAt + ")");
   console.log(rows.length ? rows.join("\n") : "لا ملاحظات بعد");
   process.exit(0);
@@ -44,7 +50,10 @@ http.createServer((req, res) => {
         try {
           const { id, ...v } = JSON.parse(body);
           if (!id || typeof id !== "string") throw new Error("id");
-          const n = readNotes(); n[id] = { ...n[id], ...v, at: Date.now() };
+          const n = readNotes();
+          // the place is kept complete and exact (user 2026-11-10): both orientations always present, dx/dy whole px, scale 2 decimals; a save of one orientation never drops the other
+          if (v.place) v.place = normPlace({ ...(n[id]?.place ?? {}), ...Object.fromEntries(Object.entries(v.place).filter(([, q]) => q)) });
+          n[id] = { ...n[id], ...v, at: Date.now() };
           fs.mkdirSync(path.dirname(NOTES), { recursive: true });
           fs.writeFileSync(NOTES, JSON.stringify(n, null, 1));
           res.writeHead(200, { "Content-Type": MIME[".json"] }); res.end("{}");

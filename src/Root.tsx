@@ -1,10 +1,9 @@
 import React from "react";
 import { Composition, Folder } from "remotion";
-import { SHOW_ARCHIVE } from "./archive";
+import { SHOW_ARCHIVE, SHOW_REFERENCE } from "./archive";
 import { ByRecency } from "./ByRecency";
 import { FamilyStickCast } from "./FamilyStickCast";
 import { DodoFamilyCast } from "./DodoFamilyCast";
-import { JuhaStory15, JUHA_STORY_FRAMES } from "./JuhaStory15";
 import { SakugaDemo, SpotDemo, TravelDemo, SAKUGA_DEMO_FRAMES, SPOT_DEMO_FRAMES, TRAVEL_DEMO_FRAMES, CollageDemo, CollageDemoL, COLLAGE_DEMO_FRAMES } from "./SourceMovesDemo";
 import { ConvergeDemo, BlurRiseDemo, PanelDemo, CONVERGE_DEMO_FRAMES, BLURRISE_DEMO_FRAMES, PANEL_DEMO_FRAMES, PhoneDemo, PHONE_DEMO_FRAMES } from "./FlowDemos";
 import { FlashDemo, FLASH_DEMO_FRAMES } from "./SpaceFlashDemo";
@@ -15,9 +14,6 @@ import { MorphDemo, MORPH_DEMO_FRAMES } from "./MorphDemo";
 import { TimelineDemo, TIMELINE_DEMO_FRAMES } from "./TimelineDemo";
 
 import { MaskTest, MASKTEST_FRAMES } from "./MaskedVideo";
-import { KhMaskTest, KMT_FRAMES } from "./KhMaskTest";
-import { KhBench, KHBENCH_FRAMES } from "./KhBench";
-import { KhCssMaskTrial, KhCssMaskTrialOT, CSSMASK_FRAMES } from "./KhCssMaskTrial";
 import { KhAlphaTrial, ALPHATRIAL_FRAMES } from "./KhAlphaTrial";
 import { HybridGrad, HybridGradP135, HybridGradP160, HybridStar, HybridVig } from "./hybrid/HybridAssets";
 
@@ -27,115 +23,117 @@ const Archive: React.FC = SHOW_ARCHIVE ? // eslint-disable-next-line @typescript
   (require("./ArchiveComps") as { ArchiveComps: React.FC }).ArchiveComps : () => null;
 
 
-import { JuhaInshallah15, JUHA_15S_FPS, JUHA_15S_FRAMES } from "./juha/JuhaInshallah15";
-import { CartoonEndScreen } from "./juha/CartoonEndScreen";
 import { MontageFromSpec } from "./MontageSpec";
 import type { MontageSpec } from "./MontageSpec";
-import demoSpec from "../data/specs/demo.json";
-import warsKalafReelSpec from "../data/specs/wars_kalaf_reel.json";
-import tawafNisaReelSpec from "../data/specs/tawaf_nisa_reel.json";
-import wuduAwdReelSpec from "../data/specs/wudu_awd_reel.json";
-import khalaSalahReelSpec from "../data/specs/khala_salah_reel.json";
-import mawtiAqsamReelSpec from "../data/specs/mawti_aqsam_reel.json";
-import { BidahCartoon, BIDAH_TOTAL_FRAMES, BIDAH_FPS } from "./BidahCartoon";
-const SpecDemo: React.FC = () => <MontageFromSpec spec={demoSpec as unknown as MontageSpec} />;
-const WarsKalafRComp: React.FC = () => <MontageFromSpec spec={warsKalafReelSpec as unknown as MontageSpec} />;
-const TawafNisaRComp: React.FC = () => <MontageFromSpec spec={tawafNisaReelSpec as unknown as MontageSpec} />;
-const WuduAwdRComp: React.FC = () => <MontageFromSpec spec={wuduAwdReelSpec as unknown as MontageSpec} />;
-const KhalaSalahRComp: React.FC = () => <MontageFromSpec spec={khalaSalahReelSpec as unknown as MontageSpec} />;
-const MawtiAqsamRComp: React.FC = () => <MontageFromSpec spec={mawtiAqsamReelSpec as unknown as MontageSpec} />;
 
 import streamArshFakhSpec from "../data/specs/stream_arsh_fakh_reel.json";
-import streamJulaniTakfirSpec from "../data/specs/stream_julani_takfir_reel.json";
 import streamMayyitIlmSpec from "../data/specs/stream_mayyit_ilm_reel.json";
 const StreamArshFakhRComp: React.FC = () => <MontageFromSpec spec={streamArshFakhSpec as unknown as MontageSpec} />;
-const StreamJulaniTakfirRComp: React.FC = () => <MontageFromSpec spec={streamJulaniTakfirSpec as unknown as MontageSpec} />;
+import kitabSunnaSpec from "../data/specs/kitab_sunna.json";
+const KitabSunnaComp: React.FC = () => <MontageFromSpec spec={kitabSunnaSpec as unknown as MontageSpec} />;
+import fatimaSheikhaynSpec from "../data/specs/fatima_sheikhayn.json";
+const FatimaSheikhaynComp: React.FC = () => <MontageFromSpec spec={fatimaSheikhaynSpec as unknown as MontageSpec} />;
+import saintRambalSpec from "../data/specs/saint_rambal.json";
+const SaintRambalComp: React.FC = () => <MontageFromSpec spec={saintRambalSpec as unknown as MontageSpec} />;
+import QCs_01Spec from "../data/specs/qc_01.json";
+const QCs_01Comp: React.FC = () => <MontageFromSpec spec={QCs_01Spec as unknown as MontageSpec} />;
+import QCs_02Spec from "../data/specs/qc_02.json";
+const QCs_02Comp: React.FC = () => <MontageFromSpec spec={QCs_02Spec as unknown as MontageSpec} />;
+import QCs_03Spec from "../data/specs/qc_03.json";
+const QCs_03Comp: React.FC = () => <MontageFromSpec spec={QCs_03Spec as unknown as MontageSpec} />;
+import QCs_04Spec from "../data/specs/qc_04.json";
+const QCs_04Comp: React.FC = () => <MontageFromSpec spec={QCs_04Spec as unknown as MontageSpec} />;
+import QCs_05Spec from "../data/specs/qc_05.json";
+const QCs_05Comp: React.FC = () => <MontageFromSpec spec={QCs_05Spec as unknown as MontageSpec} />;
+import QCs_06Spec from "../data/specs/qc_06.json";
+const QCs_06Comp: React.FC = () => <MontageFromSpec spec={QCs_06Spec as unknown as MontageSpec} />;
+import QCs_07Spec from "../data/specs/qc_07.json";
+const QCs_07Comp: React.FC = () => <MontageFromSpec spec={QCs_07Spec as unknown as MontageSpec} />;
+import QCs_08Spec from "../data/specs/qc_08.json";
+const QCs_08Comp: React.FC = () => <MontageFromSpec spec={QCs_08Spec as unknown as MontageSpec} />;
+import QCs_09Spec from "../data/specs/qc_09.json";
+const QCs_09Comp: React.FC = () => <MontageFromSpec spec={QCs_09Spec as unknown as MontageSpec} />;
+import QCs_10Spec from "../data/specs/qc_10.json";
+const QCs_10Comp: React.FC = () => <MontageFromSpec spec={QCs_10Spec as unknown as MontageSpec} />;
+import QCs_11Spec from "../data/specs/qc_11.json";
+const QCs_11Comp: React.FC = () => <MontageFromSpec spec={QCs_11Spec as unknown as MontageSpec} />;
+import QCs_12Spec from "../data/specs/qc_12.json";
+const QCs_12Comp: React.FC = () => <MontageFromSpec spec={QCs_12Spec as unknown as MontageSpec} />;
+import QCs_14Spec from "../data/specs/qc_14.json";
+const QCs_14Comp: React.FC = () => <MontageFromSpec spec={QCs_14Spec as unknown as MontageSpec} />;
+import QCs_15Spec from "../data/specs/qc_15.json";
+const QCs_15Comp: React.FC = () => <MontageFromSpec spec={QCs_15Spec as unknown as MontageSpec} />;
+import QCs_16Spec from "../data/specs/qc_16.json";
+const QCs_16Comp: React.FC = () => <MontageFromSpec spec={QCs_16Spec as unknown as MontageSpec} />;
+import QCs_17Spec from "../data/specs/qc_17.json";
+const QCs_17Comp: React.FC = () => <MontageFromSpec spec={QCs_17Spec as unknown as MontageSpec} />;
+import QCs_18Spec from "../data/specs/qc_18.json";
+const QCs_18Comp: React.FC = () => <MontageFromSpec spec={QCs_18Spec as unknown as MontageSpec} />;
+import QCs_19Spec from "../data/specs/qc_19.json";
+const QCs_19Comp: React.FC = () => <MontageFromSpec spec={QCs_19Spec as unknown as MontageSpec} />;
+import QCs_20Spec from "../data/specs/qc_20.json";
+const QCs_20Comp: React.FC = () => <MontageFromSpec spec={QCs_20Spec as unknown as MontageSpec} />;
+import QCs_21Spec from "../data/specs/qc_21.json";
+const QCs_21Comp: React.FC = () => <MontageFromSpec spec={QCs_21Spec as unknown as MontageSpec} />;
 const StreamMayyitIlmRComp: React.FC = () => <MontageFromSpec spec={streamMayyitIlmSpec as unknown as MontageSpec} />;
 
-import streamIfkSalulSpec from "../data/specs/stream_ifk_salul_reel.json";
-import streamSifatSam3Spec from "../data/specs/stream_sifat_sam3_reel.json";
-import streamImanMakhluqSpec from "../data/specs/stream_iman_makhluq_reel.json";
-const StreamIfkSalulRComp: React.FC = () => <MontageFromSpec spec={streamIfkSalulSpec as unknown as MontageSpec} />;
-const StreamSifatSam3RComp: React.FC = () => <MontageFromSpec spec={streamSifatSam3Spec as unknown as MontageSpec} />;
-const StreamImanMakhluqRComp: React.FC = () => <MontageFromSpec spec={streamImanMakhluqSpec as unknown as MontageSpec} />;
 
-import abdulAmericaSpec from "../data/specs/abdul_america.json";
-const AbdulAmericaComp: React.FC = () => <MontageFromSpec spec={abdulAmericaSpec as unknown as MontageSpec} />;
 
-import tawafNawawiSpec from "../data/specs/tawaf_nawawi.json";
-const TawafNawawiComp: React.FC = () => <MontageFromSpec spec={tawafNawawiSpec as unknown as MontageSpec} />;
 
-import s2AshariKalbSpec from "../data/specs/s2_ashari_kalb_reel.json";
-import s2AshariTiflaSpec from "../data/specs/s2_ashari_tifla_reel.json";
-import s2QuburiSahabaSpec from "../data/specs/s2_quburi_sahaba_reel.json";
-import s2ShiaIstislamSpec from "../data/specs/s2_shia_istislam_reel.json";
 
-const S2AshariKalbComp: React.FC = () => <MontageFromSpec spec={s2AshariKalbSpec as unknown as MontageSpec} />;
-const S2AshariTiflaComp: React.FC = () => <MontageFromSpec spec={s2AshariTiflaSpec as unknown as MontageSpec} />;
-const S2QuburiSahabaComp: React.FC = () => <MontageFromSpec spec={s2QuburiSahabaSpec as unknown as MontageSpec} />;
-const S2ShiaIstislamComp: React.FC = () => <MontageFromSpec spec={s2ShiaIstislamSpec as unknown as MontageSpec} />;
-
-import { Clip4ThronePortrait, CLIP4_FRAMES, CLIP4_FPS } from "./Clip4ThronePortrait";
-import { ShiaHandDebate, SHIA_HAND_FPS, SHIA_HAND_TOTAL_FRAMES } from "./ShiaHandDebate";
 import { PoisonComps } from "./PoisonComps";
 import { ReelsComps } from "./ReelsComps";
 
 export const RemotionRoot: React.FC = () => {
   return (
     <ByRecency>
-      {/* بث للحوار مع المخالفين (2) - 4 ريلز إحراج وقصف جبهات */}
-      <Composition id="S2-Ashari-Kalb-R" component={S2AshariKalbComp} durationInFrames={s2AshariKalbSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="S2-Ashari-Tifla-R" component={S2AshariTiflaComp} durationInFrames={s2AshariTiflaSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="S2-Quburi-Sahaba-R" component={S2QuburiSahabaComp} durationInFrames={s2QuburiSahabaSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="S2-Shia-Istislam-R" component={S2ShiaIstislamComp} durationInFrames={s2ShiaIstislamSpec.frames} fps={30} width={1080} height={1920} />
-      {/* عبدول السيد وأمريكا (عرضي + طولي كامل) */}
-      <Composition id="Abdul-America" component={AbdulAmericaComp} durationInFrames={abdulAmericaSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="Abdul-America-L" component={AbdulAmericaComp} durationInFrames={abdulAmericaSpec.frames} fps={30} width={1920} height={1080} />
-      {/* لماذا يطوفون حول قبر النووي؟ (عرضي + طولي كامل) */}
-      <Composition id="Tawaf-Nawawi" component={TawafNawawiComp} durationInFrames={tawafNawawiSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="Tawaf-Nawawi-L" component={TawafNawawiComp} durationInFrames={tawafNawawiSpec.frames} fps={30} width={1920} height={1080} />
-      {/* مقاطع إحراج وتناقضات الخصوم من بث للحوار مع المخالفين */}
-      <Composition id="Stream-Ifk-Salul-R" component={StreamIfkSalulRComp} durationInFrames={streamIfkSalulSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="Stream-Sifat-Sam3-R" component={StreamSifatSam3RComp} durationInFrames={streamSifatSam3Spec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="Stream-Iman-Makhluq-R" component={StreamImanMakhluqRComp} durationInFrames={streamImanMakhluqSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="Stream-Arsh-Fakh-R"component={StreamArshFakhRComp} durationInFrames={streamArshFakhSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="Stream-Julani-Takfir-R" component={StreamJulaniTakfirRComp} durationInFrames={streamJulaniTakfirSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="Stream-Mayyit-Ilm-R" component={StreamMayyitIlmRComp} durationInFrames={streamMayyitIlmSpec.frames} fps={30} width={1080} height={1920} />
 
-      <Composition id="ShiaHandDebate" component={ShiaHandDebate} durationInFrames={SHIA_HAND_TOTAL_FRAMES} fps={SHIA_HAND_FPS} width={1080} height={1920} />
-      <Composition id="FamilyStickCast" component={FamilyStickCast} durationInFrames={180} fps={30} width={1080} height={1920} />
-      <Composition id="DodoFamilyCast" component={DodoFamilyCast} durationInFrames={180} fps={30} width={1080} height={1920} />
+      <Folder name="مونتاج الجلسة">
+        <Composition id="KitabSunna-L" component={KitabSunnaComp} durationInFrames={kitabSunnaSpec.frames} fps={30} width={1920} height={1080} />
+        <Composition id="KitabSunna" component={KitabSunnaComp} durationInFrames={kitabSunnaSpec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="FatimaSheikhayn-L" component={FatimaSheikhaynComp} durationInFrames={fatimaSheikhaynSpec.frames} fps={30} width={1920} height={1080} />
+        <Composition id="FatimaSheikhayn" component={FatimaSheikhaynComp} durationInFrames={fatimaSheikhaynSpec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="SaintRambal-L" component={SaintRambalComp} durationInFrames={saintRambalSpec.frames} fps={30} width={1920} height={1080} />
+        <Composition id="SaintRambal" component={SaintRambalComp} durationInFrames={saintRambalSpec.frames} fps={30} width={1080} height={1920} />
+      </Folder>
+      <Folder name="البثوث">
+        {/* بث للحوار مع المخالفين (1) */}
+        <Composition id="Stream-Arsh-Fakh-R"component={StreamArshFakhRComp} durationInFrames={streamArshFakhSpec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="Stream-Mayyit-Ilm-R" component={StreamMayyitIlmRComp} durationInFrames={streamMayyitIlmSpec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-01-R" component={QCs_01Comp} durationInFrames={QCs_01Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-02-R" component={QCs_02Comp} durationInFrames={QCs_02Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-03-R" component={QCs_03Comp} durationInFrames={QCs_03Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-04-R" component={QCs_04Comp} durationInFrames={QCs_04Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-05-R" component={QCs_05Comp} durationInFrames={QCs_05Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-06-R" component={QCs_06Comp} durationInFrames={QCs_06Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-07-R" component={QCs_07Comp} durationInFrames={QCs_07Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-08-R" component={QCs_08Comp} durationInFrames={QCs_08Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-09-R" component={QCs_09Comp} durationInFrames={QCs_09Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-10-R" component={QCs_10Comp} durationInFrames={QCs_10Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-11-R" component={QCs_11Comp} durationInFrames={QCs_11Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-12-R" component={QCs_12Comp} durationInFrames={QCs_12Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-14-R" component={QCs_14Comp} durationInFrames={QCs_14Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-15-R" component={QCs_15Comp} durationInFrames={QCs_15Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-16-R" component={QCs_16Comp} durationInFrames={QCs_16Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-17-R" component={QCs_17Comp} durationInFrames={QCs_17Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-18-R" component={QCs_18Comp} durationInFrames={QCs_18Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-19-L" component={QCs_19Comp} durationInFrames={QCs_19Spec.frames} fps={30} width={1920} height={1080} />
+        <Composition id="QC-20-R" component={QCs_20Comp} durationInFrames={QCs_20Spec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="QC-21-R" component={QCs_21Comp} durationInFrames={QCs_21Spec.frames} fps={30} width={1080} height={1920} />
+      </Folder>
 
-      {/* ACTIVE project(s): Livestream Debate Shorts */}
-      <Composition id="Clip4ThronePortrait" component={Clip4ThronePortrait} durationInFrames={CLIP4_FRAMES} fps={CLIP4_FPS} width={1080} height={1920} />
-
-      <Composition id="BidahCartoon" component={BidahCartoon} durationInFrames={BIDAH_TOTAL_FRAMES} fps={BIDAH_FPS} width={1080} height={1920} />
-
-      {/* دروس شرح جامع الترمذي - المجلس 30 */}
-      <Composition id="Wars-Kalaf-R" component={WarsKalafRComp} durationInFrames={warsKalafReelSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="Tawaf-Nisa-R" component={TawafNisaRComp} durationInFrames={tawafNisaReelSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="Wudu-Awd-R" component={WuduAwdRComp} durationInFrames={wuduAwdReelSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="Khala-Salah-R" component={KhalaSalahRComp} durationInFrames={khalaSalahReelSpec.frames} fps={30} width={1080} height={1920} />
-      <Composition id="Mawti-Aqsam-R" component={MawtiAqsamRComp} durationInFrames={mawtiAqsamReelSpec.frames} fps={30} width={1080} height={1920} />
-
-      <Composition id="Spec-Demo-L" component={SpecDemo} durationInFrames={demoSpec.frames} fps={30} width={1920} height={1080} />
-      <Composition id="JuhaInshallah15" component={JuhaInshallah15} durationInFrames={JUHA_15S_FRAMES} fps={JUHA_15S_FPS} width={1080} height={1920} />
-      <Composition id="CartoonOutro" component={CartoonEndScreen} durationInFrames={90} fps={30} width={1080} height={1920} />
-      <Composition id="Juha-15s" component={JuhaStory15} durationInFrames={JUHA_STORY_FRAMES} fps={30} width={1080} height={1920} />
-      <Composition id="KhAlphaTrial" component={KhAlphaTrial} durationInFrames={ALPHATRIAL_FRAMES} fps={30} width={1920} height={1080} />
-      <Composition id="KhCssMaskTrialOT" component={KhCssMaskTrialOT} durationInFrames={CSSMASK_FRAMES} fps={30} width={1920} height={1080} />
-      <Composition id="KhCssMaskTrial" component={KhCssMaskTrial} durationInFrames={CSSMASK_FRAMES} fps={30} width={1920} height={1080} />
-      <Composition id="KhBench-old" component={KhBench} durationInFrames={KHBENCH_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ mode: "old" as const }} />
-      <Composition id="KhBench-css" component={KhBench} durationInFrames={KHBENCH_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ mode: "css" as const }} />
-      <Composition id="KhBench-gl" component={KhBench} durationInFrames={KHBENCH_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ mode: "gl" as const }} />
-      <Composition id="KhMaskTest" component={KhMaskTest} durationInFrames={KMT_FRAMES} fps={30} width={1920} height={1080} />
+      {SHOW_REFERENCE && <Composition id="FamilyStickCast" component={FamilyStickCast} durationInFrames={180} fps={30} width={1080} height={1920} />}
+      {SHOW_REFERENCE && <Composition id="DodoFamilyCast" component={DodoFamilyCast} durationInFrames={180} fps={30} width={1080} height={1920} />}
+      {SHOW_REFERENCE && <Composition id="KhAlphaTrial" component={KhAlphaTrial} durationInFrames={ALPHATRIAL_FRAMES} fps={30} width={1920} height={1080} />}
+      <Folder name="أصول الهجين (مخفية)">
       <Composition id="HybridGrad" component={HybridGrad} durationInFrames={1} fps={30} width={1920} height={1080} />
       <Composition id="HybridVig" component={HybridVig} durationInFrames={1} fps={30} width={1920} height={1080} />
       <Composition id="HybridGradP135" component={HybridGradP135} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="HybridGradP160" component={HybridGradP160} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="HybridVigP" component={HybridVig} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="HybridStar" component={HybridStar} durationInFrames={1} fps={30} width={140} height={140} />
-      <Folder name="Demos">
+      </Folder>
+      {SHOW_REFERENCE && <Folder name="عروض مرجعية">
         <Composition id="ElementsLab" component={ElementsLab} durationInFrames={ELEMENTS_LAB_FRAMES} fps={30} width={1920} height={1080} />
         <Composition id="EuText-Practice" component={EuTextPractice} durationInFrames={EU_TEXT_PRACTICE_FRAMES} fps={30} width={1920} height={1080} />
         <Composition id="TimelineCounter-Demo" component={TimelineDemo} durationInFrames={TIMELINE_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
@@ -152,10 +150,10 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="CollageAssemble-Demo" component={CollageDemo} durationInFrames={COLLAGE_DEMO_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="CollageAssemble-L-Demo" component={CollageDemoL} durationInFrames={COLLAGE_DEMO_FRAMES} fps={30} width={1920} height={1080} />
         <Composition id="MaskedVideo-Demo" component={MaskTest} durationInFrames={MASKTEST_FRAMES} fps={30} width={1920} height={1080} />
-      </Folder>
+      </Folder>}
       <PoisonComps />
       <ReelsComps />
-      <Folder name="tools">
+      <Folder name="أدوات">
       </Folder>
       <Archive />
     </ByRecency>

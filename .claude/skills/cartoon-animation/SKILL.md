@@ -23,14 +23,16 @@ For code-drawn illustration detail, articulated characters, grounded walking, or
 
 For the user's painted-film quality reference, use [Paint MV: visual direction](references/paint-mv-visual-direction.md): cohesive watercolor rendering, shared character/set design, and action-driven scene connections timed to speech. For cut-paper style or physical bone rigs, use [Papermotion integration](references/papermotion-integration.md) and the project-local `papermotion` skill. Its stateful simulation requires a different frame-export strategy from pure Remotion animation.
 
+For plan columns (sound, link to next shot), the first-30-seconds hook, the 2.5-second inactivity check, force-transfer/rebound acting, posture-based tension, and the per-scene sound script (ambience, contact sounds, emotional beats, deliberate silence; no music), use [Stickman Video Director: local adaptation](references/stickman-director-adaptation.md).
+
 For reusable cast designs, use [the local character libraries](references/character-library.md) when their selected style fits the user's reference. The two collections have large-head flat-colour and thin-line designs, with the same motion interface and separate proportions. Do not treat their static PNG poses as completed animation.
 
 ## Plan before building
 
 Listen to the complete source audio and check its transcript against what is actually said; do not rely on ASR alone or estimate sentence timing from a script. Correct uncertain words and relationships by replaying the source; ask only if an ambiguity changes who is acting or what the scene means. Before producing or moving assets, define the cast and their story roles, family relationships, stable clothing/scale, speaker vs narrator vs listener behavior, and the required locations and props. Then make a compact storyboard with one row per sentence and timed action:
 
-| Time / sentence | Setting | Visible character | Speaker / narrator | Action and prop | Camera / composition | Existing or needed asset |
-|---|---|---|---|---|---|---|
+| Time / sentence | Setting | Visible character | Speaker / narrator | Action and prop | Camera / composition | Existing or needed asset | Sound | Link to next shot |
+|---|---|---|---|---|---|---|---|---|
 
 Define a shared scene inventory (locations, background layouts/materials/light, character designs/wardrobe, and props) and animation plan before writing scene code. Check that every sentence has the correct characters doing the literal action in the place named or implied by the audio; important setting details and relationships must read clearly at a glance. Then inspect the storyboard and cast sheet together for continuity before building. A pose swap or new text card alone is not a new scene.
 
@@ -75,7 +77,7 @@ Define a shared scene inventory (locations, background layouts/materials/light, 
 
 ## Timing audit
 
-Save a JSON plan containing `fps`, `duration`, `characters`, `beats`, `captions`, `entities`, and `assets`. Each beat has `from`, `to`, `actor`, `speaker`, `environment`, `action`, `shot`, and `note`; set `narration: true` when the actor is not the speaker. Entity cues carry `at`, `spokenAt`, and a local `asset` path under `public/`. Caption cues carry a display interval and words with individual `at` times.
+Save a JSON plan containing `fps`, `duration`, `characters`, `beats`, `captions`, `entities`, `assets`, and `events` (seconds of meaningful picture events; the audit flags any gap over 2.5 s of the main picture). Each beat has `from`, `to`, `actor`, `speaker`, `environment`, `action`, `shot`, and `note`; set `narration: true` when the actor is not the speaker. Entity cues carry `at`, `spokenAt`, and a local `asset` path under `public/`. Caption cues carry a display interval and words with individual `at` times.
 
 For user-requested source texts, add `quotations` entries with `from`, `to`, exact `text`, `book`, `url`, and `byUserRequest: true`; record the narrator, compiler, and source number when available.
 
@@ -102,3 +104,34 @@ Run `node .claude/skills/cartoon-animation/scripts/audit-storyboard.mjs <plan.js
 - كابشن الكلمة بالكلمة: كل كلمة في `span` بنمط `display:inline-block` (و`unicodeBidi:isolate`)؛ بدونه يتصل حرف آخر كلمة بأول التالية فيظهر الحرف الأول كأنه في وسط الكلمة (المكوّن الجاهز `src/cartoon/Overlays.tsx`).
 - مقدمة الفيديو التي تسبق بدء القصة (آية/بيت تشويقي) تُعرض بفلتر أبيض وأسود ودفع كاميرا واهتزاز يد، ثم تعود الألوان مع بدء القصة.
 - المشاهد الحوارية الطويلة في مكان واحد: لقطة قريبة للمتكلم تتبدل بالقطع مع كل متكلم (لا تقريب وتبعيد سريع)، والراوي خارج الكادر.
+
+## محرك الأفلام الجاهز (أبو خط ودودو، 2026-11-09)
+- **الشيفرة:** `src/cartoon/FilmKit.tsx` (`Film` + لقطات `Shot` + ممثلون `ActorSpec`؛ الكاميرا تدفع/تقرّب والممثل بمقياس ثابت)، والبيئات `EnvsHajj.tsx` (الكعبة، الحجر الأسود، المسعى، عرفات، منى، ساحة مسجد) و`EnvsStreet.tsx` (شارع، صالة، فصل، مجلس) و`EnvsStory.tsx` (صحراء، أرغفة، دراهم، الكائن النوراني، لوح الأثلاث)، والكابشن والعلامة من `Overlays.tsx` (كلمات القرآن بوسم `q` بخط المصحف).
+- **السير:** نزّل الصوت ← أزل الموسيقى بأداة المستخدم (`S:AI_ToolsRemoveMusic`، نموذج UVR_MDXNET_KARA_2، صامتةً بأولوية منخفضة) ← تفريغ بنوافذ 24ث (faster-whisper) ← `tools/film_trim.mjs` يقصّر كل سكتة > 0.40ث داخل الصمت نفسه ويزيح الكلمات ← `tools/film_words.mjs` (أسطر مصحَّحة بعدد الرموز نفسه؛ `كلمة*2` تدمج رمزين، `مو~مين` كلمة بمسافة) أو `film_words_auto.mjs` (سرد فصيح، أدوار بالوسم `r` أو بنطاقات زمنية) ← `audio_gate` (يُعاد التقصير بـ`--prev --extra` حتى ينجح). ملف البيانات يصدّر `LINES` و`SPEECH[role]` و`T`/`O` (زمن المصدر ↔ زمن الفيلم)؛ أزمنة اللقطات تُكتب بثواني المصدر وتُمرَّر بـ`T`.
+- **أدوار المتحدثين:** المصدر قد يكون بصوتين متشابهين؛ أحدّد الدور بالمعنى والنبرة (F0 بـpyin) وتفريغ المحادثة (`diarize.py` تقدير فقط) وأعرض الأدوار على المستخدم تقديراً لا يقيناً.
+- **ملابس جديدة في المكتبتين:** أبو خط: `ihram` (إحرام أبيض بكتف عارٍ، بلا غطاء رأس)، `trousers` بلون (بنطلون بخطوط سميكة)، `trousersLong` (الأطراف تجرّ تحت الكعبين، للإسبال)؛ دودو: `robe` و`turban` (شيخ فخم: ثوب أبيض وبشت بحواف ذهبية وعمامة ولحية بيضاء؛ `id:'sheikh'` كي لا يتلوّن التدرج بالأزرق). شخصية «ولد صايع» `boy-street` في المكتبتين. الحقل الجديد لا يُسمّى `pants` لأن الكتالوج يستعمله للون السروال الأصلي.
+- **من لا يُصوَّر:** علي رضي الله عنه وأمثاله لا يظهرون بشراً؛ الكائن النوراني (`NurBeing`) كرة مشعة بأشعة تنبض مع كلامه، ولا يُرسم فيه أي شكل يشبه الصليب المعقوف (جرّبتُ نجمةً ذات أربعة رؤوس مدوَّرة فقط). المرأة في دودو هي الأم المنقّبة وحدها.
+- **الحديث بصوت الكملي:** `tools/kamali_say.py` (OmniVoice بـ`ref_audio=data/voices/kamali.wav` (سرعة 0.95) ثم تفريغ للتحقق من النطق؛ المتن من الشاملة (`shamela_search_hadith`) وتحته سطر توثيق بقدر ما تحقّقتُ منه (لا رقم لم يُتحقَّق).
+- **أخطاء تعلّمتُها:** `python3` هنا اختصار فارغ (استعمل `python` أو بيئة ComfyUI أو node)؛ في Bash لا تكتب regex فيه `\` داخل heredoc بلا اقتباس (انقلب إلى انهيار تراجعي)؛ منفذ `stills.mjs` 3457 قد تشغله جلسة أخرى فمرّر `STILLS_PORT`؛ `git checkout` على ملفات مولَّدة تمنعه الصلاحيات فلا تحاول.
+
+## وزن المقاسات (أمر المستخدم 2026-11-10: «الشيخ أكبر من الرجل بـ20 مرة»)
+- الارتفاع المرسوم = ارتفاع الشخصية في المكتبة × `s`. البالغان في اللقطة الواحدة لا يزيد أحدهما على الآخر عن 1.45×، والطفل أصغر بوضوح (الأب ≈ 1.6× ابنه).
+- من يقف أبعد (قدماه أعلى في الكادر بـ150px فأكثر) لا يُرسم أكبر ممن هو أقرب: الجالس على الكنبة (قدماه على أرض خلفها) يُصغَّر (شيخ الكنبة `s=.95` مقابل أب `1.42`).
+- `sizeAudit` في `FilmKit` يعمل عند فتح أي تركيبة في Studio ويكتب `SIZE-AUDIT-OK <ملف الصوت>` أو `SIZE-AUDIT-WARN …` في الكونسول؛ يُفتح كل فيلم قبل الرندر ويُقرأ (`read_console_messages` بنمط `SIZE-AUDIT`).
+
+## تقليد فيديو مصوَّر (أمر المستخدم 2026-11-10، «ليلة الشارع»)
+- **قبل أي رسم:** ورقة لقطات من الفيديو الأصلي كل ثانية بالزمن (لا اثنتا عشرة صورة)، ثم جدول لقطات في `docs/<الاسم>_storyboard.md` يحدد الأشخاص وملابسهم والمتكلم في كل جملة والفعل والكاميرا. المتكلم بالصورة أولاً ثم `tools/diarize.mjs`؛ ما لم يثبت يُعرض على المستخدم تقديراً لا يقيناً. تفريغ الكلام الشعبي المشوّش يُقارن بنموذجين (medium وlarge-v3) وتُعلَّم الكلمات المقدَّرة.
+- **التحريك بمفاتيح وضعيات** (تفصيل المنهج والصيغ في [action-contracts](references/action-contracts.md)؛ كودها حُذف عند الاعتماد ويُعاد بناؤه منه) لا بأوضاع المكتبة الثابتة: تمهيد ← تلامس ← ارتداد، وسقوط بتسارع ثم انزلاق، ومشي وركض بخطوة تطابق سرعة الجسم، والحجر والهاتف يتبعان الكف نفسه. هذا هو التطبيق العملي لقاعدة التحريك الفيزيائي في مرجع `stickman-director-adaptation.md`، ولا يُقال إن المرجع طُبّق ما لم يظهر أثره في اللقطات.
+- **الدراجة النارية** (`Moto`): تُركب وتُشغَّل بدوس البدّال ثم تنطلق بعجلات تدور وميلان، والكاميرا المحمولة تهتزّ عند الصدمات. تُفحص بشريط لقطات كل 0.2ث حول الفعل لا بلقطة واحدة.
+- `node .claude/skills/cartoon-animation/scripts/audit-storyboard.mjs docs/<الاسم>_plan.json .` بحقل `events` قبل العرض.
+
+## قواعد الفعل (أمر المستخدم 2026-11-11)
+- **بطاقة لكل فعل قبل الكود:** من يفعل، من أين إلى أين، الغرض، أي عضو يلمس ماذا ولحظة التماس، الحجم النسبي، ومن في المقدمة. الفعل المعروف الجهة والمكان والحجم لا حركة عشوائية.
+- **إحداثيات العالم لا أرقام عائمة** ([action-contracts](references/action-contracts.md)): حلّال يحرّك الورك واليدين والقدمين بأهداف عالمية؛ الدراجة `Moto` بنقاط ربط `MOTO_ANCHOR` (مقعد، مقود، مسند)؛ الحجر والهاتف يتبعان الكف نفسه (`hand`)؛ الراكب: الورك على المقعد واليدان على المقود والقدمان على المساند. ارتفاع المقعد = ارتفاع ورك الراكب (`SB = ارتفاع الورك ÷ 152`).
+- **التماس قبل رد الفعل:** لا يسقط المضروب قبل لحظة وصول الحجر إلى رأسه؛ ولا يتبع الغرضُ اليدَ قبل التقاطه.
+- **فحص لا يُعرض قبل نجاحه:** عقود `touch` و`apart` و`clear` و`checkContracts` تطبع `ACTION-AUDIT-OK` أو `ACTION-AUDIT-WARN` في كونسول Studio مع `SIZE-AUDIT`؛ تُقاس على مواصفة الممثل النهائية (`anchorOf`) لا على أرقام الحلّال. لا يُقال «تحسّن» ما لم يمرّ الفحص.
+- **لا تداخل:** لا يقف شخص على آخر ولا يمشي فوق جسمه؛ يمرّ في ممرّ أمامه (y أكبر) ويُرتَّب بالعمق (`depth`)؛ الراكع يكون بجانب رأس الجريح لا فوق جسمه؛ موضع الجسم المستلقي ومكان الركوع يُحسبان من أبعاد الشخصية (`HEADD` و`FOOTD`) لا بالتخمين.
+- **الركوب:** يرفع رجله اليمنى فوق المقعد ثم يدوس البدّال ثم ينطلق؛ العجلات تدور بلا انزلاق (الدوران = المسافة ÷ نصف القطر).
+- **مظهر الشخصيات المعتمدة ثابت (أمر المستخدم 2026-11-11):** ساقا أبو خط خطّان، وللرجلين لحية كما في المكتبة؛ لا يُغيَّر لباس ولا ملامح ولا شكل أطراف بلا طلب صريح (لا `trousers` ولا حذف اللحية). مقروئية الفعل تأتي من الربط والملامسة لا من تغيير الرسم.
+- **قبل بناء فعل جديد** (دراجة، ضرب، سقوط، حمل) أبحث أولاً عن مهارة جاهزة؛ ومرجع الأفكار `TheAstrayDev/rig-motion-skill` (جداول مراحل الفعل ومراجعة التلامس) بلا رخصة، فتُؤخذ الأفكار ولا يُنسخ نصها.
+- **المراجعة:** شريط لقطات كل 0.2ث حول الفعل مع سجل الفحص، لا لقطة واحدة.

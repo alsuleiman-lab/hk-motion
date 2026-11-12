@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Player } from "@remotion/player";
 import { LabScene } from "../ElementsLab";
+import { NO_GRID } from "../RealLab";
 import { PALETTES, BRAND_NAMES } from "../brand";
 import type { BrandName } from "../brand";
 import { GridTab } from "./GridTab";
@@ -17,8 +18,8 @@ import type { GridEmbed } from "./GridTab";
 type Section = "bg" | "transition" | "move" | "text" | "image" | "grid";
 type Orient = "land" | "port";
 type Mode = "full" | "half" | "iso";
-type Item = { id: string; kind: "element" | "transition"; section: Section; ar: string; kit: string; group: string; where: string; note: string; code: string; still: number; mode: Mode; slot: { land: string; port: string }; orient: "both" | Orient };
-type Place = { slot?: string; dx: number; dy: number };
+type Item = { id: string; kind: "element" | "transition"; section: Section; ar: string; kit: string; group: string; where: string; note: string; code: string; still: number; mode: Mode; slot: { land: string; port: string }; orient: "both" | Orient; cost?: { landExtra?: number; portExtra?: number; make?: number; makeWhy?: string } | null };
+type Place = { slot?: string; dx: number; dy: number; scale?: number };
 type Note = { status?: string; note?: string; request?: string; when?: string; place?: Partial<Record<Orient, Place>> & { dx?: number; dy?: number; slot?: string; mode?: string } };
 type Rect = [number, number, number, number];
 type GridData = { grids?: Record<Orient, Record<string, { slots?: Record<string, { rect: Rect; kinds: string[] }> }>>; zone?: Rect };
@@ -73,15 +74,15 @@ const Live: React.FC<{ it: Item; o: Orient; brand: BrandName; pos: Place; gridOn
   // (user 2026-10-31: «ما وجدت أني أستطيع أغيّر شيئاً في الطولي»)
   const drop = (x: number, y: number, d: { x: number; y: number; dx: number; dy: number }): Place => {
     const s = slotAt(x, y);
-    if (!engine && s && s !== cur) return { slot: s, dx: 0, dy: 0 };
-    return { slot: pos.slot, dx: d.dx + x - d.x, dy: d.dy + y - d.y };
+    if (!engine && s && s !== cur) return { slot: s, dx: 0, dy: 0, scale: pos.scale };
+    return { slot: pos.slot, dx: d.dx + x - d.x, dy: d.dy + y - d.y, scale: pos.scale };
   };
   return (
     <div ref={ref} className={"stage " + o} style={{ position: "relative" }}>
       {on ? (
         <Player
           component={LabScene}
-          inputProps={{ id: it.id, brand, slot: pos.slot, dx: Math.round(pos.dx), dy: Math.round(pos.dy) }}
+          inputProps={{ id: it.id, brand, slot: pos.slot, dx: Math.round(pos.dx), dy: Math.round(pos.dy), scale: pos.scale ?? 1 }}
           durationInFrames={90} fps={30} compositionWidth={W(o)} compositionHeight={H(o)}
           initialFrame={it.still} controls={!gridOn} loop autoPlay={gridOn} clickToPlay={!gridOn}
           style={{ width: "100%" }}
@@ -94,7 +95,7 @@ const Live: React.FC<{ it: Item; o: Orient; brand: BrandName; pos: Place; gridOn
           onDragStart={(e) => e.preventDefault()}
           onPointerDown={(e) => { e.preventDefault(); const q = at(e); drag.current = { x: q.x, y: q.y, dx: pos.dx, dy: pos.dy }; last.current = q; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); }}
           // the element follows the pointer while dragging; on release a slotted element snaps into the slot under the pointer
-          onPointerMove={(e) => { const q = at(e); setHot(slotAt(q.x, q.y)); const d = drag.current; if (!d) return; last.current = q; onMove({ slot: pos.slot, dx: d.dx + q.x - d.x, dy: d.dy + q.y - d.y }, false); }}
+          onPointerMove={(e) => { const q = at(e); setHot(slotAt(q.x, q.y)); const d = drag.current; if (!d) return; last.current = q; onMove({ slot: pos.slot, dx: d.dx + q.x - d.x, dy: d.dy + q.y - d.y, scale: pos.scale }, false); }}
           onPointerUp={(e) => { const q = at(e), d = drag.current; drag.current = null; if (d) onMove(drop(q.x, q.y, d), true); }}
           onPointerCancel={() => { const q = last.current, d = drag.current; drag.current = null; if (d && q) onMove(drop(q.x, q.y, d), true); }}>
           {slots.map(([name, v]) => (
@@ -118,7 +119,9 @@ const Card: React.FC<{ it: Item; o: Orient; n: Note; brand: BrandName; onSave: (
   const putPlace = (p: Place) => { const c = n.place ?? {}; const base = c.land || c.port ? { land: c.land, port: c.port } : { land: c.dx !== undefined || c.slot ? placeOf(n, "land") : undefined }; onSave(it.id, { place: { ...base, [o]: p } }); };
   const move = (p: Place, commit: boolean) => { dragging.current = !commit; setPos(p); if (commit) putPlace(p); };
   const reset = () => { const z = { dx: 0, dy: 0 }; setPos(z); putPlace(z); };
-  const canGrid = it.section !== "bg" && it.section !== "transition";
+  const posRef = useRef(pos); posRef.current = pos;
+  const resize = (k: number) => { const cur = posRef.current; const sc = Math.round(Math.min(3, Math.max(0.3, (cur.scale ?? 1) * k)) * 100) / 100; const p = { ...cur, scale: sc }; posRef.current = p; setPos(p); putPlace(p); };
+  const canGrid = it.section !== "bg" && it.section !== "transition" && !NO_GRID.has(it.id);
   const slotNow = pos.slot ?? it.slot[o];
   const [text, setText] = useState(n.note ?? "");
   const [when, setWhen] = useState(n.when ?? it.where);
@@ -132,9 +135,11 @@ const Card: React.FC<{ it: Item; o: Orient; n: Note; brand: BrandName; onSave: (
       <Live it={it} o={o} brand={brand} pos={pos} gridOn={gridOn} onMove={move} />
       <div className="gridbar">
         <span className={"mode m-" + it.mode} title={MODE_HINT[it.mode]}>{MODE_AR[it.mode]}</span>
+        {it.cost ? <span className="small" title={it.cost.makeWhy} style={{ fontWeight: 700 }}>{`صنعه ${it.cost.make}/5`}{(o === "land" ? it.cost.landExtra : it.cost.portExtra) != null ? ((o === "land" ? it.cost.landExtra : it.cost.portExtra)! <= 30 ? " · رندره لا يُبطّئ (ضمن الضجيج)" : ` · رندره +${o === "land" ? it.cost.landExtra : it.cost.portExtra} م.ث/إطار`) : ""}</span> : null}
         {canGrid ? <button type="button" className="code-btn" aria-pressed={gridOn} onClick={() => setGridOn(!gridOn)}>{gridOn ? "إغلاق وضع الشبكة" : "وضع الشبكة: غيّر مكانه"}</button> : null}
-        {gridOn && (pos.slot || pos.dx || pos.dy) ? <button type="button" className="chip" onClick={reset}>إعادته لمكانه</button> : null}
-        <span className="small">{slotNow === "engine" ? "مكانه من محرك المونتاج" : slotNow === "frame" ? "يملأ الإطار" : "الخانة: " + slotNow}{pos.dx || pos.dy ? ` · إزاحة ${Math.round(pos.dx)}، ${Math.round(pos.dy)}` : ""}</span>
+        {gridOn ? <><button type="button" className="chip" onClick={() => resize(1 / 1.15)}>تصغير −</button><button type="button" className="chip" onClick={() => resize(1.15)}>تكبير +</button></> : null}
+        {gridOn && (pos.slot || pos.dx || pos.dy || pos.scale) ? <button type="button" className="chip" onClick={reset}>إعادته لمكانه</button> : null}
+        <span className="small">{slotNow === "engine" ? "مكانه من محرك المونتاج" : slotNow === "frame" ? "يملأ الإطار" : "الخانة: " + slotNow}{pos.dx || pos.dy ? ` · إزاحة ${Math.round(pos.dx)}، ${Math.round(pos.dy)}` : ""}{pos.scale && pos.scale !== 1 ? ` · الحجم ${Math.round(pos.scale * 100)}%` : ""}</span>
       </div>
       <div className="body">
         <div className="name"><h2>{it.ar}</h2><code>{it.id} · {it.kit}</code></div>

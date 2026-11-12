@@ -14,10 +14,10 @@ const frameUrl = (file: string, n: number) => staticFile(`fr/${file.split("?")[0
  *   video / matte : paths under public/ ; videoStartFrom / matteStartFrom : first frame of each file to show at frame 0 of the enclosing Sequence (matte_cache prints offsetFrames).
  */
 const VS = `attribute vec2 p; varying vec2 uv; void main(){ uv = vec2(p.x * .5 + .5, 1.0 - (p.y * .5 + .5)); gl_Position = vec4(p, 0, 1); }`;
-const FS = `precision mediump float; varying vec2 uv; uniform sampler2D v; uniform sampler2D m; void main(){ vec4 c = texture2D(v, uv); float a = texture2D(m, uv).r; gl_FragColor = vec4(c.rgb * a, a); }`;
+const FS = `precision mediump float; varying vec2 uv; uniform sampler2D v; uniform sampler2D m; uniform float fl; void main(){ vec4 c = texture2D(v, uv); float a = texture2D(m, uv).r; if (fl > 0.0) a = max(a, smoothstep(fl, fl + 0.02, uv.y)); gl_FragColor = vec4(c.rgb * a, a); }`;
 type Src = CanvasImageSource | HTMLVideoElement;
 
-const MaskedVideoInner: React.FC<{ video: string; matte: string; videoStartFrom?: number; matteStartFrom?: number; width?: number; height?: number; style?: React.CSSProperties }> = ({ video, matte, videoStartFrom = 0, matteStartFrom = 0, width = 1920, height = 1080, style }) => {
+const MaskedVideoInner: React.FC<{ video: string; matte: string; videoStartFrom?: number; matteStartFrom?: number; width?: number; height?: number; style?: React.CSSProperties; /** fraction of the frame height from which the ORIGINAL picture is kept (the desk under him), so the isolated figure sticks to the bottom edge of the video (user 2026-11-09) */ floor?: number }> = ({ video, matte, videoStartFrom = 0, matteStartFrom = 0, width = 1920, height = 1080, style, floor = 0 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const rendering = getRemotionEnvironment().isRendering;
@@ -48,7 +48,7 @@ const MaskedVideoInner: React.FC<{ video: string; matte: string; videoStartFrom?
 
   const draw = () => {
     const g = gl.current, t = tex.current, s = got.current; if (!g || !t || !s.v || !s.m) return false;
-    g.viewport(0, 0, width, height); g.clearColor(0, 0, 0, 0); g.clear(g.COLOR_BUFFER_BIT);
+    g.uniform1f(g.getUniformLocation(g.getParameter(g.CURRENT_PROGRAM), "fl"), floor); g.viewport(0, 0, width, height); g.clearColor(0, 0, 0, 0); g.clear(g.COLOR_BUFFER_BIT);
     g.activeTexture(g.TEXTURE0); g.bindTexture(g.TEXTURE_2D, t.v); g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, g.RGBA, g.UNSIGNED_BYTE, s.v as TexImageSource);
     g.activeTexture(g.TEXTURE1); g.bindTexture(g.TEXTURE_2D, t.m); g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, g.RGBA, g.UNSIGNED_BYTE, s.m as TexImageSource);
     g.drawArrays(g.TRIANGLE_STRIP, 0, 4);

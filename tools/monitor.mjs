@@ -3,14 +3,25 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import net from "node:net";
 import { sendJanib } from "./janib_client.mjs";
 
 const slug = (value) => value.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "").slice(0, 60) || "render";
 
+// صفحة تقدّم الرندر إلزامية مع كل رندر (أمر 2026-11-08): تُشغَّل إن لم تكن تعمل، والعنوان العربي في أول سطر من السجل.
+function ensureProgressPage() {
+  try {
+    const sock = net.connect(3105, "127.0.0.1");
+    sock.on("connect", () => sock.destroy());
+    sock.on("error", () => spawn(process.execPath, [path.resolve("tools/render_progress.mjs")], { detached: true, stdio: "ignore", windowsHide: true }).unref());
+  } catch { /* ignore */ }
+}
+
 export function startMonitor(logFile, title, stableId) {
   const name = title || "فيديو";
   fs.mkdirSync(path.dirname(logFile), { recursive: true });
-  fs.writeFileSync(logFile, "");
+  fs.writeFileSync(logFile, "TITLE " + name + "\n");
+  ensureProgressPage();
   if (process.env.RENDER_WINDOW === "1") {
     spawn("powershell", ["-STA", "-ExecutionPolicy", "Bypass", "-File", path.resolve("tools/render_monitor.ps1"), "-Log", path.resolve(logFile), "-Title", name], { detached: true, stdio: "ignore", windowsHide: true }).unref();
   }

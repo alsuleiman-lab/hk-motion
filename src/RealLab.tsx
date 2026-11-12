@@ -48,25 +48,26 @@ const REAL: Record<string, R> = {
     it({ t: "arc", only: "land", at: A, until: U, arcAt: 0.9, a: { src: "people/ibn_uthaymeen.jpg", name: "ابن عثيمين", x: 1360, y: 330, w: 250, h: 320 }, b: { src: "broll/ahmed_el_tayeb.jpg", name: "أحمد الطيب", x: 310, y: 330, w: 250, h: 320 } }),
     it({ t: "arc", only: "port", at: A, until: U, arcAt: 0.9, a: { src: "people/ibn_uthaymeen.jpg", name: "ابن عثيمين", x: 640, y: 1320, w: 200, h: 220 }, b: { src: "broll/ahmed_el_tayeb.jpg", name: "أحمد الطيب", x: 240, y: 1320, w: 200, h: 220 } }),
   ] },
+  DateCalendar: { item: it({ t: "date", text: "١٠ محرّم ٦١ هـ", sub: "يوم عاشوراء", at: A, until: U, x: 300, y: 1330, w: 380, land: { x: 160, y: 300, w: 380 } }) },
+  KeyChip: { item: it({ t: "word", text: "العبارة المفتاحية", at: A, until: U, x: 540, y: 1450, land: { y: 845, size: 54 } }) },
+  FamilyTree: { item: it({ t: "tree", from: A, to: U, x: 30, y: 60, w: 820, h: 900, title: "سلسلة النسب", titleAt: 0.2, nodes: [{ id: "a", label: "الجد", at: 0.3, px: 0.5, py: 0.1 }, { id: "b", label: "الأب", at: 0.8, px: 0.5, py: 0.5 }, { id: "c", label: "الابن", at: 1.3, px: 0.5, py: 0.9 }], links: [{ a: "a", to: "b", at: 0.7 }, { a: "b", to: "c", at: 1.2 }] }) },
   PhoneChips: { item: it({ t: "phone", at: A, to: U, src: "gallery_opp_clip.mp4", dur: 3 }) },
 };
 
 export const hasReal = (id: string) => id in REAL;
-/** gallery grid mode: the item moves by (dx, dy) through the fields the engine reads in that orientation (portrait: x / y / y0; landscape: its `land` override when it has one) */
-const shift = (o: SpecItem, dx: number, dy: number, orient: "land" | "port"): SpecItem => {
-  if (!dx && !dy) return o;
-  const mv = (q: Record<string, unknown>) => { const n = { ...q }; for (const [k, d] of [["x", dx], ["y", dy], ["y0", dy]] as const) if (typeof n[k] === "number") n[k] = (n[k] as number) + d; return n; };
-  const n = { ...(o as unknown as Record<string, unknown>) };
-  if (orient === "land" && n.land && typeof n.land === "object") n.land = mv(n.land as Record<string, unknown>);
-  else return mv(n) as unknown as SpecItem;
+/** gallery grid mode: the element's placement data (dx, dy, k) written into the item for the shown orientation — portrait on the item, landscape in `land`
+ *  (the engine applies them the same way to every item type: MontageSpec renderItem) */
+const place = (o: SpecItem, dx: number, dy: number, k: number, orient: "land" | "port"): SpecItem => {
+  if (!dx && !dy && k === 1) return o;
+  const n = { ...(o as unknown as Record<string, unknown>) }, pl = { dx: Math.round(dx), dy: Math.round(dy), k };
+  if (orient === "land") n.land = { ...((n.land as object) ?? {}), ...pl }; else Object.assign(n, pl);
   return n as unknown as SpecItem;
 };
-export const realScene = (id: string, brand?: BrandName, dx = 0, dy = 0, orient: "land" | "port" = "land"): React.ReactNode => {
+/** zoom / cover elements have nothing to move: the gallery grid mode is hidden for them */
+export const NO_GRID = new Set(["PushIn", "PaperCover"]);
+export const realScene = (id: string, brand?: BrandName, dx = 0, dy = 0, orient: "land" | "port" = "land", scale = 1): React.ReactNode => {
   const r = REAL[id]; if (!r) return null;
-  const spec = {
-    id: "gallery_" + id, title: "عنوان الفيديو", frames: 90, brand, cut: GALLERY_CUT,
-    ...(r.spec ?? {}),
-    items: (Array.isArray(r.item) ? r.item : [r.item]).map((q, i) => (i === 0 ? shift(q, dx, dy, orient) : q)),
-  } as unknown as MontageSpec;
+  const items = (Array.isArray(r.item) ? r.item : [r.item]).map((q, i) => (i === 0 ? place(q, dx, dy, scale, orient) : q));
+  const spec = { id: "gallery_" + id, title: "عنوان الفيديو", frames: 90, brand, cut: GALLERY_CUT, galleryOwn: true, ...(r.spec ?? {}), items } as unknown as MontageSpec;
   return <MontageFromSpec spec={spec} />;
 };

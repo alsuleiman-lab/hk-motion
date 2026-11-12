@@ -12,6 +12,11 @@ fs.mkdirSync(outDir, { recursive: true });
 
 const REELS = [
   {
+    comp: "S2-Ashari-KufrDeen-R",
+    name: "إحراج متصل أشعري يصف حديث النزول بالكفر والشيخ يقصفه كفرنا بدينكم المؤول",
+    cardTitle: "كفرنا بدينكم المؤول"
+  },
+  {
     comp: "S2-Ashari-Kalb-R",
     name: "إحراج متصل أشعري يلزم نفسه والدي كالكلب والشيخ يقصف منطقه الفاسد",
     cardTitle: "إحراج أشعري يلزم نفسه"
@@ -34,7 +39,7 @@ const REELS = [
 ];
 
 console.log("============================================================");
-console.log("Starting precise re-rendering of 4 Reels (MP4 ONLY - NO JPGs):");
+console.log("Starting precise rendering of 5 Reels (MP4 ONLY - NO JPGs):");
 console.log(outDir);
 console.log("============================================================\n");
 
@@ -58,7 +63,7 @@ for (let i = 0; i < REELS.length; i++) {
 }
 
 console.log("\n============================================================");
-console.log("All 4 reels rendered and exported successfully to MP4:");
+console.log("All 5 reels rendered and exported successfully to MP4:");
 console.log(outDir);
 console.log("============================================================\n");
 

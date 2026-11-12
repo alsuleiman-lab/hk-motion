@@ -31,6 +31,26 @@ if (rest.includes("--animation")) {
 }
 if (!out || !src || !name) { console.error("usage: node tools/judder_check.mjs <out.mp4> --src <source.mp4> --offset <frames> --name <project> [--windows 8] [--len 90] [--crop x,y,w,h] [--src-crop x,y,w,h] [--avoid a-b,…]"); process.exit(2); }
 const fps = 30, W = 110, H = 80, SZ = W * H;
+// --full: decode the WHOLE output and source once (no seeking, so frame n is frame n in both — seeking by -ss landed one frame apart because the source stream starts at 0.0213 s)
+// and compare the series of frame-to-frame differences over every frame. Same pass rule (--min, default 0.96) and the same gate file.
+if (rest.includes("--full")) {
+  const FW = 64, FH = 48, FSZ = FW * FH, c = opt("crop", "800,230,320,330").split(",").map(Number), sc = (opt("src-crop", "") || opt("crop", "800,230,320,330")).split(",").map(Number);
+  const dec = (file, [cx, cy, cw, ch], skip) => { const tmp = `.tmp/${name}_full_${skip}.raw`; fs.mkdirSync(".tmp", { recursive: true });
+    const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", file, "-an", "-vf", `crop=${cw}:${ch}:${cx}:${cy},scale=${FW}:${FH},format=gray`, "-f", "rawvideo", tmp], { stdio: "inherit" });
+    if (r.status !== 0) { console.error("decode failed"); process.exit(1); } const b = fs.readFileSync(tmp); fs.rmSync(tmp); return b; };
+  const A = dec(out, c, "out"), B = dec(src, sc, "src");
+  const N = Math.floor(Math.min(A.length, B.length) / FSZ), shift = Math.round(offset);
+  const st = (Z, i) => { let t = 0; for (let p = 0; p < FSZ; p++) t += Math.abs(Z[i * FSZ + p] - Z[(i - 1) * FSZ + p]); return t / FSZ; };
+  let ag = 0, tot = 0, dp = 0;
+  for (let i = Math.max(1, shift + 1); i < N; i++) { const a = st(A, i), b = st(B, i - shift); tot++; if (Math.abs(a - b) <= 0.35 + 0.15 * b) ag++; else if (a < 0.3 && b >= 0.3) dp++; }
+  const ratio = tot ? ag / tot : 0, ok = ratio >= min;
+  console.log(`judder (full, ${N} frames): ${ag}/${tot} steps agree with the source (${(ratio * 100).toFixed(2)}%), render-made repeats: ${dp} — ${ok ? "PASSED" : "FAILED (stale/skipped frames in the output)"}`);
+  fs.mkdirSync(".tmp/gates", { recursive: true });
+  const gate = `.tmp/gates/${name}.judder.ok`; let g = { files: {} }; try { g = JSON.parse(fs.readFileSync(gate, "utf8")); } catch { /* new */ }
+  if (ok) { g.files[out] = fs.statSync(out).size; fs.writeFileSync(gate, JSON.stringify(g, null, 1)); } else if (g.files[out]) { delete g.files[out]; fs.writeFileSync(gate, JSON.stringify(g, null, 1)); }
+  process.exit(ok ? 0 : 1);
+}
+
 const crop = opt("crop", "660,280,1100,800").split(",").map(Number);      // region of the OUTPUT frame
 const srcCrop = opt("src-crop", "").split(",").filter(Boolean).map(Number);   // matching region of the SOURCE (when the output is a re-framed / cropped version, e.g. portrait)
 const avoid = opt("avoid", "").split(",").filter(Boolean).map((r) => r.split("-").map(Number));

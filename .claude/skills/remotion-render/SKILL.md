@@ -4,6 +4,8 @@ description: Export a Remotion video
 version: 4.0.535
 ---
 
+> **HYBRID ONLY (user order 2026-11-09):** every final render = `node tools/hybrid_any.mjs --comp <Id> --out <file>`. `render_final`/`render_chunked`/`render_clip` refuse to run (`tools/hybrid_gate.mjs`, hook), and a failed hybrid is FIXED, never replaced by the old path. A composition the hybrid cannot draw is ported to `HybridHost`/`VSlot`. Old path only when the user's current message asks for it (`LEGACY_RENDER_USER_OK="<his words>"`).
+
 ## General rendering strategy
 
 Render a video using:
@@ -36,14 +38,14 @@ See [Transparent videos](./transparent-videos.md) for rendering out a video with
 
 ## Workspace rendering rules
 
-For this Remotion workspace, read `PREFERENCES.md` and `WORKFLOW_CHECKLIST.md` before rendering. Follow the montage skill for authorization: final renders require explicit permission, except the separate Antigravity lessons-and-streams workflow. Use the project's render scripts and output directly to the selected `جاهز` folder.
+For this Remotion workspace, read `PREFERENCES.md` and `WORKFLOW_CHECKLIST.md` before rendering. Follow the montage skill for authorization: final renders require explicit permission, except the separate lessons-and-streams workflow (after its first project is approved). Use the project's render scripts and output directly to the selected `جاهز` folder.
 
 - The host uses an NVIDIA RTX 3090. Use `-hwaccel cuda` for supported input codecs. Prefer NVENC for delivery: preview H.264 uses `h264_nvenc -preset p4 -cq 23`; final H.264 uses `h264_nvenc -preset p7 -rc vbr -cq 19 -b:v 0`. Use HEVC or AV1 NVENC only when the available encoder supports that codec.
 - Remotion Node renders through `tools/render_chunked.mjs` pass `videoBitrate` (default `16M`, override with `RENDER_BITRATE`); hardware encoding without it yields ≈2 Mbps. Measure the final file with `ffprobe -show_entries stream=bit_rate` (must be ≥ 10 Mbps, target ≈ 16 Mbps) and delete `render_work/chunked_<id>` before a re-render so old low-bitrate parts are not reused (R-RENDER-QUALITY.1).
 - When streams need no filters or re-encoding, use `-c copy`. For alpha output, CPU encoding is allowed: `prores_ks` with `yuva444p10le`, or `libvpx-vp9` with `yuva420p`.
 - CPU-bound FFmpeg operations, including alpha encoding and software filters, use `-threads 4`. Launch long conversions at below-normal priority. Use `scale_cuda` only for simple scaling with CUDA output frames.
 - For Node API renders, pass `ffmpegOverride: nvencOverride` from `tools/nvenc.mjs` and `concurrency: 3`; `remotion.config.ts` does not configure the Node API. CLI renders use the project config (currently concurrency 6; reduce to 4 if the machine stutters).
-- Before shell work, run `source tools/env.sh`; work on S and export the final video directly to G (user order 2026-10-21; Antigravity's lessons path keeps its own folder rules). After each operation, run `node tools/clean_temp.mjs`. Follow `PREFERENCES.md` for render order (landscape before portrait, sequentially).
+- Before shell work, run `source tools/env.sh`; work on S and export the final video directly to G (user order 2026-10-21; the lessons-and-streams path keeps its own folder rules). After each operation, run `node tools/clean_temp.mjs`. Follow `PREFERENCES.md` for render order (landscape before portrait, sequentially).
 
 ## المراقب الآلي الدائم (2026-10-21)
 

@@ -1,13 +1,19 @@
 import json
 import os
 import sys
+
+torch_lib = r"S:\AI_Tools\ComfyUI_windows_portable\python_embeded\Lib\site-packages\torch\lib"
+os.environ["PATH"] = torch_lib + os.pathsep + os.environ["PATH"]
+if hasattr(os, "add_dll_directory"):
+    os.add_dll_directory(torch_lib)
+
 from faster_whisper import WhisperModel
 
 cut_path = "public/s2_ashari_kufr_deen_cut.mp4"
 out_json = ".tmp/s2_ashari_kufr_deen_words.json"
 
-print(f"Transcribing {cut_path} on CPU int8 (small model)...")
-model = WhisperModel("small", device="cpu", compute_type="int8")
+print(f"Transcribing {cut_path} on GPU RTX 3090 (float16)...")
+model = WhisperModel("large-v3", device="cuda", compute_type="float16")
 segments, info = model.transcribe(
     cut_path,
     language="ar",

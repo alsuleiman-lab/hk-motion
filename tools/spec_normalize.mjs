@@ -72,9 +72,14 @@ for (let round = 0; round < 6; round++) {
   }
   for (const m of out.matchAll(/(?:فراغ أطول من 5 ث|لحظات بلا عنصر)[^:]*: ([^\n|]*)/g)) for (const g of m[1].matchAll(/(\d+):(\d+)–(\d+):(\d+)|(\d+\.?\d*)–(\d+\.?\d*) ث/g)) {
     const [a, b] = g[1] != null ? [+g[1] * 60 + +g[2], +g[3] * 60 + +g[4]] : [+g[5], +g[6]];
-    const ws = words.filter((w) => w.e > a + 0.05 && w.s < b - 0.05);
+    // only words that START inside the gap: a word spoken before the gap would make its caption «written before spoken» in the timing check (and the loop would drop and re-add it forever)
+    const ws = words.filter((w) => w.s >= a - 0.05 && w.s < b - 0.05);
     if (!ws.length) { s2.zooms = [...(s2.zooms || []), { from: +a.toFixed(2), to: +b.toFixed(2), amt: 0.05 }].sort((x, y) => x.from - y.from); ch++; continue; }
-    for (let k = 0; k < ws.length; k += 6) { const c = ws.slice(k, k + 6), nxt = ws[k + 6]; s2.items.push({ t: "scraps", text: c.map((w) => w.w).join(" "), at: +Math.max(c[0].s, a).toFixed(2), until: +Math.min(c[c.length - 1].e + 0.3, nxt ? nxt.s : b + 0.3).toFixed(2), y: 1520, land: { y: 858, size: 30 }, times: c.map((w) => +Math.max(w.s, a).toFixed(2)) }); ch++; }
+    for (let k = 0; k < ws.length; k += 6) {
+      const c = ws.slice(k, k + 6), nxt = ws[k + 6];
+      // the timing check ignores words under 3 letters: a caption must open with a word it can see (else it reads as «written before spoken»)
+      while (c.length > 1 && c[0].w.replace(/[^\p{L}]/gu, "").length < 3) c.shift();
+      s2.items.push({ t: "scraps", text: c.map((w) => w.w).join(" "), at: +Math.max(c[0].s, a).toFixed(2), until: +Math.min(c[c.length - 1].e + 0.3, nxt ? nxt.s : b + 0.3).toFixed(2), y: 1520, land: { y: 858, size: 30 }, times: c.map((w) => +Math.max(w.s, a).toFixed(2)) }); ch++; }
   }
   // 7) skips are listed, written only with --allow-skips
   for (const m of out.matchAll(/(?:^|[:،] )([^،:\n]+?) عند \d+:\d+ \((\d+)s\)/gm)) if (!/^✘|مذكور/.test(m[1])) { notes.push(`required: ${m[1].trim()}@${m[2]}`); if (allowSkips) { s2.skipRequired = [...new Set([...(s2.skipRequired || []), ...[-1, 0, 1].map((d) => `${m[1].trim()}@${+m[2] + d}`)])]; ch++; } }

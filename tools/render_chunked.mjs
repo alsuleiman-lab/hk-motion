@@ -16,12 +16,14 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { acquireRenderLock } from "./render_lock.mjs";
+import { requireHybrid } from "./hybrid_gate.mjs";
 import { cachedServeUrl } from "./lib/cached_bundle.mjs";
 
 const arg = (k, d) => { const i = process.argv.indexOf("--" + k); return i < 0 ? d : process.argv[i + 1]; };
 const id = arg("id"); if (!id) { console.error("--id <CompositionId> مطلوب"); process.exit(1); }
 const READY = "C:/Users/mshms/Videos/جاهز";
 const title = arg("title", id);
+requireHybrid("render_chunked");   // strict hybrid (2026-11-09)
 acquireRenderLock(title);
 try { os.setPriority(0, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch {}
 const out = arg("out") ?? (arg("folder") ? path.join(READY, arg("folder"), `${title}.mp4`) : null);
@@ -47,7 +49,7 @@ try {
   const total = comp.durationInFrames, fps = comp.fps;
   const [a, b] = arg("range") ? arg("range").split("-").map(Number) : [0, total - 1];
   const want = b - a + 1;
-  log(`${id}: ${total} إطار @${fps}fps، المطلوب ${a}-${b} (${want}) بأجزاء ${chunk}`);
+  log(`${title}: ${total} إطار @${fps}fps، المطلوب ${a}-${b} (${want}) بأجزاء ${chunk}`);
 
   const common = {
     composition: comp, serveUrl, inputProps: JSON.parse(process.env.RENDER_PROPS ?? "{}"), port: Number(process.env.RENDER_PORT ?? 3458), chromiumOptions: { gl: "angle" }, hardwareAcceleration: "if-possible",

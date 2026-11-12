@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Audio, CalculateMetadataFunction, Img, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, Video, getRemotionEnvironment } from "remotion";
+import { AbsoluteFill, Audio, CalculateMetadataFunction, Img, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, Video, getRemotionEnvironment, random } from "remotion";
 import { loadFont as loadKufi } from "@remotion/google-fonts/NotoKufiArabic";
 import { loadFont as loadAlmarai } from "@remotion/google-fonts/Almarai";
 import { loadFont as loadAmiriQuran } from "@remotion/google-fonts/AmiriQuran";
@@ -333,7 +333,10 @@ const SilentMain: React.FC<{ orient: "portrait" | "landscape"; c: SilentConfigVO
       </div>
 
       {/* the source video: its audio is the only sound */}
-      <div style={{ ...card, left: SR.x, top: SR.y, width: SR.w, height: SR.h, zIndex: inSwap ? 3 : 1, ...(inSwap ? { transform: `scale(${bump}) rotate(${tiltSw}deg)` } : ambientStyle(f / fps, c.ambient?.every ?? 7, c.ambient?.amount ?? 1)) }}>
+      <div style={{ ...card, overflow: "visible", border: "none", borderRadius: 0, boxShadow: "none", filter: "drop-shadow(0 14px 26px rgba(20,12,4,.55))", left: SR.x, top: SR.y, width: SR.w, height: SR.h, zIndex: inSwap ? 3 : 1, ...(inSwap ? { transform: `scale(${bump}) rotate(${tiltSw}deg)` } : ambientStyle(f / fps, c.ambient?.every ?? 7, c.ambient?.amount ?? 1)) }}>
+        {/* torn paper border (user 2026-11-06): the displayed source video sits on a hand-torn cream sheet with rounded, ragged edges */}
+        <div style={{ position: "absolute", inset: 0, background: "#f6efe0", clipPath: roughRound(SR.w, SR.h, 56, "src-card", 7, 15) }} />
+        <div style={{ position: "absolute", inset: 16, overflow: "hidden", borderRadius: 34 }}>
         <div style={{ position: "absolute", inset: 0, transform: `scale(${pk})`, transformOrigin: `${(pun?.cx ?? 0.5) * 100}% ${(pun?.cy ?? 0.5) * 100}%` }}>
           <Vid src={IS_RENDER ? c.source.src : c.source.proxy} startFrom={Math.round(c.source.startSec * fps)} muted={c.source.muted} style={{ position: "absolute", left: -sc.x * ss, top: -sc.y * ss, width: c.source.w * ss, height: c.source.h * ss, maxWidth: "none" }} />
           {bl ? <Gfx><Img src={staticFile(bl.src)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: Math.min(1, env(f, fps, bl.at, bl.dur) * 3), transform: `scale(${1 + 0.12 * clamp01((f / fps - bl.at) / bl.dur)})` }} /></Gfx> : null}
@@ -366,6 +369,7 @@ const SilentMain: React.FC<{ orient: "portrait" | "landscape"; c: SilentConfigVO
           </div>
         ) : null}
         </Gfx>
+        </div>
       </div>
 
       {(c.under ?? []).map((u, i) => (
@@ -397,6 +401,22 @@ const SilentMain: React.FC<{ orient: "portrait" | "landscape"; c: SilentConfigVO
       ) : null}
     </AbsoluteFill>
   );
+};
+
+/** rounded rectangle outline (radius r) as a clip-path polygon, every point jittered inward by up to `amp` px (seeded): a hand-torn sheet with rounded corners */
+const roughRound = (w: number, h: number, r: number, seed: string, amp = 7, step = 15) => {
+  const pts: [number, number][] = [];
+  const arc = (cx: number, cy: number, a0: number) => { for (let i = 0; i <= 6; i++) { const a = a0 + (i / 6) * (Math.PI / 2); pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); } };
+  const edge = (x0: number, y0: number, x1: number, y1: number) => { const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / step)); for (let i = 1; i < n; i++) pts.push([x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n]); };
+  arc(r, r, Math.PI); edge(r, 0, w - r, 0);
+  arc(w - r, r, -Math.PI / 2); edge(w, r, w, h - r);
+  arc(w - r, h - r, 0); edge(w - r, h, r, h);
+  arc(r, h - r, Math.PI / 2); edge(0, h - r, 0, r);
+  const cx = w / 2, cy = h / 2;
+  return `polygon(${pts.map(([x, y], i) => {
+    const d = Math.hypot(cx - x, cy - y) || 1, k = amp * (0.15 + 0.85 * random(seed + i));
+    return `${(x + ((cx - x) / d) * k).toFixed(1)}px ${(y + ((cy - y) / d) * k).toFixed(1)}px`;
+  }).join(",")})`;
 };
 
 export const SilentReaction: React.FC<SilentProps> = ({ orient, config: c }) => {

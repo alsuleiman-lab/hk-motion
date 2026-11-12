@@ -34,3 +34,4 @@ for term in ["كافر بدينك", "بدينك", "أنا كافر", "دينك"]
         for fpath, m in res[:10]:
             print(f"  [{fpath}] {m.get('start', m.get('s', ''))} -> {m.get('end', m.get('e', ''))}: {m.get('text', m.get('w', ''))}")
         break
+

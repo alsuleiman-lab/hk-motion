@@ -164,21 +164,7 @@ export const Clock: React.FC<{ at: number; size: number }> = ({ at, size }) => {
  * GLOW/GOLD are the reference's neon cyan and gold used for captions that sit OVER video (never over a face: keep them on the edges).
  * ==================================================================================================================== */
 export const GLOW = BRAND.light;
-const glowShadow = (c = GLOW) => `0 0 8px ${c}, 0 0 22px ${c}aa, 0 2px 4px rgba(0,0,0,.45)`;
 
-/** 3) Neon caption, word by word; a word with `gold` gets the gold gradient + stronger glow. Sits over video (bottom band or flanks). */
-export const GlowCaption: React.FC<{ words: { t: string; at: number; gold?: boolean }[]; x: number; y: number; w: number; size?: number }> = ({ words, x, y, w, size = 56 }) => {
-  const t = useT();
-  return (
-    <div style={{ position: "absolute", left: x, top: y, width: w, display: "flex", flexWrap: "wrap", justifyContent: "center", gap: `0 ${size * 0.28}px`, direction: "rtl", fontFamily: kufiF, fontSize: size, lineHeight: 1.25 }}>
-      {words.map((wd, i) => {
-        const u = clamp((t - wd.at) / 0.22);
-        if (u <= 0) return null;
-        return <span key={i} style={wd.gold ? { background: T.card, color: T.accent, borderRadius: size * 0.2, padding: `0 ${size * 0.22}px`, boxShadow: "0 8px 20px rgba(0,0,0,.3)", opacity: u, transform: `translateY(${(1 - u) * 14}px)` } : { color: BRAND.card, textShadow: glowShadow(), opacity: u, transform: `translateY(${(1 - u) * 14}px)` }}>{wd.t}</span>;
-      })}
-    </div>
-  );
-};
 
 /** 4a) Dashed arc that draws itself between two points (links two pinned photos). */
 /** `under`: the arc sags below the lower end instead of rising over the top (user 2026-10-31: «اجعل الخط من تحت لحيتي») */
@@ -197,10 +183,11 @@ export const DashArc: React.FC<{ at: number; x1: number; y1: number; x2: number;
 /** 5) Photo card pinned with a yellow tape strip, name underneath. */
 export const PinnedPhoto: React.FC<{ at: number; x: number; y: number; w: number; h: number; name: string; sub?: string; rot?: number; children?: React.ReactNode }> = ({ at, x, y, w, h, name, sub, rot = -3, children }) => {
   const s = useSp(at, 12, 170);
+  const lines = Math.max(1, Math.ceil(name.length * 15.5 / (w - 24))), band = lines * 38 + 40 + (sub ? 22 : 0);   // the name band grows with its lines so the writing never covers the picture (user 2026-11-06)
   return (
     <div style={{ position: "absolute", left: x, top: y, width: w, height: h, transform: `rotate(${rot}deg) scale(${0.7 + 0.3 * s})`, opacity: clamp(s * 2), background: BRAND.card, padding: 10, boxSizing: "border-box", borderRadius: 26, boxShadow: "0 16px 30px rgba(0,0,0,.35)" }}>
       <div style={{ position: "absolute", left: w * 0.5 - 34, top: -16, width: 68, height: 30, background: alpha(BRAND.accent, .92), transform: "rotate(-6deg)", boxShadow: "0 2px 4px rgba(0,0,0,.25)" }} />
-      <div style={{ width: "100%", height: h - (sub ? 100 : 78), background: T.gray, overflow: "hidden", position: "relative", borderRadius: 18 }}>{children}</div>
+      <div style={{ width: "100%", height: h - band, background: T.gray, overflow: "hidden", position: "relative", borderRadius: 18 }}>{children}</div>
       <div style={{ position: "absolute", left: 12, right: 12, bottom: 14, textAlign: "center", fontFamily: naskhF, fontSize: 30, color: T.ink, direction: "rtl", lineHeight: 1.25 }}>{name}{sub ? <div style={{ fontSize: 20, color: T.gray }}>{sub}</div> : null}</div>
     </div>
   );
@@ -758,7 +745,7 @@ export const TimelineTravel: React.FC<{
   const ticks: number[] = []; for (let k = Math.floor((cam - 1100) / 70); k <= Math.ceil((cam + 1100) / 70); k++) ticks.push(k * 70);
   return (
     <>
-      <div style={{ position: "absolute", left: 0, top: bandY, width: W, height: H - bandY, background: `linear-gradient(to bottom, rgba(6,12,24,0), rgba(6,12,24,${dim * vis}) 45%)` }} />   {/* shade fades in from the top of the band (user 2026-10-31) */}
+      <div style={{ position: "absolute", left: 0, top: bandY, width: W, height: H - bandY, background: `linear-gradient(to bottom, rgba(6,12,24,0), rgba(6,12,24,${dim * vis}) 85%)` }} />   {/* shade fades in from the top of the band (user 2026-10-31) */}
       <div style={{ position: "absolute", left: 0, top: bandY, width: W, height: H - bandY, opacity: vis, overflow: "hidden", direction: "rtl", fontFamily: kufiF, color: "#fff", filter: speed > 0.4 ? `blur(${Math.min(5, speed * 1.6).toFixed(1)}px)` : undefined }}>
         <div style={{ position: "absolute", left: 0, top: axisY - bandY - 2, width: W, height: 7, borderRadius: 4, background: "rgba(255,255,255,.55)" }} />
         {ticks.map((wx) => <div key={wx} style={{ position: "absolute", left: px(wx), top: axisY - bandY - 8, width: 2, height: 16, background: "rgba(255,255,255,.28)" }} />)}
@@ -819,7 +806,7 @@ export const CollageAssemble: React.FC<{
           </div>
         );
       })}
-      <div style={{ position: "absolute", left: 0, top: 0, width: w, height: h, backgroundImage: grain, opacity: 0.16, mixBlendMode: "multiply", pointerEvents: "none" }} />
+      {bg === "transparent" ? null : <div style={{ position: "absolute", left: 0, top: 0, width: w, height: h, backgroundImage: grain, opacity: 0.16, mixBlendMode: "multiply", pointerEvents: "none" }} />}   {/* no grain sheet when there is no background (user 2026-11-09: «احذف الخلفية») */}
     </AbsoluteFill>
   );
 };

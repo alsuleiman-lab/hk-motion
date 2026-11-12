@@ -1,5 +1,5 @@
 import React from 'react';
-import {FONT_TITLE} from '../localFonts';
+import {FONT_TITLE, FONT_QURAN, QURAN_FONT} from '../localFonts';
 
 /** Reusable cartoon overlays: social watermark (user order, every cartoon) and the word-timed Arabic caption (top safe area). */
 
@@ -18,7 +18,7 @@ export const Watermark: React.FC = () => (
   </div>
 );
 
-export type CapWord = {t: string; at: number; to: number};
+export type CapWord = {t: string; at: number; to: number; q?: boolean};
 export type CapPage = {from: number; to: number; words: CapWord[]};
 
 /** greedy pages of ≤4 words / ≤22 characters from word-timed lines */
@@ -38,14 +38,14 @@ export const capPages = (lines: {words: CapWord[]}[]): CapPage[] => {
 
 /** Arabic RTL caption pill at the top safe area: each word appears at its own onset, future words are never shown */
 export const Captions: React.FC<{t: number; pages: CapPage[]}> = ({t, pages}) => {
-  FONT_TITLE();
+  FONT_TITLE(); FONT_QURAN();
   const pg = pages.find((p) => t >= p.words[0].at && t < p.to + 0.12);
   if (!pg) return null;
   const shown = pg.words.filter((w) => t >= w.at - 0.001);
-  const chars = shown.map((w) => w.t).join(' ').length;
+  const chars = shown.map((w) => w.t).join(' ').length, quran = pg.words.every((w) => w.q);
   return (
     <div style={{position: 'absolute', left: 0, right: 0, top: 150, display: 'flex', justifyContent: 'center', direction: 'rtl'}}>
-      <div style={{background: 'rgba(40,30,24,.9)', borderRadius: 28, padding: '18px 38px', fontFamily: '"Noto Kufi Arabic", sans-serif', fontWeight: 800, fontSize: chars > 22 ? 54 : 64, color: '#fff7e6', lineHeight: 1.25, border: '4px solid #141414', whiteSpace: 'nowrap'}}>
+      <div style={{background: 'rgba(40,30,24,.9)', borderRadius: 28, padding: '18px 38px', fontFamily: quran ? `"${QURAN_FONT}", serif` : '"Noto Kufi Arabic", sans-serif', fontWeight: quran ? 400 : 800, fontSize: quran ? (chars > 22 ? 64 : 74) : chars > 22 ? 54 : 64, color: '#fff7e6', lineHeight: 1.25, border: '4px solid #141414', whiteSpace: 'nowrap'}}>
         {shown.map((w, i) => <span key={i} style={{display: 'inline-block', marginInline: 9, unicodeBidi: 'isolate'}}>{w.t}</span>)}
       </div>
     </div>

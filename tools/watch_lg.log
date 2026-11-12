@@ -484,3 +484,188 @@ ID                   : {0.0.1.00000000}.{e0dea8bb-9c82-4fed-8da0-d446b50e84b7}
 Device               : CoreAudioApi.MMDevice
 
 SWITCHED:LG:Headset (LG-TONE-FP9)) [HK Stream closed & LG-TONE connected].
+[2026-11-06 09:32:10] Switched default audio input to AVerMedia ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Digital Audio Interface (AVerMedia Live Gamer HD 2)
+ID                   : {0.0.1.00000000}.{21721331-20cf-4399-beba-36ecade73ac4}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:AVerMedia:Digital Audio Interface (AVerMedia Live Gamer HD 2)) [HK Stream is running].
+[2026-11-06 10:03:01] Switched default audio input to LG ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Headset (LG-TONE-FP9)
+ID                   : {0.0.1.00000000}.{e0dea8bb-9c82-4fed-8da0-d446b50e84b7}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:LG:Headset (LG-TONE-FP9)) [HK Stream closed & LG-TONE connected].
+[2026-11-06 11:56:02] Switched default audio input to AVerMedia ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Digital Audio Interface (AVerMedia Live Gamer HD 2)
+ID                   : {0.0.1.00000000}.{21721331-20cf-4399-beba-36ecade73ac4}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:AVerMedia:Digital Audio Interface (AVerMedia Live Gamer HD 2)) [HK Stream is running].
+[2026-11-09 07:09:05] Switched default audio input to LG ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Headset (LG-TONE-FP9)
+ID                   : {0.0.1.00000000}.{e0dea8bb-9c82-4fed-8da0-d446b50e84b7}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:LG:Headset (LG-TONE-FP9)) [HK Stream closed & LG-TONE connected].
+[2026-11-09 08:22:29] Switched default audio input to AVerMedia ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Digital Audio Interface (AVerMedia Live Gamer HD 2)
+ID                   : {0.0.1.00000000}.{21721331-20cf-4399-beba-36ecade73ac4}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:AVerMedia:Digital Audio Interface (AVerMedia Live Gamer HD 2)) [HK Stream is running].
+[2026-11-09 08:25:25] Switched default audio input to LG ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Headset (LG-TONE-FP9)
+ID                   : {0.0.1.00000000}.{e0dea8bb-9c82-4fed-8da0-d446b50e84b7}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:LG:Headset (LG-TONE-FP9)) [HK Stream closed & LG-TONE connected].
+[2026-11-09 10:03:30] Switched default audio input to AVerMedia ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Digital Audio Interface (AVerMedia Live Gamer HD 2)
+ID                   : {0.0.1.00000000}.{21721331-20cf-4399-beba-36ecade73ac4}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:AVerMedia:Digital Audio Interface (AVerMedia Live Gamer HD 2)) [HK Stream is running].
+[2026-11-09 11:07:44] Switched default audio input to LG ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Headset (LG-TONE-FP9)
+ID                   : {0.0.1.00000000}.{e0dea8bb-9c82-4fed-8da0-d446b50e84b7}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:LG:Headset (LG-TONE-FP9)) [HK Stream closed & LG-TONE connected].
+[2026-11-10 11:49:15] Switched default audio input to AVerMedia ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Digital Audio Interface (AVerMedia Live Gamer HD 2)
+ID                   : {0.0.1.00000000}.{21721331-20cf-4399-beba-36ecade73ac4}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:AVerMedia:Digital Audio Interface (AVerMedia Live Gamer HD 2)) [HK Stream is running].
+[2026-11-10 12:36:40] Switched default audio input to LG ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Headset (LG-TONE-FP9)
+ID                   : {0.0.1.00000000}.{e0dea8bb-9c82-4fed-8da0-d446b50e84b7}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:LG:Headset (LG-TONE-FP9)) [HK Stream closed & LG-TONE connected].
+[2026-11-10 20:31:37] Switched default audio input to AVerMedia ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Digital Audio Interface (AVerMedia Live Gamer HD 2)
+ID                   : {0.0.1.00000000}.{21721331-20cf-4399-beba-36ecade73ac4}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:AVerMedia:Digital Audio Interface (AVerMedia Live Gamer HD 2)) [HK Stream is running].
+[2026-11-10 21:43:40] Switched default audio input to LG ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Headset (LG-TONE-FP9)
+ID                   : {0.0.1.00000000}.{e0dea8bb-9c82-4fed-8da0-d446b50e84b7}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:LG:Headset (LG-TONE-FP9)) [HK Stream closed & LG-TONE connected].
+[2026-11-10 21:45:17] Switched default audio input to AVerMedia ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Digital Audio Interface (AVerMedia Live Gamer HD 2)
+ID                   : {0.0.1.00000000}.{21721331-20cf-4399-beba-36ecade73ac4}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:AVerMedia:Digital Audio Interface (AVerMedia Live Gamer HD 2)) [HK Stream is running].
+[2026-11-10 21:45:31] Switched default audio input to LG ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Headset (LG-TONE-FP9)
+ID                   : {0.0.1.00000000}.{e0dea8bb-9c82-4fed-8da0-d446b50e84b7}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:LG:Headset (LG-TONE-FP9)) [HK Stream closed & LG-TONE connected].
+[2026-11-10 22:03:45] Switched default audio input to AVerMedia ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Digital Audio Interface (AVerMedia Live Gamer HD 2)
+ID                   : {0.0.1.00000000}.{21721331-20cf-4399-beba-36ecade73ac4}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:AVerMedia:Digital Audio Interface (AVerMedia Live Gamer HD 2)) [HK Stream is running].
+[2026-11-10 22:03:58] Switched default audio input to LG ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Headset (LG-TONE-FP9)
+ID                   : {0.0.1.00000000}.{e0dea8bb-9c82-4fed-8da0-d446b50e84b7}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:LG:Headset (LG-TONE-FP9)) [HK Stream closed & LG-TONE connected].
+[2026-11-10 22:11:37] Switched default audio input to AVerMedia ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Digital Audio Interface (AVerMedia Live Gamer HD 2)
+ID                   : {0.0.1.00000000}.{21721331-20cf-4399-beba-36ecade73ac4}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:AVerMedia:Digital Audio Interface (AVerMedia Live Gamer HD 2)) [HK Stream is running].
+[2026-11-10 22:34:51] Switched default audio input to LG ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Headset (LG-TONE-FP9)
+ID                   : {0.0.1.00000000}.{e0dea8bb-9c82-4fed-8da0-d446b50e84b7}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:LG:Headset (LG-TONE-FP9)) [HK Stream closed & LG-TONE connected].
+[2026-11-11 07:35:45] Audio Router Watcher started (Background service: HK Stream -> AVerMedia | Standby -> LG-TONE).
+[2026-11-11 11:14:52] Switched default audio input to AVerMedia ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Digital Audio Interface (AVerMedia Live Gamer HD 2)
+ID                   : {0.0.1.00000000}.{edb20ee8-97c5-4b18-98ce-30e538a6f5a6}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:AVerMedia:Digital Audio Interface (AVerMedia Live Gamer HD 2)) [HK Stream is running].
+[2026-11-11 19:37:14] Switched default audio input to LG ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Headset (LG-TONE-FP9)
+ID                   : {0.0.1.00000000}.{5d585bee-99b7-4541-b1db-3fc1f8d3f404}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:LG:Headset (LG-TONE-FP9)) [HK Stream closed & LG-TONE connected].
+[2026-11-11 19:43:14] Switched default audio input to AVerMedia ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Digital Audio Interface (AVerMedia Live Gamer HD 2)
+ID                   : {0.0.1.00000000}.{edb20ee8-97c5-4b18-98ce-30e538a6f5a6}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:AVerMedia:Digital Audio Interface (AVerMedia Live Gamer HD 2)) [HK Stream is running].
+[2026-11-11 20:31:10] Switched default audio input to LG ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Digital Audio Interface (AVerMedia Live Gamer HD 2)
+ID                   : {0.0.1.00000000}.{edb20ee8-97c5-4b18-98ce-30e538a6f5a6}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:LG:Headset (LG-TONE-FP9)) [HK Stream closed & LG-TONE connected].
+[2026-11-11 21:19:50] Switched default audio input to LG ( True
+DefaultCommunication : True
+Type                 : Recording
+Name                 : Headset (LG-TONE-FP9)
+ID                   : {0.0.1.00000000}.{5d585bee-99b7-4541-b1db-3fc1f8d3f404}
+Device               : CoreAudioApi.MMDevice
+
+SWITCHED:LG:Headset (LG-TONE-FP9)) [HK Stream closed & LG-TONE connected].

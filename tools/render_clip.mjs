@@ -7,9 +7,11 @@ import os from "node:os";
 import path from "node:path";
 import { nvencOverride } from "./nvenc.mjs";
 import { acquireRenderLock } from "./render_lock.mjs";
+import { requireHybrid } from "./hybrid_gate.mjs";
 import { startMonitor } from "./monitor.mjs";
 
 const [id, out] = process.argv.slice(2);
+requireHybrid("render_clip");   // strict hybrid (2026-11-09)
 acquireRenderLock(`مقطع ${id}`);   // same single-render lock as render_final (no two renders at once)
 const log = startMonitor(path.join(".tmp", "render_logs", `clip_${id}.log`), path.basename(out, path.extname(out)));
 try { os.setPriority(0, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch { /* ignore */ }

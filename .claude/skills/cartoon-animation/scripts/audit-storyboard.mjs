@@ -35,6 +35,13 @@ for (const quote of plan.quotations ?? []) {
   if (!(quote.from >= 0 && quote.to > quote.from && quote.to <= plan.duration)) errors.push("Quotation lies outside the video");
 }
 for (const asset of plan.assets ?? []) if (!fs.existsSync(path.resolve(root, "public", asset))) errors.push(`Missing asset ${asset}`);
+// Main-picture inactivity: no gap over 2.5 s between meaningful picture events (captions, whole-frame zoom and shake do not count).
+const MAX_IDLE = plan.maxIdle ?? 2.5;
+if (!plan.events?.length) console.warn("NOTE: no `events` in the plan; main-picture inactivity (> 2.5 s) was not checked.");
+else {
+  const times = [0, ...plan.events.map(Number).filter(Number.isFinite).sort((a, b) => a - b), plan.duration];
+  for (let i = 1; i < times.length; i++) if (times[i] - times[i - 1] > MAX_IDLE) errors.push(`Main picture idle ${times[i - 1].toFixed(2)}–${times[i].toFixed(2)}s (> ${MAX_IDLE}s without a meaningful event)`);
+}
 const sets = new Set((plan.beats ?? []).map(beat => beat.environment));
 if (plan.requireDistinctSets && sets.size < 2) errors.push("Distinct workplaces collapsed to one setting");
 if (errors.length) { console.error(errors.join("\n")); process.exit(1); }

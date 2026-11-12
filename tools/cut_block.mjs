@@ -13,7 +13,10 @@ const [p, a0, b0] = process.argv.slice(2);
 if (!p || !a0 || !b0) { console.error("usage: node tools/cut_block.mjs <p> <A> <B>"); process.exit(2); }
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const sec = (x) => (/^f\d+/.test(x) ? Number(x.slice(1)) / 30 : Number(x));
-const fA = Math.round(sec(a0) * 30), fB = Math.round(sec(b0) * 30), A = fA / 30, B = fB / 30, D = B - A;
+// --src sa sb: REPLACE the span with that stretch of the ORIGINAL recording (a word the cut clipped: keep its true start)
+const si = process.argv.indexOf("--src"), SA = si > 0 ? Number(process.argv[si + 1]) : null, SBraw = si > 0 ? Number(process.argv[si + 2]) : null;
+const fL = SA != null ? Math.round((SBraw - SA) * 30) : 0, SB = SA != null ? SA + fL / 30 : null, L = fL / 30;
+const fA = Math.round(sec(a0) * 30), fB = Math.round(sec(b0) * 30), A = fA / 30, B = fB / 30, D = B - A - L;
 if (!(fB > fA)) { console.error("✘ B must be after A"); process.exit(2); }
 const T = path.join(".tmp", p), specF = path.join("data", "specs", `${p}.json`), frozenF = path.join(T, "spec_frozen.json");
 const spec = JSON.parse(fs.readFileSync(specF, "utf8"));
@@ -21,10 +24,14 @@ const src = path.join("public", spec.cut);
 const ff = (args) => { const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", ...args], { encoding: "utf8" }); if (r.status !== 0) { console.error(r.stderr); process.exit(1); } };
 let n = 1; while (fs.existsSync(path.join("public", `${p}_cut_s_b${n}.mp4`))) n++;
 const outName = `${p}_cut_s_b${n}.mp4`, out = path.join("public", outName);
-console.log(`cut_block: حذف ${A.toFixed(3)}–${B.toFixed(3)}ث (الإطار ${fA}–${fB}، ${D.toFixed(3)}ث) → ${outName}`);
-ff(["-hwaccel", "cuda", "-i", src, "-filter_complex",
-  `[0:v]trim=end_frame=${fA},setpts=PTS-STARTPTS[v0];[0:v]trim=start_frame=${fB},setpts=PTS-STARTPTS[v1];[v0][v1]concat=n=2:v=1:a=0[v];` +
-  `[0:a]atrim=end=${A},asetpts=PTS-STARTPTS,afade=t=out:st=${Math.max(0, A - 0.012)}:d=0.012[a0];[0:a]atrim=start=${B},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.012[a1];[a0][a1]concat=n=2:v=0:a=1[a]`,
+console.log(`cut_block: ${SA != null ? "استبدال" : "حذف"} ${A.toFixed(3)}–${B.toFixed(3)}ث (الإطار ${fA}–${fB})${SA != null ? ` بالأصل ${SA.toFixed(2)}–${SB.toFixed(2)}ث` : ""}، إزاحة ما بعده ${D.toFixed(3)}ث → ${outName}`);
+const ORIG = path.join("public", JSON.parse(fs.readFileSync(path.join(T, "prep_config.json"), "utf8")).source.replace(/^public[\/]/, ""));
+ff(["-hwaccel", "cuda", "-i", src, ...(SA != null ? ["-ss", String(SA), "-t", String(L + 0.2), "-i", ORIG] : []), "-filter_complex",
+  `[0:v]trim=end_frame=${fA},setpts=PTS-STARTPTS[v0];[0:v]trim=start_frame=${fB},setpts=PTS-STARTPTS[v1];` +
+  `[0:a]atrim=end=${A},asetpts=PTS-STARTPTS,afade=t=out:st=${Math.max(0, A - 0.012)}:d=0.012[a0];[0:a]atrim=start=${B},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.012[a1];` +
+  (SA != null
+    ? `[1:v]fps=30,trim=end_frame=${fL},setpts=PTS-STARTPTS[vs];[1:a]aresample=48000,atrim=end=${L},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.012,afade=t=out:st=${Math.max(0, L - 0.012)}:d=0.012[as];[v0][vs][v1]concat=n=3:v=1:a=0[v];[a0][as][a1]concat=n=3:v=0:a=1[a]`
+    : `[v0][v1]concat=n=2:v=1:a=0[v];[a0][a1]concat=n=2:v=0:a=1[a]`),
   "-map", "[v]", "-map", "[a]", "-c:v", "h264_nvenc", "-preset", "p5", "-rc", "vbr", "-cq", "16", "-b:v", "0", "-c:a", "aac", "-b:a", "256k", out]);
 ff(["-i", out, "-vn", "-ac", "1", "-ar", "48000", path.join(T, "cut.wav")]);
 ff(["-i", path.join(T, "cut.wav"), "-ar", "16000", "-ac", "1", path.join(T, "cut16k.wav")]);
@@ -44,7 +51,7 @@ const shift = (it) => {
 const apply = (s) => {
   const gone = [];
   for (const k of ["items", "zooms", "shake", "behind", "splits", "solos", "shifts", "psplits"]) if (Array.isArray(s[k])) s[k] = s[k].filter((it) => { if (it.t !== "cover" && inside(it)) { gone.push(`${k}:${it.t ?? ""}@${(span(it)[0] ?? 0).toFixed(1)}`); return false; } return true; }).map(shift);
-  s.frames = s.frames - (fB - fA); s.cut = outName;
+  s.frames = s.frames - (fB - fA) + fL; s.cut = outName;
   return gone;
 };
 const gone = apply(spec);
@@ -63,6 +70,8 @@ for (const s of map.segments) {
   if (c0 < A) segs.push({ ...s, b: +(s.a + (A - c0)).toFixed(4) });
   if (c1 > B) segs.push({ ...s, a: +(s.a + (B - c0)).toFixed(4) });
 }
+// the replacement piece goes right where cut time A falls (after the pieces that sum to A)
+if (SA != null) { let t = 0, k = 0; while (k < segs.length && t + (segs[k].b - segs[k].a) <= A + 1e-4) { t += segs[k].b - segs[k].a; k++; } segs.splice(k, 0, { ...segs[Math.max(0, k - 1)], a: SA, b: SB }); }
 map.segments = segs; fs.writeFileSync(mapF, JSON.stringify(map));
 // the order plans («مونتاج» notes) point at cut seconds too
 { const nf = path.join(T, "montage_notes.json"); if (fs.existsSync(nf)) { const N = JSON.parse(fs.readFileSync(nf, "utf8")); for (const n of N) if (n.plan) n.plan = n.plan.map((x) => (x.at != null ? { ...x, at: mv(x.at) } : x)); fs.writeFileSync(nf, JSON.stringify(N, null, 1)); } }

@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Img, random, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, random, useCurrentFrame, useVideoConfig } from "remotion";
 import { noise2D } from "@remotion/noise";
 import { kufiF, zainF } from "./MG";
 import { Pic } from "./EuKit";
@@ -87,17 +87,19 @@ export const WordScraps: React.FC<{ at: number; until?: number; x?: number; y?: 
   const t = useStep(), f = useCurrentFrame(), { width, height } = useVideoConfig();
   const place: React.CSSProperties = x === undefined ? { left: 0, top: y ?? height * 0.5, width, ...(y === undefined ? { height: height * 0.25 } : {}), justifyContent: "center", boxSizing: "border-box", padding: `0 ${Math.round(width * 0.05)}px` } : { left: x, top: y ?? height * 0.5 };
   if (t < at || (until !== undefined && t > until + 0.3)) return null;
-  const stocks = [BRAND.card, BRAND.paper, BRAND.navy, BRAND.accent];
+  // at most 4 scraps at once: the first goes when a fifth arrives (user 2026-11-05)
+  const shown = text.split(" ").map((wd, i, all) => ({ wd, i, gone: i + 4 < all.length ? ta(i + 4) : Infinity })).filter(({ i, gone }) => t >= ta(i) && t < gone);
+  const cur = shown.length ? shown[shown.length - 1].i : -1;   // the word being spoken now = the newest scrap
   return (
     <div style={{ position: "absolute", display: "flex", flexDirection: "row-reverse", flexWrap: "wrap", gap: size * 0.3, alignItems: "center", ...place }}>
-      {text.split(" ").map((wd, i, all) => ({ wd, i, gone: i + 4 < all.length ? ta(i + 4) : Infinity })).filter(({ i, gone }) => t >= ta(i) && t < gone).map(({ wd, i }) => {   // at most 4 scraps at once: the first goes when a fifth arrives (user 2026-11-05)
+      {shown.map(({ wd, i }) => {
         const a = ta(i), inn = easeOut((t - a) / 0.25), out = until === undefined ? 0 : easeOut((t - until) / 0.3);
-        const bg = stocks[Math.floor(random("ws" + wd + i) * stocks.length)], dark = bg === BRAND.navy || bg === BRAND.accent;
+        const dark = i === cur, bg = dark ? BRAND.accent : "#ffffff";   // every scrap white, the current word in the video's palette colour (user 2026-11-08)
         const rot = (random("wr" + wd + i) - 0.5) * 10 + noise2D("ws" + i, f / 80, 0) * 0.8;
         const w = Math.round(size * 0.8 * wd.length + 100), h = Math.round(size * 1.8);   // paper taller and wider so the writing never touches the torn edges (user 2026-11-06)
         return (
           <span key={i} style={{ position: "relative", width: w, height: h, transform: `scale(${0.6 + 0.4 * inn}) rotate(${rot}deg) translateY(${out * 600}px)`, opacity: Math.min(1, inn * 2), filter: shadow, display: "inline-block" }}>
-            <span style={{ position: "absolute", inset: 0, background: bg, clipPath: tornClip(w, h, "ws" + wd + i, 6, 16), display: "flex", alignItems: "center", justifyContent: "center", fontFamily: zainF, fontSize: size, color: dark ? BRAND.card : BRAND.ink, direction: "rtl" }}>{wd}</span>
+            <span style={{ position: "absolute", inset: 0, background: bg, clipPath: tornClip(w, h, "ws" + wd + i, 6, 16), display: "flex", alignItems: "center", justifyContent: "center", fontFamily: zainF, fontSize: size, color: dark ? BRAND.onAccent : BRAND.ink, direction: "rtl" }}>{wd}</span>
           </span>
         );
       })}
@@ -112,12 +114,14 @@ export const TornPhoto: React.FC<{ at: number; until?: number; x: number; y: num
   if (t < at || (until !== undefined && t > until + 0.3)) return null;
   const grow = easeOut((t - at) / 0.4) * (until === undefined ? 1 : 1 - easeOut((t - until) / 0.3));
   const s = { transform: `scale(${0.15 + 0.85 * grow}) rotate(${rot + noise2D("tp" + src, f / 90, 0) * 0.6}deg)`, transformOrigin: "50% 50%", opacity: Math.min(1, grow * 2.5) } as React.CSSProperties;
-  const H = h + (name ? 70 : 28);
+  // the name strip grows with its lines so the text always sits in the white strip below the picture, never over it (user 2026-11-08)
+  const nameLines = name ? Math.max(1, Math.ceil([...name].length * 28 * 0.55 / (w - 24))) : 0;
+  const H = h + (name ? Math.max(70, nameLines * 36 + 34) : 28);
   return (
     <div style={{ position: "absolute", left: x, top: y, width: w, height: H, filter: shadow, ...s }}>
       <div style={{ position: "absolute", inset: 0, background: BRAND.card, clipPath: tornClip(w, H, "tp" + src, 9, 18) }}>
         <div style={{ position: "absolute", left: 20, right: 20, top: 20, height: h - 20, overflow: "hidden" }}><Pic src={src} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: pos }} /></div>
-        {name ? <div style={{ position: "absolute", left: 0, right: 0, bottom: 12, textAlign: "center", fontFamily: kufiF, fontSize: 28, color: BRAND.ink, direction: "rtl" }}>{name}</div> : null}
+        {name ? <div style={{ position: "absolute", left: 0, right: 0, bottom: 12, padding: "0 12px", lineHeight: "36px", textAlign: "center", fontFamily: kufiF, fontSize: 28, color: BRAND.ink, direction: "rtl" }}>{name}</div> : null}
       </div>
       <Tape x={w / 2 - 60} y={-14} rot={-4} />
     </div>
@@ -134,17 +138,57 @@ export const PaperGrain: React.FC<{ opacity?: number }> = ({ opacity = 0.09 }) =
   );
 };
 
-/** a ready-made calendar motion graphic from the internet (LottieFiles free animation «calendar» by Zakaria Boukernafa, frames keyed to transparent) with the date written under it (user 2026-10-31: «جيب عنصر يعبر عن التاريخ… موشن جرافيك جاهز من الإنترنت») */
-export const DateCalendar: React.FC<{ at: number; until?: number; x: number; y: number; w: number; text: string; sub?: string }> = ({ at, until, x, y, w, text, sub }) => {
+/** the calendar icon is DRAWN IN CODE (2026-11-09: the downloaded frames public/halloween/date were gone, so the card showed a broken picture): rings, an accent header, pages that flip three times then settle.
+ *  Formerly: a ready-made calendar motion graphic from the internet (LottieFiles free animation «calendar» by Zakaria Boukernafa, frames keyed to transparent) with the date written under it (user 2026-10-31: «جيب عنصر يعبر عن التاريخ… موشن جرافيك جاهز من الإنترنت») */
+/** the calendar shows ONLY true data (user 2026-11-10: «تضع فيه أرقام عشوائية… مو أسماء أشهر صحيحة»): the header = the real month name (a date), or the unit (سنة / أيام…),
+ *  or the era (هـ / م) of a year; the page = the exact number spoken. `from` (optional) = a spoken starting number: the pages then count from it to the number (e.g. 1418 → 1421).
+ *  Text forms: «١٠ محرّم ٦١ هـ» (date) · «١٤٢١ هـ» / «سنة ١٤٢١ هـ» (year) · «١٠ سنوات» / «٣ أيام» (a count). A month name outside the real lists stops the render. */
+const AR = "٠١٢٣٤٥٦٧٨٩";
+const num = (s: string) => +s.replace(/[٠-٩]/g, (d) => String(AR.indexOf(d)));
+const ar = (n: number) => String(n).replace(/[0-9]/g, (d) => AR[+d]);
+const plain = (s: string) => s.replace(/[ً-ْ]/g, "").replace(/[أإآ]/g, "ا").trim();
+const MONTHS = ["محرم", "صفر", "ربيع الاول", "ربيع الاخر", "ربيع الثاني", "جمادى الاولى", "جمادى الاخرة", "جمادى الثانية", "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة",
+  "يناير", "فبراير", "مارس", "ابريل", "مايو", "يونيو", "يوليو", "اغسطس", "سبتمبر", "اكتوبر", "نوفمبر", "ديسمبر",
+  "كانون الثاني", "شباط", "اذار", "نيسان", "ايار", "حزيران", "تموز", "اب", "ايلول", "تشرين الاول", "تشرين الثاني", "كانون الاول"];
+const D = "([0-9٠-٩]+)";
+export const parseCalendar = (text: string): { head: string; value: number } => {
+  const t = text.trim();
+  let m = t.match(new RegExp(`^${D}\\s+(.+?)\\s+${D}\\s*(هـ|م)?$`));
+  if (m) { if (!MONTHS.includes(plain(m[2]))) throw new Error(`التقويم: «${m[2]}» ليس اسم شهر صحيحاً (${text})`); return { head: m[2], value: num(m[1]) }; }
+  m = t.match(new RegExp(`^(?:سنة|عام)?\\s*${D}\\s*(هـ|م)$`)); if (m) return { head: m[2] === "م" ? "ميلادي" : "هجري", value: num(m[1]) };
+  m = t.match(new RegExp(`^القرن\\s+${D}\\s*(هـ|م)?$`)); if (m) return { head: m[2] === "هـ" ? "قرن هجري" : "قرن", value: num(m[1]) };
+  m = t.match(new RegExp(`^${D}\\s+(.+)$`)); if (m) return { head: m[2], value: num(m[1]) };
+  throw new Error(`التقويم: لا أعرف قراءة «${text}» — اكتب «١٠ محرّم ٦١ هـ» أو «١٤٢١ هـ» أو «١٠ سنوات»`);
+};
+const CalendarIcon: React.FC<{ w: number; h: number; t: number; head: string; value: number; from?: number }> = ({ w, h, t, head, value, from }) => {
+  // pages: a blank page turns over to the number, or (with `from`) every true number from `from` up to it, at most 8 turns
+  const all = from !== undefined && from !== value ? Array.from({ length: Math.abs(value - from) + 1 }, (_, i) => from + Math.sign(value - from) * i) : [NaN, value];
+  const seq = all.length > 8 ? [all[0], ...all.slice(-7)] : all;
+  const flips = seq.length - 1, per = 0.28, k = Math.min(flips, Math.max(0, t / per)), cur = Math.floor(k), ph = k - cur;
+  const turn = cur < flips ? Math.sin(Math.min(1, ph) * Math.PI / 2) * 180 : 0;   // the top page swings up and over
+  const fs = (n: number) => h * (String(n).length > 3 ? 0.2 : String(n).length > 2 ? 0.26 : 0.32);
+  const page = (n: number) => <div style={{ position: "absolute", left: "8%", right: "8%", top: "30%", bottom: "8%", background: "#fffaf0", borderRadius: 10, display: "grid", placeItems: "center", fontFamily: kufiF, fontWeight: 800, fontSize: fs(n), color: BRAND.ink }}>{Number.isNaN(n) ? "" : ar(n)}</div>;
+  return (
+    <div style={{ position: "relative", width: w, height: h, margin: "0 auto", perspective: 900 }}>
+      <div style={{ position: "absolute", left: "4%", right: "4%", top: "10%", bottom: 0, background: BRAND.paper, borderRadius: 16, boxShadow: "0 8px 0 rgba(0,0,0,.12)" }} />
+      <div style={{ position: "absolute", left: "4%", right: "4%", top: "10%", height: "18%", background: BRAND.accent, borderRadius: "16px 16px 0 0", display: "grid", placeItems: "center", fontFamily: kufiF, fontWeight: 800, fontSize: h * 0.1, color: BRAND.onAccent, whiteSpace: "nowrap", overflow: "hidden" }}>{head}</div>
+      {[0.2, 0.8].map((x) => <div key={x} style={{ position: "absolute", left: `${x * 100 - 3}%`, top: "2%", width: "6%", height: "14%", background: BRAND.ink, borderRadius: 8 }} />)}
+      {page(seq[Math.min(cur + 1, flips)])}
+      {cur < flips ? <div style={{ position: "absolute", inset: 0, transformOrigin: "50% 30%", transform: `rotateX(${turn}deg)`, backfaceVisibility: "hidden" }}>{page(seq[cur])}</div> : null}
+    </div>
+  );
+};
+export const DateCalendar: React.FC<{ at: number; until?: number; x: number; y: number; w: number; text: string; sub?: string; from?: number }> = ({ at, until, x, y, w, text, sub, from }) => {
+  const cal = parseCalendar(text);
   const f = useCurrentFrame(), { fps } = useVideoConfig(), t = f / fps;
   if (t < at || (until !== undefined && t > until + 0.3)) return null;
   const grow = easeOut((t - at) / 0.35) * (until === undefined ? 1 : 1 - easeOut((t - until) / 0.3));
-  const idx = Math.min(109, Math.floor((t - at) * 25)), iw = Math.round(w * 0.72), ih = Math.round(iw * 277 / 268), size = Math.round(w * 0.16);
+  const iw = Math.round(w * 0.72), ih = Math.round(iw * 277 / 268), size = Math.round(Math.min(w * 0.13, (w * 0.88) / ([...text].length * 0.5)));   // a long date shrinks to stay inside the card
   // an opaque cream card in the identity (user 2026-10-31: «شفافية التقويم مزعجة… كريمي مع لون مناسب للكود اللوني»): the white frames multiply onto the card, the orange is turned to the accent hue
   return (
     <div style={{ position: "absolute", left: x, top: y, width: w, padding: "18px 0 22px", background: "#f4ecda", borderRadius: 26, borderTop: `10px solid ${BRAND.accent}`, boxShadow: "0 18px 36px rgba(0,0,0,.4)", transform: `scale(${0.2 + 0.8 * grow}) rotate(-2deg)`, transformOrigin: "50% 40%", opacity: Math.min(1, grow * 2.5), direction: "rtl", textAlign: "center" }}>
-      <Img src={staticFile(`halloween/date/o_${String(idx).padStart(3, "0")}.png`)} style={{ width: iw, height: ih, display: "block", margin: "0 auto", mixBlendMode: "multiply", filter: "hue-rotate(196deg) saturate(.6) brightness(.85)" }} />
-      <div style={{ fontFamily: kufiF, fontWeight: 800, fontSize: size, color: BRAND.ink, lineHeight: 1.2, marginTop: 4 }}>{text}</div>
+      <CalendarIcon w={iw} h={ih} t={t - at} head={cal.head} value={cal.value} from={from} />
+      <div style={{ fontFamily: kufiF, fontWeight: 800, fontSize: size, color: BRAND.ink, lineHeight: 1.2, marginTop: 4, whiteSpace: "nowrap", padding: "0 10px" }}>{text}</div>
       {sub ? <div style={{ fontFamily: kufiF, fontSize: Math.round(size * 0.55), color: BRAND.gray }}>{sub}</div> : null}
     </div>
   );

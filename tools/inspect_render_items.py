@@ -6,3 +6,4 @@ for m in re.finditer(r'case "(full|tphoto|scholar|pic)":', text):
     start = m.start()
     print("--------------------------------------------------")
     print(text[start:start+400])
+

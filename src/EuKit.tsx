@@ -111,7 +111,7 @@ export const BClip: React.FC<{ n: number; at: number; dur: number; x: number; y:
 };
 
 /** flags drawn as simple SVG (France / Italy / Belgium / Germany / Russia / Iran / Israel / Iraq / Lebanon) */
-export type FlagCode = "fr" | "it" | "be" | "de" | "ru" | "ir" | "il" | "iq" | "lb";
+export type FlagCode = "fr" | "it" | "be" | "de" | "ru" | "ir" | "il" | "iq" | "lb" | "ps";
 export const Flag: React.FC<{ c: FlagCode; w?: number; h?: number }> = ({ c, w = 120, h = 80 }) => {
   const V = (cols: string[]) => cols.map((k, i) => <rect key={i} x={i * (90 / cols.length)} y={0} width={90 / cols.length + 0.5} height={60} fill={k} />);
   const H = (cols: string[]) => cols.map((k, i) => <rect key={i} x={0} y={i * (60 / cols.length)} width={90} height={60 / cols.length + 0.5} fill={k} />);
@@ -119,6 +119,7 @@ export const Flag: React.FC<{ c: FlagCode; w?: number; h?: number }> = ({ c, w =
     fr: V(["#1f4aa8", "#f4f4f0", "#d8322b"]), it: V(["#1f8a4c", "#f4f4f0", "#d02f2f"]), be: V(["#1b1b1b", "#f1c40f", "#d8322b"]),
     de: H(["#1b1b1b", "#d8322b", "#f1c40f"]), ru: H(["#f4f4f0", "#1f4aa8", "#d8322b"]), ir: H(["#2c9a52", "#f4f4f0", "#d8322b"]), iq: H(["#d8322b", "#f4f4f0", "#1b1b1b"]),
     il: <><rect width={90} height={60} fill="#f6f6f2" /><rect y={6} width={90} height={7} fill="#1f4aa8" /><rect y={47} width={90} height={7} fill="#1f4aa8" /><polygon points="45,19 54,35 36,35" fill="none" stroke="#1f4aa8" strokeWidth={2.2} /><polygon points="45,41 54,25 36,25" fill="none" stroke="#1f4aa8" strokeWidth={2.2} /></>,
+    ps: <>{H(["#1b1b1b", "#f4f4f0", "#2c9a52"])}<polygon points="0,0 33,30 0,60" fill="#d8322b" /></>,
     lb: <><rect width={90} height={60} fill="#f6f6f2" /><rect width={90} height={15} fill="#d8322b" /><rect y={45} width={90} height={15} fill="#d8322b" /><polygon points="45,16 55,36 35,36" fill="#2c9a52" /><rect x={43.5} y={36} width={3} height={7} fill="#6b4630" /></>,
   }[c];
   if (c === "ir" || c === "iq" || c === "lb" || c === "il") {

@@ -64,7 +64,7 @@ const rectOf = (it, o) => {
     case "nameTag": { const cx = L ? ov.x ?? 960 : it.x ?? 540, y = (L ? ov.y ?? 880 : it.y) + 40; return [cx - 300, y, cx + 300, y + 130]; }
     case "subscribe": { const x = P("x", 1300), y = P("y", 790); return [x, y, x + 560, y + 150]; }
     case "date": { const x = L ? ov.x ?? 40 : it.x ?? 40, y = L ? ov.y ?? 150 : it.y ?? 1330, w = (L ? ov.w : undefined) ?? it.w ?? 340; return [x, y, x + w, y + Math.round(w * 277 / 268) + Math.round(w * 0.45)]; }
-    case "scholar": case "tphoto": { const x = L ? ov.x ?? 40 : it.x ?? 40, y = L ? ov.y ?? 150 : it.y ?? 1360, pw = (L ? ov.w : undefined) ?? it.w ?? 300, n = 1 + (it.also?.length ?? 0), w = n * pw + (n - 1) * 24, h = ((L ? ov.h : undefined) ?? it.h ?? 370) + 78; return [x, y, x + w, y + h]; }
+    case "scholar": case "tphoto": { const x = L ? ov.x ?? 40 : it.x ?? 40, y = L ? ov.y ?? 150 : it.y ?? 1360, pw = (L && it.t === "tphoto" ? ov.w : it.w) ?? 300, n = 1 + (it.also?.length ?? 0), w = n * pw + (n - 1) * 24, nl = it.name ? Math.max(1, Math.ceil([...it.name].length * 28 * 0.55 / (pw - 24))) : 1, h = ((L && it.t === "tphoto" ? ov.h : it.h) ?? 370) + Math.max(78, nl * 36 + 42); return [x, y, x + w, y + h]; }
     case "scraps": {   // one scrap per word (size × 0.8 per letter + 70), wrapped on 90 % of the width, centred
       const size = L ? ov.size ?? 50 : it.size ?? 36, Wd = L ? 1920 : 1080, y = L ? ov.y ?? 845 : it.y ?? 1330, ws = String(it.text).split(" "), gap = size * 0.3;
       const widths = ws.map((wd) => size * 0.8 * len(wd) + 70); let rows = 1, cur = 0;
@@ -95,7 +95,7 @@ const rectOf = (it, o) => {
     default: return null;
   }
 };
-const FACE_TOL = 0.04;   // boxes are estimated (text widths, the generous beard margin of face_check.py): a 4 % graze is not a hit
+const FACE_TOL = spec.faceTol ?? 0.04;   // spec.faceTol: user-ordered larger pictures that may graze the beard edges (2026-11-11) // boxes are estimated (text widths, the generous beard margin of face_check.py): a 4 % graze is not a hit
 const inter = (a, b) => Math.max(0, Math.min(a[2], b[2]) - Math.max(a[0], b[0])) * Math.max(0, Math.min(a[3], b[3]) - Math.max(a[1], b[1]));
 const area = (r) => Math.max(0, r[2] - r[0]) * Math.max(0, r[3] - r[1]);
 const zoneOver = (o, a, b) => { let z = null; for (let t = a; t <= b; t += 0.5) { const q = zoneAt(t, o); z = z ? [Math.min(z[0], q[0]), Math.min(z[1], q[1]), Math.max(z[2], q[2]), Math.max(z[3], q[3])] : q; } return z; };
@@ -122,7 +122,7 @@ function snap(it, o, r, box) {
       const ln = Math.max(1, Math.ceil(len(it.text) / Math.max(1, Math.floor((nw - 3.6 * s) / (s * 0.52)))));
       if (nw <= bw && s * 3.2 + (ln - 1) * s * 1.2 <= bh) break;
     }
-    if (o === "land") { tgt.x = Math.round(box[0] + (bw - nw) / 2 + nw / 2); tgt.size = s; } else if (s < B) tgt.size = s;
+    if (o === "land") { tgt.x = 960; tgt.size = s; }   // the landscape torn note sits in the middle of the screen (user 2026-11-08); the face check below still judges it else if (s < B) tgt.size = s;
     tgt.y = ny; return;
   }
   if (it.t === "scraps") { tgt.y = ny; return; }
@@ -136,7 +136,7 @@ function snap(it, o, r, box) {
   if (k < 1 && it.t === "clock") tgt.size = Math.round((it.t === "clock" && (o === "land" ? it.land?.size : it.size) ? (o === "land" ? it.land.size : it.size) : o === "land" ? 360 : 300) * k);
   else if (k < 1 && it.t === "flag") it.w = Math.round((it.w ?? 220) * k);
   else if (k < 1 && it.t === "date") { tgt.w = Math.round(((o === "land" ? it.land?.w : undefined) ?? it.w ?? 340) * k); }
-  else if (k < 1 && it.t === "tphoto" && o === "land") { tgt.w = Math.round(((it.land?.w) ?? it.w ?? 300) * k); tgt.h = Math.round(((it.land?.h) ?? it.h ?? 370) * k); }
+  else if (k < 1 && it.t === "tphoto" && o === "land") { tgt.w = Math.round(((it.land?.w) ?? 300) * k); tgt.h = Math.round(((it.land?.h) ?? 370) * k); }
   else if (k < 1 && (it.t === "scholar" || it.t === "tphoto")) { it.w = Math.round((it.w ?? 300) * k); it.h = Math.round((it.h ?? 370) * k); }
   else if (k < 1 && it.t === "pic" && o !== "land") { tgt.w = Math.round(w * k); tgt.h = Math.round(h * k); }   // a picture keeps its aspect when it shrinks (never cropped)
   else if (k < 1 && ["pic", "crop", "flash", "news"].includes(it.t)) tgt.w = Math.round(w * k);
@@ -170,7 +170,13 @@ for (const o of orients) {
     const under = big.find((y) => y.k === "exclusive" && y.s[0] < b - 0.1 && y.s[1] > a + 0.1 && !(o === "port" && mode === "half") && !(y.it.t === "full" && (spec.behind ?? []).some((bw) => bw.from <= y.s[0] + 0.05 && bw.to >= y.s[1] - 0.05)));   // a B-roll behind him (iso window) lets the key notes stay on top (user 2026-10-31)
     if (under) fails.push(`${label}: فوق عنصر كبير ${under.it.t}#${under.i} (${mm(under.s[0])}–${mm(under.s[1])})`);
     const z = zoneOver(o, a, b), kk = x.it.t === "verse" && !x.it.full && mode === "half" ? "verse" : x.k, slots = Object.entries(grid[mode]?.slots ?? {}).filter(([, s]) => s.kinds.includes(kk));
-    const free = slots.filter(([n]) => !(x.it.t === "rows" && o === "land" && x.it.side === "right") || n === "right").find(([n]) => !(res[mode + n] ?? []).some(([p, q]) => p < b + 0.15 && q > a - 0.15));
+    const busy = (n) => (res[mode + n] ?? []).some(([p, q]) => p < b + 0.15 && q > a - 0.15);
+    let free;
+    if (x.it.t === "rows" && o === "land" && !x.it.pin) {   // the renderer draws a landscape list on the LEFT unless side:"right": the planner must reserve the side it will really be drawn on (a list planned «right» but drawn left sat on top of the left photo, user 2026-11-08) and flip `side` itself when the wanted side is taken in time
+      const want = x.it.side === "right" ? "right" : "left", other = want === "right" ? "left" : "right";
+      free = slots.find(([n]) => n === want && !busy(n)) ?? (write ? slots.find(([n]) => n === other && !busy(n)) : undefined);
+      if (free && free[0] !== want && write) { if (free[0] === "right") x.it.side = "right"; else delete x.it.side; }
+    } else free = slots.find(([n]) => !busy(n));
     const r = rectOf(x.it, o);
     if (r && inter(r, z) > FACE_TOL * area(r)) fails.push(`${label}: فوق الوجه (${r.map(Math.round).join(",")} ∩ ${z.map(Math.round).join(",")})`);
     if (!free) { fails.push(`${label}: لا خانة ${x.k} فارغة في وضع ${mode} — أخّره أو قدّمه`); continue; }

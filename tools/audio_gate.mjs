@@ -34,10 +34,23 @@ let pauses = null; try { pauses = JSON.parse((pc.stdout.split(String.fromCharCod
 const keepArg = arg("keep", "");
 if (keepArg && Array.isArray(pauses)) {
   const segs = JSON.parse(fs.readFileSync(map, "utf8")).segments;
-  const toCut = (s) => { const g = segs.find((x) => s >= x.a - 1e-6 && s <= x.b + 1e-6); return g ? g.n + (s - g.a) : null; };
-  const spans = keepArg.split(",").filter(Boolean).map((r) => r.split("-").map(Number)).map(([a, b]) => [toCut(a), toCut(b)]).filter(([a, b]) => a !== null && b !== null);
+  // a boundary that fell in a dropped gap (the pause trim shaves segment ends) clamps to the nearest kept edge instead of dropping the whole span
+  const toCut = (s, side) => {
+    const g = segs.find((x) => s >= x.a - 1e-6 && s <= x.b + 1e-6); if (g) return g.n + (s - g.a);
+    if (side === "b") { const q = [...segs].reverse().find((x) => x.b <= s); return q ? q.n + (q.b - q.a) : null; }
+    const q = segs.find((x) => x.a >= s); return q ? q.n : null;
+  };
+  const spans = keepArg.split(",").filter(Boolean).map((r) => r.split("-").map(Number)).map(([a, b]) => [toCut(a, "a"), toCut(b, "b")]).filter(([a, b]) => a !== null && b !== null);
   const exempt = pauses.filter(([s]) => spans.some(([a, b]) => s >= a - 0.05 && s <= b));
   if (exempt.length) console.log(`ℹ سكتات مستثناة بأمر المستخدم (إبقاء كامل ${keepArg}ث مصدر): ${exempt.map(([s, d]) => `[${s}ث ×${d}]`).join(" ")}`);
+  pauses = pauses.filter((p) => !exempt.includes(p));
+}
+// --silent-ok a-b,…: OUTPUT-timeline seconds of a deliberate silent animation / sound-effect beat in a cartoon (user 2026-11-10: «في الانيميشن السكتة نتجاوز عنها أحيانا لأجل دهشة أو مؤثر صوتي أو مقطع صامت»); pauses starting inside are not counted — printed, never silent
+const silentOk = arg("silent-ok", "");
+if (silentOk && Array.isArray(pauses)) {
+  const spans = silentOk.split(",").filter(Boolean).map((r) => r.split("-").map(Number));
+  const exempt = pauses.filter(([s]) => spans.some(([x, y]) => s >= x - 0.05 && s <= y));
+  if (exempt.length) console.log(`ℹ سكتات مستثناة بأمر المستخدم (مقطع صامت/مؤثر في الأنيميشن ${silentOk}ث): ${exempt.map(([s, d]) => `[${s}ث ×${d}]`).join(" ")}`);
   pauses = pauses.filter((p) => !exempt.includes(p));
 }
 rep(pc.status === 0 && Array.isArray(pauses) && pauses.length === 0, `سكتات > 0.40ث: ${pauses ? pauses.length : "؟ (تعذّر القراءة)"}${pauses && pauses.length ? " " + pauses.slice(0, 12).map(([s, d]) => `[${s}ث ×${d}]`).join(" ") : ""} (المسموح 0 دون استثناء)`);

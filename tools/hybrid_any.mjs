@@ -209,3 +209,10 @@ fs.writeFileSync(repFile, JSON.stringify(rep, null, 2));
 console.log(JSON.stringify(rep, null, 2));
 log(`DONE → ${out}   (report: ${repFile})`);
 logProgress(`DONE ${out}`);
+// فاصل الافتتاح (صارم، 2026-11-11): الرندر الكامل (عرضي أو طولي) لأي مونتاج يأخذ فاصلاً ورقياً عشوائياً في أوله (يُتخطّى للأجزاء/المدى الجزئي/الفواصل نفسها/--no-bumper)
+{
+  const partial = (PART !== "") || Number(arg("start", 0)) !== 0 || arg("end", null) !== null;
+  if (!partial && !compId.startsWith("Fasel-") && !process.argv.includes("--no-bumper")) {
+    spawnSync("node", ["tools/prepend_bumper.mjs", out, "--name", String(arg("name", path.basename(out, path.extname(out))))], { cwd: root, stdio: "inherit" });
+  }
+}

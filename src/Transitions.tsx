@@ -36,3 +36,23 @@ export const TrSection: React.FC<Tr & { title: string; sub?: string }> = ({ at, 
     </>
   );
 };
+
+/** halftone dots: dots grow from the centre until they cover the frame (first half), the scene swaps under full cover, then the dots shrink away (second half) — taken from «موشن خام», in the brand's dark base */
+export const TrHalftone: React.FC<Tr & { cell?: number }> = ({ at, dur = 1.0, a, b, cell = 44 }) => {
+  const { width: W, height: H } = useVideoConfig();
+  const p = useP(at, dur);
+  if (p <= 0) return <Fill>{a}</Fill>;
+  if (p >= 1) return <Fill>{b}</Fill>;
+  const q = p < 0.5 ? p * 2 : (1 - p) * 2, ox = W / 2, oy = H / 2, maxD = Math.hypot(Math.max(ox, W - ox), Math.max(oy, H - oy));
+  const dots: React.ReactNode[] = [];
+  for (let y = cell / 2; y < H + cell; y += cell) for (let x = cell / 2; x < W + cell; x += cell) {
+    const k = clamp(q * 1.8 - (Math.hypot(x - ox, y - oy) / maxD) * 0.8);
+    if (k > 0) dots.push(<circle key={`${x}_${y}`} cx={x} cy={y} r={cell * 0.75 * k} />);
+  }
+  return (
+    <>
+      <Fill>{p < 0.5 ? a : b}</Fill>
+      <svg width={W} height={H} style={{ position: "absolute", left: 0, top: 0 }} fill={BRAND.base3}>{dots}</svg>
+    </>
+  );
+};

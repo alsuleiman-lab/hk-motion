@@ -65,3 +65,7 @@ const total = (Date.now() - T0) / 1000;
 const frames = Number(execFileSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=nb_frames", "-of", "csv=p=0", out], { encoding: "utf8" }).trim());
 log(`DONE ${frames}/${n} frames → ${out} | render ${tRender.toFixed(0)} s, total ${total.toFixed(0)} s = ${(n / total).toFixed(1)} fps (×${((n / 30) / total).toFixed(2)} real time)`);
 for (const r of results) { try { fs.rmSync(path.join(root, ".tmp/hybrid_any", `${comp}_p${r.i}`), { recursive: true, force: true }); } catch { /* keep */ } }
+// فاصل الافتتاح (صارم، 2026-11-11): بعد دمج الأجزاء، للرندر الكامل العرضي فقط
+if (start === 0 && !comp.startsWith("Fasel-") && !process.argv.includes("--no-bumper")) {
+  execFileSync("node", ["tools/prepend_bumper.mjs", out, "--name", path.basename(out, path.extname(out))], { cwd: root, stdio: "inherit" });
+}

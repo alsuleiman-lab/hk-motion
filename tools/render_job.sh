@@ -28,7 +28,7 @@ if true; then
   # render engine (R-RENDER-GPU.1, user 2026-11-12): the all-GPU renderer by default; RENDER_ENGINE=hybrid = the previous path (fallback, with the user's permission).
   # Same arguments, same output (audio mixed, opening bumper prepended), same lock and retry: nothing else in this job changes.
   engine=tools/gpu_render.mjs; [ "${RENDER_ENGINE:-gpu}" = hybrid ] && engine=tools/hybrid_any.mjs
-  eng_opt=""; [ "$engine" = tools/gpu_render.mjs ] && eng_opt="--procs 1 --windows 3 --name $p"   # the measured best (remotion-render step 4); also one process = one asset file
+  eng_opt=""; [ "$engine" = tools/gpu_render.mjs ] && eng_opt="--procs 1 --windows 3"   # the measured best (remotion-render step 4); also one process = one asset file
   until node $engine --comp $id --out "$tmpv" ${under:+--under "$under"} $eng_opt > .tmp/b2_render_$p.log 2>&1; do grep -aq "ممنوع رندر" .tmp/b2_render_$p.log || break; sleep 60; done
   hasA=$(ffprobe -v error -select_streams a -show_entries stream=codec_type -of csv=p=0 "$tmpv" 2>/dev/null | head -1)
   if [ -s "$tmpv" ]; then

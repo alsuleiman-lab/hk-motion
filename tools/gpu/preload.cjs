@@ -116,7 +116,9 @@ function setup(cfg) {
     await ready("frame " + f);
     /* wait for React's commit of frame f (a changed frame) and, in the top layer, for its slot geometry (posted in HybridHost's layout effect of
        that commit), then for readiness again */
-    for (let tries = 0; (f !== shown && commits === c0) || (cfg.mode === "top" && !geoms.has(f)); tries++) {
+    /* a composition without <HybridHost> (data-hyhost, src/hybrid/Slot.tsx) posts no geometry: nothing to wait for, the compositor puts its frame on black */
+    const hosted = () => !!document.querySelector("[data-hyhost]");
+    for (let tries = 0; (f !== shown && commits === c0) || (cfg.mode === "top" && !geoms.has(f) && hosted()); tries++) {
       if (tries > 5000) throw new Error(`frame ${f} was never committed (commits ${c0} -> ${commits}, geometry ${geoms.has(f)})`);
       await new Promise((r) => setTimeout(r, 1));
       await ready("frame " + f + " (after commit)");
@@ -130,7 +132,7 @@ function setup(cfg) {
     pendingFrame = f;
     const t5 = performance.now();
     T.n++; T.pre += t1 - t0; T.set += t2 - t1; T.ready += t3 - t2; T.fonts += t4 - t3; T.assets += t5 - t4;
-    const g = geoms.get(f) || null;
+    const g = geoms.get(f) || (cfg.mode === "top" && !hosted() ? { frame: f, slots: [], nohost: true } : null);
     const seen = [...geoms.keys()];
     geoms.clear();
     /* videos still decoded by CHROMIUM in this frame (not a VSlot): <OffthreadVideo> fetches /proxy?src=…, <Video>/<Html5Video> are <video> elements */

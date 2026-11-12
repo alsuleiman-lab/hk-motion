@@ -25,7 +25,7 @@ import { BRAND, applyBrand } from "./brand";
 import type { BrandName } from "./brand";
 import { MaskedVideo } from "./MaskedVideo";
 import { DEBATE_LAYOUTS } from "./DebateLayouts";
-import { HybridHost, HybridBg, VSlot, HY, hyBg, UnderHim } from "./hybrid/Slot";
+import { HybridHost, HybridBg, VSlot, HY, HYL, HyLayer, hyBg, UnderHim } from "./hybrid/Slot";
 import type { PortIso } from "./GazaFx";
 import type { DebateLayoutName } from "./DebateLayouts";
 import { BgClip, HClip, Watermark, FxStage, HorrorVeil, TailFade, TvOff, WeightsOnBack } from "./GazaFx";
@@ -398,6 +398,21 @@ const CropPolaroid: React.FC<{ cut: string; x: number; w: number; y?: number; h?
 /** landscape: only his slice of a baked-split recording, centred on the decorated base (the clip beside him is never shown) */
 const SoloLand: React.FC<{ cut: string; sp: NonNullable<MontageSpec["solos"]>[number]; zooms?: MontageSpec["zooms"] }> = ({ cut, sp, zooms = [] }) => {
   const t = useT(0), zz = zooms.find((q) => t >= q.from - 0.01 && t <= q.to + 1.2), zm = zz ? 1 + (zz.amt ?? 0.08) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1, s = sp.scale ?? 1, w = sp.sheikh.w * s, h = LANDSCAPE.H * s, centered = (sp.center ?? []).some((c) => t >= c.from && t < c.to);
+  if (HYL) {   /* GPU renderer (2026-11-12): the decorated base in layer 1, ABOVE his full-frame footage (level 0) and BELOW his slice (level 1), which the
+                  compositor draws in the same box, the zoom (scale zm about 50% 28% of the box) applied to the picture. Box and picture snapped to whole
+                  pixels as the browser draws them (unzoomed). */
+    const l = sp.align === "right" && !centered ? LANDSCAPE.W - w : (LANDSCAPE.W - w) / 2, tp = Math.min(0, LANDSCAPE.H - h) / 2;
+    const L = Math.round(l), BW = Math.round(l + w) - L, T = Math.round(tp), BH = Math.round(tp + h) - T;
+    const ix = Math.round(l - sp.sheikh.x * s) - L, iw = Math.round(l - sp.sheikh.x * s + LANDSCAPE.W * s) - L - ix, ox = 0.5 * BW, oy = 0.28 * BH;
+    return (
+      <Only from={sp.from} to={sp.to}>
+        <AbsoluteFill>
+          <HyLayer z={1}><WarmBase /></HyLayer>
+          <VSlot src={cut} w={BW} h={BH} style={{ left: L, top: T }} vx={ox + zm * (ix - ox)} vy={oy + zm * (0 - oy)} vw={zm * iw} vh={zm * BH} z={1} grow={0} />
+        </AbsoluteFill>
+      </Only>
+    );
+  }
   return (
     <Only from={sp.from} to={sp.to}>
       <AbsoluteFill>
@@ -625,7 +640,8 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => 
   const f = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const o: Orient = width > height ? "land" : "port";
-  if (HY && ((o === "port" && spec.items.some((x) => x.t === "phone")) || (o === "land" && spec.psplits?.length) || spec.solos?.length || spec.items.some((x) => x.t === "mini" || x.t === "treefx"))) throw new Error(`المسار الهجين لا يدعم هذا المونتاج (${spec.id}): طولي أو solos/psplits/mini/treefx — استعمل الرندر العادي`);
+  /* solos: drawn on the GPU by the GPU renderer (SoloLand, HYL, 2026-11-12); the hybrid (hybrid_any) still cannot */
+  if (HY && ((o === "port" && spec.items.some((x) => x.t === "phone")) || (o === "land" && spec.psplits?.length) || (spec.solos?.length && !HYL) || spec.items.some((x) => x.t === "mini" || x.t === "treefx"))) throw new Error(`المسار الهجين لا يدعم هذا المونتاج (${spec.id}): طولي أو solos/psplits/mini/treefx — استعمل الرندر العادي`);
   applyBrand(spec.brand);
   FONT_TITLE(); FONT_TEXT();
   const bar = spec.bar ?? BAR_WARM;
@@ -664,7 +680,18 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => 
       {o === "land" ? (spec.solos ?? []).flatMap((sp, i) => [<Curtain key={"ca" + i} at={sp.from} />, <Curtain key={"cb" + i} at={sp.to} />, ...(sp.center ?? []).flatMap((c, j) => [<Curtain key={"cc" + i + j} at={c.from} />, <Curtain key={"cd" + i + j} at={c.to} />])]) : null}
       {spec.tail ? <Sequence from={Math.round(spec.tail.from * 30)}><Audio src={staticFile(spec.tail.src)} volume={0.95} /></Sequence> : null}
       {spec.tail ? <TailVoice tl={spec.tail} /> : null}
-      {fulls.map((x, i) => <UnderHim key={i} active={underHim(spec, o, x)} from={x.from} to={x.to}><FullImage src={x.src} from={x.from} to={x.to} origin={o === "land" ? x.land?.origin ?? x.origin : x.origin} marker={o === "land" ? x.land?.marker : x.marker} box={o === "land" ? undefined : x.box} /></UnderHim>)}
+      {fulls.map((x, i) => {
+        const fp = { src: x.src, from: x.from, to: x.to, origin: o === "land" ? x.land?.origin ?? x.origin : x.origin, marker: o === "land" ? x.land?.marker : x.marker, box: o === "land" ? undefined : x.box };
+        /* hybrid / GPU render (2026-11-12): a full-screen VIDEO is decoded on the GPU — the clip as a <VSlot> outside <UnderHim> (so it lies just under
+           his cut-out), its marker in the under-him layer; FullImage ignores `part` for pictures and boxes */
+        const vid = HY && !fp.box && /\.mp4$/i.test(x.src);
+        return (
+          <React.Fragment key={i}>
+            {vid ? <FullImage {...fp} part="video" /> : null}
+            <UnderHim active={underHim(spec, o, x)} from={x.from} to={x.to}><FullImage {...fp} part={vid ? "graphics" : undefined} /></UnderHim>
+          </React.Fragment>
+        );
+      })}
       {bgclips.map((x, i) => <BgClip key={"bg" + i} src={x.src} from={x.from} to={x.to} fade={x.fade} start={x.start} dim={x.dim} iso={o === "port" && portIso ? { ...portIso, focusX: (x as { focusX?: number }).focusX ?? portIso.focusX } : undefined} />)}   {/* focusX per clip: where its subject is */}
       {hclips.map((x, i) => { const pv = hclips.find((y) => y !== x && x.from - y.to > -0.01 && x.from - y.to < 1), nx = hclips.find((y) => y !== x && y.from - x.to > -0.01 && y.from - x.to < 1);
         return <HClip key={"hc" + i} src={x.src} from={pv ? (pv.to + x.from) / 2 : x.from} to={nx ? (x.to + nx.from) / 2 : x.to} start={Math.max(0, (x.start ?? 0) - (pv ? (x.from - (pv.to + x.from) / 2) : 0))} zoom={x.zoom} fx={x.fx} fy={x.fy} label={x.label} enter={!pv} leave={!nx} />; })}

@@ -12,10 +12,25 @@ version: 4.0.535
 
 **كيف يعمل:**
 - Electron خارج الشاشة يرسم الرسوم على كرت الشاشة، ويخرج كل إطار نسيجاً مشتركاً ينسخه `tools/gpu/bridge.dll` إلى CUDA؛
-- PyNvVideoCodec يفكّ الفيديو إلى CUDA مباشرة (h264/av1، وغيرهما بقارئ ffmpeg القديم)؛
+- PyNvVideoCodec يفكّ الفيديو إلى CUDA مباشرة: h264/av1 بـ SimpleDecoder، و**VP9 بـ `tools/gpu/nvseq.py`** (2026-11-12: SimpleDecoder كان يعطي في VP9 الإطار التالي ويزداد انزياحه عند الإطارات المخفية «superframes»؛ الجديد يعدّ الصور بترتيب خروجها من إطار مفتاحي معروف بتوقيت حزمته، ومطابق لـ ffmpeg بتاً بتاً، `tools/gpu/check_seqdecoder.py`)، وما سواها بقارئ ffmpeg؛
 - `tools/gpu_compositor.py` يرصّ الطبقات ويرمّز.
 
-لا لقطة شاشة، ولا PNG، ولا نقل للإطار إلى المعالج. التقرير الكامل بالأرقام: `docs/gpu_render_report.md` (فرع `gpu-render`).
+لا لقطة شاشة، ولا PNG، ولا نقل للإطار إلى المعالج. التقرير الكامل بالأرقام: `docs/gpu_render_report.md`.
+
+**كل أدوات الرندر صارت تستدعيه (2026-11-12):**
+- `render_job.sh` (الطابور)، و`tools/gpu/render_project.sh`؛
+- `render_clip.mjs` (معاينة، `SCALE=0.5` يصغّر على الكرت)، و`render_trial.mjs --frames A-B`، و`render_silent.mjs` (التعليق الصامت)، و`judder_probe.mjs`؛
+- و`hybrid_parallel.mjs` صار يمرّر الأمر إليه.
+- القديم (`render_final`/`render_chunked`/`npx remotion render`) ممنوع إلا بنص المستخدم.
+
+**خيارات `gpu_render`:**
+- `--props '<json>'` (أو `RENDER_PROPS`): خصائص التركيبة؛
+- `--scale 0.5`: نسخة مصغّرة؛
+- `--start/--end`: مقطع؛
+- `--no-bumper`؛
+- `BUMPER_AT`/`BUMPER_ID`/`BUMPER_POSITION`: موضع الفاصل ومعرّفه، كما في `render_job.sh`.
+
+**أي تركيبة:** ما فيه `<HybridHost>` تُوضع فيديوهاته على الكرت؛ وما ليس فيه يُرسم كله طبقةَ رسوم فوق الأسود، كما يفعل Remotion (68–70 dB مقارنةً بـ Remotion).
 
 ### حين يطلب المستخدم «رندر» (بالترتيب، لا تتخطَّ شيئاً)
 
@@ -58,9 +73,9 @@ version: 4.0.535
 | SaintRambal-L (25 107 إطاراً) | 38.1 دقيقة | 8.0 دقائق |
 | SaintRambal طولي | 27 دقيقة | 10.2 دقائق |
 | FatimaSheikhayn طولي | — | 2.6 دقيقة |
-| FatimaSheikhayn-L | — | 13.1 دقيقة، بسبب الشاشة المقسومة التي ما زالت في Chromium |
+| FatimaSheikhayn-L | — | 13.1 دقيقة قبل نقل الشاشة المقسومة إلى الكرت (2026-11-12)؛ لم يُقس بعده كاملاً |
 
-الشكل مطابق للهجين (≥ 45 dB، والمعتاد ≈ 68)، والتوقيت صحيح بالضبط، والإطارات متطابقة بين رندرين.
+الشكل مطابق للهجين (≥ 45 dB، والمعتاد ≈ 68)، والتوقيت صحيح بالضبط، والإطارات متطابقة بين رندرين. استثناء: النوافذ المصغّرة المائلة التي كان يرسمها Chromium (الشاشة المقسومة) ≈ 40–41 dB مقارنةً بـ Chromium، والفرق في مرشّح التصغير وحواف دون البكسل، لا يُرى بالعين.
 
 **ما لم يتحقق بعد:**
 - معالج الجهاز ≤ 35%: متوسطه 60%، وعمليات الرندر وحدها ≈ 30–34%، وأكبر بند React الخاص بالتركيبة؛
@@ -68,7 +83,7 @@ version: 4.0.535
 
 > الأقسام التالية عن الهجين (`hybrid_any`) تبقى مرجعاً للاحتياط، ولقواعد `VSlot` و`UnderHim` التي يشترك فيها المحرّكان.
 
-> **HYBRID (fallback since 2026-11-12; was the only path from 2026-11-09):** final render = `node tools/hybrid_any.mjs --comp <Id> --out <file>`. `render_final`/`render_chunked`/`render_clip` refuse to run (`tools/hybrid_gate.mjs`, hook), and a failed hybrid is FIXED, never replaced by the old path. A composition the hybrid cannot draw is ported to `HybridHost`/`VSlot`. Old path only when the user's current message asks for it (`LEGACY_RENDER_USER_OK="<his words>"`).
+> **HYBRID (fallback since 2026-11-12; was the only path from 2026-11-09):** final render = `node tools/hybrid_any.mjs --comp <Id> --out <file>`. `render_final`/`render_chunked` refuse to run (`tools/hybrid_gate.mjs`, hook; `render_clip` now runs `gpu_render`), and a failed hybrid is FIXED, never replaced by the old path. A composition the hybrid cannot draw is ported to `HybridHost`/`VSlot`. Old path only when the user's current message asks for it (`LEGACY_RENDER_USER_OK="<his words>"`).
 
 > **HYBRID SPEED — nothing is decoded in Chrome (user 2026-11-12: «5 إطارات للثانية قليل جداً»).** Measured on SaintRambal-L: plain spans 15.4 fps, but spans where he is isolated over a background clip 2.6 fps (more browsers did not help: 7 browsers = 2.4 fps; the cost is Chrome seeking videos per frame, not CPU).
 > 1. Every video in the hybrid "top"/"bg" layer is a `<VSlot>` (GPU compositor, NVDEC) — never `OffthreadVideo`/`<Video>`/`ClipVideo`. `BgClip` (src/GazaFx.tsx) does this; a new video component must too.

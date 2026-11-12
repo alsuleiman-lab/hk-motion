@@ -345,6 +345,10 @@ VEIL_RGB = torch.tensor([6.0, 12.0, 22.0], device=dev).view(3, 1, 1)  # BgClip v
 
 
 def draw_slot(out, s, src, mat=None):
+    if s.get("fit") in ("cover", "contain"):   # (2026-11-12) VSlot fit: objectFit of the REAL source size in the box, centred
+        sh0, sw0 = src.shape[1:]
+        kf = (max if s["fit"] == "cover" else min)(s["w"] / sw0, s["h"] / sh0)
+        s = dict(s, vw=sw0 * kf, vh=sh0 * kf, vx=(s["w"] - sw0 * kf) / 2, vy=(s["h"] - sh0 * kf) / 2)
     ma, mb, mc, md, me, mf = s["m"]
     w, h = s["w"], s["h"]
     det = ma * md - mb * mc
@@ -360,15 +364,24 @@ def draw_slot(out, s, src, mat=None):
     px, py = xs[y0:y1, x0:x1] - me, ys[y0:y1, x0:x1] - mf
     qx = (md * px - mc * py) / det
     qy = (-mb * px + ma * py) / det
-    # clip box grown by 1 output px so no seam shows under a border ring drawn by Remotion
-    grow = 1.0 / scl
-    d = rrect_sdf(qx - w / 2, qy - h / 2, w / 2 + grow, h / 2 + grow, max(0.0, s["r"] + grow)) * scl
+    # clip box grown by 1 output px so no seam shows under a border ring drawn by Remotion; `g` (VSlot grow) = another growth, 0 = the exact box
+    # (a window with no ring over its edge: the browser clips there, 2026-11-12)
+    grow = s.get("g", 1.0) / scl
+    rr = s["r"]
+    if isinstance(rr, list):   # (2026-11-12) one radius per corner, CSS order: top-left, top-right, bottom-right, bottom-left
+        tl, tr, br, bl = (torch.full_like(qx, max(0.0, v + grow)) for v in rr)
+        rr = torch.where(qy < h / 2, torch.where(qx < w / 2, tl, tr), torch.where(qx < w / 2, bl, br))
+    else:
+        rr = max(0.0, rr + grow)
+    d = rrect_sdf(qx - w / 2, qy - h / 2, w / 2 + grow, h / 2 + grow, rr) * scl
     cov = (0.5 - d).clamp(0, 1) * s["o"]
     # the video frame itself may be smaller than the clipped box (e.g. a letter-boxed "contain" copy): never smear its edge pixels over the rest of the box
     if s["vx"] > 0.01 or s["vy"] > 0.01 or s["vx"] + s["vw"] < w - 0.01 or s["vy"] + s["vh"] < h - 0.01 or True:
         ex = torch.minimum(qx - s["vx"], s["vx"] + s["vw"] - qx) * scl
         ey = torch.minimum(qy - s["vy"], s["vy"] + s["vh"] - qy) * scl
-        cov = cov * (torch.minimum(ex, ey) + 0.5).clamp(0, 1)
+        # min, not product (2026-11-12): where the frame edge lies ON the clip edge (VSlot grow=0) a product squared the edge ramp = a dark seam;
+        # with the default 1 px growth the two ramps never overlap, so the result there is unchanged
+        cov = torch.minimum(cov, (torch.minimum(ex, ey) + 0.5).clamp(0, 1) * s["o"])
     sh_, sw_ = src.shape[1:]
     kx, ky = scl * s["vw"] / sw_, scl * s["vh"] / sh_
     if kx < 0.8 or ky < 0.8:  # large reduction: pre-filter (area-like) so it matches the browser's smooth scaling, then warp 1:1

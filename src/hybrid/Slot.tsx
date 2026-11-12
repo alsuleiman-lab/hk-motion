@@ -21,7 +21,7 @@ export const HYL = HY !== undefined && !!P.hybridLayers;
 /** background colour that disappears in the hybrid "top" layer (so the video below it is visible) */
 export const hyBg = <T,>(c: T): T | undefined => (HY === "top" ? undefined : c);
 
-type Rec = { id: string; src: string; t: number; f: number; rate: number; m: number[]; w: number; h: number; r: number; o: number; vx: number; vy: number; vw: number; vh: number; fx: Record<string, number>; mt?: string; mtT?: number; fl?: number; z?: number };
+type Rec = { id: string; src: string; t: number; f: number; rate: number; m: number[]; w: number; h: number; r: number | number[]; o: number; vx: number; vy: number; vw: number; vh: number; fx: Record<string, number>; mt?: string; mtT?: number; fl?: number; z?: number; g?: number; fit?: string };
 const G: { frame: number; slots: Map<string, Rec>; flushedFrame: number; host: HTMLDivElement | null; under: boolean } = { frame: -1, slots: new Map(), flushedFrame: -2, host: null, under: false };
 
 const MEAS = new Map<string, () => void>(); // latest measuring function of every mounted slot
@@ -60,7 +60,7 @@ export const HybridHost: React.FC<{ children: React.ReactNode }> = ({ children }
     requestAnimationFrame(settle);
   });
   return (
-    <AbsoluteFill ref={(el) => { G.host = el; }} style={{ visibility: HY === "bg" || HY === "under" || HY === "below" ? "hidden" : undefined }}>
+    <AbsoluteFill data-hyhost="" ref={(el) => { G.host = el; }} style={{ visibility: HY === "bg" || HY === "under" || HY === "below" ? "hidden" : undefined }}>
       {P.noshadow ? <style>{"*{box-shadow:none !important;text-shadow:none !important}"}</style> : null}
       {children}
     </AbsoluteFill>
@@ -108,7 +108,8 @@ export type VSlotProps = {
   /** the clipped box (what the viewer sees of the video), in CSS px, positioned by `style` (default: absolute at 0,0) */
   w: number;
   h: number;
-  radius?: number;
+  /** corner radius of the clip box; or one per corner [top-left, top-right, bottom-right, bottom-left] (CSS order, 2026-11-12) */
+  radius?: number | [number, number, number, number];
   /** where the whole video frame sits inside the box (defaults: fills the box) */
   vx?: number; vy?: number; vw?: number; vh?: number;
   fx?: SlotFx;
@@ -117,10 +118,15 @@ export type VSlotProps = {
   matte?: { src: string; startFrom: number; floor?: number };
   /** GPU renderer: stacking level (default 0) — the video goes above <HyLayer z={z}> and below <HyLayer z={z + 1}> */
   z?: number;
+  /** output px the compositor grows the clip box by (default 1: no seam under a border ring Remotion draws over the edge); 0 = the exact box,
+   *  for a window with nothing over its edge (the browser clips exactly there) */
+  grow?: number;
+  /** (2026-11-12) objectFit of the video's REAL size in the box, centred (vx/vy/vw/vh ignored): the compositor knows the source's dimensions */
+  fit?: "cover" | "contain";
 };
 
 let SEQ = 0;
-export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, playbackRate = 1, muted = true, w, h, radius = 0, vx = 0, vy = 0, vw, vh, fx, style, matte, z = 0 }) => {
+export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, playbackRate = 1, muted = true, w, h, radius = 0, vx = 0, vy = 0, vw, vh, fx, style, matte, z = 0, grow, fit }) => {
   const env = getRemotionEnvironment();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -143,7 +149,7 @@ export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, pla
     G.slots.set(idRef.current, {
       id: idRef.current, src, t, f, rate: playbackRate, ...(matte ? { mt: matte.src, mtT: matte.startFrom / fps + frame / fps, fl: matte.floor ?? 0 } : {}),
       m: [(p1.x - p0.x) / w, (p1.y - p0.y) / w, (p2.x - p0.x) / h, (p2.y - p0.y) / h, p0.x, p0.y],
-      w, h, r: radius, o, vx, vy, vw: VW, vh: VH, fx: { blur: 0, brightness: 1, contrast: 1, saturate: 1, ...(fx ?? {}) }, ...(z ? { z } : {}),
+      w, h, r: radius, o, vx, vy, vw: VW, vh: VH, fx: { blur: 0, brightness: 1, contrast: 1, saturate: 1, ...(fx ?? {}) }, ...(z ? { z } : {}), ...(grow !== undefined ? { g: grow } : {}), ...(fit ? { fit } : {}),
     });
     };
     measure();
@@ -152,12 +158,12 @@ export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, pla
     return () => { G.slots.delete(idRef.current); MEAS.delete(idRef.current); };
   });
 
-  const box: React.CSSProperties = { position: "absolute", left: 0, top: 0, width: w, height: h, overflow: "hidden", borderRadius: radius, ...style };
+  const box: React.CSSProperties = { position: "absolute", left: 0, top: 0, width: w, height: h, overflow: "hidden", borderRadius: Array.isArray(radius) ? radius.map((v) => `${v}px`).join(" ") : radius, ...style };
   if (HY === "bg" || HY === "under" || HY === "below") return null; // the static background image and the extra layers contain no video
   if (HY === "top") {
     const dot = (x: number, y: number) => <div data-probe style={{ position: "absolute", left: x, top: y, width: 0, height: 0 }} />;
     return <div ref={ref} style={{ ...box, overflow: "visible" }}>{dot(0, 0)}{dot(w, 0)}{dot(0, h)}</div>;
   }
-  const common = { src: staticFile(env.isStudio && studioSrc ? studioSrc : src), muted, startFrom: Math.round(startFrom), playbackRate, style: { position: "absolute" as const, left: vx, top: vy, width: VW, height: VH, maxWidth: "none" as const, filter: cssFilter(fx) } };
+  const common = { src: staticFile(env.isStudio && studioSrc ? studioSrc : src), muted, startFrom: Math.round(startFrom), playbackRate, style: { position: "absolute" as const, ...(fit ? { left: 0, top: 0, width: w, height: h, objectFit: fit } : { left: vx, top: vy, width: VW, height: VH }), maxWidth: "none" as const, filter: cssFilter(fx) } };
   return <div style={box}>{env.isStudio ? <Video {...common} /> : <OffthreadVideo {...common} />}</div>;
 };

@@ -68,7 +68,12 @@ const BgClipPort: React.FC<{ src: string; start: number; dim: number; iso: PortI
     <AbsoluteFill>
       {none ? null : HY ? <VSlot src={src} startFrom={Math.round(start * FPS)} w={W} h={H} vx={soft ? box_ : (W - bvw) / 2} vy={(H - bvh) / 2} vw={bvw} vh={bvh} fx={bfx} />
         : <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}><ClipVideo src={src} start={start} style={{ position: "absolute", left: soft ? box_ : (W - bvw) / 2, top: (H - bvh) / 2, width: bvw, height: bvh, filter: `blur(${bfx.blur}px) brightness(${bfx.brightness})` }} /></div>}
-      {HY ? <VSlot src={src} startFrom={Math.round(start * FPS)} w={bw} h={bh} radius={r} vx={ox} vy={oy} vw={vw} vh={vh} fx={{ veil: dim * 0.6 }} style={{ left: bx, top: by, transform: `rotate(${iso.rot ?? 0}deg)` }} />
+      {HY ? <>
+        <VSlot src={src} startFrom={Math.round(start * FPS)} w={bw} h={bh} radius={r} vx={ox} vy={oy} vw={vw} vh={vh} fx={{ veil: dim * 0.6 }} style={{ left: bx, top: by, transform: `rotate(${iso.rot ?? 0}deg)` }} />
+        {/* (2026-11-12) the tilted card's shadow and paper outline, missing in the hybrid until now: both lie OUTSIDE the box, so the graphics layer
+            (above the video) carries them unchanged, on an empty box of the same place, radius and rotation */}
+        {iso.rot ? <div style={{ position: "absolute", left: bx, top: by, width: bw, height: bh, borderRadius: r, transform: `rotate(${iso.rot}deg)`, boxShadow: "0 18px 40px rgba(0,0,0,.45)", outline: "10px solid #f3eee4" }} /> : null}
+      </>
         : <div style={{ position: "absolute", left: bx, top: by, width: bw, height: bh, borderRadius: r, overflow: "hidden", transform: `rotate(${iso.rot ?? 0}deg)`, boxShadow: iso.rot ? "0 18px 40px rgba(0,0,0,.45)" : undefined, outline: iso.rot ? "10px solid #f3eee4" : undefined }}><ClipVideo src={src} start={start} style={{ position: "absolute", left: ox, top: oy, width: vw, height: vh }} /></div>}
     </AbsoluteFill>
   );

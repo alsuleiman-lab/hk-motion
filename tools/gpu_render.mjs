@@ -3,7 +3,8 @@
 //   no PNG/JPEG, no copy to the CPU), tools/gpu/bridge.dll copies it GPU -> GPU into CUDA, and tools/gpu_compositor.py stacks it over the videos
 //   (NVDEC) and encodes on NVENC with the hybrid's exact settings. Same components, same report, same audio mix and bumper as hybrid_any.
 //   node tools/gpu_render.mjs --comp SaintRambal-L --out <file.mp4> [--start N --end N] [--under "a-b,…"] [--procs 2 --windows 3 --block 60]
-//   [--dump "dir:frame,frame"] [--no-bumper]
+//   [--dump "dir:frame,frame"] [--no-bumper] [--props '<json input props>'] [--scale 0.5 (smaller copy, previews)]
+//   Any composition: with <HybridHost> its videos are placed on the GPU; without it the whole frame is the graphics layer over black (as Remotion).
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import http from "node:http";
 import os from "node:os";
@@ -72,7 +73,9 @@ const linkVideos = (src, dst) => { for (const e of fs.readdirSync(src, { withFil
 if (!KEEP) linkVideos(path.join(root, "public"), path.join(serveUrl, "public"));   // hard links: zero copy (audio assets of <Audio>/<Video> point into the bundle)
 timing.bundleSec = (Date.now() - t) / 1000;
 if (!process.env.GR_KEEP_BUNDLE && !KEEP) process.on("exit", () => { try { fs.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
-const inputProps = { hybrid: "top", hybridPort: GEOM_PORT, hybridLayers: true };   /* hybridLayers: <HyLayer>/<VSlot z> active (GPU renderer only) */
+/* --props '<json>' (or env RENDER_PROPS): the composition's own input props (silent reactions, probes…), under the renderer's own keys */
+const PROPS = (() => { const s = arg("props", null); const j = s && s !== true ? s : process.env.RENDER_PROPS; try { return j ? JSON.parse(j) : {}; } catch { console.error("--props is not valid JSON"); process.exit(1); } })();
+const inputProps = { ...PROPS, hybrid: "top", hybridPort: GEOM_PORT, hybridLayers: true };   /* hybridLayers: <HyLayer>/<VSlot z> active (GPU renderer only) */
 const composition = await selectComposition({ serveUrl, id: compId, inputProps, chromiumOptions: { gl: "angle" } });
 const W = composition.width, H = composition.height, FPS = composition.fps;
 const start = Number(arg("start", 0)), end = Math.min(Number(arg("end", composition.durationInFrames - 1)), composition.durationInFrames - 1);
@@ -82,7 +85,7 @@ log(`${compId}: ${W}x${H} @${FPS}, frames ${start}-${end} (${NF})`);
 // ---- static background (rendered once, as in hybrid_any) ----
 t = Date.now();
 const bgPng = path.join(work, "bg.png");
-await renderStill({ composition, serveUrl, inputProps: { hybrid: "bg", hybridPort: GEOM_PORT, hybridLayers: true }, output: bgPng, imageFormat: "png", frame: start, chromiumOptions: { gl: "angle" }, overwrite: true });
+await renderStill({ composition, serveUrl, inputProps: { ...inputProps, hybrid: "bg" }, output: bgPng, imageFormat: "png", frame: start, chromiumOptions: { gl: "angle" }, overwrite: true });
 timing.bgSec = (Date.now() - t) / 1000;
 
 // ---- the bundle is served by @remotion/renderer's OWN server (RenderInternals.prepareServer, as renderFrames does): same files, and its /proxy
@@ -230,7 +233,10 @@ timing.audioSec = (Date.now() - t) / 1000;
 log(`audio: ${segs.length} segments mixed in ${timing.audioSec.toFixed(1)}s`);
 
 // ---- mux ----
-execFileSync("ffmpeg", ["-v", "error", "-y", "-i", video, ...(hasAudio ? ["-i", audio] : []), "-map", "0:v", ...(hasAudio ? ["-map", "1:a"] : []), "-c", "copy", "-movflags", "+faststart", out]);
+/* --scale k (previews, the old render_clip SCALE=0.5): the picture is resized on the GPU (scale_cuda) and re-encoded on NVENC; 1 = the stream as encoded */
+const SCALE = Number(arg("scale", 1)) || 1;
+const vcodec = SCALE === 1 ? ["-c:v", "copy"] : ["-vf", `scale_cuda=${2 * Math.round((W * SCALE) / 2)}:${2 * Math.round((H * SCALE) / 2)}`, "-c:v", "h264_nvenc", "-preset", "p4", "-cq", "23"];
+execFileSync("ffmpeg", ["-v", "error", "-y", ...(SCALE === 1 ? [] : ["-hwaccel", "cuda", "-hwaccel_output_format", "cuda"]), "-i", video, ...(hasAudio ? ["-i", audio] : []), "-map", "0:v", ...(hasAudio ? ["-map", "1:a"] : []), ...vcodec, ...(hasAudio ? ["-c:a", "copy"] : []), "-threads", "4", "-movflags", "+faststart", out]);
 const T_END = Date.now();
 smi.kill(); clearInterval(cpuTimer);
 if (!process.env.GR_KEEP_BUNDLE && !KEEP) { try { fs.rmSync(serveUrl, { recursive: true, force: true }); } catch {} }
@@ -265,9 +271,11 @@ log(`DONE → ${out}   (report: ${repFile})`);
 logProgress(`DONE ${out}`);
 // opening bumper (same rule as hybrid_any): a full render gets a random paper bumper; partial ranges / bumpers / --no-bumper skip it
 {
-  const partial = Number(arg("start", 0)) !== 0 || arg("end", null) !== null;
+  const partial = start !== 0 || end < composition.durationInFrames - 1;   /* an --end equal to the last frame is still a full render */
   if (!partial && !compId.startsWith("Fasel-") && !process.argv.includes("--no-bumper")) {
-    spawnSync("node", ["tools/prepend_bumper.mjs", out, "--name", String(arg("name", path.basename(out, path.extname(out))))], { cwd: root, stdio: "inherit" });
+    /* render_job.sh sets BUMPER_AT (seconds: before his first greeting, tools/bumper_at.mjs) and BUMPER_ID (the bumper chosen for this project); BUMPER_POSITION=end is read by prepend_bumper itself — same arguments as hybrid_any */
+    spawnSync("node", ["tools/prepend_bumper.mjs", out, "--name", String(arg("name", path.basename(out, path.extname(out)))),
+      ...(Number(process.env.BUMPER_AT) > 0 ? ["--at", String(process.env.BUMPER_AT)] : []), ...(process.env.BUMPER_ID ? ["--id", process.env.BUMPER_ID] : [])], { cwd: root, stdio: "inherit" });
   }
 }
 process.exit(0);

@@ -1,7 +1,7 @@
 ﻿import React from "react";
 import { BRAND_BAR, RED, alpha, currentStars } from "./brand";
 import { VSlot, HY, hyBg } from "./hybrid/Slot";
-import { AbsoluteFill, Img, OffthreadVideo, Sequence, getInputProps, getRemotionEnvironment, spring, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Img, OffthreadVideo, Sequence, getInputProps, getRemotionEnvironment, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { PhoneChips, useT, kufiF, zainF, naskhF, GFX_ONLY } from "./MG";
 import { Pic } from "./EuKit";
 import { KhBg } from "./KhKit";
@@ -379,8 +379,34 @@ export const PopCard: React.FC<{ at: number; x: number; y: number; children: Rea
 };
 
 /** a source picture FILLS the 1080×1920 frame for a frame range (user 2026-10-23: manuscript full-screen) with a slow push and an optional self-drawing marker; sits in the BASE layers (outside <Gfx>) because it deliberately replaces him for those seconds. Put it right after SheikhLayers, before <Gfx>. */
-export const FullImage: React.FC<{ src: string; from: number; to: number; origin?: string; marker?: { x: number; y: number; w: number; h: number; at: number }; box?: { x: number; y: number; w: number; h: number; rot?: number; plain?: boolean } }> = ({ src, from, to, origin = "50% 40%", marker, box }) => {
-  const t = useT(0);
+/** `part` (hybrid / GPU render, 2026-11-12): a full-screen VIDEO is split in two — "video" = the clip as a <VSlot> (decoded on the GPU, drawn by the
+ *  compositor; placed outside <UnderHim> it lies just under his cut-out), "graphics" = everything else (the marker), without the clip and without the
+ *  card ground the clip covers anyway. Outside the hybrid, or for a picture, `part` is ignored: the whole item as before. */
+export const FullImage: React.FC<{ src: string; from: number; to: number; origin?: string; marker?: { x: number; y: number; w: number; h: number; at: number }; box?: { x: number; y: number; w: number; h: number; rot?: number; plain?: boolean }; part?: "video" | "graphics" }> = ({ src, from, to, origin = "50% 40%", marker, box, part }) => {
+  const t = useT(0), { width: FW, height: FH } = useVideoConfig();
+  const split = HY && part && !box && /\.mp4$/i.test(src);
+  if (split && part === "video") {
+    if (t < from || t > to) return null;
+    const o = Math.min(1, (t - from) / 0.1 + 0.34, (to - t) / 0.1 + 0.34), k = 1 + 0.12 * clamp((t - from) / (to - from));
+    return (
+      <AbsoluteFill style={{ opacity: o, overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, transform: `scale(${k})`, transformOrigin: origin }}>
+          <Sequence from={Math.round(from * PK_FPS)}><VSlot src={src} w={FW} h={FH} fit="cover" grow={0} /></Sequence>
+        </div>
+      </AbsoluteFill>
+    );
+  }
+  if (split && part === "graphics") {
+    if (t < from || t > to || !marker) return null;
+    const o = Math.min(1, (t - from) / 0.1 + 0.34, (to - t) / 0.1 + 0.34), k = 1 + 0.12 * clamp((t - from) / (to - from)), mp = clamp((t - marker.at) / 0.5);
+    return (
+      <AbsoluteFill style={{ opacity: o, overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, transform: `scale(${k})`, transformOrigin: origin }}>
+          {mp > 0 ? <div style={{ position: "absolute", left: marker.x, top: marker.y, width: marker.w, height: marker.h, border: `7px solid ${RED}`, borderRadius: 30, clipPath: `inset(0 ${100 - mp * 100}% 0 0)`, boxShadow: `0 0 20px ${alpha(RED, .6)}` }} /> : null}
+        </div>
+      </AbsoluteFill>
+    );
+  }
   if (t < from || t > to) return null;
   const o = Math.min(1, (t - from) / 0.1 + 0.34, (to - t) / 0.1 + 0.34);
   const k = 1 + 0.12 * clamp((t - from) / (to - from));

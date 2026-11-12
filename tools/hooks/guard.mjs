@@ -131,9 +131,10 @@ if (mode === "pre") {
     if (/(rm\s+-[a-zA-Z]*r[a-zA-Z]*f?|rm\s+-rf|Remove-Item[^|;]*-Recurse)[^|;&]*\b(public|src)\b[\\/]?\s*(["']|$|;|&)/.test(c)) {
       emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "ممنوع حذف public/ أو src/ كاملاً: الكود يستورد منهما (AGENTS.md البند 7)." } });
     }
-    // STRICT HYBRID (user 2026-11-09): the old render path is refused unless the user's message asked for it (command carries LEGACY_RENDER_USER_OK=<his words>)
-    if (/(node|npx|bash|sh)[^;&|]*(render_final|render_chunked|render_clip).(mjs|sh)|npxs+remotions+render/i.test(c) && !/--help|stills?/i.test(c) && !/LEGACY_RENDER_USER_OK=S/.test(c)) {
-      emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "ممنوع: الرندر النهائي بالمسار المختلط حصراً (R-RENDER-SPEED.5، أمر 2026-11-09): node tools/hybrid_any.mjs --comp <المعرّف> --out <ملف>. تركيبة لا يرسمها الهجين تُنقل إلى HybridHost/VSlot؛ والقديم فقط إن طلبه المستخدم بنصه (LEGACY_RENDER_USER_OK=\"<كلامه>\")." } });
+    // STRICT GPU RENDER (user 2026-11-09, R-RENDER-GPU.1 2026-11-12): the old render path is refused unless the user's message asked for it (command carries
+    // LEGACY_RENDER_USER_OK=<his words>). render_clip / render_trial / render_silent now run tools/gpu_render.mjs, so they are allowed.
+    if (/\b(node|npx|bash|sh)\b[^;&|]*(render_final|render_chunked)\.(mjs|sh)|\bnpx\s+remotion\s+render\b/i.test(c) && !/--help|\bstills?\b/i.test(c) && !/LEGACY_RENDER_USER_OK=\S/.test(c)) {
+      emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "ممنوع: الرندر بالمحرّك الجديد على كرت الشاشة حصراً (R-RENDER-GPU.1، أمر 2026-11-12): node tools/gpu_render.mjs --comp <المعرّف> --out <ملف> (مقطع: --start A --end B --no-bumper؛ المشروع كله: bash tools/gpu/render_project.sh). فيديو ما زال يفكّه Chromium يُنقل إلى <VSlot>؛ والهجين hybrid_any احتياط بإذن المستخدم؛ والقديم فقط إن طلبه المستخدم بنصه (LEGACY_RENDER_USER_OK=\"<كلامه>\")." } });
     }
     // RENDER GATE: a final render (not a preview/still) needs a registered montage whose stages, plan items, user notes and audio gate all pass — re-rendering is the costly redo
     if (/\b(node|npx|bash|sh)\b[^;&|]*(render_final|render_chunked|hybrid_full)\.(mjs|sh)|\bnpx\s+remotion\s+render\b/i.test(c) && !/--help|\bstills?\b/i.test(c)) {

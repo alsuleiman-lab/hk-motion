@@ -267,6 +267,70 @@ class NvStream:
                 self.cur_idx = -1
 
 
+class VpxStream:
+    """(2026-11-12) VP9 on NVDEC straight into CUDA: SimpleDecoder indexed VP9 superframes wrongly (the NEXT frame, drifting), so the low-level
+    demuxer + decoder are driven by tools/gpu/nvseq.py, which counts the pictures in output order from a keyframe located by its packet timestamp.
+    Bit-exact with ffmpeg's decode, sequential and after jumps (tools/gpu/check_seqdecoder.py)."""
+
+    def __init__(self, path, pts):
+        from nvseq import SeqDecoder   # tools/gpu is on sys.path (see gpu_bridge above)
+        self.path = path
+        self.w, self.h, self.fps, self.n, self.full, self.m601 = probe(path)
+        self.n = min(self.n, len(pts))
+        self.sd = SeqDecoder(path, pts, self.w, self.h)
+        self.cur_idx, self.cur = -1, None
+        self.lock = threading.Lock()
+        self.last_use = 0
+        self.fb = None
+
+    def prepare(self, idx):
+        pass
+
+    def get(self, idx):
+        with self.lock:
+            if self.fb is not None:
+                return self.fb.get(idx)
+            idx = max(0, min(idx, self.n - 1))
+            if idx == self.cur_idx:
+                return self.cur
+            try:
+                x = self.sd.frame(idx)
+            except Exception as e:
+                print(f"WARNING: NVDEC (nvseq) failed on {self.path} at {idx} ({str(e).splitlines()[0][:120]}): ffmpeg reader from here", flush=True)
+                self.sd.close()
+                self.fb = Stream(self.path)
+                return self.fb.get(idx)
+            if x is None:   # past the end: hold the last frame, as the ffmpeg reader does
+                return self.cur
+            self.cur = nv12_to_rgb(x.reshape(-1), self.w, self.h, self.full, self.m601)
+            self.cur_idx = idx
+            return self.cur
+
+    def _kill(self):
+        self.sd.close()
+        if self.fb is not None:
+            self.fb._kill()
+
+    def idle_kill(self, frame_no):
+        if self.fb is not None:
+            self.fb.last_use = self.last_use
+            return self.fb.idle_kill(frame_no)
+        with self.lock:
+            if frame_no - self.last_use > 120:
+                self.sd.close()
+                self.sd.dec = None
+                self.cur_idx = -1
+
+
+def vp9_packets(path):
+    """sorted packet timestamps of a VP9 stream, or None when it has packets the frame count cannot follow (show_existing_frame: 1–3 byte packets)"""
+    o = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "packet=pts,size", "-of", "csv=p=0", path], capture_output=True, text=True).stdout.split()
+    rows = [r.split(",") for r in o if r.count(",") == 1 and r.split(",")[0].lstrip("-").isdigit()]
+    if not rows or any(int(s) <= 3 for _, s in rows):
+        return None
+    return sorted(int(t) for t, _ in rows)
+
+
 STREAMS = {}
 SLOCK = threading.Lock()
 
@@ -277,9 +341,18 @@ def stream_for(path, key):
         if k not in STREAMS:
             probe(path)
             # NVDEC straight to CUDA only for the codecs checked frame-exact against the hybrid's reader (tools/gpu/check_decoder.py, seek_truth.py):
-            # h264 / av1 (hevc not checked yet). VP9 measured ONE FRAME AHEAD with PyNvVideoCodec (2026-11-12) -> ffmpeg reader, exactly as in the hybrid.
-            ok = nvc is not None and not os.environ.get("GR_FFMPEG_DECODE") and CODEC.get(path) in ("h264", "av1")
-            STREAMS[k] = NvStream(path) if ok else Stream(path)
+            # h264 / av1 by SimpleDecoder (hevc not checked yet); VP9 by tools/gpu/nvseq.py (SimpleDecoder was one frame ahead and drifting on VP9
+            # superframes, 2026-11-12; checked bit-exact by tools/gpu/check_seqdecoder.py). Anything else: the ffmpeg reader, exactly as in the hybrid.
+            on = nvc is not None and not os.environ.get("GR_FFMPEG_DECODE")
+            pk = vp9_packets(path) if on and CODEC.get(path) == "vp9" else None
+            if pk:
+                STREAMS[k] = VpxStream(path, pk)
+            elif on and CODEC.get(path) in ("h264", "av1"):
+                STREAMS[k] = NvStream(path)
+            else:
+                if on and CODEC.get(path) == "vp9":
+                    print(f"WARNING: {path}: VP9 with show_existing_frame packets — ffmpeg reader (frames pass through the CPU)", flush=True)
+                STREAMS[k] = Stream(path)
         return STREAMS[k]
 
 
@@ -290,6 +363,7 @@ def slot_key(s):
 
 # ---------------- geometry server ----------------
 geoms = {}
+NOHOST = set()
 cv = threading.Condition()
 
 
@@ -325,6 +399,8 @@ def on_geom(obj):
         note_levels(obj["frame"], obj["levels"])
         threading.Thread(target=schedule, daemon=True).start()
     with cv:
+        if obj.get("nohost"):   # composition without <HybridHost>: its whole picture is the graphics layer, over black (as Remotion's JPEG capture: body background black)
+            NOHOST.add(obj["frame"])
         geoms[obj["frame"]] = obj["slots"]
         if obj.get("under"):  # (2026-11-12) this frame also has an under-him layer
             if UNDER_ON:
@@ -528,6 +604,10 @@ VEIL_RGB = torch.tensor([6.0, 12.0, 22.0], device=dev).view(3, 1, 1)  # BgClip v
 
 
 def draw_slot(out, s, src, mat=None):
+    if s.get("fit") in ("cover", "contain"):   # (2026-11-12) VSlot fit: objectFit of the REAL source size in the box, centred
+        sh0, sw0 = src.shape[1:]
+        kf = (max if s["fit"] == "cover" else min)(s["w"] / sw0, s["h"] / sh0)
+        s = dict(s, vw=sw0 * kf, vh=sh0 * kf, vx=(s["w"] - sw0 * kf) / 2, vy=(s["h"] - sh0 * kf) / 2)
     ma, mb, mc, md, me, mf = s["m"]
     w, h = s["w"], s["h"]
     det = ma * md - mb * mc
@@ -543,15 +623,24 @@ def draw_slot(out, s, src, mat=None):
     px, py = xs[y0:y1, x0:x1] - me, ys[y0:y1, x0:x1] - mf
     qx = (md * px - mc * py) / det
     qy = (-mb * px + ma * py) / det
-    # clip box grown by 1 output px so no seam shows under a border ring drawn by Remotion
-    grow = 1.0 / scl
-    d = rrect_sdf(qx - w / 2, qy - h / 2, w / 2 + grow, h / 2 + grow, max(0.0, s["r"] + grow)) * scl
+    # clip box grown by 1 output px so no seam shows under a border ring drawn by Remotion; `g` (VSlot grow) = another growth, 0 = the exact box
+    # (a window with no ring over its edge: the browser clips there, 2026-11-12)
+    grow = s.get("g", 1.0) / scl
+    rr = s["r"]
+    if isinstance(rr, list):   # (2026-11-12) one radius per corner, CSS order: top-left, top-right, bottom-right, bottom-left
+        tl, tr, br, bl = (torch.full_like(qx, max(0.0, v + grow)) for v in rr)
+        rr = torch.where(qy < h / 2, torch.where(qx < w / 2, tl, tr), torch.where(qx < w / 2, bl, br))
+    else:
+        rr = max(0.0, rr + grow)
+    d = rrect_sdf(qx - w / 2, qy - h / 2, w / 2 + grow, h / 2 + grow, rr) * scl
     cov = (0.5 - d).clamp(0, 1) * s["o"]
     # the video frame itself may be smaller than the clipped box (e.g. a letter-boxed "contain" copy): never smear its edge pixels over the rest of the box
     if s["vx"] > 0.01 or s["vy"] > 0.01 or s["vx"] + s["vw"] < w - 0.01 or s["vy"] + s["vh"] < h - 0.01 or True:
         ex = torch.minimum(qx - s["vx"], s["vx"] + s["vw"] - qx) * scl
         ey = torch.minimum(qy - s["vy"], s["vy"] + s["vh"] - qy) * scl
-        cov = cov * (torch.minimum(ex, ey) + 0.5).clamp(0, 1)
+        # min, not product (2026-11-12): where the frame edge lies ON the clip edge (VSlot grow=0) a product squared the edge ramp = a dark seam;
+        # with the default 1 px growth the two ramps never overlap, so the result there is unchanged
+        cov = torch.minimum(cov, (torch.minimum(ex, ey) + 0.5).clamp(0, 1) * s["o"])
     sh_, sw_ = src.shape[1:]
     kx, ky = scl * s["vw"] / sw_, scl * s["vh"] / sh_
     if kx < 0.8 or ky < 0.8:  # large reduction: pre-filter (area-like) so it matches the browser's smooth scaling, then warp 1:1
@@ -653,7 +742,11 @@ for i in range(NF):
         schedule()
     _b = time.time()
     PROF["wait"] += _b - _a
-    out = BG.clone()
+    if fno in NOHOST:
+        NOHOST.discard(fno)
+        out = torch.zeros_like(BG)
+    else:
+        out = BG.clone()
     if os.environ.get("HY_DEBUG"): print("SLOTS", fno, json.dumps(slots)[:900], flush=True)
     # stacking (2026-11-12): layer 0 → plain videos z=0 → layer 1 → plain videos z=1 → … → under-him layer → masked cut-outs → top layer
     plain = [x for x in slots if not x.get("mt")]

@@ -4,6 +4,7 @@ import { WarmBase, RV, LANDSCAPE } from "./PortraitKit";
 import { kufiF, monoF } from "./MG";
 import { BRAND, alpha } from "./brand";
 import { Tape, tornClip } from "./PaperKit";
+import { HYL, HyLayer, VSlot } from "./hybrid/Slot";
 
 /**
  * DebateLayouts — only the reply models the user chose (2026-10-29): dossier.html (default, user 2026-10-30) and «الكتل المنحوتة» (s07 of creative_4x3_gallery.html),
@@ -29,9 +30,37 @@ const box = (w: Win, s: DebateSrc) => {
   return { x: Math.round(x), y: Math.round(y), w: Math.round(bw), h: Math.round(bh) };
 };
 
+/** GPU renderer: where the browser draws the picture of `s` inside a w × h window. Chromium snaps a box to whole pixels in its layer's own space
+ *  (before the window's rotate/scale), so the clip box (L, T, BW, BH) and the picture (IX, IY, IW, IH) are snapped the same way (`o` = the window
+ *  box's offset inside the transformed element; measured 2026-11-12: ½ px off without it). Whole video: objectFit "contain" of ratio `ratio(s)`. */
+const feedRect = (s: DebateSrc, w: number, h: number, o: number) => {
+  if (s.w === undefined) {
+    const r = ratio(s), cw = w / h > r ? h * r : w, chh = w / h > r ? h : w / r;
+    return { L: 0, T: 0, BW: w, BH: h, IX: (w - cw) / 2, IY: (h - chh) / 2, IW: cw, IH: chh };
+  }
+  const ch0 = s.h ?? 1080, k0 = Math.min(h / ch0, w / s.w), bw = s.w * k0, bh = ch0 * k0, l = (w - bw) / 2, t = (h - bh) / 2;
+  const sn = (a: number, len: number) => { const p0 = Math.round(o + a); return [p0 - o, Math.round(o + a + len) - p0]; };
+  const [L, BW] = sn(l, bw), [T, BH] = sn(t, bh), [IX, IW] = sn(l - (s.x ?? 0) * k0, 1920 * k0), [IY, IH] = sn(t - (s.y ?? 0) * k0, 1080 * k0);
+  return { L, T, BW, BH, IX, IY, IW, IH };
+};
+/** GPU renderer, in the layer BELOW a video drawn over a dark window ground: the colour `c` that lies just outside the window, put under the picture.
+ *  In the browser the picture and the ground are drawn in one surface, so the picture's anti-aliased edge blends with what is OUTSIDE the window
+ *  (the paper); drawn in separate layers, the ground's own edge showed through as a dark seam (measured 2026-11-12). Sides where the picture stops
+ *  inside the window keep the ground (the browser blends with the ground there). */
+const UnderPicture: React.FC<{ s: DebateSrc; w: number; h: number; o: number; c: string; left: number; top: number }> = ({ s, w, h, o, c, left, top }) => {
+  const r = feedRect(s, w, h, o), x0 = Math.max(r.L, r.IX), y0 = Math.max(r.T, r.IY), x1 = Math.min(r.L + r.BW, r.IX + r.IW), y1 = Math.min(r.T + r.BH, r.IY + r.IH);
+  const a = x0 <= 0.5 ? x0 - 2 : x0 + 1, b = x1 >= w - 0.5 ? x1 + 2 : x1 - 1, cT = y0 <= 0.5 ? y0 - 2 : y0 + 1, d = y1 >= h - 0.5 ? y1 + 2 : y1 - 1;
+  return b > a && d > cT ? <div style={{ position: "absolute", left: left + a, top: top + cT, width: b - a, height: d - cT, background: c }} /> : null;
+};
 /** the video whole inside its 4:3 window: a whole video is contained; a column of the baked split is centred at full height */
-const Feed: React.FC<{ s: DebateSrc; w: number; h: number }> = ({ s, w, h }) => {
+const Feed: React.FC<{ s: DebateSrc; w: number; h: number; z?: number; o?: number; radii?: [number, number, number, number] }> = ({ s, w, h, z = 0, o = 0, radii }) => {
   const f = s.blur ? { filter: `blur(${s.blur}px)` } : {};
+  if (HYL) {   /* GPU renderer: the same picture placed by the compositor (NVDEC), clipped to the same box; blur as a slot effect. `radii`: the window's
+                  rounded corners, applied when the picture's clip box IS the window box (it fills it) */
+    const fx = s.blur ? { blur: s.blur } : undefined, r = feedRect(s, w, h, o);
+    const fills = r.L <= 0.5 && r.T <= 0.5 && r.L + r.BW >= w - 0.5 && r.T + r.BH >= h - 0.5;
+    return <VSlot src={s.src} w={r.BW} h={r.BH} style={{ left: r.L, top: r.T }} vx={r.IX - r.L} vy={r.IY - r.T} vw={r.IW} vh={r.IH} fx={fx} z={z} grow={0} radius={radii && fills ? radii : 0} />;
+  }
   if (s.w === undefined) return <RV src={staticFile(s.src)} style={{ position: "absolute", inset: 0, width: w, height: h, objectFit: "contain", ...f }} />;
   const ch = s.h ?? 1080, k = Math.min(h / ch, w / s.w), vw = s.w * k, vh = ch * k;
   return (
@@ -43,8 +72,22 @@ const Feed: React.FC<{ s: DebateSrc; w: number; h: number }> = ({ s, w, h }) => 
 /** 0→1 entrance from `at` (a soft spring) */
 const useIn = (at: number, delay = 0) => spring({ frame: useCurrentFrame() - Math.round((at + delay) * 30), fps: 30, config: { damping: 20, mass: 0.7 } });
 /** one 4:3 window: the original `.video` shell (radial dark inside) + its own frame style */
-const Window: React.FC<{ w: Win; s: DebateSrc; p: number; style?: React.CSSProperties }> = ({ w, s, p, style }) => {
+const Window: React.FC<{ w: Win; s: DebateSrc; p: number; radii: [number, number, number, number]; style?: React.CSSProperties }> = ({ w, s, p, radii, style }) => {
   const b = box(w, s);
+  style = { ...style, borderRadius: radii.map((v) => `${v}px`).join(" ") };
+  if (HYL) {   /* GPU renderer: the window's ground, shadow and outline BELOW the video (layer 0); the video by the compositor, clipped by the same
+                  rounded corners; the empty shell in the top layer carries the opacity and the scale the video is measured with */
+    const shell: React.CSSProperties = { position: "absolute", left: b.x, top: b.y, width: b.w, height: b.h, overflow: "hidden", boxSizing: "border-box", opacity: p, ...style,
+      transform: `${style?.transform ?? ""} scale(${0.94 + 0.06 * p})` };
+    return (
+      <>
+        <HyLayer z={0}><div style={{ ...shell, background: `radial-gradient(ellipse at 60% 40%, ${BRAND.base2}, ${BRAND.base} 65%, ${BRAND.base3})` }} /></HyLayer>
+        <div style={{ ...shell, boxShadow: undefined, outline: undefined }}>
+          <Feed s={s} w={b.w} h={b.h} radii={radii} />
+        </div>
+      </>
+    );
+  }
   return (
     <div style={{ position: "absolute", left: b.x, top: b.y, width: b.w, height: b.h, overflow: "hidden", boxSizing: "border-box",
       background: `radial-gradient(ellipse at 60% 40%, ${BRAND.base2}, ${BRAND.base} 65%, ${BRAND.base3})`, opacity: p, ...style,
@@ -62,13 +105,15 @@ export const DebateBlocks: React.FC<Props> = ({ main, guest, title = "الشيخ
   const mi = useIn(at), gi = useIn(at, 0.12);
   return (
     <AbsoluteFill>
+      <HyLayer z={0}>{/* GPU renderer: the whole background lies below the videos (inert elsewhere) */}
       <WarmBase />
       <AbsoluteFill style={{ background: `linear-gradient(115deg, ${alpha(BRAND.accentDeep, 0.78)} 0 41%, ${alpha(BRAND.base3, 0.82)} 41%)` }} />
       <div style={{ position: "absolute", width: W * 0.5, height: H * 0.7, top: 0, left: -W * 0.18, border: `${Math.round(50 * K)}px solid ${alpha(BRAND.card, 0.05)}`, borderRadius: "50%", boxSizing: "border-box" }} />
-      <Window w={{ left: 0.38, top: 0.08, width: 0.6, mid: 0.5 }} s={main} p={mi}
-        style={{ borderRadius: `0 ${80 * K}px 0 ${80 * K}px`, boxShadow: `0 ${24 * K}px ${30 * K}px rgba(0,0,0,.53)`, outline: `${8 * K}px solid ${BRAND.light}` }} />
-      <Window w={{ left: 0.02, top: 0.24, width: 0.33, mid: 0.5 }} s={guest} p={gi}
-        style={{ borderRadius: `${90 * K}px 0 ${90 * K}px 0`, outline: `${8 * K}px solid ${BRAND.accent}` }} />
+      </HyLayer>
+      <Window w={{ left: 0.38, top: 0.08, width: 0.6, mid: 0.5 }} s={main} p={mi} radii={[0, 80 * K, 0, 80 * K]}
+        style={{ boxShadow: `0 ${24 * K}px ${30 * K}px rgba(0,0,0,.53)`, outline: `${8 * K}px solid ${BRAND.light}` }} />
+      <Window w={{ left: 0.02, top: 0.24, width: 0.33, mid: 0.5 }} s={guest} p={gi} radii={[90 * K, 0, 90 * K, 0]}
+        style={{ outline: `${8 * K}px solid ${BRAND.accent}` }} />
       <Cap text={title} style={{ bottom: H * 0.05, left: W * 0.04, color: BRAND.light, opacity: mi }} />
     </AbsoluteFill>
   );
@@ -78,8 +123,29 @@ export const DebateBlocks: React.FC<Props> = ({ main, guest, title = "الشيخ
    slides in from the left; the source link replaces the old stamp, «مصدر» the old file title (user 2026-10-29) */
 const PAD = Math.round(16 * K);
 /** a video on a hand-torn paper mount: the paper pad around the whole video, the video straight inside it */
-const TornWindow: React.FC<{ w: Win; s: DebateSrc; seed: string; transform: (b: { x: number; y: number; w: number; h: number }) => string; tape?: boolean }> = ({ w, s, seed, transform, tape }) => {
+const TornWindow: React.FC<{ w: Win; s: DebateSrc; seed: string; transform: (b: { x: number; y: number; w: number; h: number }) => string; tape?: boolean; z?: number }> = ({ w, s, seed, transform, tape, z = 0 }) => {
   const b = box(w, s), pw = b.w + 2 * PAD, ph = b.h + 2 * PAD;
+  if (HYL) {   /* GPU renderer: paper mount + window ground + tape BELOW this video (layer z), with the mount's drop shadow over all of them (the shadow
+                  of the whole mount = of paper ∪ tape: the video lies inside the paper); the video at level z; above it (layer z+1) the tape again, but
+                  only inside the video's box, where the video covered the lower one — so the tape is drawn once everywhere, shadow included */
+    const tp = tape ? <Tape x={pw * 0.34} y={-16} w={W * 0.1} rot={-12} /> : null;
+    return (
+      <div style={{ position: "absolute", left: b.x - PAD, top: b.y - PAD, width: pw, height: ph, transform: transform(b) }}>
+        <HyLayer z={z}>
+          <div style={{ position: "absolute", inset: 0, filter: `drop-shadow(0 ${14 * K}px ${18 * K}px ${alpha(BRAND.ink, 0.5)})` }}>
+            <div style={{ position: "absolute", inset: 0, background: BRAND.card, clipPath: tornClip(pw, ph, seed, 7, 22) }} />
+            <div style={{ position: "absolute", left: PAD, top: PAD, width: b.w, height: b.h, background: `radial-gradient(ellipse at 60% 40%, ${BRAND.base2}, ${BRAND.base} 65%, ${BRAND.base3})` }} />
+            <UnderPicture s={s} w={b.w} h={b.h} o={PAD} c={BRAND.card} left={PAD} top={PAD} />
+            {tp}
+          </div>
+        </HyLayer>
+        <div style={{ position: "absolute", left: PAD, top: PAD, width: b.w, height: b.h, overflow: "hidden" }}>
+          <Feed s={s} w={b.w} h={b.h} z={z} o={PAD} />
+        </div>
+        {tp ? <HyLayer z={z + 1}><div style={{ position: "absolute", left: PAD, top: PAD, width: b.w, height: b.h, overflow: "hidden" }}><div style={{ position: "absolute", left: -PAD, top: -PAD }}>{tp}</div></div></HyLayer> : null}
+      </div>
+    );
+  }
   return (
     <div style={{ position: "absolute", left: b.x - PAD, top: b.y - PAD, width: pw, height: ph, transform: transform(b), filter: `drop-shadow(0 ${14 * K}px ${18 * K}px ${alpha(BRAND.ink, 0.5)})` }}>
       <div style={{ position: "absolute", inset: 0, background: BRAND.card, clipPath: tornClip(pw, ph, seed, 7, 22) }} />
@@ -95,17 +161,19 @@ export const DebateDossier: React.FC<Props> = ({ main, guest, title = "مصدر"
   const sp = Math.min(1, Math.max(0, (t - 0.9) / 0.15)), st = 2.2 - 1.2 * sp;
   return (
     <AbsoluteFill>
+      <HyLayer z={0}>
       <WarmBase />
       <div style={{ position: "absolute", left: W * 0.04, top: H * 0.04, width: W * 0.92, height: H * 0.92, transform: "rotate(-0.8deg)", filter: "drop-shadow(0 30px 40px rgba(0,0,0,.45))" }}>
         <div style={{ position: "absolute", inset: 0, background: BRAND.paper, clipPath: tornClip(W * 0.92, H * 0.92, "dossier-sheet", 11, 34),
           backgroundImage: `repeating-linear-gradient(0deg, transparent 0 ${22 * K}px, ${alpha(BRAND.ink, 0.08)} ${22 * K}px ${22 * K + 1}px)` }} />
       </div>
-      <TornWindow w={{ left: 0.35, top: 0.05, width: 0.64 }} s={main} seed="dossier-main"
+      </HyLayer>
+      <TornWindow w={{ left: 0.35, top: 0.05, width: 0.64 }} s={main} seed="dossier-main" z={0}
         transform={(b) => {
           const s0 = Math.min(W / b.w, H / b.h);
           return `translate(${(1 - mi) * (W / 2 - (b.x + b.w / 2))}px, ${(1 - mi) * (H / 2 - (b.y + b.h / 2))}px) rotate(${1.5 * mi}deg) scale(${1 + (s0 - 1) * (1 - mi)})`;
         }} />
-      <TornWindow w={{ left: 0.02, top: 0.27, width: 0.31 }} s={guest} seed="dossier-guest" tape
+      <TornWindow w={{ left: 0.02, top: 0.27, width: 0.31 }} s={guest} seed="dossier-guest" tape z={1}
         transform={(b) => `translateX(${-(1 - gi) * (b.x + b.w + 120)}px) rotate(${-5 * gi}deg)`} />
       {url ? (
         <div style={{ position: "absolute", left: W * 0.06, bottom: H * 0.06, transform: `rotate(-4deg) scale(${st})`, opacity: sp * 0.95, border: `${4 * K}px solid ${BRAND.mark}`, color: BRAND.mark,

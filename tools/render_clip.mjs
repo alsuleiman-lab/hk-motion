@@ -1,26 +1,15 @@
-// SCALE=0.5 renders at half size (quick previews). Render one short composition to an MP4 on the GPU encoder (test clips / previews): node tools/render_clip.mjs <CompositionId> <out.mp4>
-// NVENC via ffmpegOverride (tools/nvenc.mjs), concurrency 3, below-normal priority. No progress window (Janib is used by the montage sessions).
-import { bundle } from "@remotion/bundler";
-import { renderMedia, selectComposition } from "@remotion/renderer";
-import fs from "node:fs";
-import os from "node:os";
+// Render one short composition to an MP4 (test clips / previews) — 2026-11-12: on the GPU renderer (R-RENDER-GPU.1), the old renderMedia path is retired.
+//   node tools/render_clip.mjs <CompositionId> <out.mp4> [--props '<json>']        SCALE=0.5 = half-size preview (resized on the GPU)
+// = node tools/gpu_render.mjs --comp <Id> --out <out> --no-bumper [--scale k]. One render at a time: gpu_render holds the render lock itself.
+import { spawnSync } from "node:child_process";
 import path from "node:path";
-import { nvencOverride } from "./nvenc.mjs";
-import { acquireRenderLock } from "./render_lock.mjs";
-import { requireHybrid } from "./hybrid_gate.mjs";
-import { startMonitor } from "./monitor.mjs";
 
-const [id, out] = process.argv.slice(2);
-requireHybrid("render_clip");   // strict hybrid (2026-11-09)
-acquireRenderLock(`مقطع ${id}`);   // same single-render lock as render_final (no two renders at once)
-const log = startMonitor(path.join(".tmp", "render_logs", `clip_${id}.log`), path.basename(out, path.extname(out)));
-try { os.setPriority(0, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch { /* ignore */ }
-fs.mkdirSync(path.dirname(path.resolve(out)), { recursive: true });
-const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts"), onProgress: () => {} });
-const composition = await selectComposition({ serveUrl, id });
-let lastPercent = -1;
-await renderMedia({ composition, serveUrl, codec: "h264", crf: 18, outputLocation: out, scale: Number(process.env.SCALE ?? 1), concurrency: 3, chromiumOptions: { gl: "angle" }, ffmpegOverride: nvencOverride,
-  onProgress: ({ progress }) => { const percent = Math.floor(progress * 100); if (percent !== lastPercent) { lastPercent = percent; log(`[جزء 1/1] ${percent}%`); } } });
-log(`DONE ${out}`);
-try { fs.rmSync(serveUrl, { recursive: true, force: true }); } catch { /* ignore */ }
+const argv = process.argv.slice(2);
+const [id, out] = argv;
+if (!id || !out) { console.error("usage: node tools/render_clip.mjs <CompositionId> <out.mp4> [--props '<json>']   (SCALE=0.5 for a half-size preview)"); process.exit(2); }
+const props = argv.includes("--props") ? argv[argv.indexOf("--props") + 1] : null;
+const scale = Number(process.env.SCALE ?? 1) || 1;
+const root = path.resolve(import.meta.dirname, "..");
+const r = spawnSync("node", ["tools/gpu_render.mjs", "--comp", id, "--out", path.resolve(out), "--no-bumper", ...(scale !== 1 ? ["--scale", String(scale)] : []), ...(props ? ["--props", props] : [])], { cwd: root, stdio: "inherit" });
+if (r.status !== 0) { console.error(`render_clip: gpu_render failed (exit ${r.status})`); process.exit(r.status ?? 1); }
 console.log("RENDERED →", out);

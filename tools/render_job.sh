@@ -2,13 +2,15 @@
 # usage: render_job.sh <p> <CompId> <R|L> "<title>"  -> renders into render_work/export (S:), moved later
 cd /s/AI_Tools/Remotion_Workspace; source tools/env.sh >/dev/null 2>&1
 p=$1; id=$2; o=$3; title=$4; export BUMPER_POSITION=${5:-start}
+# the opening bumper goes right before his first «بسم الله / السلام عليكم» (with «طيب»), not at second 0 when the video opens with a clip or a hook (2026-11-12)
+[ "$BUMPER_POSITION" = start ] && export BUMPER_AT=$(node tools/bumper_at.mjs $p)
 spec=data/specs/$p.json
 cutsrc="public/$(node -e 'console.log(JSON.parse(require("fs").readFileSync("'$spec'","utf8")).cut)')"
-# avoid: zooms, shakes AND isolation windows shifted aside (dx) — the face crop sees the shifted figure there (false judder, 2026-11-12)
+# avoid: zooms, shakes, full-screen verses (he is hidden, 2026-11-12) AND isolation windows shifted aside (dx) — the face crop sees the shifted figure there (false judder, 2026-11-12)
 read -r cx avoid <<<"$(node -e '
 const s=JSON.parse(require("fs").readFileSync("'$spec'","utf8"));
-console.log((s.cams?.[0]?.cx??940)+" "+(s.zooms||[]).map(z=>(z.from-0.5).toFixed(2)+"-"+(z.to+1.6).toFixed(2)).concat((s.shake||[]).map(z=>z.from+"-"+z.to)).concat((s.behind||[]).filter(w=>w.dx).map(w=>(w.from-0.3).toFixed(2)+"-"+(w.to+0.3).toFixed(2))).join(","));')"
-freeat=$(node -e 'const s=JSON.parse(require("fs").readFileSync("'$spec'","utf8"));const d=s.frames/30;const b=[...(s.zooms||[]),...(s.shake||[])].map(z=>[z.from-0.5,z.to+1.6]).sort((x,y)=>x[0]-y[0]);let best=[0,0],t=0;for(const [a,c] of [...b,[d,d]]){if(a-t>best[1]-best[0])best=[t,a];t=Math.max(t,c)}console.log((best[0]+0.6).toFixed(2))')
+console.log((s.cams?.[0]?.cx??940)+" "+(s.zooms||[]).map(z=>(z.from-0.5).toFixed(2)+"-"+(z.to+1.6).toFixed(2)).concat((s.shake||[]).map(z=>z.from+"-"+z.to)).concat((s.behind||[]).filter(w=>w.dx).map(w=>(w.from-0.3).toFixed(2)+"-"+(w.to+0.3).toFixed(2))).concat((s.items||[]).filter(i=>i.t==="verse"&&i.full).map(i=>((i.at??i.times[0])-0.4).toFixed(2)+"-"+((i.until??i.times[i.times.length-1]+2)+0.6).toFixed(2))).join(","));')"
+freeat=$(node -e 'const s=JSON.parse(require("fs").readFileSync("'$spec'","utf8"));const d=s.frames/30;const b=[...(s.zooms||[]),...(s.shake||[])].map(z=>[z.from-0.5,z.to+1.6]).concat((s.items||[]).filter(i=>i.t==="verse"&&i.full).map(i=>[(i.at??i.times[0])-0.4,(i.until??i.times[i.times.length-1]+2)+0.6])).sort((x,y)=>x[0]-y[0]);let best=[0,0],t=0;for(const [a,c] of [...b,[d,d]]){if(a-t>best[1]-best[0])best=[t,a];t=Math.max(t,c)}console.log((best[0]+0.6).toFixed(2))')
 safe=$(node -e 'console.log(process.argv[1].replace(/[:?؟«»"]/g,""))' "$title")
 if [ "$o" = R ]; then
   sx=$(node -e "console.log(Math.round($cx-163))"); crop="--crop 250,300,580,700 --src-crop $sx,169,326,394"; name="$safe #محمد_بن_شمس_الدين.mp4"
@@ -22,7 +24,10 @@ if true; then
   tmpv=".tmp/hyb_${p}_$o.mp4"; rm -f "$tmpv"   # one temp name per orientation: the bumper and judder records of L and R must not overwrite each other (2026-11-12)
   # isolation windows: his cut-out is made on the GPU (masked VSlot, 2026-11-12); graphics UNDER him (a map in a window) go in the under layer = these frames
   under=$(node tools/window_frames.mjs $p under $o)
-  until node tools/hybrid_any.mjs --comp $id --out "$tmpv" ${under:+--under "$under"} > .tmp/b2_render_$p.log 2>&1; do grep -aq "ممنوع رندر" .tmp/b2_render_$p.log || break; sleep 60; done
+  # render engine (branch gpu-render): the all-GPU renderer by default; RENDER_ENGINE=hybrid = the previous path (kept as the fallback until approved).
+  # Same arguments, same output (audio mixed, opening bumper prepended), same lock and retry: nothing else in this job changes.
+  engine=tools/gpu_render.mjs; [ "${RENDER_ENGINE:-gpu}" = hybrid ] && engine=tools/hybrid_any.mjs
+  until node $engine --comp $id --out "$tmpv" ${under:+--under "$under"} > .tmp/b2_render_$p.log 2>&1; do grep -aq "ممنوع رندر" .tmp/b2_render_$p.log || break; sleep 60; done
   hasA=$(ffprobe -v error -select_streams a -show_entries stream=codec_type -of csv=p=0 "$tmpv" 2>/dev/null | head -1)
   if [ -s "$tmpv" ]; then
     # hybrid_any already mixes the audio and prepends the opening bumper (user 2026-11-11): never replace its audio with the unshifted wav

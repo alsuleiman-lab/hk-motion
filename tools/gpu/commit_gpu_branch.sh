@@ -12,8 +12,8 @@ git read-tree "$parent"
 git add -f tools/gpu_render.mjs tools/gpu_compositor.py docs/gpu_render_report.md docs/gpu_render 2>/dev/null || true
 git add -f tools/gpu_render.mjs tools/gpu_compositor.py
 # nothing under src/ is ever committed here: the GPU renderer needs no change in the compositions (other sessions edit src/ in this tree)
-for f in tools/gpu/*; do case "$f" in *__pycache__*|*.dll) ;; *) git add -f "$f";; esac; done
-[ -f tools/render_job.sh.gpu ] && { blob=$(git hash-object -w tools/render_job.sh.gpu); git update-index --add --cacheinfo 100755,"$blob",tools/render_job.sh; }
+for f in tools/gpu/*; do case "$f" in *__pycache__*|*render_job.gpu.sh|*.dll) ;; *) git add -f "$f";; esac; done
+[ -f tools/gpu/render_job.gpu.sh ] && { blob=$(git hash-object -w tools/gpu/render_job.gpu.sh); git update-index --add --cacheinfo 100755,"$blob",tools/render_job.sh; }
 t=$(git write-tree)
 if [ "$t" = "$(git rev-parse "$parent^{tree}")" ]; then echo "nothing to commit"; rm -f "$GIT_INDEX_FILE"; exit 0; fi
 c=$(printf '%s\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n' "$msg" | git commit-tree "$t" -p "$parent")

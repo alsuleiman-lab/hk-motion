@@ -84,11 +84,12 @@ def rgb_to_nv12(rgb):
 
 # ---------------- video sources ----------------
 PROBE = {}
+CODEC = {}
 
 
 def probe(path):
     if path not in PROBE:
-        o = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height,r_frame_rate,nb_frames,color_range,color_space", "-of", "json", path], capture_output=True, text=True).stdout
+        o = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height,r_frame_rate,nb_frames,color_range,color_space,codec_name", "-of", "json", path], capture_output=True, text=True).stdout
         js = json.loads(o or "{}")
         if not js.get("streams"):
             raise RuntimeError("ffprobe found no video stream in " + repr(path))
@@ -98,6 +99,7 @@ def probe(path):
         full = s.get("color_range") == "pc"
         m601 = s.get("color_space") in ("bt470bg", "smpte170m")
         PROBE[path] = (int(s["width"]), int(s["height"]), float(n) / float(d), nb, full, m601)
+        CODEC[path] = s.get("codec_name", "")
     return PROBE[path]
 
 
@@ -215,6 +217,7 @@ class NvStream:
         self.cur = None
         self.lock = threading.Lock()
         self.last_use = 0
+        self.fb = None   # ffmpeg reader taking over after a decoder error
 
     def _open(self):
         if self.dec is None:
@@ -230,11 +233,19 @@ class NvStream:
 
     def get(self, idx):
         with self.lock:
-            self._open()
-            idx = max(0, min(idx, self.n - 1))
-            if idx == self.cur_idx:
-                return self.cur
-            x = torch.from_dlpack(self.dec[idx])          # NV12 (h*3/2, pitch) on the GPU; the decoder reuses this surface: convert at once
+            if self.fb is not None:
+                return self.fb.get(idx)
+            try:
+                self._open()
+                idx = max(0, min(idx, self.n - 1))
+                if idx == self.cur_idx:
+                    return self.cur
+                x = torch.from_dlpack(self.dec[idx])          # NV12 (h*3/2, pitch) on the GPU; the decoder reuses this surface: convert at once
+            except Exception as e:   # e.g. a container announcing more frames than it holds: the ffmpeg reader holds the last frame, as in the hybrid
+                print(f"WARNING: PyNvVideoCodec failed on {self.path} at {idx} ({str(e).splitlines()[0][:120]}): ffmpeg reader from here", flush=True)
+                self.dec = None
+                self.fb = Stream(self.path)
+                return self.fb.get(idx)
             if x.shape[-1] != self.w:
                 x = x[..., : self.w]
             self.cur = nv12_to_rgb(x.reshape(-1) if x.is_contiguous() else x.contiguous().reshape(-1), self.w, self.h, self.full, self.m601)
@@ -243,8 +254,13 @@ class NvStream:
 
     def _kill(self):
         self.dec = None
+        if self.fb is not None:
+            self.fb._kill()
 
     def idle_kill(self, frame_no):
+        if self.fb is not None:
+            self.fb.last_use = self.last_use
+            return self.fb.idle_kill(frame_no)
         with self.lock:
             if self.dec is not None and frame_no - self.last_use > 120:
                 self.dec = None
@@ -259,7 +275,11 @@ def stream_for(path, key):
     with SLOCK:
         k = (path, key)
         if k not in STREAMS:
-            STREAMS[k] = NvStream(path) if nvc is not None and not os.environ.get("GR_FFMPEG_DECODE") else Stream(path)
+            probe(path)
+            # NVDEC straight to CUDA only for the codecs checked frame-exact against the hybrid's reader (tools/gpu/check_decoder.py, seek_truth.py):
+            # h264 / av1 (hevc not checked yet). VP9 measured ONE FRAME AHEAD with PyNvVideoCodec (2026-11-12) -> ffmpeg reader, exactly as in the hybrid.
+            ok = nvc is not None and not os.environ.get("GR_FFMPEG_DECODE") and CODEC.get(path) in ("h264", "av1")
+            STREAMS[k] = NvStream(path) if ok else Stream(path)
         return STREAMS[k]
 
 

@@ -66,8 +66,8 @@
    "amt": 0.06
   },
   {
-   "from": 84.15,
-   "to": 88.62,
+   "from": 77.8,
+   "to": 85.8,
    "amt": 0.06
   },
   {
@@ -295,22 +295,6 @@
    }
   },
   {
-   "t": "scraps",
-   "text": "هذا فيه اتهام للصحابة",
-   "at": 76.95,
-   "until": 83.95,
-   "times": [
-    75.7,
-    75.98,
-    76.26,
-    77.1
-   ],
-   "y": 1500,
-   "land": {
-    "size": 34
-   }
-  },
-  {
    "t": "torn",
    "text": "الكلام هذا فاسد لا يجوز ان يقال في حق الصحابة",
    "at": 92.54,
@@ -458,7 +442,7 @@
    "rows": [
     {
      "at": 222.98,
-     "label": "طعن برسول الله ﷺ",
+     "label": "طعن برسول الله",
      "icon": "Quote",
      "photo": "fatima_sheikhayn/kaaba.jpg"
     },
@@ -581,21 +565,6 @@
    "src": "sfx/el_paper_tear.wav",
    "at": 0,
    "vol": 0.06
-  },
-  {
-   "src": "sfx/el_tick.wav",
-   "at": 75.7,
-   "vol": 0.04
-  },
-  {
-   "src": "sfx/el_tick.wav",
-   "at": 76.26,
-   "vol": 0.04
-  },
-  {
-   "src": "sfx/el_tick.wav",
-   "at": 77.1,
-   "vol": 0.04
   },
   {
    "src": "sfx/el_paper_tear.wav",

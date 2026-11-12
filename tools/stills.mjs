@@ -45,7 +45,7 @@ await Promise.all(Array.from({ length: jobs }, async () => {
   while (next < pts.length) {
     const p = pts[next++];
     const [name, fr] = p.split(":");
-    await renderStill({ composition: comp, serveUrl, port: Number(process.env.STILLS_PORT ?? 3457), frame: Number(fr), output: path.join(outDir, name + ".png"), scale, puppeteerInstance: browser, timeoutInMilliseconds: Number(process.env.RT || 30000), chromiumOptions: { gl: "angle" } });
+    await renderStill({ composition: comp, serveUrl, port: Number(process.env.STILLS_PORT ?? 3457), frame: Number(fr), output: path.join(outDir, name + ".png"), scale, puppeteerInstance: browser, timeoutInMilliseconds: Number(process.env.RT || 180000), chromiumOptions: { gl: "angle" } });
     console.log("still", name);
     // every renderStill leaves a ~1.6 GB remotion-*-assets* folder (audio preprocessing of the long cut) until exit: 35 stills = 58 GB = a full S: (2026-11-09). Delete them right after each still (single job only: parallel jobs may still use theirs).
     if (jobs === 1) for (const d of fs.readdirSync(os.tmpdir())) if (/^remotion-v[\d.]+-assets/.test(d)) { try { fs.rmSync(path.join(os.tmpdir(), d), { recursive: true, force: true }); } catch { /* in use */ } }

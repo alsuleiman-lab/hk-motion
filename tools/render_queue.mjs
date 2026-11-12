@@ -58,7 +58,8 @@ if (cmd === "add") {
     const r = sh("bash", ["tools/render_job.sh", j.spec, j.comp, j.orient, title, j.bumper || "start"]);
     const m = r.stdout.match(/RENDER exit 0 -> (.+)$/m);
     const cur = load(), jj = cur.jobs.find((x) => x.spec === j.spec);
-    if (!m) { jj.state = "failed"; jj.err = r.stdout.trim().split("\n").slice(-2).join(" ").slice(0, 200); log(`✘ ${j.spec}: ${jj.err}`); save(cur); continue; }
+    /* (2026-11-12) a passed render was marked failed with only its guard line: record WHY the job stopped (spawn error / signal / status) */
+    if (!m) { jj.state = "failed"; jj.err = [r.error?.code ?? r.error?.message, r.signal && `signal ${r.signal}`, `status ${r.status}`].filter(Boolean).join(" ") + " — " + r.stdout.trim().split("\n").slice(-2).join(" ").slice(0, 200); log(`✘ ${j.spec}: ${jj.err}`); save(cur); continue; }
     const file = path.join("render_work/export", m[1].trim());
     try { fs.mkdirSync(j.dest, { recursive: true }); const to = path.join(j.dest, path.basename(file)); fs.copyFileSync(file, to); if (fs.statSync(to).size !== fs.statSync(file).size) throw new Error("copy size mismatch"); jj.state = "done"; jj.to = to; jj.file = file; }
     catch (e) { jj.state = "failed"; jj.err = String(e.message).slice(0, 160); }

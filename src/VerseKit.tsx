@@ -77,15 +77,15 @@ export const Header: React.FC<{ surah: string; size: number; k: number; font?: s
 
 /** the half-screen panel in the video's palette: base colours + star tiling + turning rosette (ornament in the palette's light tone);
  *  its right side melts into his video by transparency — no seam. `k` = 0..1 slide-in; opaque up to `solid` of `w`, then fades to nothing. */
-export const BlendPanel: React.FC<{ k: number; t: number; w?: number; solid?: number; id: string; children?: React.ReactNode }> = ({ k, t, w = 1180, solid = 0.58, id, children }) => {
+export const BlendPanel: React.FC<{ k: number; t: number; w?: number; solid?: number; id: string; children?: React.ReactNode }> = ({ k, t, w = 1380, solid = 0.72, id, children }) => {
   if (k <= 0) return null;
   const fade = `linear-gradient(90deg, #000 0%, #000 ${solid * 100}%, rgba(0,0,0,.55) ${(solid + (1 - solid) * 0.45) * 100}%, transparent 100%)`;
   return (
     <div style={{ position: "absolute", left: 0, top: 0, width: w, height: 1080, transform: `translateX(${-(1 - k) * w}px)`, overflow: "hidden", WebkitMaskImage: fade, maskImage: fade,
-      background: `radial-gradient(ellipse at 34% 46%, ${BRAND.base2} 0%, ${BRAND.base} 45%, ${BRAND.base3} 100%)` }}>
+      background: `radial-gradient(ellipse at 400px 46%, ${BRAND.base2} 0%, ${BRAND.base} 45%, ${BRAND.base3} 100%)` }}>
       <StarField id={id + "-stars"} cell={120} color={BRAND.light} op={0.09} rot={t * 2} />
-      <Rosette cx={w * 0.34} cy={520} r={430} t={t} color={BRAND.light} op={0.14} />
-      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 34% 50%, transparent 40%, ${alpha(BRAND.base3, 0.6)} 100%)` }} />
+      <Rosette cx={400} cy={520} r={430} t={t} color={BRAND.light} op={0.14} />
+      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 400px 50%, transparent 40%, ${alpha(BRAND.base3, 0.6)} 100%)` }} />
       {children}
     </div>
   );

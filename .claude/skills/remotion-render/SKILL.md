@@ -4,7 +4,71 @@ description: Export a Remotion video
 version: 4.0.535
 ---
 
-> **HYBRID ONLY (user order 2026-11-09):** every final render = `node tools/hybrid_any.mjs --comp <Id> --out <file>`. `render_final`/`render_chunked`/`render_clip` refuse to run (`tools/hybrid_gate.mjs`, hook), and a failed hybrid is FIXED, never replaced by the old path. A composition the hybrid cannot draw is ported to `HybridHost`/`VSlot`. Old path only when the user's current message asks for it (`LEGACY_RENDER_USER_OK="<his words>"`).
+## المحرّك المعتمد: الرندر كله على كرت الشاشة (أمر المستخدم 2026-11-12: «يجب نقل كل شيء إلى طريقتنا الجديدة»)
+
+الرندر النهائي = **`tools/gpu_render.mjs`**، وهو بديل مباشر لـ `hybrid_any.mjs` بالوسائط نفسها والمخرجات نفسها:
+- تقرير JSON، وخلط الصوت، والفاصل للرندر الكامل، وقفل الرندر، والأولوية المنخفضة؛
+- إعدادات NVENC نفسها حرفياً.
+
+**كيف يعمل:**
+- Electron خارج الشاشة يرسم الرسوم على كرت الشاشة، ويخرج كل إطار نسيجاً مشتركاً ينسخه `tools/gpu/bridge.dll` إلى CUDA؛
+- PyNvVideoCodec يفكّ الفيديو إلى CUDA مباشرة (h264/av1، وغيرهما بقارئ ffmpeg القديم)؛
+- `tools/gpu_compositor.py` يرصّ الطبقات ويرمّز.
+
+لا لقطة شاشة، ولا PNG، ولا نقل للإطار إلى المعالج. التقرير الكامل بالأرقام: `docs/gpu_render_report.md` (فرع `gpu-render`).
+
+### حين يطلب المستخدم «رندر» (بالترتيب، لا تتخطَّ شيئاً)
+
+1. **الإذن.** الرندر النهائي بإذن المستخدم كما في القواعد القائمة، ولا يُبدأ قبل نجاح `node tools/stage.mjs check …` وبوابة الصوت (`montage_guard`).
+2. **رندر واحد فقط.**
+   - انظر إلى `.tmp/render.lock` و`node tools/render_queue.mjs ls`؛
+   - إن كان رندر آخر يعمل فانتظره، ولا تكسر القفل ولا توقف رندراً لم تبدأه؛
+   - لا تغيّر حالة مهمة في الطابور إلا بأمر المستخدم.
+3. **المساحة.** `df -h /s`: يجب أن تبقى المساحة الحرة على S ≥ 25 GB **بعد** ذروة الرندر.
+   - الذروة نحو 8 GB لفيديو 14 دقيقة (الحزمة، والفيديو قبل الصوت، والناتج، والفاصل)، ونحو 4 GB لفيديو 6 دقائق؛
+   - إن لم تكفِ فلا تبدأ، وأخبر المستخدم بما يشغل المساحة، ولا تحذف إلا ملفاتك أو بإذنه.
+4. **الأمر (العرضي أولاً ثم الطولي، بالتتابع):**
+   ```bash
+   source tools/env.sh
+   under=$(node tools/window_frames.mjs <المشروع> under L)    # و R للطولي
+   node tools/gpu_render.mjs --comp <Id> --out <file.mp4> ${under:+--under "$under"} --procs 1 --windows 3 --name <المشروع>
+   ```
+   أو المشروع كله باتجاهيه بالخطوات نفسها وفحص الارتجاف:
+   ```bash
+   bash tools/gpu/render_project.sh <المشروع> <Id-L> <Id> <مجلد الإخراج>
+   ```
+   - `--procs 1 --windows 3` هو الأفضل المقيس؛ عمليتان لا تفيدان، لأن المركِّب هو السقف.
+   - أول تشغيل يبني `tools/gpu/bridge.dll` بـ VS 2022 تلقائياً.
+5. **بعد الرندر: اقرأ التقرير** `render_work/gpu_render_<Id>_<وقت>.json`:
+   - `chromeVideo` يجب أن يكون **فارغاً**. إن لم يكن، ففيه أسماء الفيديوهات التي فكّها Chromium بالمعالج (ببطء)، والمكوّن الذي يعرضها يجب نقله إلى `VSlot` (انظر «حين تعمل مونتاج»). أخبر المستخدم بها صراحة.
+   - إذا ظهر في السجل `WARNING: the compositing functions … differ from tools/hybrid_generic.py` فالهجين تغيّر: انقل التغيير إلى `gpu_compositor.py` قبل الوثوق بالشكل.
+   - المقاييس: `fpsGraphicsPlusComposite`، و`cpuDuringRender`، و`graphics.stale`.
+6. **فحص الارتجاف** بأوامر `render_job.sh` نفسها:
+   - 10 نوافذ ← 14 نافذة ← `--at <نافذة حرة> --len 90`؛
+   - على الملف قبل الفاصل (`.tmp/bumper_orig/<الاسم>.mp4`)؛
+   - و`ffprobe`: الإطارات والمدة والصوت، والمعدل ≥ 14 Mbps.
+7. **الوجهة** كما في القواعد القائمة: لا شيء في «جاهز» دون إذن، و«جاهز» للنسخة المعتمدة فقط.
+8. **إن فشل الرندر الجديد:** يُصلَح السبب ويُعاد. الهجين (`node tools/hybrid_any.mjs …` أو `RENDER_ENGINE=hybrid` في `render_job.sh` على الفرع) احتياط **بإذن المستخدم فقط**، وأخبره بسبب الرجوع.
+9. **التنظيف:** احذف ملفاتك المؤقتة الكبيرة بعد التحقق، وشغّل `node tools/clean_temp.mjs`.
+
+**أرقام مقيسة (2026-11-12، i9-10900K وRTX 3090):**
+
+| الفيديو | الهجين | الجديد |
+|---|---|---|
+| SaintRambal-L (25 107 إطاراً) | 38.1 دقيقة | 8.0 دقائق |
+| SaintRambal طولي | 27 دقيقة | 10.2 دقائق |
+| FatimaSheikhayn طولي | — | 2.6 دقيقة |
+| FatimaSheikhayn-L | — | 13.1 دقيقة، بسبب الشاشة المقسومة التي ما زالت في Chromium |
+
+الشكل مطابق للهجين (≥ 45 dB، والمعتاد ≈ 68)، والتوقيت صحيح بالضبط، والإطارات متطابقة بين رندرين.
+
+**ما لم يتحقق بعد:**
+- معالج الجهاز ≤ 35%: متوسطه 60%، وعمليات الرندر وحدها ≈ 30–34%، وأكبر بند React الخاص بالتركيبة؛
+- 60 إطاراً/ث من أول التشغيل إلى آخره: 52–58.
+
+> الأقسام التالية عن الهجين (`hybrid_any`) تبقى مرجعاً للاحتياط، ولقواعد `VSlot` و`UnderHim` التي يشترك فيها المحرّكان.
+
+> **HYBRID (fallback since 2026-11-12; was the only path from 2026-11-09):** final render = `node tools/hybrid_any.mjs --comp <Id> --out <file>`. `render_final`/`render_chunked`/`render_clip` refuse to run (`tools/hybrid_gate.mjs`, hook), and a failed hybrid is FIXED, never replaced by the old path. A composition the hybrid cannot draw is ported to `HybridHost`/`VSlot`. Old path only when the user's current message asks for it (`LEGACY_RENDER_USER_OK="<his words>"`).
 
 > **HYBRID SPEED — nothing is decoded in Chrome (user 2026-11-12: «5 إطارات للثانية قليل جداً»).** Measured on SaintRambal-L: plain spans 15.4 fps, but spans where he is isolated over a background clip 2.6 fps (more browsers did not help: 7 browsers = 2.4 fps; the cost is Chrome seeking videos per frame, not CPU).
 > 1. Every video in the hybrid "top"/"bg" layer is a `<VSlot>` (GPU compositor, NVDEC) — never `OffthreadVideo`/`<Video>`/`ClipVideo`. `BgClip` (src/GazaFx.tsx) does this; a new video component must too.

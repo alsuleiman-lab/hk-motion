@@ -18,6 +18,15 @@
 
 **بعد إتمام أي فيديو:** «هل تعتمده؟» بالنقر فتُنفَّذ قواعد الاعتماد والحذف (`PREFERENCES.md` القسم 2)، وفي أول الرد عند الانتهاء «✅ انتهيتُ من المونتاج» + رابط المشاهدة.
 
+**الرندر = المحرّك الجديد على كرت الشاشة (أمر المستخدم 2026-11-12: «يجب نقل كل شيء إلى طريقتنا الجديدة»، R-RENDER-GPU.1):**
+- **حين يطلب المستخدم رندراً:** اتبع الخطوات التسع في أول `.claude/skills/remotion-render/SKILL.md`: الإذن، ورندر واحد، والمساحة ≥ 25 GB بعد الذروة، و`node tools/gpu_render.mjs …` أو `bash tools/gpu/render_project.sh …` (العرضي ثم الطولي)، والتقرير (`chromeVideo` فارغ)، والارتجاف، والوجهة، والإصلاح عند الفشل، والتنظيف. الهجين `hybrid_any` احتياط بإذنه فقط.
+- **حين تعمل مونتاجاً:** القواعد الخمس في أول `.claude/skills/video-montage/SKILL.md`:
+  - كل فيديو `<VSlot>`، ولا `OffthreadVideo` ولا `Video` ولا `RV` في مسار الرندر؛
+  - ما تحت الفيديو بـ `hyBg` و`HybridBg` و`UnderHim`؛
+  - لا تستعمل المكوّنات المحصورة التي ما زالت في Chromium قبل نقلها؛
+  - رندر اختبار قصير قبل الرندر الكامل؛
+  - ولا تغيير لشكل عناصر المعرض.
+
 # Video Processing & FFmpeg (NVIDIA RTX 3090) — full settings in `.claude/skills/remotion-render/SKILL.md` (keep in sync)
 - GPU by default: decode `-hwaccel cuda`; encode NVENC, never `libx264/libx265` (preview `-c:v h264_nvenc -preset p4 -cq 23`; final `-preset p7 -rc vbr -cq 19 -b:v 0`); `-c copy` when nothing is re-encoded.
 - CPU-bound FFmpeg filters `-threads 4`; long jobs at below-normal priority.

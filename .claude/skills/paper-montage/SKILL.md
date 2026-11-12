@@ -70,7 +70,7 @@ description: «مونتاج ورقي» — فيديو كله قصاصات ورق
 - افحص لقطات من كل مشهد بالعين (`npx remotion still` ثم لوحة) قبل العرض: لا قطعة مقصوصة بالحافة، لا تداخل مع بطاقة الاسم.
 
 ## 5) الريندر والاعتماد
-- **لا ريندر دون إذن.** `node tools/hybrid_any.mjs --comp <CompositionId> --out "C:/Users/mshms/Videos/جاهز/<العنوان بلا تشكيل>.mp4" (الهجين صارم؛ `render_final` مرفوض، 2026-11-09)` (NVENC؛ قفل `.tmp/render.lock` يمنع رندرين معاً، فإن وُجد رندر آخر فانتظر ولا تكسر القفل). تحقق بـ`ffprobe` (1080×1920، وفيه صوت).
+- **لا ريندر دون إذن.** `node tools/gpu_render.mjs --comp <CompositionId> --out "C:/Users/mshms/Videos/جاهز/<العنوان بلا تشكيل>.mp4"` (المحرّك المعتمد منذ 2026-11-12، R-RENDER-GPU.1؛ خطواته في أول مهارة `remotion-render`؛ و`hybrid_any.mjs` احتياط بإذن المستخدم؛ `render_final` مرفوض) (NVENC؛ قفل `.tmp/render.lock` يمنع رندرين معاً، فإن وُجد رندر آخر فانتظر ولا تكسر القفل). تحقق بـ`ffprobe` (1080×1920، وفيه صوت).
 - «✅ انتهيتُ» + رابط، ثم «هل تعتمده؟». عند الاعتماد: احذف التركيبة من `Root.tsx` والمكوّن و`public/<مشروع>` و`.tmp/<مشروع>`، شغّل `node tools/clean_temp.mjs`، وأرسل الأصل إلى سلة المحذوفات (PowerShell: `Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(..., 'SendToRecycleBin')`).
 - لا تحفظ القطع في مكتبة دائمة ما لم يُطلب؛ القالب هنا يكفي لإعادة بنائها.
 

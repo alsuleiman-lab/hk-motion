@@ -470,6 +470,7 @@
   },
   {
    "t": "rows",
+   "pair": true,
    "from": 214,
    "to": 246.1,
    "title": {

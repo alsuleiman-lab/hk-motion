@@ -28,11 +28,13 @@ export const ClipVideo: React.FC<{ src: string; style: React.CSSProperties; star
 };
 
 /** full-screen clip behind him; it dissolves over `fade` seconds centred on `to` (so the layer under it — his own recording — is revealed by the same dissolve as his cut-out) */
-export const BgClip: React.FC<{ src: string; from: number; to: number; fade?: number; start?: number; dim?: number }> = ({ src, from, to, fade = 0.5, start = 0, dim = 0.3 }) => {
+/** portrait isolation (user 2026-11-12): the clip only shows above his shoulders, so it is drawn in that top box; the rest is a dark blurred copy of the clip */
+export type PortIso = { boxY?: number; boxH?: number; inset?: number; radius?: number; scale?: number; backdrop?: "blur" | "veil" };
+export const BgClip: React.FC<{ src: string; from: number; to: number; fade?: number; start?: number; dim?: number; iso?: PortIso }> = ({ src, from, to, fade = 0.5, start = 0, dim = 0.3, iso }) => {
   const d = to - from;
   return (
     <Sequence from={Math.round(from * FPS)} durationInFrames={Math.round(d * FPS)}>
-      <BgClipInner src={src} d={d} fade={fade} start={start} dim={dim} />
+      {iso ? <BgClipPort src={src} start={start} dim={dim} iso={iso} /> : <BgClipInner src={src} d={d} fade={fade} start={start} dim={dim} />}
     </Sequence>
   );
 };
@@ -48,6 +50,22 @@ const BgClipInner: React.FC<{ src: string; d: number; fade: number; start: numbe
       {HY ? <VSlot src={src} startFrom={Math.round(start * FPS)} w={W} h={H} vx={(W - vw) / 2} vy={(H - vh) / 2} vw={vw} vh={vh} fx={{ veil: dim }} />
         : <ClipVideo src={src} start={start} style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
       {HY ? null : <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 45%, rgba(6,12,22,${dim * 0.5}) 0%, rgba(6,12,22,${dim + 0.25}) 100%)` }} />}
+    </AbsoluteFill>
+  );
+};
+
+const BgClipPort: React.FC<{ src: string; start: number; dim: number; iso: PortIso }> = ({ src, start, dim, iso }) => {
+  const { width: W, height: H } = useVideoConfig();
+  const inset = iso.inset ?? 0, bx = inset, by = iso.boxY ?? 0, bw = W - 2 * inset, bh = iso.boxH ?? 720, r = iso.radius ?? 0;
+  const k = Math.max(bw / 1920, bh / 1080), vw = 1920 * k, vh = 1080 * k;                       /* the clip covers the top box, centred */
+  const kb = Math.max(W / 1920, H / 1080), bvw = 1920 * kb, bvh = 1080 * kb;                    /* the backdrop covers the whole frame */
+  const veil = iso.backdrop === "veil";
+  return (
+    <AbsoluteFill>
+      {HY ? <VSlot src={src} startFrom={Math.round(start * FPS)} w={W} h={H} vx={(W - bvw) / 2} vy={(H - bvh) / 2} vw={bvw} vh={bvh} fx={{ blur: veil ? 60 : 28, brightness: veil ? 0.18 : 0.42 }} />
+        : <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}><ClipVideo src={src} start={start} style={{ position: "absolute", left: (W - bvw) / 2, top: (H - bvh) / 2, width: bvw, height: bvh, filter: `blur(${veil ? 60 : 28}px) brightness(${veil ? 0.18 : 0.42})` }} /></div>}
+      {HY ? <VSlot src={src} startFrom={Math.round(start * FPS)} w={bw} h={bh} radius={r} vx={(bw - vw) / 2} vy={(bh - vh) / 2} vw={vw} vh={vh} fx={{ veil: dim * 0.6 }} style={{ left: bx, top: by }} />
+        : <div style={{ position: "absolute", left: bx, top: by, width: bw, height: bh, borderRadius: r, overflow: "hidden" }}><ClipVideo src={src} start={start} style={{ position: "absolute", left: (bw - vw) / 2, top: (bh - vh) / 2, width: vw, height: vh }} /></div>}
     </AbsoluteFill>
   );
 };

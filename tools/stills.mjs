@@ -40,14 +40,16 @@ if (flag("legacy") || process.env.PD) {
 const browser = await openBrowser("chrome", { chromiumOptions: { gl: "angle" }, logLevel: "error" });
 // another session may hold 3457 (2026-11-12): take the first free port from 3457 up unless STILLS_PORT is set
 const STILLS_PORT = process.env.STILLS_PORT ? Number(process.env.STILLS_PORT) : await (async () => { const net = await import("node:net"); for (let p = 3457; p < 3500; p++) { const free = await new Promise((r) => { const sv = net.createServer().once("error", () => r(false)).once("listening", () => sv.close(() => r(true))).listen(p, "127.0.0.1"); }); if (free) return p; } return 3457; })();
-const comp = await selectComposition({ serveUrl, id, port: STILLS_PORT, puppeteerInstance: browser });
+/* --props '{json}' (2026-11-12): inputProps for every still (layout experiments without touching the spec) */
+const PROPS = (() => { const i = process.argv.indexOf("--props"); try { return i > 0 ? JSON.parse(process.argv[i + 1]) : {}; } catch { return {}; } })();
+const comp = await selectComposition({ serveUrl, id, port: STILLS_PORT, puppeteerInstance: browser, inputProps: PROPS });
 const jobs = Math.max(1, Math.min(pts.length, Number(opt("jobs", process.env.STILLS_JOBS ?? "1"))));
 let next = 0;
 await Promise.all(Array.from({ length: jobs }, async () => {
   while (next < pts.length) {
     const p = pts[next++];
     const [name, fr] = p.split(":");
-    await renderStill({ composition: comp, serveUrl, port: STILLS_PORT, frame: Number(fr), output: path.join(outDir, name + ".png"), scale, puppeteerInstance: browser, timeoutInMilliseconds: Number(process.env.RT || 180000), chromiumOptions: { gl: "angle" } });
+    await renderStill({ composition: comp, serveUrl, inputProps: PROPS, port: STILLS_PORT, frame: Number(fr), output: path.join(outDir, name + ".png"), scale, puppeteerInstance: browser, timeoutInMilliseconds: Number(process.env.RT || 180000), chromiumOptions: { gl: "angle" } });
     console.log("still", name);
     // every renderStill leaves a ~1.6 GB remotion-*-assets* folder (audio preprocessing of the long cut) until exit: 35 stills = 58 GB = a full S: (2026-11-09). Delete them right after each still (single job only: parallel jobs may still use theirs).
     if (jobs === 1) for (const d of fs.readdirSync(os.tmpdir())) if (/^remotion-v[\d.]+-assets/.test(d)) { try { fs.rmSync(path.join(os.tmpdir(), d), { recursive: true, force: true }); } catch { /* in use */ } }

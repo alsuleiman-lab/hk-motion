@@ -143,7 +143,7 @@ const ClipPin: React.FC<{ left: number }> = ({ left }) => (
 );
 
 /** a paper card that slides in when its word is spoken: icon + label + big number */
-export const StatRow: React.FC<{ at: number; x: number; y: number; w: number; h?: number; icon: string; label: string; sub?: string; /** the second line appears when it is said (user 2026-11-12: «إذا قلت كذا ← فهذا كذا») */ subAt?: number; to?: number; dec?: number; unit?: string; flag?: FlagCode; photo?: string; rot?: number; big?: number; countAt?: number; comma?: boolean }> = ({ at, x, y, w, h = 190, icon, label, sub, subAt, to, dec = 0, unit, flag, photo, rot = -1, big = 96, countAt, comma }) => {
+export const StatRow: React.FC<{ at: number; x: number; y: number; w: number; h?: number; icon: string; label: string; sub?: string; /** the second line appears when it is said (user 2026-11-12: «إذا قلت كذا ← فهذا كذا») */ subAt?: number; /** a plain box: no icon square (the consequence box of a condition pair) */ noIcon?: boolean; to?: number; dec?: number; unit?: string; flag?: FlagCode; photo?: string; rot?: number; big?: number; countAt?: number; comma?: boolean }> = ({ at, x, y, w, h = 190, icon, label, sub, subAt, noIcon, to, dec = 0, unit, flag, photo, rot = -1, big = 96, countAt, comma }) => {
   const s = useSp(at, 14, 170);
   const t = useT(at);
   const u = clamp(t / 0.33);
@@ -151,7 +151,7 @@ export const StatRow: React.FC<{ at: number; x: number; y: number; w: number; h?
   return (
     <div style={{ position: "absolute", left: x + (1 - u) * 120, top: y, width: w, height: h, opacity: u, transform: `rotate(${rot + (1 - u) * 3}deg) scale(${0.94 + 0.06 * s})`, background: T.card, borderRadius: 14, boxShadow: "0 18px 34px rgba(0,0,0,.26), 0 2px 0 rgba(0,0,0,.08)", direction: "rtl", display: "flex", alignItems: "center", gap: 22, padding: "0 28px" }}>
       <ClipPin left={w - 110} />
-      {photo ? (
+      {noIcon ? null : photo ? (
         <Pic src={photo} style={{ width: 110, height: 110, borderRadius: 24, objectFit: "cover", objectPosition: "50% 15%", flexShrink: 0, border: `4px solid ${T.accent}` }} />
       ) : (
         <div style={{ width: 96, height: 96, borderRadius: 22, background: T.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>

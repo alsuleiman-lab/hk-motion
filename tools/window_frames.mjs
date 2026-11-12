@@ -14,10 +14,20 @@ const [p, mode] = process.argv.slice(2);
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const spec = JSON.parse(fs.readFileSync(`data/specs/${p}.json`, "utf8"));
 const base = (f) => path.basename(f).replace(/\.[^.]+$/, "");
-/* (2026-11-12) windows with nothing Chrome draws under him are cut out on the GPU (MontageSpec gpuWindow) and need no frames — same test here */
-const UNDER_HIM = new Set(["pmap", "full", "treefx", "mini", "hclip"]);
-const gpuWindow = (w) => !spec.items.some((x) => UNDER_HIM.has(x.t) && (x.from ?? 0) < w.to && (x.to ?? 0) > w.from);
-const wins = (spec.behind ?? []).filter((w) => (w.matte ?? spec.matte) && spec.cut && !gpuWindow(w));
+/* (2026-11-12, user: «لا اريد التفادي») EVERY isolation window is cut out on the GPU now; what lies under him (map, full picture, tree) is drawn in the
+   "under" layer. `node tools/window_frames.mjs <p> under <L|R>` prints the frame ranges of that layer for hybrid_any --under (same test as MontageSpec
+   underHim). The JPEG extraction below is kept only for a composition that still asks for it with --legacy. */
+if (mode === "under") {
+  const o = process.argv[4] === "R" ? "port" : "land";
+  const UNDER_TYPES = new Set(["pmap", "full", "treefx"]);
+  const W = (spec.behind ?? []).filter((w) => (w.matte ?? spec.matte) && (!w.only || w.only === o) && (o === "land" || w.dx === undefined));
+  const shown = (x) => x.t === "full" ? (!x.only || x.only === o) : x.t === "pmap" ? !x.only && (o === "land" || x.iso) : x.t === "treefx" ? o === "land" && !x.only : false;
+  const r = spec.items.filter((x) => UNDER_TYPES.has(x.t) && shown(x) && W.some((w) => (x.from ?? 0) < w.to && (x.to ?? 0) > w.from))
+    .map((x) => [Math.max(0, Math.floor(x.from * 30) - 1), Math.ceil(x.to * 30) + 1]).sort((p, q) => p[0] - q[0]);
+  const m = []; for (const [a, b] of r) { if (m.length && a <= m[m.length - 1][1] + 1) m[m.length - 1][1] = Math.max(m[m.length - 1][1], b); else m.push([a, b]); }
+  console.log(m.map(([a, b]) => `${a}-${b}`).join(",")); process.exit(0);
+}
+const wins = process.argv.includes("--legacy") ? (spec.behind ?? []).filter((w) => (w.matte ?? spec.matte) && spec.cut) : [];
 const cutDir = spec.cut ? base(spec.cut) : null;
 const mattes = [...new Set(wins.map((w) => (w.matte ?? spec.matte).src))];
 const dirs = [...(wins.length ? [cutDir] : []), ...mattes.map(base)];

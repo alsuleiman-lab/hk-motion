@@ -11,15 +11,15 @@ import { AbsoluteFill, OffthreadVideo, continueRender, delayRender, Video, getIn
  * of any ancestor are captured automatically) and the GPU compositor puts the decoded video there; Remotion's PNG contains only the graphics.
  * Rule: no opaque background may sit under a VSlot in the "top" layer (use hyBg(color) for such backgrounds).
  */
-type HyProps = { hybrid?: "top" | "bg"; hybridPort?: number; noshadow?: boolean };
+type HyProps = { hybrid?: "top" | "bg" | "under"; hybridPort?: number; noshadow?: boolean };
 const P = getInputProps() as HyProps;
-export const HY: "top" | "bg" | undefined = P.hybrid;
+export const HY: "top" | "bg" | "under" | undefined = P.hybrid;
 
 /** background colour that disappears in the hybrid "top" layer (so the video below it is visible) */
 export const hyBg = <T,>(c: T): T | undefined => (HY === "top" ? undefined : c);
 
 type Rec = { id: string; src: string; t: number; f: number; rate: number; m: number[]; w: number; h: number; r: number; o: number; vx: number; vy: number; vw: number; vh: number; fx: Record<string, number>; mt?: string; mtT?: number; fl?: number };
-const G: { frame: number; slots: Map<string, Rec>; flushedFrame: number; host: HTMLDivElement | null } = { frame: -1, slots: new Map(), flushedFrame: -2, host: null };
+const G: { frame: number; slots: Map<string, Rec>; flushedFrame: number; host: HTMLDivElement | null; under: boolean } = { frame: -1, slots: new Map(), flushedFrame: -2, host: null, under: false };
 
 const MEAS = new Map<string, () => void>(); // latest measuring function of every mounted slot
 const flush = (frame: number) => {
@@ -27,7 +27,7 @@ const flush = (frame: number) => {
     const x = new XMLHttpRequest();
     x.open("POST", `http://127.0.0.1:${P.hybridPort}/g`, false); // synchronous: guaranteed to arrive before the screenshot is taken
     x.setRequestHeader("Content-Type", "text/plain");
-    x.send(JSON.stringify({ frame, slots: Array.from(G.slots.values()) }));
+    x.send(JSON.stringify({ frame, slots: Array.from(G.slots.values()), under: G.under }));
     G.flushedFrame = frame;
   } catch (e) {
     console.error("hybrid flush failed", e);
@@ -37,7 +37,7 @@ const flush = (frame: number) => {
 /** outermost element of a hybrid-capable composition */
 export const HybridHost: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const frame = useCurrentFrame();
-  if (HY === "top" && G.frame !== frame) { G.frame = frame; G.slots = new Map(); }
+  if (HY === "top" && G.frame !== frame) { G.frame = frame; G.slots = new Map(); G.under = false; }
   useLayoutEffect(() => {
     if (HY !== "top") return;
     flush(frame);
@@ -54,7 +54,7 @@ export const HybridHost: React.FC<{ children: React.ReactNode }> = ({ children }
     requestAnimationFrame(settle);
   });
   return (
-    <AbsoluteFill ref={(el) => { G.host = el; }} style={{ visibility: HY === "bg" ? "hidden" : undefined }}>
+    <AbsoluteFill ref={(el) => { G.host = el; }} style={{ visibility: HY === "bg" || HY === "under" ? "hidden" : undefined }}>
       {P.noshadow ? <style>{"*{box-shadow:none !important;text-shadow:none !important}"}</style> : null}
       {children}
     </AbsoluteFill>
@@ -62,7 +62,19 @@ export const HybridHost: React.FC<{ children: React.ReactNode }> = ({ children }
 };
 
 /** static content that lives below every video (desk paper, gradient...). Rendered once as the background image; hidden in the graphics layer. */
-export const HybridBg: React.FC<{ children: React.ReactNode }> = ({ children }) => (HY === "top" ? null : <AbsoluteFill style={{ visibility: "visible" }}>{children}</AbsoluteFill>);
+export const HybridBg: React.FC<{ children: React.ReactNode }> = ({ children }) => (HY === "top" || HY === "under" ? null : <AbsoluteFill style={{ visibility: "visible" }}>{children}</AbsoluteFill>);
+
+/** (2026-11-12, user: «نقل العزل كله إلى كرت الشاشة») graphics that lie UNDER his GPU cut-out (a map, a full picture… in an isolation window).
+ *  The "top" graphics layer is composited above every video, so these are drawn in a second transparent layer ("under", rendered by hybrid_any --under
+ *  only for the frames that need it); the compositor stacks: videos → under layer → masked cut-out → top layer. Outside the hybrid render: drawn normally. */
+export const UnderHim: React.FC<{ active: boolean; from?: number; to?: number; children: React.ReactNode }> = ({ active, from = -1e9, to = 1e9, children }) => {
+  const { fps } = useVideoConfig(), t = useCurrentFrame() / fps;   // top-level item: absolute time; the layer is asked for only while the item is on (±1 frame)
+  if (!active || !HY) return <>{children}</>;
+  if (t < from - 1 / fps || t > to + 1 / fps) return HY === "under" ? null : <>{children}</>;
+  if (HY === "top") { G.under = true; return null; }
+  if (HY === "under") return <AbsoluteFill style={{ visibility: "visible" }}>{children}</AbsoluteFill>;
+  return null;
+};
 
 export type SlotFx = { blur?: number; brightness?: number; contrast?: number; saturate?: number; /** dark radial veil of a background clip (BgClip dim), drawn by the compositor */ veil?: number };
 const cssFilter = (fx?: SlotFx) => (fx ? [fx.blur ? `blur(${fx.blur}px)` : "", fx.contrast != null ? `contrast(${fx.contrast})` : "", fx.saturate != null ? `saturate(${fx.saturate})` : "", fx.brightness != null ? `brightness(${fx.brightness})` : ""].filter(Boolean).join(" ") || undefined : undefined);
@@ -123,7 +135,7 @@ export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, pla
   });
 
   const box: React.CSSProperties = { position: "absolute", left: 0, top: 0, width: w, height: h, overflow: "hidden", borderRadius: radius, ...style };
-  if (HY === "bg") return null; // the static background image contains no video
+  if (HY === "bg" || HY === "under") return null; // the static background image and the under layer contain no video
   if (HY === "top") {
     const dot = (x: number, y: number) => <div data-probe style={{ position: "absolute", left: x, top: y, width: 0, height: 0 }} />;
     return <div ref={ref} style={{ ...box, overflow: "visible" }}>{dot(0, 0)}{dot(w, 0)}{dot(0, h)}</div>;

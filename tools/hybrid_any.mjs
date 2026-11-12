@@ -91,7 +91,7 @@ timing.bgSec = (Date.now() - t) / 1000;
 log("starting the GPU compositor…");
 const video = path.join(work, "video_noaudio.mp4");
 const dump = arg("dump", null);
-const comp_py = spawn(PY, ["-u", "tools/hybrid_generic.py", "--listen", String(PNG_PORT), "--geom", String(GEOM_PORT), "--out", video, "--bg", bgPng, "--public", `${root}/public`, "--w", String(W), "--h", String(H), "--fps", String(FPS), "--start", String(start), "--end", String(end), ...(dump && dump !== true ? ["--dump", dump] : [])], { cwd: root, stdio: ["ignore", "pipe", "inherit"] });
+const comp_py = spawn(PY, ["-u", "tools/hybrid_generic.py", "--listen", String(PNG_PORT), "--geom", String(GEOM_PORT), "--out", video, "--bg", bgPng, "--public", `${root}/public`, "--w", String(W), "--h", String(H), "--fps", String(FPS), "--start", String(start), "--end", String(end), ...(dump && dump !== true ? ["--dump", dump] : [])], { cwd: root, stdio: ["ignore", "pipe", "inherit"], env: { ...process.env, HY_UNDER: String(arg("under", "")).length > 1 ? "1" : "0" } });
 try { os.setPriority(comp_py.pid, os.constants.priority.PRIORITY_ABOVE_NORMAL); } catch {} // the feeding thread must never be starved by Chrome
 let ready; const readyP = new Promise((res) => (ready = res));
 let pyOut = "";
@@ -117,21 +117,29 @@ const CONC = conc && conc !== true ? Number(conc) : 3;
 // (default 150; smaller blocks cost more because every renderFrames call reopens its pages). Default 3 since the compositor was pipelined
 // (2026-11-11); --browsers 1 = the original single call.
 const BROWSERS = Math.max(1, Number(arg("browsers", 3)) || 1), BLOCK = Math.max(10, Number(arg("block", 150)) || 150);
+/* --under "a-b,c-d" (2026-11-12): frames that also need the UNDER-HIM layer (graphics drawn below his GPU cut-out: a map in an isolation window). They are
+   rendered a second time with {hybrid:"under"} and sent with bit 31 set on the frame number; the compositor stacks videos → under → cut-out → top. */
+const UNDER = String(arg("under", "") === true ? "" : arg("under", "")).split(",").filter(Boolean).map((r) => r.split("-").map(Number)).map(([a, b]) => [Math.max(a, start), Math.min(b, end)]).filter(([a, b]) => b >= a);
+const NU = UNDER.reduce((n, [a, b]) => n + b - a + 1, 0);
+if (NU) log(`under-him layer: ${NU} frames (${UNDER.map(([a, b]) => a + "-" + b).join(", ")})`);
+const onFrameBufferUnder = (buf, frame) => { const h = Buffer.alloc(8); h.writeUInt32LE((frame | 0x80000000) >>> 0, 0); h.writeUInt32LE(buf.length, 4); sock.write(h); sock.write(buf); };
 const onFrameBuffer = (buf, frame) => { const h = Buffer.alloc(8); h.writeUInt32LE(frame, 0); h.writeUInt32LE(buf.length, 4); sock.write(h); sock.write(buf); sent++; const percent = Math.floor(sent / NF * 100); if (percent !== lastPercent) { lastPercent = percent; logProgress(`[جزء 1/1] ${percent}%`); } if (sent % 600 === 0) log(`graphics ${sent}/${NF}  ${(sent / ((Date.now() - tg0) / 1000)).toFixed(1)} fps`); };
-const renderRange = (a, b, puppeteerInstance) => renderFrames({
-  composition, serveUrl, inputProps, imageFormat: "png", outputDir: null, concurrency: CONC, frameRange: [a, b], chromiumOptions: { gl: "angle" }, logLevel: "error", timeoutInMilliseconds: 180000,
-  onFrameUpdate: () => {}, onFrameBuffer, ...(puppeteerInstance ? { puppeteerInstance } : {}),
+const renderRange = (a, b, puppeteerInstance, under = false) => renderFrames({
+  composition, serveUrl, inputProps: under ? { ...inputProps, hybrid: "under" } : inputProps, imageFormat: "png", outputDir: null, concurrency: CONC, frameRange: [a, b], chromiumOptions: { gl: "angle" }, logLevel: "error", timeoutInMilliseconds: 180000,
+  onFrameUpdate: () => {}, onFrameBuffer: under ? onFrameBufferUnder : onFrameBuffer, ...(puppeteerInstance ? { puppeteerInstance } : {}),
 });
 let assetsInfo;
-if (BROWSERS === 1) ({ assetsInfo } = await renderRange(start, end));
+if (BROWSERS === 1) { for (const [a, b] of UNDER) await renderRange(a, b, undefined, true); ({ assetsInfo } = await renderRange(start, end)); }
 else {
   const { openBrowser } = await import("@remotion/renderer");
   log(`graphics: ${BROWSERS} browsers × ${CONC} tabs, blocks of ${Math.max(30, Math.min(BLOCK, Math.ceil(NF / BROWSERS)))} frames`);
   const B = Math.max(30, Math.min(BLOCK, Math.ceil(NF / BROWSERS)));   // a short patch span is still shared by every browser
-  const blocks = []; for (let a = start; a <= end; a += B) blocks.push([a, Math.min(end, a + B - 1)]);
+  const blocks = []; for (let a = start; a <= end; a += B) blocks.push([a, Math.min(end, a + B - 1), false]);
+  for (const [ua, ub] of UNDER) for (let a = ua; a <= ub; a += B) blocks.push([a, Math.min(ub, a + B - 1), true]);
+  blocks.sort((p, q) => p[0] - q[0] || (q[2] ? 1 : 0) - (p[2] ? 1 : 0));   // in frame order, the under block of a span just before its top block
   const browsers = await Promise.all(Array.from({ length: BROWSERS }, () => openBrowser("chrome", { logLevel: "error", chromiumOptions: { gl: "angle" } })));
   const all = []; let next = 0;
-  const worker = async (br, wi) => { while (next < blocks.length) { const [a, b] = blocks[next++]; let tries = 0; for (;;) { try { const tb = Date.now(); all.push(...(await renderRange(a, b, br)).assetsInfo.assets); if (arg("block-log", false)) log(`  browser ${wi}: block ${a}-${b} in ${((Date.now() - tb) / 1000).toFixed(1)}s`); break; } catch (e) { if (++tries >= 3) throw e; log(`block ${a}-${b} failed (${e.message.split("\n")[0]}), retry ${tries}`); } } } };
+  const worker = async (br, wi) => { while (next < blocks.length) { const [a, b, u] = blocks[next++]; let tries = 0; for (;;) { try { const tb = Date.now(); const r = await renderRange(a, b, br, u); if (!u) all.push(...r.assetsInfo.assets); if (arg("block-log", false)) log(`  browser ${wi}: block ${a}-${b} in ${((Date.now() - tb) / 1000).toFixed(1)}s`); break; } catch (e) { if (++tries >= 3) throw e; log(`block ${a}-${b} failed (${e.message.split("\n")[0]}), retry ${tries}`); } } } };
   try { await Promise.all(browsers.map((br, wi) => worker(br, wi))); } finally { await Promise.all(browsers.map((br) => br.close({ silent: true }).catch(() => {}))); }
   assetsInfo = { assets: all };
 }

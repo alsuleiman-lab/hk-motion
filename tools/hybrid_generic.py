@@ -228,6 +228,11 @@ class H_(http.server.BaseHTTPRequestHandler):
             st.prepare(int(math.floor(s["t"] * st.fps + BIAS)))
         with cv:
             geoms[obj["frame"]] = obj["slots"]
+            if obj.get("under"):  # (2026-11-12) this frame also has an under-him layer (sent with bit 31 on the PNG socket)
+                if UNDER_ON:
+                    under_frames.add(obj["frame"])
+                elif not UNDER_WARNED:
+                    UNDER_WARNED.append(1); print(f"WARNING: frame {obj['frame']} has graphics UNDER his cut-out but hybrid_any got no --under: they are missing", flush=True)
             cv.notify_all()
         self.send_response(200)
         self._cors()
@@ -245,6 +250,8 @@ threading.Thread(target=Srv(("127.0.0.1", a.geom), H_).serve_forever, daemon=Tru
 # ---------------- PNG layer from Remotion ----------------
 cv2.setNumThreads(1)
 pngs = {}
+upngs, under_frames = {}, set()
+UNDER_ON, UNDER_WARNED = os.environ.get("HY_UNDER") == "1", []   # under-him layer: compressed PNGs by frame, and the frames whose geometry says they need one
 pool = concurrent.futures.ThreadPoolExecutor(max_workers=7)
 
 
@@ -272,7 +279,10 @@ def t_top_socket():
         idx, ln = struct.unpack("<II", hdr)
         data = fh.read(ln)
         with cv:   # kept compressed; decoded only a few frames ahead of the compositor (several browsers send far ahead: 8 MB per decoded frame)
-            pngs[idx] = data
+            if idx & 0x80000000:
+                upngs[idx & 0x7FFFFFFF] = data
+            else:
+                pngs[idx] = data
             cv.notify_all()
 
 
@@ -428,7 +438,7 @@ for i in range(NF):
     fno = START + i
     _a = time.time()
     with cv:
-        if not cv.wait_for(lambda: fno in geoms and (fno in pngs or fno in futs), timeout=180):
+        if not cv.wait_for(lambda: fno in geoms and (fno in pngs or fno in futs) and (fno not in under_frames or fno in upngs), timeout=180):
             print(f"ERROR: no geometry/graphics for frame {fno} (is the composition wrapped in <HybridHost>?)", flush=True)
             sys.exit(2)
         slots = geoms.pop(fno)
@@ -436,6 +446,8 @@ for i in range(NF):
             if j not in futs and j in pngs:
                 futs[j] = pool.submit(decode_png, pngs.pop(j))
         fut = futs.pop(fno)
+        ufut = pool.submit(decode_png, upngs.pop(fno)) if fno in under_frames else None
+        under_frames.discard(fno)
     _w = time.time()
     top = fut.result()
     _b = time.time()
@@ -443,7 +455,16 @@ for i in range(NF):
     PROF["wait"] += _b - _a
     out = BG.clone()
     if os.environ.get("HY_DEBUG"): print("SLOTS", fno, json.dumps(slots)[:900], flush=True)
+    def put_layer(out, L):  # a transparent BGRA layer over `out`
+        T = L.to(dev, non_blocking=True).permute(2, 0, 1).float()[[2, 1, 0, 3]]
+        return out * (1.0 - T[3:4] / 255.0) + T[:3] * (T[3:4] / 255.0)
+    # stacking (2026-11-12): plain videos → under-him layer → masked cut-outs → top layer
+    slots = [x for x in slots if not x.get("mt")] + [None] + [x for x in slots if x.get("mt")]
     for s in slots:
+        if s is None:
+            if ufut is not None:
+                out = put_layer(out, ufut.result())
+            continue
         path = a.public + "/" + s["src"]
         st = stream_for(path, slot_key(s))
         st.last_use = fno

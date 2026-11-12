@@ -20,7 +20,7 @@ const ease = (x: number) => x * x * (3 - 2 * x);
 
 /** clip playback: frame-accurate OffthreadVideo in the final render, SafeVideo in Studio; the fast face check sees an empty box */
 export const ClipVideo: React.FC<{ src: string; style: React.CSSProperties; start?: number }> = ({ src, style, start = 0 }) => {
-  if (GFX_ONLY) return <div style={style} />;
+  if (GFX_ONLY || HY === "under") return <div style={style} />;   /* the under-him layer never decodes a video in Chrome */
   const s = staticFile(src);
   return getRemotionEnvironment().isRendering
     ? <OffthreadVideo src={s} muted startFrom={Math.round(start * FPS)} style={style} />

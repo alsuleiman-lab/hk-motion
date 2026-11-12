@@ -61,19 +61,23 @@ for (const it of spec.items ?? []) {
   }
   /* (user 2026-11-06, repeated 2026-11-12: «الشاشة المنقسمة… الصور تطلع بالنص بين الإطار تبعي والإطار تبعه، ما تطلع فوق الشخص») in a landscape split window
      (the clip card | his card) every picture goes in the GAP between the two cards (grid slot land.half.panel), scaled to fit, never over the clip */
+  let panelHere = false;
   { const t0 = it.at ?? it.from ?? 0, inSplit = (spec.splits ?? []).some((w) => t0 >= w.from - 0.05 && t0 < w.to);
     if (inSplit && ["tphoto", "scholar", "pic", "date", "flag", "news", "clock"].includes(it.t) && PANEL) {
-      const [px, py, px2, py2] = PANEL, pw = px2 - px - 16, ph = py2 - py - 16, w0 = wantLand.w ?? 300, h0 = wantLand.h ?? 370, k = Math.min(1, pw / w0, ph / h0);
+      panelHere = true;   /* the card frame + name strip is drawn ≈ 20 % wider than the picture: the whole frame must fit inside the gap */
+      const [px, py, px2, py2] = PANEL, pw = Math.floor((px2 - px) / 1.2), ph = Math.floor((py2 - py) / 1.35), w0 = wantLand.w ?? 300, h0 = wantLand.h ?? 370, k = Math.min(1, pw / w0, ph / h0);
       wantLand.w = Math.round(w0 * k); wantLand.h = Math.round(h0 * k); wantLand.x = Math.round(px + (px2 - px - wantLand.w) / 2); wantLand.y = Math.round(py + (py2 - py - wantLand.h) / 2);
     } }
   const bad = [];
   for (const k of PGEO) if ((it[k] ?? undefined) !== (want[k] ?? undefined) && !(it.t === "pic" && k === "h" && Math.abs((it.h ?? 0) - (want.h ?? 0)) <= 1)) bad.push(`${k} ${it[k]}→${want[k]}`);
   for (const k of GEO) if ((it.land?.[k] ?? undefined) !== (wantLand[k] ?? undefined)) bad.push(`land.${k} ${it.land?.[k]}→${wantLand[k]}`);
+  if (!!it.land?.panel !== panelHere) bad.push(`land.panel ${!!it.land?.panel}→${panelHere}`);
   if (!bad.length) continue;
   diffs.push(`${it.t} عند ${(it.at ?? it.from ?? 0).toFixed(1)}ث: ${bad.join("، ")}`);
   if (WRITE) {
     for (const k of PGEO) { if (want[k] !== undefined) it[k] = want[k]; else delete it[k]; }
     const land = { ...(it.land ?? {}) }; for (const k of GEO) { if (wantLand[k] !== undefined) land[k] = wantLand[k]; else delete land[k]; }
+    if (panelHere) land.panel = true; else delete land.panel;
     if (Object.keys(land).length) it.land = land; else delete it.land;
   }
 }

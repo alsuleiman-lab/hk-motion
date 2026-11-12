@@ -215,16 +215,16 @@
    "slots": {
     "panel": {
      "rect": [
-      636,
+      668,
       196,
-      936,
+      864,
       832
      ],
      "kinds": [
       "source",
       "photo"
      ],
-     "note": "(user 2026-11-06/2026-11-12) pictures in the GAP between the clip card and his card, centred on it (gap ≈ 694–879 in the dossier): never over the clip"
+     "note": "(user 2026-11-06/2026-11-12) pictures INSIDE the gap between the clip card (ends ≈668) and his card (starts ≈864) of the dossier: the picture never overlaps either card or a person"
     },
     "under": {
      "rect": [

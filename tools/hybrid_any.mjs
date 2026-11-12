@@ -221,6 +221,6 @@ logProgress(`DONE ${out}`);
 {
   const partial = (PART !== "") || Number(arg("start", 0)) !== 0 || arg("end", null) !== null;
   if (!partial && !compId.startsWith("Fasel-") && !process.argv.includes("--no-bumper")) {
-    spawnSync("node", ["tools/prepend_bumper.mjs", out, "--name", String(arg("name", path.basename(out, path.extname(out))))], { cwd: root, stdio: "inherit" });
+    spawnSync("node", ["tools/prepend_bumper.mjs", out, "--name", String(arg("name", path.basename(out, path.extname(out)))), ...(Number(process.env.BUMPER_AT) > 0 ? ["--at", String(process.env.BUMPER_AT)] : [])], { cwd: root, stdio: "inherit" });   /* the bumper goes before his first greeting (tools/bumper_at.mjs) */
   }
 }

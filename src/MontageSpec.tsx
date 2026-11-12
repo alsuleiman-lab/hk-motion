@@ -547,7 +547,9 @@ const withGallery = (s: MontageSpec): MontageSpec => s.galleryOwn ? s : { ...s, 
   const P = galleryPlace(it as { t: string; style?: string }, "port"), L = galleryPlace(it as { t: string; style?: string }, "land");
   if (!P.dx && !P.dy && P.k === 1 && !L.dx && !L.dy && L.k === 1) return it;
   const ld = it.land ?? {};
-  return { ...it, dx: (it.dx ?? 0) + P.dx, dy: (it.dy ?? 0) + P.dy, k: (it.k ?? 1) * P.k, land: { ...ld, dx: (ld.dx ?? 0) + L.dx, dy: (ld.dy ?? 0) + L.dy, k: (ld.k ?? 1) * L.k } } as SpecItem;
+  /* (2026-11-12) a picture placed in the GAP between the two cards of a split window (land.panel) keeps that exact place: no gallery offset on top of it */
+  const inPanel = (ld as { panel?: boolean }).panel === true;
+  return { ...it, dx: (it.dx ?? 0) + P.dx, dy: (it.dy ?? 0) + P.dy, k: (it.k ?? 1) * P.k, land: inPanel ? ld : { ...ld, dx: (ld.dx ?? 0) + L.dx, dy: (ld.dy ?? 0) + L.dy, k: (ld.k ?? 1) * L.k } } as SpecItem;
 }) };
 export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => {
   const spec = withGallery(raw);

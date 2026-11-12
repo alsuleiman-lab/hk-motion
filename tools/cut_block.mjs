@@ -19,6 +19,18 @@ const fL = SA != null ? Math.round((SBraw - SA) * 30) : 0, SB = SA != null ? SA 
 const fA = Math.round(sec(a0) * 30), fB = Math.round(sec(b0) * 30), A = fA / 30, B = fB / 30, D = B - A - L;
 if (!(fB > fA)) { console.error("✘ B must be after A"); process.exit(2); }
 const T = path.join(".tmp", p), specF = path.join("data", "specs", `${p}.json`), frozenF = path.join(T, "spec_frozen.json");
+/* PREVENTION (user 2026-11-12, frame 3722: «بقايا كلمة… ما بدي علاج بدي منع»): a cut point must lie in REAL silence, and the audio that follows the join must not
+   start with a short isolated burst (the tail of a deleted word). Measured on .tmp/<p>/cut16k.wav (16-bit mono PCM) in 20 ms frames.
+   Refused here, before anything is written; --force only when the user ordered that exact cut. */
+const lv = (() => { try { const b = fs.readFileSync(path.join(T, "cut16k.wav")); let o = 12; while (o < b.length - 8 && b.toString("ascii", o, o + 4) !== "data") o += 8 + b.readUInt32LE(o + 4); const d = o + 8, sr = 16000;
+  return (t) => { const i0 = d + Math.max(0, Math.floor(t * sr)) * 2, n = 320; let e = 0, k = 0; for (let i = i0; i < Math.min(b.length - 1, i0 + n * 2); i += 2) { const v = b.readInt16LE(i); e += v * v; k++; } return k ? 10 * Math.log10(e / k + 1e-9) - 90.3 : -99; }; } catch { return null; } })();
+if (lv && !process.argv.includes("--force")) {
+  const loud = (t) => Math.max(lv(t - 0.03), lv(t - 0.01), lv(t + 0.01));
+  const bad = [["البداية", A], ["النهاية", B]].filter(([, t]) => loud(t) > -40);
+  if (bad.length) { console.log(`✘ cut_block: نقطة القص ليست في صمت (${bad.map(([n, t]) => `${n} ${t.toFixed(3)}ث = ${loud(t).toFixed(0)}dB`).join("، ")}) — اختر نقطة أهدأ من −40dB (لا تُقصّ كلمة ولا يبقى ذيلها)`); process.exit(1); }
+  /* after B: a burst ≤ 0.35 s followed by ≥ 0.1 s of silence before the next speech = the tail of a deleted word */
+  { let t = B, on = null; for (; t < B + 0.8; t += 0.02) { const L2 = lv(t); if (L2 > -32 && on === null) on = t; if (on !== null && L2 < -45) { const dur = t - on, rest = [0, 0.02, 0.04, 0.06, 0.08].every((q) => lv(t + q) < -40); if (dur <= 0.35 && rest) { console.log(`✘ cut_block: بعد نقطة النهاية ${B.toFixed(3)}ث صوت قصير معزول ${on.toFixed(2)}–${t.toFixed(2)}ث (بقايا كلمة) — مُدَّ النهاية إلى ${t.toFixed(2)}ث`); process.exit(1); } break; } } }
+}
 const spec = JSON.parse(fs.readFileSync(specF, "utf8"));
 const src = path.join("public", spec.cut);
 const ff = (args) => { const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", ...args], { encoding: "utf8" }); if (r.status !== 0) { console.error(r.stderr); process.exit(1); } };

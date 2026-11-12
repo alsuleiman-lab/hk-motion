@@ -2,6 +2,8 @@
 # usage: render_job.sh <p> <CompId> <R|L> "<title>"  -> renders into render_work/export (S:), moved later
 cd /s/AI_Tools/Remotion_Workspace; source tools/env.sh >/dev/null 2>&1
 p=$1; id=$2; o=$3; title=$4; export BUMPER_POSITION=${5:-start}
+# the opening bumper goes right before his first «بسم الله / السلام عليكم» (with «طيب»), not at second 0 when the video opens with a clip or a hook (2026-11-12)
+[ "$BUMPER_POSITION" = start ] && export BUMPER_AT=$(node tools/bumper_at.mjs $p)
 spec=data/specs/$p.json
 cutsrc="public/$(node -e 'console.log(JSON.parse(require("fs").readFileSync("'$spec'","utf8")).cut)')"
 # avoid: zooms, shakes AND isolation windows shifted aside (dx) — the face crop sees the shifted figure there (false judder, 2026-11-12)

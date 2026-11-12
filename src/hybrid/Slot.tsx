@@ -18,7 +18,7 @@ export const HY: "top" | "bg" | undefined = P.hybrid;
 /** background colour that disappears in the hybrid "top" layer (so the video below it is visible) */
 export const hyBg = <T,>(c: T): T | undefined => (HY === "top" ? undefined : c);
 
-type Rec = { id: string; src: string; t: number; f: number; rate: number; m: number[]; w: number; h: number; r: number; o: number; vx: number; vy: number; vw: number; vh: number; fx: Record<string, number> };
+type Rec = { id: string; src: string; t: number; f: number; rate: number; m: number[]; w: number; h: number; r: number; o: number; vx: number; vy: number; vw: number; vh: number; fx: Record<string, number>; mt?: string; mtT?: number; fl?: number };
 const G: { frame: number; slots: Map<string, Rec>; flushedFrame: number; host: HTMLDivElement | null } = { frame: -1, slots: new Map(), flushedFrame: -2, host: null };
 
 const MEAS = new Map<string, () => void>(); // latest measuring function of every mounted slot
@@ -64,7 +64,7 @@ export const HybridHost: React.FC<{ children: React.ReactNode }> = ({ children }
 /** static content that lives below every video (desk paper, gradient...). Rendered once as the background image; hidden in the graphics layer. */
 export const HybridBg: React.FC<{ children: React.ReactNode }> = ({ children }) => (HY === "top" ? null : <AbsoluteFill style={{ visibility: "visible" }}>{children}</AbsoluteFill>);
 
-export type SlotFx = { blur?: number; brightness?: number; contrast?: number; saturate?: number };
+export type SlotFx = { blur?: number; brightness?: number; contrast?: number; saturate?: number; /** dark radial veil of a background clip (BgClip dim), drawn by the compositor */ veil?: number };
 const cssFilter = (fx?: SlotFx) => (fx ? [fx.blur ? `blur(${fx.blur}px)` : "", fx.contrast != null ? `contrast(${fx.contrast})` : "", fx.saturate != null ? `saturate(${fx.saturate})` : "", fx.brightness != null ? `brightness(${fx.brightness})` : ""].filter(Boolean).join(" ") || undefined : undefined);
 // NOTE: the compositor applies the CSS filter functions in the order  contrast -> saturate -> brightness  (the order used by this project); blur always first.
 
@@ -85,10 +85,12 @@ export type VSlotProps = {
   vx?: number; vy?: number; vw?: number; vh?: number;
   fx?: SlotFx;
   style?: React.CSSProperties;
+  /** isolated cut-out on the GPU (2026-11-12): alpha = red channel of this matte video (same frame size as the video), `floor` = fraction of the height from which the original picture is kept whole */
+  matte?: { src: string; startFrom: number; floor?: number };
 };
 
 let SEQ = 0;
-export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, playbackRate = 1, muted = true, w, h, radius = 0, vx = 0, vy = 0, vw, vh, fx, style }) => {
+export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, playbackRate = 1, muted = true, w, h, radius = 0, vx = 0, vy = 0, vw, vh, fx, style, matte }) => {
   const env = getRemotionEnvironment();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -109,7 +111,7 @@ export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, pla
     for (let e: HTMLElement | null = el; e; e = e.parentElement) o *= parseFloat(getComputedStyle(e).opacity || "1");
     const f = G.frame;
     G.slots.set(idRef.current, {
-      id: idRef.current, src, t, f, rate: playbackRate,
+      id: idRef.current, src, t, f, rate: playbackRate, ...(matte ? { mt: matte.src, mtT: matte.startFrom / fps + frame / fps, fl: matte.floor ?? 0 } : {}),
       m: [(p1.x - p0.x) / w, (p1.y - p0.y) / w, (p2.x - p0.x) / h, (p2.y - p0.y) / h, p0.x, p0.y],
       w, h, r: radius, o, vx, vy, vw: VW, vh: VH, fx: { blur: 0, brightness: 1, contrast: 1, saturate: 1, ...(fx ?? {}) },
     });

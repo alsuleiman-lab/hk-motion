@@ -460,21 +460,25 @@ export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: nu
 };
 
 /** quick isolation: his cut-out (cut + saved matte) with exactly the geometry of his video layer (LandFootage / SheikhLayers), drawn over what sits behind him */
-const MaskedSheikh: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; o: Orient; cams?: MontageSpec["cams"]; zooms?: MontageSpec["zooms"]; dx?: number; from?: number }> = ({ cut, matte, o, cams, zooms = [], dx = 0, from = 0 }) => {
+/* (2026-11-12) an isolation window is cut out on the GPU compositor in the hybrid render when nothing Chrome draws lies UNDER him in it: the hybrid's
+   graphics layer is always on top of the videos, so a map / full picture / tree / half clip under him keeps the Chrome cut-out (JPEG frames) */
+const UNDER_HIM = new Set(["pmap", "full", "treefx", "mini", "hclip"]);
+export const gpuWindow = (spec: MontageSpec, w: { from: number; to: number }) => !spec.items.some((x) => UNDER_HIM.has(x.t) && ((x as { from?: number }).from ?? 0) < w.to && ((x as { to?: number }).to ?? 0) > w.from);
+const MaskedSheikh: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; o: Orient; cams?: MontageSpec["cams"]; zooms?: MontageSpec["zooms"]; dx?: number; from?: number; gpu?: boolean }> = ({ cut, matte, o, cams, zooms = [], dx = 0, from = 0, gpu }) => {
   const t = from + useCurrentFrame() / 30;     // inside a Sequence that starts at `from`
   const vStart = Math.round(from * 30), mStart = (matte.startFrom ?? 0) + Math.round((from - (matte.start ?? 0)) * 30);
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 1.2);
   const z = zz ? 1 + (zz.amt ?? 0.08) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1;
   if (o === "land") return (
     <AbsoluteFill style={{ transform: `translate3d(${dx}px, 0, 0) scale(${z})`, willChange: "transform", transformOrigin: LANDSCAPE.faceOrigin }}>
-      <MaskedVideo video={cut} matte={matte.src} videoStartFrom={vStart} matteStartFrom={mStart} width={LANDSCAPE.W} height={LANDSCAPE.H} floor={0.925} />
+      <MaskedVideo gpu={gpu} video={cut} matte={matte.src} videoStartFrom={vStart} matteStartFrom={mStart} width={LANDSCAPE.W} height={LANDSCAPE.H} floor={0.925} />
     </AbsoluteFill>
   );
   const cs = cams ?? [{ from: 0, to: 9999, cx: 990 }], cam = cs.find((c) => t >= c.from && t < c.to) ?? cs[cs.length - 1], K = 1920 / 1080;
   return (
     <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, transform: `scale(${z})`, transformOrigin: "540px 600px", overflow: "hidden" }}>
       <div style={{ position: "absolute", left: -(cam.cx - 304) * K, top: 0, width: 1920 * K, height: 1920 }}>
-        <MaskedVideo video={cut} matte={matte.src} videoStartFrom={vStart} matteStartFrom={mStart} width={Math.round(1920 * K)} height={1920} floor={0.925} />
+        <MaskedVideo gpu={gpu} video={cut} matte={matte.src} videoStartFrom={vStart} matteStartFrom={mStart} width={Math.round(1920 * K)} height={1920} floor={0.925} />
       </div>
     </div>
   );
@@ -588,7 +592,7 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) 
       {spec.items.map((it, i) => it.t === "pmap" && !it.only && (o === "land" || it.iso) ? placed(it, 1000 + i, o, <PaperMap key={"pm" + i} at={it.from} until={it.to} x={o === "land" ? it.land?.x ?? 0 : it.x} y={o === "land" ? it.land?.y ?? 0 : it.y} w={o === "land" ? it.land?.w ?? 1920 : it.w} h={o === "land" ? it.land?.h ?? 1080 : it.h} center={o === "land" ? it.landCenter ?? it.center : it.center} spanLat={o === "land" ? it.landSpan ?? it.spanLat : it.spanLat} highlight={it.highlight} highlightAt={it.highlightAt} geo={it.geo} atlas={it.atlas} pts={it.pts} legs={it.legs} carSrc={it.carSrc} carW={it.carW} />) : null)}
       {o === "land" && spec.cut ? spec.items.map((it, i) => it.t === "mini" && (it.matte ?? spec.matte) ? <Sequence key={"mi" + i} from={Math.round(it.from * 30)} durationInFrames={Math.round((it.to - it.from) * 30)}><MiniMe cut={spec.cut!} matte={(it.matte ?? spec.matte)!} it={it} /></Sequence> : null) : null}
       {o === "land" ? spec.items.map((it, i) => it.t === "treefx" && !it.only ? <Only key={"tf" + i} from={it.from} to={it.to}>{it.skin === "parchment" ? <Parchment /> : <AbsoluteFill><WarmBase /></AbsoluteFill>}{placed(it, 2000 + i, o, <TreeFx skin={it.skin} from={it.from} until={it.to} x={o === "land" ? it.land?.x ?? 20 : it.x} y={o === "land" ? it.land?.y ?? 50 : it.y} w={o === "land" ? it.land?.w ?? 880 : it.w} h={o === "land" ? it.land?.h ?? 980 : it.h} title={it.title} titleAt={it.titleAt} nodes={it.nodes} links={it.links} nodeW={o === "land" ? it.land?.nodeW ?? it.nodeW : it.nodeW} nodeH={o === "land" ? it.land?.nodeH ?? it.nodeH : it.nodeH} font={o === "land" ? it.land?.font ?? it.font : it.font} titleSize={o === "land" ? it.land?.titleSize ?? it.titleSize : it.titleSize} />)}</Only> : null) : null}
-      {spec.cut ? (spec.behind ?? []).map((w, i) => { const mt = w.matte ?? spec.matte; return mt && (!w.only || w.only === o) && (o === "land" || w.dx === undefined) ? <Sequence key={i} from={Math.round(w.from * 30)} durationInFrames={Math.round((w.to - w.from) * 30)}><TailFade dur={w.to - w.from} fade={w.fade}><MaskedSheikh cut={spec.cut!} matte={mt} o={o} cams={spec.cams} zooms={spec.zooms} dx={o === "land" ? w.dx : 0} from={w.from} /></TailFade></Sequence> : null; }) : null}
+      {spec.cut ? (spec.behind ?? []).map((w, i) => { const mt = w.matte ?? spec.matte; return mt && (!w.only || w.only === o) && (o === "land" || w.dx === undefined) ? <Sequence key={i} from={Math.round(w.from * 30)} durationInFrames={Math.round((w.to - w.from) * 30)}><TailFade dur={w.to - w.from} fade={w.fade}><MaskedSheikh cut={spec.cut!} matte={mt} o={o} cams={spec.cams} zooms={spec.zooms} dx={o === "land" ? w.dx : 0} from={w.from} gpu={gpuWindow(spec, w)} /></TailFade></Sequence> : null; }) : null}
       </>)}
       <Gfx>
         {spec.items.map((it, i) => renderItem(it, i, o, bar))}

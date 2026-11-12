@@ -110,7 +110,9 @@ class Stream:
         cmd = ["ffmpeg", "-v", "error", "-hwaccel", "cuda", "-hwaccel_output_format", "cuda"]
         if idx > 0:
             cmd += ["-ss", f"{max(0.0, (idx - 0.5) / self.fps):.6f}"]
-        cmd += ["-i", self.path, "-vf", "hwdownload,format=nv12", "-f", "rawvideo", "-pix_fmt", "nv12", "-"]
+        # -fps_mode passthrough (2026-11-12): with the default CFR mode ffmpeg DUPLICATED the first frame after a seek, so every stream started mid-file
+        # (partial/patch renders, clip cards, restarts) showed the frame BEFORE the one asked for — one frame early (measured by edge correlation on frame 9600)
+        cmd += ["-i", self.path, "-fps_mode", "passthrough", "-vf", "hwdownload,format=nv12", "-f", "rawvideo", "-pix_fmt", "nv12", "-"]
         self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=self.w * self.h * 3 // 2 * 4)
         self.pos = idx
         # read-ahead (2026-11-11): a thread reads the next frames into pinned memory while the GPU works on the current one
@@ -329,7 +331,10 @@ def apply_fx(smp, fx, scl):
     return smp
 
 
-def draw_slot(out, s, src):
+VEIL_RGB = torch.tensor([6.0, 12.0, 22.0], device=dev).view(3, 1, 1)  # BgClip veil colour
+
+
+def draw_slot(out, s, src, mat=None):
     ma, mb, mc, md, me, mf = s["m"]
     w, h = s["w"], s["h"]
     det = ma * md - mb * mc
@@ -363,6 +368,21 @@ def draw_slot(out, s, src):
     gy = (qy - s["vy"]) / s["vh"] * 2 - 1
     smp = F.grid_sample(src[None], torch.stack([gx, gy], -1)[None], mode="bilinear", padding_mode="border", align_corners=False)[0]
     smp = apply_fx(smp, s["fx"], scl)
+    veil = s["fx"].get("veil", 0)
+    if veil:  # (2026-11-12) BgClip's dark veil = CSS radial-gradient(ellipse at 50% 45%, rgba(6,12,22,veil*.5) 0%, rgba(6,12,22,veil+.25) 100%), farthest-corner, in the box
+        cx, cy, rx0, ry0 = w * 0.5, h * 0.45, w * 0.5, h * 0.45
+        k = math.sqrt(1.0 + (0.55 / 0.45) ** 2)
+        tt = torch.sqrt(((qx - cx) / (rx0 * k)) ** 2 + ((qy - cy) / (ry0 * k)) ** 2).clamp(0, 1)
+        al = (veil * 0.5 + (veil * 0.5 + 0.25) * tt)[None]
+        smp = smp * (1.0 - al) + VEIL_RGB * al
+    if mat is not None:  # (2026-11-12) isolated cut-out: alpha = matte red; below `fl` (fraction of the height) the original picture stays whole — as MaskedVideo's shader
+        al = F.grid_sample(mat[0:1][None], torch.stack([gx, gy], -1)[None], mode="bilinear", padding_mode="border", align_corners=False)[0, 0] / 255.0
+        fl = s.get("fl", 0) or 0
+        if fl > 0:
+            v = ((qy - s["vy"]) / s["vh"] - fl) / 0.02
+            v = v.clamp(0, 1)
+            al = torch.maximum(al, v * v * (3 - 2 * v))
+        cov = cov * al.clamp(0, 1)
     reg = out[:, y0:y1, x0:x1]
     out[:, y0:y1, x0:x1] = reg * (1.0 - cov[None]) + smp * cov[None]
     return out
@@ -429,8 +449,13 @@ for i in range(NF):
         st.last_use = fno
         _t = time.time() if FINE else 0
         src = st.get(int(math.floor(s["t"] * st.fps + BIAS)))
+        mat = None
+        if s.get("mt"):  # masked slot: its matte is one more NVDEC stream, keyed like a video
+            ms = stream_for(a.public + "/" + s["mt"], ("matte", round(s["mtT"] - s["f"] / FPS, 3)))
+            ms.last_use = fno
+            mat = ms.get(int(math.floor(s["mtT"] * ms.fps + BIAS)))
         _t = _pf("decode", _t)
-        out = draw_slot(out, s, src)
+        out = draw_slot(out, s, src, mat)
         _t = _pf("draw", _t)
     _t = time.time() if FINE else 0
     T = top.to(dev, non_blocking=True).permute(2, 0, 1).float()[[2, 1, 0, 3]]  # BGRA -> RGBA

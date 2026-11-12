@@ -44,9 +44,10 @@ const BgClipInner: React.FC<{ src: string; d: number; fade: number; start: numbe
   const k = Math.max(W / 1920, H / 1080), vw = 1920 * k, vh = 1080 * k;
   return (
     <AbsoluteFill>
-      {HY ? <VSlot src={src} startFrom={Math.round(start * FPS)} w={W} h={H} vx={(W - vw) / 2} vy={(H - vh) / 2} vw={vw} vh={vh} />
+      {/* hybrid: the dark veil is applied by the compositor to the clip itself (fx.veil = the same radial gradient), so his GPU cut-out stays on top of it */}
+      {HY ? <VSlot src={src} startFrom={Math.round(start * FPS)} w={W} h={H} vx={(W - vw) / 2} vy={(H - vh) / 2} vw={vw} vh={vh} fx={{ veil: dim }} />
         : <ClipVideo src={src} start={start} style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
-      <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 45%, rgba(6,12,22,${dim * 0.5}) 0%, rgba(6,12,22,${dim + 0.25}) 100%)` }} />
+      {HY ? null : <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 45%, rgba(6,12,22,${dim * 0.5}) 0%, rgba(6,12,22,${dim + 0.25}) 100%)` }} />}
     </AbsoluteFill>
   );
 };

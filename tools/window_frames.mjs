@@ -14,7 +14,10 @@ const [p, mode] = process.argv.slice(2);
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const spec = JSON.parse(fs.readFileSync(`data/specs/${p}.json`, "utf8"));
 const base = (f) => path.basename(f).replace(/\.[^.]+$/, "");
-const wins = (spec.behind ?? []).filter((w) => (w.matte ?? spec.matte) && spec.cut);
+/* (2026-11-12) windows with nothing Chrome draws under him are cut out on the GPU (MontageSpec gpuWindow) and need no frames — same test here */
+const UNDER_HIM = new Set(["pmap", "full", "treefx", "mini", "hclip"]);
+const gpuWindow = (w) => !spec.items.some((x) => UNDER_HIM.has(x.t) && (x.from ?? 0) < w.to && (x.to ?? 0) > w.from);
+const wins = (spec.behind ?? []).filter((w) => (w.matte ?? spec.matte) && spec.cut && !gpuWindow(w));
 const cutDir = spec.cut ? base(spec.cut) : null;
 const mattes = [...new Set(wins.map((w) => (w.matte ?? spec.matte).src))];
 const dirs = [...(wins.length ? [cutDir] : []), ...mattes.map(base)];

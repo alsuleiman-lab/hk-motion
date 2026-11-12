@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef } from "react";
 import { GFX_ONLY } from "./MG";
+import { VSlot, HY } from "./hybrid/Slot";
 import { AbsoluteFill, continueRender, delayRender, getInputProps, getRemotionEnvironment, staticFile, useCurrentFrame, useVideoConfig, Video } from "remotion";
 
 /** final render from pre-extracted JPEG frames (inputProps {"frames":true}): video frames in public/fr/<video name>/, matte frames in public/fr/<matte name>/ (f_%06d.jpg, number = file frame).
@@ -116,5 +117,9 @@ export const MaskTest: React.FC = () => (
 );
 export const MASKTEST_FRAMES = 360;
 /** fast face check (inputProps {gfxOnly:true}): the isolated figure is a video, never a graphic — nothing is decoded, an empty box keeps its place */
-type MVProps = React.ComponentProps<typeof MaskedVideoInner>;
-export const MaskedVideo: React.FC<MVProps> = (p) => (GFX_ONLY ? <div style={{ position: "absolute", width: p.width ?? 1920, height: p.height ?? 1080 }} /> : <MaskedVideoInner {...p} />);
+type MVProps = React.ComponentProps<typeof MaskedVideoInner> & { /** hybrid render: draw the cut-out on the GPU compositor (nothing under it may be drawn by Chrome) */ gpu?: boolean };
+/* hybrid render (2026-11-12, user: «نقل العزل كله إلى كرت الشاشة»): the cut-out is a masked <VSlot> — the compositor decodes the video AND the matte with NVDEC
+   and applies alpha = matte red (+ the floor) exactly like the WebGL shader below; Chrome draws nothing per frame (was 6.4 fps with JPEG frames, 2.6 with videos) */
+export const MaskedVideo: React.FC<MVProps> = ({ gpu, ...p }) => (GFX_ONLY ? <div style={{ position: "absolute", width: p.width ?? 1920, height: p.height ?? 1080 }} />
+  : HY && gpu ? <VSlot src={p.video} startFrom={p.videoStartFrom ?? 0} w={p.width ?? 1920} h={p.height ?? 1080} style={p.style} matte={{ src: p.matte, startFrom: p.matteStartFrom ?? 0, floor: p.floor ?? 0 }} />
+  : <MaskedVideoInner {...p} />);

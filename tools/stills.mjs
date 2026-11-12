@@ -18,7 +18,7 @@ privateTemp("stills");   // per-still asset folders go to a private temp that is
 const argv = process.argv.slice(2);
 const flag = (n) => argv.includes("--" + n);
 const opt = (n, d) => (flag(n) ? argv[argv.indexOf("--" + n) + 1] : d);
-const valueFlags = new Set(["scale", "manifest", "jobs"]);
+const valueFlags = new Set(["scale", "manifest", "jobs", "props"]);
 const pos = argv.filter((a, i) => !a.startsWith("--") && !(i > 0 && argv[i - 1].startsWith("--") && valueFlags.has(argv[i - 1].slice(2))));
 const [id, outDir, ...pts] = pos;
 if (!id || !outDir || !pts.length) { console.error("usage: node tools/stills.mjs <CompositionId> <outDir> name:frame ... [--scale 0.5] [--manifest file] [--clean] [--legacy]"); process.exit(2); }

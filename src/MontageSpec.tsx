@@ -487,7 +487,7 @@ const MaskedSheikh: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matt
   );
   const cs = cams ?? [{ from: 0, to: 9999, cx: 990 }], cam = cs.find((c) => t >= c.from && t < c.to) ?? cs[cs.length - 1], K = 1920 / 1080;
   return (
-    <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, transform: `scale(${z * (pscale ?? 1)})`, transformOrigin: pscale && pscale < 1 ? "540px 1920px" : "540px 600px", overflow: "hidden" }}>   {/* pscale: shrunk from the bottom so the clip above his shoulders shows (2026-11-12) */}
+    <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, transform: `scale(${z * (pscale ?? 1)})`, transformOrigin: pscale && pscale < 1 ? "540px 1920px" : "540px 600px", overflow: pscale && pscale < 1 ? "visible" : "hidden" }}>   {/* pscale: shrunk from the bottom so the clip above his shoulders shows (2026-11-12) */}
       <div style={{ position: "absolute", left: -(cam.cx - 304) * K, top: 0, width: 1920 * K, height: 1920 }}>
         <MaskedVideo gpu={gpu} video={cut} matte={matte.src} videoStartFrom={vStart} matteStartFrom={mStart} width={Math.round(1920 * K)} height={1920} floor={0.925} />
       </div>

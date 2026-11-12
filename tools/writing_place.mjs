@@ -53,7 +53,9 @@ if (bad.length && !process.argv.includes("--hold")) { console.log(`✘ writing_p
 out.sort((a, b) => a.at - b.at);
 const items = out.map((o, i) => {
   const next = out[i + 1]?.at ?? 1e9, hold = o.t === "torn" ? 1.8 : 1.0, until = +Math.min(o.lastEnd + hold, next - 0.15).toFixed(2);
-  return o.t === "torn" ? { t: "torn", text: o.text, at: o.at, until, land: { size: 37, y: 822 } } : { t: "scraps", text: o.text, at: o.at, until, times: o.times, y: 1500, land: { size: 34 } };
+  /* a long torn note keeps ONE line in landscape (2026-11-12, kitab 1:45: two lines ran under the title bar / onto the face): the largest size ≤ 37 whose text fits one line of the 1000-px note (TornNote wrap estimate, as grid_plan) */
+  const oneLine = (txt) => { const L = txt.replace(/\s+/g, " ").length; for (let z = 37; z > 30; z--) { const w = Math.min(1000, Math.round(L * z * 0.5 + 3.6 * z + 70)); if (L <= Math.floor((w - 3.6 * z) / (z * 0.52))) return z; } return 30; };
+  return o.t === "torn" ? { t: "torn", text: o.text, at: o.at, until, land: { size: oneLine(o.text), y: 822 } } : { t: "scraps", text: o.text, at: o.at, until, times: o.times, y: 1500, land: { size: 34 } };
 });
 console.log(`✔ writing_place: ${items.length} عبارة (ملاحظة ممزقة ${items.filter((x) => x.t === "torn").length}، قصاصات ${items.filter((x) => x.t === "scraps").length}) كلها بكلماته متتابعة ومكتملة`);
 // --hold: after writing_sync / grid moved things, each writing item stays until the next writing item (−0.15 s) or the next card in the writing band,
@@ -63,7 +65,7 @@ if (process.argv.includes("--hold")) {
   const solo = spec.items.filter((x) => ["nameTag", "subscribe"].includes(x.t)).map((x) => [x.at, x.at + (x.dur ?? 3)]);
   // the writing band holds ONE thing at a time (portrait full mode): a card of a mention (picture, date, verse, hadith, news…) wins; writing that starts
   // inside a card moves just after it if its words are still being said, else it goes; writing never runs into the next card
-  const CARD = new Set(["stamp", "peek", "tphoto", "pic", "date", "scholar", "news", "note", "verse", "flag", "clock", "rows", "hadith", "timeline", "rewrite"]);
+  const CARD = new Set(["stamp", "peek", "tphoto", "pic", "date", "scholar", "news", "note", "verse", "flag", "clock", "rows", "hadith", "timeline", "rewrite", "pmap"]);   /* pmap: a full-frame map is a card too (2026-11-12, kitab 0:29) */
   const cards = spec.items.filter((x) => CARD.has(x.t)).map((x) => [x.at ?? x.from ?? x.times?.[0], x.until ?? x.to ?? (x.at ?? x.from) + 4]).filter(([a]) => a != null).concat(solo).sort((p, q) => p[0] - q[0]);
   const drop = new Set();
   for (const it of Wr) {

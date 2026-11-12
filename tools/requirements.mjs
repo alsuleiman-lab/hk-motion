@@ -94,7 +94,7 @@ function build() {
       const last = personLast.get(key);
       if (last != null) continue;   // first mention only («لا تكرر صورته كل ما يذكر»)
       personLast.set(key, e.s);
-      add({ kind: "person", text: e.core || e.text, t: e.s, need: ["pic", "tphoto", "scholar", "peek", "bgclip", "full", "person"], before: 3, after: 5, ctx: ctx(W, e.s) });
+      add({ kind: "person", text: e.core || e.text, t: e.s, need: ["pic", "tphoto", "scholar", "peek", "bgclip", "full", "person", "rows"], before: 3, after: 5, ctx: ctx(W, e.s) });
     } else if (e.type === "ORG") {
       add({ kind: "depict", text: e.core || e.text, t: e.s, need: VIS, before: 3, after: 5, ctx: ctx(W, e.s) });
     }
@@ -107,7 +107,7 @@ function build() {
     const wn = norm(W[i].w).replace(/^(و|ف)?(ب|ل|ك)?/, ""), hitPlace = lexPlaces.find(([, forms]) => forms.some((f) => { const fn = norm(f); return fn.startsWith("ال") ? wn === fn || "ال" + wn === fn && false : bare(f) === k; }))?.[0] ?? (geo.has(k) && k.length > 3 && geo.get(k).pop > 200000 && wn.startsWith("ال") === norm(geo.get(k).name).startsWith("ال") && /^(في|مدينه|الى|من|ولايه|بلد|دوله|عاصمه|بمدينه|لمدينه|اسمها)$/.test(norm(W[i - 1]?.w ?? "")) ? geo.get(k).name : null);
     if (hitPlace) { const key = bare(hitPlace), last = placeLast.get(key); if (last == null) { placeLast.set(key, t); const g = geo.get(key); add({ kind: "place", text: hitPlace, t, need: ["pmap"], before: 2, after: 6, geo: g ? { lat: g.lat, lon: g.lon, cc: g.cc } : null, ctx: ctx(W, t) }); } }
     const hitPerson = lexPeople.find(([, forms]) => forms.some((f) => { const fw = norm(f).split(" "); return fw.every((x, j) => bare(x) === N[i + j]); }))?.[0];
-    if (hitPerson) { const key = bare(hitPerson), last = personLast.get(key); if (last == null) { personLast.set(key, t); add({ kind: "person", text: hitPerson, t, need: ["pic", "tphoto", "scholar", "peek", "bgclip", "full", "person"], before: 3, after: 5, ctx: ctx(W, t) }); } }
+    if (hitPerson) { const key = bare(hitPerson), last = personLast.get(key); if (last == null) { personLast.set(key, t); add({ kind: "person", text: hitPerson, t, need: ["pic", "tphoto", "scholar", "peek", "bgclip", "full", "person", "rows"], before: 3, after: 5, ctx: ctx(W, t) }); } }
   });
 
   // 2) dates
@@ -138,13 +138,15 @@ function build() {
     });
   }
   // 2c) QUESTION SERIES (user 2026-11-12, frame 1411: «كنت أطرح مجموعة من الأسئلة… تكتب السؤال الأول، الثاني، الثالث»; rule: الأسئلة والقوائم ← StatRow):
-  //     two or more of HIS questions (a word ending in ؟/?) within 20 s, outside the opponent's clip windows → a listing card (rows) over them
+  //     two or more of HIS questions (a word ending in ؟/?) within 12 s of each other, outside the opponent's clip windows → a listing card (rows) over them
   {
     const sp = read(`data/specs/${p}.json`, {}), inClip = (t) => (sp.splits ?? []).some((x) => t >= x.from && t < x.to);
-    const qs = W.filter((w) => /[؟?]$/.test(String(w.w)) && !inClip(w.s)).map((w) => w.s);
+    /* questions are read from the accurate large-model pass of the final audio when present (2026-11-12: the weak pass put «؟» on statements) */
+    const QW = fs.existsSync(path.join(T, "drift_fresh.json")) ? read(path.join(T, "drift_fresh.json"), W) : W;
+    const qs = QW.filter((w) => /[؟?]$/.test(String(w.w)) && !inClip(w.s)).map((w) => w.s);
     let g = [];
     const flush = () => { if (g.length >= 2) add({ kind: "questions", text: `سلسلة ${g.length} أسئلة`, t: g[0], need: ["rows"], before: 8, after: 2, ctx: ctx(W, g[0]) }); g = []; };
-    for (const t of qs) { if (g.length && t - g[g.length - 1] > 20) flush(); g.push(t); }
+    for (const t of qs) { if (g.length && t - g[g.length - 1] > 12) flush(); g.push(t); }   /* 12 s: a rhetorical question answered at once is not a list */
     flush();
   }
   // 2d) CONDITIONS AND THEIR CONSEQUENCES (user 2026-11-12, frame 6758: «إذا قلت كذا سيكون كذا، إذا قلت كذا سيكون كذا»): «إن قلت / وإن قلت / فإن قلت» twice or
@@ -197,7 +199,7 @@ function build() {
 }
 // prophets, God and angels are never drawn or photographed
 const NO_PICTURE = /(وسلم|صلى الله|عيسى|عيسي|المسيح|موسى|موسي|ابراهيم|نوح|يوسف|يعقوب|اسحاق|اسماعيل|داود|سليمان|يونس|ايوب|زكريا|يحيى|هارون|ادم|محمد ﷺ|رسول الله|النبي|جبريل|ميكائيل|الله)/;
-const VIS = ["pic", "tphoto", "scholar", "peek", "bgclip", "full", "person", "pmap", "flash", "crop", "scene", "flag", "news"];
+const VIS = ["pic", "tphoto", "scholar", "peek", "bgclip", "full", "person", "pmap", "flash", "crop", "scene", "flag", "news", "rows"];   /* rows: a listing card item with a photo (2026-11-12) */
 const KIND = { conditions: "شروط ونتائجها ← فيديوه يميناً + بطاقة شروط", questions: "سلسلة أسئلة ← بطاقة بنود", state: "حالة ← صورة المشهد (التوليد مسموح)", place: "مكان ← خريطة", person: "شخص ← صورته", date: "تاريخ ← عنصر التاريخ", depict: "وصف ← صورة", order: "تعليمة مونتاج", ordercand: "كلام للمونتير؟" };
 function ctx(W, t) { const i = W.findIndex((w) => w.s >= t); return W.slice(Math.max(0, i - 5), i + 8).map((w) => w.w).join(" "); }
 
@@ -221,7 +223,9 @@ function check(rows) {
       continue;
     }
     if (skip.has(`${r.text}@${Math.round(r.t)}`) || [...skip].some((s) => s.split("@")[0] === r.text && Math.abs(Number(s.split("@")[1]) - r.t) < 3)) continue;
-    if (!has(r.need, r.t - r.before, r.t + r.after)) miss.push(`${KIND[r.kind]}: «${r.text}» عند ${mm(r.t)} (${r.t.toFixed(1)}ث) بلا ${r.need.slice(0, 2).join("/")}${r.geo ? ` [${r.geo.lat},${r.geo.lon}]` : ""}`);
+    /* a listing card whose row with a PHOTO names this person / thing at its word counts as its picture (2026-11-12: six names with their photos) */
+    const rowPic = (r.kind === "person" || r.kind === "depict") && items.some((x) => x.t === "rows" && (x.i.rows ?? []).some((q) => q.photo && Math.abs(q.at - r.t) < 3 && (bare(q.label).includes(bare(r.text)) || bare(r.text).includes(bare(q.label)))));
+    if (!rowPic && !has(r.need, r.t - r.before, r.t + r.after)) miss.push(`${KIND[r.kind]}: «${r.text}» عند ${mm(r.t)} (${r.t.toFixed(1)}ث) بلا ${r.need.slice(0, 2).join("/")}${r.geo ? ` [${r.geo.lat},${r.geo.lon}]` : ""}`);
   }
   console.log(miss.length ? `✘ requirements: ${miss.length} من ${rows.length} لم يتحقق:\n  ` + miss.join("\n  ") : `✔ requirements: كل الصفوف (${rows.length}) متحققة في المواصفة`);
   if ((spec.skipRequired ?? []).length) console.log(`  ⚠ مستثنى بقرار (يُذكر للمستخدم مع الرابط): ${spec.skipRequired.join("، ")}`);

@@ -12,6 +12,8 @@ for (const it of spec.items) if (it.t === "scraps") {
   // a word that could not be matched sits between its matched neighbours (never at the previous word's time: it would show before it is spoken)
   const fixed = tm.map((x, i) => { if (x != null) return x; let p = i - 1; while (p >= 0 && tm[p] == null) p--; let q = i + 1; while (q < tm.length && tm[q] == null) q++; const t0 = p >= 0 ? tm[p] : it.at, t1 = q < tm.length ? tm[q] : it.until; return Math.round((t0 + ((t1 - t0) * (i - p)) / (q - p)) * 100) / 100; });
   for (let i = 1; i < fixed.length; i++) { const c = Math.round(Math.max(fixed[i], fixed[i - 1] + 0.04) * 100) / 100; if (c - fixed[i] <= 0.25) fixed[i] = c; }   // a word never shows before the one that precedes it (small mis-ordering of the aligner output; a big jump means the transcript itself is jumbled there and is left as spoken)
+  /* (2026-11-12, kitab 4:45) times already placed by writing_place (later of the two transcripts) are never moved EARLIER by this weaker alignment */
+  if (Array.isArray(it.times) && it.times.length === fixed.length) for (let i = 0; i < fixed.length; i++) fixed[i] = Math.max(fixed[i], it.times[i]);
   if (!check) { it.times = fixed; n++; }
 }
 if (!check) { fs.writeFileSync(f, JSON.stringify(spec, null, 1)); console.log(`scraps_times: ${n} items timed${bad ? `, ${bad} unmatched` : ""}`); }

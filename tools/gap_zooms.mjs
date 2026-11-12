@@ -21,9 +21,12 @@ for (const [a, b0] of gaps) {
 { const fg = []; let e = 0; const all = [...spans, ...add.map((z) => [z.from, z.to])].sort((x, y) => x[0] - y[0]);
   for (const [a, b] of all) { if (a >= 60) break; if (a - e > 0.3) fg.push([e, a]); e = Math.max(e, b); } if (e < 60 && 60 - e > 0.3) fg.push([e, 60]);
     /* a small gap is closed by letting the element that ends at its start stay until the next one (≤ 3.5 s more); a push-in only when none can */
-  const HOLD = new Set(["tphoto", "pic", "torn", "scraps", "date", "flag", "news", "scholar", "verse", "rows", "note"]);
+  const HOLD = new Set(["tphoto", "pic", "torn", "scraps", "date", "flag", "news", "scholar", "verse", "rows", "note"]);   /* not pmap: its isolation window (matte) ends with it */
   for (const [a, b] of fg) { const prev = spec.items.filter((i) => HOLD.has(i.t) && span(i) && Math.abs(span(i)[1] - a) < 0.06).sort((x, y) => span(y)[1] - span(x)[1])[0];
-    if (prev && b - a <= 3.5) { if (prev.until != null) prev.until = +(b - 0.30).toFixed(2); else if (prev.to != null) prev.to = +(b - 0.30).toFixed(2); continue;   /* the slot needs 0.3 s between two users */ }
+    if (prev && b - a <= 3.5) { if (prev.until != null) prev.until = +(b - 0.2).toFixed(2); else if (prev.to != null) prev.to = +(b - 0.2).toFixed(2); continue;   /* grid_plan needs ≥ 0.15 s between two users of a slot; coverage allows ≤ 0.3 s */ }
+    /* else a push-in that starts at the gap's end starts earlier (it moves the frame from the first instant) */
+    const nz = (spec.zooms ?? []).find((z) => Math.abs(z.from - b) < 0.06);
+    if (nz && b - a <= 3.5) { nz.from = +(a + 0.05).toFixed(2); continue; }
     if (b - a >= 2.6) add.push({ from: +a.toFixed(2), to: +(b - 1.3).toFixed(2), amt: 0.05 }); } }
 console.log(`gap_zooms: ${gaps.length} فراغ ← ${add.length} تقريب بطيء`);
 if (WRITE) { spec.zooms = [...(spec.zooms ?? []), ...add].sort((x, y) => x.from - y.from); fs.writeFileSync(specF, JSON.stringify(spec, null, 1)); }

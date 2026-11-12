@@ -39,7 +39,10 @@ const AT = at2 < 1 ? 0 : +at2.toFixed(2);
 /* --write: spec.bumper = { id (random among public/fawasel, kept once chosen), at } — Studio shows it there and the render inserts the SAME one (2026-11-12) */
 if (process.argv.includes("--write") || process.argv.includes("--id")) {
   const f = `data/specs/${p}.json`, sp2 = JSON.parse(fs.readFileSync(f, "utf8")), ids = Object.keys(JSON.parse(fs.readFileSync("public/fawasel/manifest.json", "utf8")).items ?? {}).length ? Object.keys(JSON.parse(fs.readFileSync("public/fawasel/manifest.json", "utf8")).items) : ["press", "shelf", "wall", "notebook", "tear"];
-  const id = sp2.bumper?.id && ids.includes(sp2.bumper.id) ? sp2.bumper.id : ids[Math.floor(Math.random() * ids.length)];
+  /* the choice is kept in .tmp/<p>/bumper.json too: a rebuild of the spec (build_spec) must not draw another bumper (2026-11-12) */
+  const keep = `.tmp/${p}/bumper.json`, kept = fs.existsSync(keep) ? JSON.parse(fs.readFileSync(keep, "utf8")).id : null;
+  const id = sp2.bumper?.id && ids.includes(sp2.bumper.id) ? sp2.bumper.id : kept && ids.includes(kept) ? kept : ids[Math.floor(Math.random() * ids.length)];
+  fs.writeFileSync(keep, JSON.stringify({ id }));
   if (process.argv.includes("--write")) { sp2.bumper = { id, at: AT }; fs.writeFileSync(f, JSON.stringify(sp2, null, 1)); console.log(`bumper: «${id}» عند ${AT}ث`); process.exit(0); }
   console.log(id); process.exit(0);
 }

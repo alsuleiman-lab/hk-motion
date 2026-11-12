@@ -3,7 +3,7 @@
 //   node tools/render_queue.mjs add --spec q2_01 --comp Q2-01-R --orient R|L --dest "<folder>" [--title "<export title>"] [--bumper end|start]   (البثوث والدروس: end = الفاصل خاتمة في آخر الفيديو)   (add many; order = submit order)
 //   node tools/render_queue.mjs run        # start the single worker (refuses to start a second one); exits when the queue is empty
 //   node tools/render_queue.mjs ls         # state of every job
-//   node tools/render_queue.mjs retry <spec> | drop <spec>
+//   node tools/render_queue.mjs retry <spec> [R|L] | drop <spec> [R|L]
 // Admission gate (cheap, plain mode, no fixing): coverage_check + grid_plan + mg_usage_audit on the spec. A job that fails is REJECTED with the reason (fix the spec with tools/spec_normalize.mjs, then add again) — the queue never retries blindly.
 // Per job: tools/render_job.sh (hybrid render + opening bumper kept + judder gate on the pre-bumper original) → copy to dest → state `done`. Progress page: the worker keeps `.tmp/render_queue.log`.
 import fs from "node:fs";
@@ -41,7 +41,7 @@ if (cmd === "add") {
 } else if (cmd === "ls") {
   for (const j of load().jobs) console.log(`${j.spec.padEnd(8)} ${j.orient} ${j.state.padEnd(9)} ${j.why ?? j.err ?? j.to ?? ""}`.slice(0, 200));
 } else if (cmd === "retry" || cmd === "drop") {
-  const s = load(); const j = s.jobs.find((x) => x.spec === rest[0]); if (!j) { console.error("no such job"); process.exit(1); }
+  const s = load(); const j = s.jobs.find((x) => x.spec === rest[0] && (!rest[1] || x.orient === rest[1])); if (!j) { console.error("no such job"); process.exit(1); }
   if (cmd === "drop") s.jobs = s.jobs.filter((x) => x !== j); else { j.state = "queued"; delete j.err; delete j.why; } save(s);
 } else if (cmd === "run") {
   try { const pid = Number(fs.readFileSync(LOCK, "utf8")); if (pid && alive(pid)) { console.error(`عامل الطابور يعمل أصلاً (PID ${pid}): لا عاملين معاً.`); process.exit(1); } } catch { /* none */ }
@@ -57,7 +57,7 @@ if (cmd === "add") {
     const title = j.title || (JSON.parse(fs.readFileSync(`data/specs/${j.spec}.json`, "utf8")).title ?? j.spec);
     const r = sh("bash", ["tools/render_job.sh", j.spec, j.comp, j.orient, title, j.bumper || "start"]);
     const m = r.stdout.match(/RENDER exit 0 -> (.+)$/m);
-    const cur = load(), jj = cur.jobs.find((x) => x.spec === j.spec);
+    const cur = load(), jj = cur.jobs.find((x) => x.spec === j.spec && x.orient === j.orient);   /* by project AND orientation: matching the spec alone wrote the portrait result onto the landscape job (2026-11-12) */
     /* (2026-11-12) a passed render was marked failed with only its guard line: record WHY the job stopped (spawn error / signal / status) */
     if (!m) { jj.state = "failed"; jj.err = [r.error?.code ?? r.error?.message, r.signal && `signal ${r.signal}`, `status ${r.status}`].filter(Boolean).join(" ") + " — " + r.stdout.trim().split("\n").slice(-2).join(" ").slice(0, 200); log(`✘ ${j.spec}: ${jj.err}`); save(cur); continue; }
     const file = path.join("render_work/export", m[1].trim());

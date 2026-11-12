@@ -33,8 +33,6 @@ import kitabSunnaSpec from "../data/specs/kitab_sunna.json";
 const KitabSunnaComp: React.FC = () => <MontageFromSpec spec={kitabSunnaSpec as unknown as MontageSpec} />;
 import fatimaSheikhaynSpec from "../data/specs/fatima_sheikhayn.json";
 const FatimaSheikhaynComp: React.FC = () => <MontageFromSpec spec={fatimaSheikhaynSpec as unknown as MontageSpec} />;
-import saintRambalSpec from "../data/specs/saint_rambal.json";
-const SaintRambalComp: React.FC = () => <MontageFromSpec spec={saintRambalSpec as unknown as MontageSpec} />;
 const StreamMayyitIlmRComp: React.FC = () => <MontageFromSpec spec={streamMayyitIlmSpec as unknown as MontageSpec} />;
 
 
@@ -53,8 +51,6 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="KitabSunna" component={KitabSunnaComp} durationInFrames={specFrames(kitabSunnaSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
         <Composition id="FatimaSheikhayn-L" component={FatimaSheikhaynComp} durationInFrames={specFrames(fatimaSheikhaynSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
         <Composition id="FatimaSheikhayn" component={FatimaSheikhaynComp} durationInFrames={specFrames(fatimaSheikhaynSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="SaintRambal-L" component={SaintRambalComp} durationInFrames={specFrames(saintRambalSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
-        <Composition id="SaintRambal" component={SaintRambalComp} durationInFrames={specFrames(saintRambalSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
       </Folder>
       <Folder name="البثوث">
         {/* بث للحوار مع المخالفين (1) */}

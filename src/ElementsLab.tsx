@@ -59,7 +59,7 @@ const BgKhLive: React.FC<{ brand?: BrandName }> = () => <KhBg a={BRAND.navy} b={
 /** the montage engine's own pieces (src/MontageSpec.tsx), shown alone like the rest (user 2026-10-27: «استخدمت أموراً من خارجها، أضفها لأراها هنا») */
 const SPLIT = { from: 0, to: 99, clip: { x: 140, w: 632 }, sheikh: { x: 772, w: 1148 }, clipName: "اسم المقطع المعروض" };
 const SPEC_E: Record<string, { node: React.ReactNode; light?: boolean }> = {
-  PeekCorner: { node: <PeekIn src="saint_rambal/peek_filopateer.png" ar={1 / 1.186} at={0.2} until={2.9} w={400} dx={0} corner="bl" z={5} say="عادي" /> },
+  PeekCorner: { node: <PeekIn src="gallery_assets/peek_filopateer.png" ar={1 / 1.186} at={0.2} until={2.9} w={400} dx={0} corner="bl" z={5} say="عادي" /> },
   VerseWords: { node: <VerseWords words={["مُّحَمَّدٌ", "رَّسُولُ", "ٱللَّهِ"]} times={[0.4, 0.9, 1.3]} x={560} y={300} w={800} size={64} title="سُورَةُ الفَتۡحِ" refText="الآية 29" until={2.7} /> },
   ReelVerseFull: { node: <div style={{ position: "absolute", left: 656, top: 0, width: 1080, height: 1920, transform: "scale(0.5625)", transformOrigin: "top left", overflow: "hidden" }}><ReelVerseFull to={2.8} refName="سُورَةُ الفَتۡحِ — الآية 29" lines={[{ words: ["مُّحَمَّدٌ", "رَّسُولُ", "ٱللَّهِ"], times: [0.4, 0.9, 1.3] }]} /></div> },
   DateCalendar: { node: <DateCalendar at={0.1} until={2.9} x={160} y={300} w={380} text="١٠ محرّم ٦١ هـ" sub="يوم عاشوراء" /> },

@@ -298,7 +298,8 @@
    "to": 69.4,
    "start": 0,
    "dim": 0.42,
-   "fade": 0
+   "fade": 0,
+   "focusX": 0.32
   },
   {
    "t": "nameTag",
@@ -451,7 +452,8 @@
    "to": 109.07,
    "start": 0,
    "dim": 0.35,
-   "fade": 0
+   "fade": 0,
+   "focusX": 0.3
   },
   {
    "t": "bgclip",
@@ -460,7 +462,8 @@
    "to": 113.7,
    "start": 0,
    "dim": 0.35,
-   "fade": 0
+   "fade": 0,
+   "focusX": 0.3
   },
   {
    "t": "bgclip",
@@ -469,7 +472,8 @@
    "to": 118.59,
    "start": 0,
    "dim": 0.35,
-   "fade": 0
+   "fade": 0,
+   "focusX": 0.3
   },
   {
    "t": "tphoto",
@@ -603,7 +607,8 @@
    "to": 171.74,
    "start": 0,
    "dim": 0.35,
-   "fade": 0
+   "fade": 0,
+   "focusX": 0.3
   },
   {
    "t": "bgclip",
@@ -612,7 +617,8 @@
    "to": 177.33,
    "start": 0,
    "dim": 0.35,
-   "fade": 0
+   "fade": 0,
+   "focusX": 0.3
   },
   {
    "t": "bgclip",
@@ -621,7 +627,8 @@
    "to": 182.02,
    "start": 0,
    "dim": 0.35,
-   "fade": 0
+   "fade": 0,
+   "focusX": 0.3
   },
   {
    "t": "date",
@@ -1198,7 +1205,8 @@
    "to": 582.233,
    "start": 0,
    "dim": 0.35,
-   "fade": 0
+   "fade": 0,
+   "focusX": 0.3
   },
   {
    "t": "peek",
@@ -1260,7 +1268,8 @@
    "to": 654.033,
    "start": 0,
    "dim": 0.35,
-   "fade": 0
+   "fade": 0,
+   "focusX": 0.3
   },
   {
    "t": "verse",
@@ -1447,7 +1456,8 @@
    "to": 744.433,
    "start": 0,
    "dim": 0.35,
-   "fade": 0
+   "fade": 0,
+   "focusX": 0.3
   },
   {
    "t": "scraps",

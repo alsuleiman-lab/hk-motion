@@ -23,7 +23,7 @@ const Archive: React.FC = SHOW_ARCHIVE ? // eslint-disable-next-line @typescript
   (require("./ArchiveComps") as { ArchiveComps: React.FC }).ArchiveComps : () => null;
 
 
-import { MontageFromSpec } from "./MontageSpec";
+import { MontageFromSpec, specFrames } from "./MontageSpec";
 import type { MontageSpec } from "./MontageSpec";
 
 import streamArshFakhSpec from "../data/specs/stream_arsh_fakh_reel.json";
@@ -49,17 +49,17 @@ export const RemotionRoot: React.FC = () => {
     <ByRecency>
 
       <Folder name="مونتاج الجلسة">
-        <Composition id="KitabSunna-L" component={KitabSunnaComp} durationInFrames={kitabSunnaSpec.frames} fps={30} width={1920} height={1080} />
-        <Composition id="KitabSunna" component={KitabSunnaComp} durationInFrames={kitabSunnaSpec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="FatimaSheikhayn-L" component={FatimaSheikhaynComp} durationInFrames={fatimaSheikhaynSpec.frames} fps={30} width={1920} height={1080} />
-        <Composition id="FatimaSheikhayn" component={FatimaSheikhaynComp} durationInFrames={fatimaSheikhaynSpec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="SaintRambal-L" component={SaintRambalComp} durationInFrames={saintRambalSpec.frames} fps={30} width={1920} height={1080} />
-        <Composition id="SaintRambal" component={SaintRambalComp} durationInFrames={saintRambalSpec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="KitabSunna-L" component={KitabSunnaComp} durationInFrames={specFrames(kitabSunnaSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
+        <Composition id="KitabSunna" component={KitabSunnaComp} durationInFrames={specFrames(kitabSunnaSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
+        <Composition id="FatimaSheikhayn-L" component={FatimaSheikhaynComp} durationInFrames={specFrames(fatimaSheikhaynSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
+        <Composition id="FatimaSheikhayn" component={FatimaSheikhaynComp} durationInFrames={specFrames(fatimaSheikhaynSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
+        <Composition id="SaintRambal-L" component={SaintRambalComp} durationInFrames={specFrames(saintRambalSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
+        <Composition id="SaintRambal" component={SaintRambalComp} durationInFrames={specFrames(saintRambalSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
       </Folder>
       <Folder name="البثوث">
         {/* بث للحوار مع المخالفين (1) */}
-        <Composition id="Stream-Arsh-Fakh-R"component={StreamArshFakhRComp} durationInFrames={streamArshFakhSpec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="Stream-Mayyit-Ilm-R" component={StreamMayyitIlmRComp} durationInFrames={streamMayyitIlmSpec.frames} fps={30} width={1080} height={1920} />
+        <Composition id="Stream-Arsh-Fakh-R"component={StreamArshFakhRComp} durationInFrames={specFrames(streamArshFakhSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
+        <Composition id="Stream-Mayyit-Ilm-R" component={StreamMayyitIlmRComp} durationInFrames={specFrames(streamMayyitIlmSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
       </Folder>
 
       {SHOW_REFERENCE && <Composition id="FamilyStickCast" component={FamilyStickCast} durationInFrames={180} fps={30} width={1080} height={1920} />}

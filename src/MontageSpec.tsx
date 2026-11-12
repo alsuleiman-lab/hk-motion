@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { galleryPlace } from "./galleryPlace";
 import React from "react";
-import { AbsoluteFill, Audio, Img, Sequence, continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig , getRemotionEnvironment, getInputProps } from "remotion";
+import { AbsoluteFill, Audio, Img, Sequence, Video, continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig , getRemotionEnvironment, getInputProps } from "remotion";
 import { PaperTear } from "./PaperTear";
 import { Gfx, BrushX, Stamp, NoteCard, HandheldShake, SourceWalk, BlurRise, RewriteWindow, FlashCut, PinnedPhoto, TimelineTravel, PanelToCanvas, Clock, DashArc, useT } from "./MG";
 import { KeyChip, ReelVerseFull, VerseWords } from "./MGExtras";
@@ -568,7 +568,25 @@ const withGallery = (s: MontageSpec): MontageSpec => s.galleryOwn ? s : { ...s, 
   const inPanel = (ld as { panel?: boolean }).panel === true;
   return { ...it, dx: (it.dx ?? 0) + P.dx, dy: (it.dy ?? 0) + P.dy, k: (it.k ?? 1) * P.k, land: inPanel ? ld : { ...ld, dx: (ld.dx ?? 0) + L.dx, dy: (ld.dy ?? 0) + L.dy, k: (ld.k ?? 1) * L.k } } as SpecItem;
 }) };
-export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => {
+/* OPENING BUMPER IN STUDIO TOO (user 2026-11-12, binding law: «دائماً قبل أن أقول للمرة الأولى في الفيديو (طيب السلام عليكم / طيب بسم الله / السلام عليكم / بسم الله)
+   تضع الفاصل، فاصل عشوائي… ما عدا الريلز»): spec.bumper = { id, at } (tools/bumper_at.mjs --write). The render inserts it into the final file (prepend_bumper --at --id);
+   Studio shows the same thing: the talk stops at `at`, the bumper plays 5 s with its sound, then the talk goes on. Composition frames in Studio = spec.frames + 150. */
+const FAWASEL: Record<string, { file: string; fileP: string }> = { press: { file: "fawasel/fasel_press.mp4", fileP: "fawasel/fasel_press_p.mp4" }, shelf: { file: "fawasel/fasel_shelf.mp4", fileP: "fawasel/fasel_shelf_p.mp4" }, wall: { file: "fawasel/fasel_wall.mp4", fileP: "fawasel/fasel_wall_p.mp4" }, notebook: { file: "fawasel/fasel_notebook.mp4", fileP: "fawasel/fasel_notebook_p.mp4" }, tear: { file: "fawasel/fasel_tear.mp4", fileP: "fawasel/fasel_tear_p.mp4" } };
+const studioBumper = (s: MontageSpec) => { const b = (s as { bumper?: { id: string; at: number } }).bumper; return getRemotionEnvironment().isStudio && b && FAWASEL[b.id] && (s as { kind?: string }).kind !== "reel" ? b : null; };
+export const specFrames = (s: MontageSpec) => s.frames + (studioBumper(s) ? 150 : 0);
+export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
+  const b = studioBumper(spec), { width, height } = useVideoConfig();
+  if (!b) return <MontageFromSpecBody spec={spec} />;
+  const G = Math.round(b.at * 30), f = FAWASEL[b.id];
+  return (
+    <>
+      {G > 0 ? <Sequence durationInFrames={G}><MontageFromSpecBody spec={spec} /></Sequence> : null}
+      <Sequence from={G} durationInFrames={150}><AbsoluteFill style={{ background: "#000" }}><Video src={staticFile(width > height ? f.file : f.fileP)} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></AbsoluteFill></Sequence>
+      <Sequence from={G + 150}><Sequence from={-G}><MontageFromSpecBody spec={spec} /></Sequence></Sequence>
+    </>
+  );
+};
+const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => {
   const spec = withGallery(raw);
   for (const it of spec.items) if (!APPROVED_TYPES.has(it.t)) throw new Error(`عنصر غير معتمد في المعرض: «${it.t}» في ${spec.id} — المعتمد: ${[...APPROVED_TYPES].join("، ")}`);
   const f = useCurrentFrame();

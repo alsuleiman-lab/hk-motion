@@ -11,8 +11,7 @@ parent=$(git rev-parse refs/heads/gpu-render)
 git read-tree "$parent"
 git add -f tools/gpu_render.mjs tools/gpu_compositor.py docs/gpu_render_report.md docs/gpu_render 2>/dev/null || true
 git add -f tools/gpu_render.mjs tools/gpu_compositor.py
-# src/hybrid/Slot.tsx is skip-worktree in the shared index: hash the working-tree file explicitly
-blob=$(git hash-object -w src/hybrid/Slot.tsx); git update-index --add --cacheinfo 100644,"$blob",src/hybrid/Slot.tsx
+# nothing under src/ is ever committed here: the GPU renderer needs no change in the compositions (other sessions edit src/ in this tree)
 for f in tools/gpu/*; do case "$f" in *__pycache__*|*.dll) ;; *) git add -f "$f";; esac; done
 [ -f tools/render_job.sh.gpu ] && { blob=$(git hash-object -w tools/render_job.sh.gpu); git update-index --add --cacheinfo 100755,"$blob",tools/render_job.sh; }
 t=$(git write-tree)

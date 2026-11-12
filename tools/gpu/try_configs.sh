@@ -6,7 +6,7 @@ a=$1; b=$2; shift 2
 for c in "$@"; do
   IFS=: read -r P Wn <<<"$c"
   log=.tmp/gpu_render/cfg_${P}x${Wn}.log
-  (timeout 900 node tools/gpu_render.mjs --comp SaintRambal-L --bundle .tmp/gpu_render/bundle_SaintRambal-L --start $a --end $b --procs $P --windows $Wn --out .tmp/gpu_render/cfg.mp4 $GR_EXTRA > $log 2>&1 &)
+  (timeout 900 node tools/gpu_render.mjs --comp SaintRambal-L --bundle .tmp/gpu_render/bundle_keep_SaintRambal-L --start $a --end $b --procs $P --windows $Wn --out .tmp/gpu_render/cfg.mp4 $GR_EXTRA > $log 2>&1 &)
   for i in $(seq 1 90); do grep -q "frame 300/" $log 2>/dev/null && break; grep -q "ERROR\|stopped" $log 2>/dev/null && break; sleep 1; done
   own=$(powershell -NoProfile -File tools/gpu/cpu_by_process.ps1 -Seconds 5 | grep -E "electron|python|ffmpeg|^total" | tr '\n' ' ')
   for i in $(seq 1 300); do grep -q "DONE →\|ERROR\|stopped" $log && break; sleep 2; done

@@ -67,7 +67,7 @@ t = Date.now();
 log("bundling…");
 /* --bundle <dir>: reuse a bundle made earlier (tests: the same build for every run; it is kept) */
 const KEEP = arg("bundle", null);
-const serveUrl = KEEP && KEEP !== true ? path.resolve(root, KEEP) : await bundle({ entryPoint: path.join(root, "src/index.ts"), rspack: true, publicDir: slim, outDir: path.join(root, ".tmp/gpu_render/bundle_" + compId), onProgress: () => {} });
+const serveUrl = KEEP && KEEP !== true ? path.resolve(root, KEEP) : await bundle({ entryPoint: path.join(root, "src/index.ts"), rspack: true, publicDir: slim, outDir: path.join(root, ".tmp/gpu_render/" + (process.env.GR_KEEP_BUNDLE ? "bundle_keep_" : "bundle_") + compId), onProgress: () => {} });
 const linkVideos = (src, dst) => { for (const e of fs.readdirSync(src, { withFileTypes: true })) { const s2 = path.join(src, e.name), d2 = path.join(dst, e.name); if (e.isDirectory()) { fs.mkdirSync(d2, { recursive: true }); linkVideos(s2, d2); } else if (VID.test(e.name) && !fs.existsSync(d2)) { try { fs.linkSync(s2, d2); } catch (err) { log("link failed " + e.name + ": " + err.message); } } } };
 if (!KEEP) linkVideos(path.join(root, "public"), path.join(serveUrl, "public"));   // hard links: zero copy (audio assets of <Audio>/<Video> point into the bundle)
 timing.bundleSec = (Date.now() - t) / 1000;
@@ -107,6 +107,17 @@ const server = http.createServer((req, res) => {
 });
 await new Promise((res) => server.listen(HTTP_PORT, "127.0.0.1", res));
 
+// ---- parity guard: the compositing code (rrect_sdf … draw_slot) is a copy of tools/hybrid_generic.py; warn loudly when the hybrid changed it ----
+{
+  const part = (file) => {
+    const t = fs.readFileSync(path.join(root, file), "utf8").replace(/\r/g, "");
+    const a = t.indexOf("\ndef rrect_sdf"), b = t.indexOf("\n# ---------------- encoder");
+    if (a < 0 || b < a) return null;
+    return t.slice(a, b).split("\n").map((l) => l.replace(/#.*$/, "").trimEnd()).filter(Boolean).join("\n");   /* comments ignored */
+  };
+  const h = part("tools/hybrid_generic.py"), g = part("tools/gpu_compositor.py");
+  if (!h || h !== g) log("WARNING: the compositing functions of tools/gpu_compositor.py differ from tools/hybrid_generic.py (rrect_sdf … draw_slot): port the hybrid change before trusting the look");
+}
 // ---- the D3D11 -> CUDA bridge (tools/gpu/bridge.cpp) is built from source with Visual Studio 2022 when missing ----
 if (!fs.existsSync(path.join(root, "tools/gpu/bridge.dll"))) {
   log("building tools/gpu/bridge.dll (Visual Studio 2022)…");

@@ -516,6 +516,9 @@ def draw_slot(out, s, src, mat=None):
         tt = torch.sqrt(((qx - cx) / (rx0 * k)) ** 2 + ((qy - cy) / (ry0 * k)) ** 2).clamp(0, 1)
         al = (veil * 0.5 + (veil * 0.5 + 0.25) * tt)[None]
         smp = smp * (1.0 - al) + VEIL_RGB * al
+    fl_px = s["fx"].get("featherL", 0)
+    if fl_px:  # (2026-11-12, ported from hybrid_generic.py 6397951) his video slid aside: the left edge fades to transparent over fl_px box pixels
+        cov = cov * (qx / fl_px).clamp(0, 1)
     if mat is not None:  # (2026-11-12) isolated cut-out: alpha = matte red; below `fl` (fraction of the height) the original picture stays whole — as MaskedVideo's shader
         al = F.grid_sample(mat[0:1][None], torch.stack([gx, gy], -1)[None], mode="bilinear", padding_mode="border", align_corners=False)[0, 0] / 255.0
         fl = s.get("fl", 0) or 0

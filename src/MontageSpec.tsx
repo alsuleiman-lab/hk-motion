@@ -65,7 +65,7 @@ export type SpecItem = Common & (
   /** a hadith on a paper NoteCard (MG NoteCard; user's gallery note 2026-11-05: «مخصصة لكتابة الأحاديث النبوية»): the matn typed as `title`, the book + number as `tag`; he stays on screen */
   | { t: "note"; at: number; until: number; title: string; tag: string; label?: string; x?: number; y?: number; w?: number; h?: number; size?: number; cps?: number }
   /** a column of written cards (EU-Protests style): dark `Banner` title + one `StatRow` card per spoken item; placed by the orientation's layout (no x/y) */
-  | { t: "rows"; side?: "right"; from: number; to: number; y0?: number; step?: number; rowH?: number; pin?: { x: number; w: number }; title?:{ at: number; text: string }; rows: { at: number; label: string; sub?: string; icon?: string; photo?: string }[] }
+  | { t: "rows"; side?: "right"; from: number; to: number; y0?: number; step?: number; rowH?: number; pin?: { x: number; w: number }; title?:{ at: number; text: string }; rows: { at: number; label: string; sub?: string; subAt?: number; icon?: string; photo?: string }[] }
   /** a scholar he quotes: polaroid with the name in the white band (empty side of his frame; portrait: below the beard) */
   | { t: "scholar"; src: string; name: string; sub?: string; at: number; until?: number; x?: number; y?: number; w?: number; h?: number; pos?: string }
   /** the cover drawn over everything at the start (skill thumbnail-design). DEFAULT style "paper" (user 2026-10-27) = PaperCoverKit: newsprint sheet, 3 still frames, then the
@@ -151,7 +151,7 @@ export type MontageSpec = {
   /** portrait split screen (user 2026-10-29: «عند الشجرة والعناصر الكبيرة استخدم تقسيم الشاشة»): inside each window his video shrinks to the top (scale `s`, pinned at the top centre) and the lower part of the frame is a backdrop panel for the big element (`parchment` for the family tree) */
   psplits?: { from: number; to: number; s?: number; panel?: "warm" | "parchment" }[];
   /** landscape split screen: his frame slides right by `dx` px between from and to (eased 0.4 s) so a left-hand panel (family tree) gets half the screen */
-  shifts?: { from: number; to: number; dx: number }[];
+  shifts?: { from: number; to: number; dx: number; feather?: number }[];
   /** windows (cut seconds) where he is drawn over the full-screen pictures and the clip card (needs `matte`) */
   behind?: { only?: "port" | "land"; from: number; to: number; matte?: { src: string; startFrom?: number; start?: number }; dx?: number; fade?: number /* his cut-out dissolves over the last `fade` s */ }[];
   /** set by the gallery only: its item already carries the place being edited, so the saved gallery place is not added again */
@@ -300,7 +300,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
       return (
         <Only key={i} from={it.from} to={it.to}>
           {titled && it.title ? <Banner at={it.title.at} x={gx} y={g.bannerY} w={g.w} text={it.title.text} size={g.bannerSize} /> : null}
-          {it.rows.map((r, n) => <StatRow key={n} at={r.at} x={!L && it.pin ? it.pin.x : gx} y={rowY(n)} w={!L && it.pin ? it.pin.w : g.w} h={rowH} icon={r.icon ?? "Quote"} label={r.label} sub={r.sub} photo={r.photo} rot={n % 2 ? 1 : -1} />)}
+          {it.rows.map((r, n) => <StatRow key={n} at={r.at} x={!L && it.pin ? it.pin.x : gx} y={rowY(n)} w={!L && it.pin ? it.pin.w : g.w} h={rowH} icon={r.icon ?? "Quote"} label={r.label} sub={r.sub} subAt={r.subAt} photo={r.photo} rot={n % 2 ? 1 : -1} />)}
         </Only>
       );
     }
@@ -446,17 +446,19 @@ export const TailVoice: React.FC<{ tl: NonNullable<MontageSpec["tail"]> }> = ({ 
 };
 
 /** landscape footage: his whole 1920×1080 frame with the occasional push-in on his face (same easing as SheikhLayers) */
-export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: number; amt?: number }[]; splits?: Split[]; shifts?: { from: number; to: number; dx: number }[] }> = ({ cut, zooms = [], splits = [], shifts = [] }) => {
+export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: number; amt?: number }[]; splits?: Split[]; shifts?: { from: number; to: number; dx: number; feather?: number }[] }> = ({ cut, zooms = [], splits = [], shifts = [] }) => {
   const t = useT(0);
   const sh = shifts.find((s) => t >= s.from && t <= s.to + 0.4);
   const dx = sh ? sh.dx * Math.min(clamp((t - sh.from) / 0.4), clamp((sh.to + 0.4 - t) / 0.4)) : 0;
+  const fth = sh?.feather ? sh.feather * Math.min(clamp((t - sh.from) / 0.4), clamp((sh.to + 0.4 - t) / 0.4)) : 0;
   const sp = splits.find((x) => t >= x.from && t < x.to);
   if (sp) { const L = DEBATE_LAYOUTS[sp.layout ?? "dossier"]; return <L at={sp.from} main={{ src: cut, x: sp.sheikh.x, w: sp.sheikh.w }} guest={{ src: cut, x: sp.clip.x, w: sp.clip.w, y: sp.clip.y, h: sp.clip.h, blur: sp.blur }} guestName={sp.clipName} url={sp.clipUrl} />; }
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 1.2);
   const z = zz ? 1 + (zz.amt ?? 0.08) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1;
   return (
     <AbsoluteFill style={{ background: hyBg(BRAND.base), transform: `translate3d(${dx}px, 0, 0) scale(${z})`, willChange: "transform", transformOrigin: LANDSCAPE.faceOrigin }}>
-      {HY ? <VSlot src={cut} w={LANDSCAPE.W} h={LANDSCAPE.H} /> : <RV src={staticFile(cut)} style={{ position: "absolute", left: 0, top: 0, width: LANDSCAPE.W, height: LANDSCAPE.H }} />}
+      {/* (user 2026-11-12, frame 6758) slid aside, his video's left part turns transparent and melts into the background (\`feather\` px): CSS mask here, the same ramp in the GPU compositor (fx.featherL) */}
+      {HY ? <VSlot src={cut} w={LANDSCAPE.W} h={LANDSCAPE.H} fx={fth > 0 ? { featherL: fth } : undefined} /> : <div style={{ position: "absolute", inset: 0, ...(fth > 0 ? { WebkitMaskImage: `linear-gradient(to right, transparent 0px, black ${fth}px)`, maskImage: `linear-gradient(to right, transparent 0px, black ${fth}px)` } : {}) }}><RV src={staticFile(cut)} style={{ position: "absolute", left: 0, top: 0, width: LANDSCAPE.W, height: LANDSCAPE.H }} /></div>}
     </AbsoluteFill>
   );
 };

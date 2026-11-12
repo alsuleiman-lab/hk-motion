@@ -470,30 +470,33 @@
   },
   {
    "t": "rows",
-   "from": 213.83,
-   "to": 246.17,
+   "from": 214,
+   "to": 246.1,
    "title": {
-    "at": 213.83,
-    "text": "فإن قلت إنه لم يفعل ذلك ببناته الأخريات"
+    "at": 214,
+    "text": "فإن قلت"
    },
    "rows": [
     {
-     "at": 222.68,
-     "label": "طعن برسول الله",
-     "icon": "Quote",
-     "photo": "fatima_sheikhayn/kaaba.jpg"
+     "at": 214.73,
+     "label": "إنه لم يفعل ذلك ببناته الأخريات",
+     "sub": "وهذا طعن برسول الله",
+     "subAt": 222.52,
+     "icon": "Quote"
     },
     {
-     "at": 236.45,
-     "label": "طعن بفاطمة",
-     "icon": "Quote",
-     "photo": "fatima_sheikhayn/img_8.png"
+     "at": 232.12,
+     "label": "فإنهن أكرم وأتقى من أن يتلوثن بالدنيا",
+     "sub": "فهذا طعن بفاطمة",
+     "subAt": 236.29,
+     "icon": "Quote"
     },
     {
-     "at": 242.86,
-     "label": "طعن بأبي بكر وعمر",
-     "icon": "Quote",
-     "photo": "fatima_sheikhayn/img_2.png"
+     "at": 238.33,
+     "label": "إن عثمان لم يلوث بنات رسول الله",
+     "sub": "هذا طعن بأبي بكر وعمر",
+     "subAt": 242.6,
+     "icon": "Quote"
     }
    ]
   },
@@ -603,6 +606,14 @@
  "skipRequired": [
   "آية 6:151@351"
  ],
+ "shifts": [
+  {
+   "from": 214,
+   "to": 246.1,
+   "dx": 420,
+   "feather": 420
+  }
+ ],
  "sfx": [
   {
    "src": "sfx/el_paper_tear.wav",
@@ -651,17 +662,17 @@
   },
   {
    "src": "sfx/el_ding.wav",
-   "at": 222.68,
+   "at": 214.73,
    "vol": 0.05
   },
   {
    "src": "sfx/el_ding.wav",
-   "at": 236.45,
+   "at": 232.12,
    "vol": 0.05
   },
   {
    "src": "sfx/el_ding.wav",
-   "at": 242.86,
+   "at": 238.33,
    "vol": 0.05
   },
   {

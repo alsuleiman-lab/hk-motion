@@ -258,6 +258,18 @@
      "kinds": [
       "verse"
      ]
+    },
+    "left": {
+     "rect": [
+      20,
+      60,
+      640,
+      1000
+     ],
+     "kinds": [
+      "list"
+     ],
+     "note": "(user 2026-11-12, frame 6758) his video slid right (shifts): the listing card «إذا قلت كذا ← فهذا كذا» in the free left column"
     }
    }
   },

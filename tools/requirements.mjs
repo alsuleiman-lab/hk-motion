@@ -147,6 +147,16 @@ function build() {
     for (const t of qs) { if (g.length && t - g[g.length - 1] > 20) flush(); g.push(t); }
     flush();
   }
+  // 2d) CONDITIONS AND THEIR CONSEQUENCES (user 2026-11-12, frame 6758: «إذا قلت كذا سيكون كذا، إذا قلت كذا سيكون كذا»): «إن قلت / وإن قلت / فإن قلت» twice or
+  //     more within 45 s (outside the clip windows) → his video slid right with a transparent left edge + one listing card of condition → consequence boxes
+  {
+    const sp = read(`data/specs/${p}.json`, {}), inClip = (t) => (sp.splits ?? []).some((x) => t >= x.from && t < x.to);
+    const cs = []; for (let i = 0; i < W.length - 1; i++) { const a = bare(String(W[i].w)), b = bare(String(W[i + 1].w)); if (/^(و|ف)?ان$/.test(a) && b === "قلت" && !inClip(W[i].s)) cs.push(W[i].s); }
+    let g = [];
+    const flush = () => { if (g.length >= 2) add({ kind: "conditions", text: `${g.length} شروط «إن قلت»`, t: g[0], need: ["rows"], before: 3, after: 3, ctx: ctx(W, g[0]) }); g = []; };
+    for (const t of cs) { if (g.length && t - g[g.length - 1] > 45) flush(); g.push(t); }
+    flush();
+  }
   // 3) described people / groups / buildings / acts / animals
   const dep = read("data/depict_lexicon.json", {});
   const terms = new Map(); for (const [g, list] of Object.entries(dep)) if (g !== "_") for (const f of list) terms.set(bare(f), g);
@@ -188,7 +198,7 @@ function build() {
 // prophets, God and angels are never drawn or photographed
 const NO_PICTURE = /(وسلم|صلى الله|عيسى|عيسي|المسيح|موسى|موسي|ابراهيم|نوح|يوسف|يعقوب|اسحاق|اسماعيل|داود|سليمان|يونس|ايوب|زكريا|يحيى|هارون|ادم|محمد ﷺ|رسول الله|النبي|جبريل|ميكائيل|الله)/;
 const VIS = ["pic", "tphoto", "scholar", "peek", "bgclip", "full", "person", "pmap", "flash", "crop", "scene", "flag", "news"];
-const KIND = { questions: "سلسلة أسئلة ← بطاقة بنود", state: "حالة ← صورة المشهد (التوليد مسموح)", place: "مكان ← خريطة", person: "شخص ← صورته", date: "تاريخ ← عنصر التاريخ", depict: "وصف ← صورة", order: "تعليمة مونتاج", ordercand: "كلام للمونتير؟" };
+const KIND = { conditions: "شروط ونتائجها ← فيديوه يميناً + بطاقة شروط", questions: "سلسلة أسئلة ← بطاقة بنود", state: "حالة ← صورة المشهد (التوليد مسموح)", place: "مكان ← خريطة", person: "شخص ← صورته", date: "تاريخ ← عنصر التاريخ", depict: "وصف ← صورة", order: "تعليمة مونتاج", ordercand: "كلام للمونتير؟" };
 function ctx(W, t) { const i = W.findIndex((w) => w.s >= t); return W.slice(Math.max(0, i - 5), i + 8).map((w) => w.w).join(" "); }
 
 // ───────────── check the spec against it ─────────────

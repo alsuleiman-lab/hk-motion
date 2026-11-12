@@ -23,6 +23,10 @@ const G: { frame: number; slots: Map<string, Rec>; flushedFrame: number; host: H
 
 const MEAS = new Map<string, () => void>(); // latest measuring function of every mounted slot
 const flush = (frame: number) => {
+  /* GPU renderer (tools/gpu_render.mjs) only: its page defines window.__gr_geom and the geometry travels with the frame over its control channel
+     (a synchronous XHR cost ~7 ms per call there). Never defined in Studio or in hybrid_any, so nothing changes for them. */
+  const grGeom = (window as unknown as { __gr_geom?: (p: unknown) => void }).__gr_geom;
+  if (typeof grGeom === "function") { grGeom({ frame, slots: Array.from(G.slots.values()), under: G.under }); G.flushedFrame = frame; return; }
   try {
     const x = new XMLHttpRequest();
     x.open("POST", `http://127.0.0.1:${P.hybridPort}/g`, false); // synchronous: guaranteed to arrive before the screenshot is taken
@@ -39,6 +43,9 @@ export const HybridHost: React.FC<{ children: React.ReactNode }> = ({ children }
   const frame = useCurrentFrame();
   if (HY === "top" && G.frame !== frame) { G.frame = frame; G.slots = new Map(); G.under = false; }
   useLayoutEffect(() => {
+    /* GPU renderer only (tools/gpu/preload.cjs defines it): "frame N is committed", so a frame is never captured before React has drawn it */
+    const grCommit = (window as unknown as { __gr_commit?: (f: number) => void }).__gr_commit;
+    if (typeof grCommit === "function") grCommit(frame);
     if (HY !== "top") return;
     flush(frame);
     // layout can still settle after the commit (first frame of a tab, images/fonts): measure once more one animation frame later, before the screenshot is taken
@@ -76,7 +83,7 @@ export const UnderHim: React.FC<{ active: boolean; from?: number; to?: number; c
   return null;
 };
 
-export type SlotFx = { blur?: number; brightness?: number; contrast?: number; saturate?: number; /** dark radial veil of a background clip (BgClip dim), drawn by the compositor */ veil?: number };
+export type SlotFx = { blur?: number; brightness?: number; contrast?: number; saturate?: number; /** dark radial veil of a background clip (BgClip dim), drawn by the compositor */ veil?: number; /** soft transparent left edge, px of the box (his video slid aside, 2026-11-12) */ featherL?: number };
 const cssFilter = (fx?: SlotFx) => (fx ? [fx.blur ? `blur(${fx.blur}px)` : "", fx.contrast != null ? `contrast(${fx.contrast})` : "", fx.saturate != null ? `saturate(${fx.saturate})` : "", fx.brightness != null ? `brightness(${fx.brightness})` : ""].filter(Boolean).join(" ") || undefined : undefined);
 // NOTE: the compositor applies the CSS filter functions in the order  contrast -> saturate -> brightness  (the order used by this project); blur always first.
 

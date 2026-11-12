@@ -143,7 +143,7 @@ const ClipPin: React.FC<{ left: number }> = ({ left }) => (
 );
 
 /** a paper card that slides in when its word is spoken: icon + label + big number */
-export const StatRow: React.FC<{ at: number; x: number; y: number; w: number; h?: number; icon: string; label: string; sub?: string; to?: number; dec?: number; unit?: string; flag?: FlagCode; photo?: string; rot?: number; big?: number; countAt?: number; comma?: boolean }> = ({ at, x, y, w, h = 190, icon, label, sub, to, dec = 0, unit, flag, photo, rot = -1, big = 96, countAt, comma }) => {
+export const StatRow: React.FC<{ at: number; x: number; y: number; w: number; h?: number; icon: string; label: string; sub?: string; /** the second line appears when it is said (user 2026-11-12: «إذا قلت كذا ← فهذا كذا») */ subAt?: number; to?: number; dec?: number; unit?: string; flag?: FlagCode; photo?: string; rot?: number; big?: number; countAt?: number; comma?: boolean }> = ({ at, x, y, w, h = 190, icon, label, sub, subAt, to, dec = 0, unit, flag, photo, rot = -1, big = 96, countAt, comma }) => {
   const s = useSp(at, 14, 170);
   const t = useT(at);
   const u = clamp(t / 0.33);
@@ -160,7 +160,7 @@ export const StatRow: React.FC<{ at: number; x: number; y: number; w: number; h?
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: TITLE, fontWeight: 800, fontSize: 40, color: T.ink, lineHeight: 1.25 }}>{label}</div>
-        {sub ? <div style={{ fontFamily: TEXT, fontWeight: 700, fontSize: 27, color: T.gray, marginTop: 4, lineHeight: 1.3 }}>{sub}</div> : null}
+        {sub ? <div style={{ fontFamily: TEXT, fontWeight: 700, fontSize: 27, color: T.gray, marginTop: 4, lineHeight: 1.3, visibility: subAt !== undefined && t < subAt - at ? "hidden" : "visible" }}>{sub}</div> : null}
       </div>
       {to !== undefined ? (
         <div style={{ textAlign: "center", flexShrink: 0 }}>

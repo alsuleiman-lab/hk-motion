@@ -47,6 +47,7 @@ for (const [name, t] of Object.entries(typeOf)) {
 sample.pic ??= { x: 240, w: 600, h: 400 };   // the gallery frame is 600 × 400, the picture covers it (cropped), whatever its own ratio
 const spec = JSON.parse(fs.readFileSync(specF, "utf8"));
 const diffs = [];
+const PANEL = (() => { try { return JSON.parse(fs.readFileSync("data/layout_grids.json", "utf8")).land.half.slots.panel.rect; } catch { return null; } })();
 for (const it of spec.items ?? []) {
   if (!TYPES.has(it.t) || it.placeOwn) continue;
   const s = sample[it.t]; if (!s) { diffs.push(`${it.t}: لا عيّنة في المعرض`); continue; }
@@ -58,6 +59,13 @@ for (const it of spec.items ?? []) {
     const lw = wantLand.w ?? (it.t === "pic" ? 600 : 300), lh = wantLand.h ?? (it.t === "pic" ? 400 : 370), [LW, LH, ldx] = fit(it, lw, lh);
     wantLand.w = LW; wantLand.h = LH; if (ldx) wantLand.x = (wantLand.x ?? 40) + ldx;
   }
+  /* (user 2026-11-06, repeated 2026-11-12: «الشاشة المنقسمة… الصور تطلع بالنص بين الإطار تبعي والإطار تبعه، ما تطلع فوق الشخص») in a landscape split window
+     (the clip card | his card) every picture goes in the GAP between the two cards (grid slot land.half.panel), scaled to fit, never over the clip */
+  { const t0 = it.at ?? it.from ?? 0, inSplit = (spec.splits ?? []).some((w) => t0 >= w.from - 0.05 && t0 < w.to);
+    if (inSplit && ["tphoto", "scholar", "pic", "date", "flag", "news", "clock"].includes(it.t) && PANEL) {
+      const [px, py, px2, py2] = PANEL, pw = px2 - px - 16, ph = py2 - py - 16, w0 = wantLand.w ?? 300, h0 = wantLand.h ?? 370, k = Math.min(1, pw / w0, ph / h0);
+      wantLand.w = Math.round(w0 * k); wantLand.h = Math.round(h0 * k); wantLand.x = Math.round(px + (px2 - px - wantLand.w) / 2); wantLand.y = Math.round(py + (py2 - py - wantLand.h) / 2);
+    } }
   const bad = [];
   for (const k of PGEO) if ((it[k] ?? undefined) !== (want[k] ?? undefined) && !(it.t === "pic" && k === "h" && Math.abs((it.h ?? 0) - (want.h ?? 0)) <= 1)) bad.push(`${k} ${it[k]}→${want[k]}`);
   for (const k of GEO) if ((it.land?.[k] ?? undefined) !== (wantLand[k] ?? undefined)) bad.push(`land.${k} ${it.land?.[k]}→${wantLand[k]}`);

@@ -38,14 +38,16 @@ if (flag("legacy") || process.env.PD) {
 // sequentially by default (--jobs N or env STILLS_JOBS for parallel: MEASURED slower here — 3 workers 12.2-13.0 s vs 1 worker 9.4-9.7 s for 6 stills, GPU/CPU contention). Output names/format are unchanged.
 { let freeGB = Infinity; try { const s = fs.statfsSync(process.cwd()); freeGB = (s.bavail * s.bsize) / 1073741824; } catch { /* unknown: go on */ } if (freeGB < 15) { console.error(`مساحة S الحرة ${freeGB.toFixed(1)} GB أقل من 15 GB: أوقفتُ اللقطات (حدّ المساحة، PREFERENCES القسم القرص). حرّر مؤقتاتك أولاً.`); process.exit(3); } }
 const browser = await openBrowser("chrome", { chromiumOptions: { gl: "angle" }, logLevel: "error" });
-const comp = await selectComposition({ serveUrl, id, port: Number(process.env.STILLS_PORT ?? 3457), puppeteerInstance: browser });
+// another session may hold 3457 (2026-11-12): take the first free port from 3457 up unless STILLS_PORT is set
+const STILLS_PORT = process.env.STILLS_PORT ? Number(process.env.STILLS_PORT) : await (async () => { const net = await import("node:net"); for (let p = 3457; p < 3500; p++) { const free = await new Promise((r) => { const sv = net.createServer().once("error", () => r(false)).once("listening", () => sv.close(() => r(true))).listen(p, "127.0.0.1"); }); if (free) return p; } return 3457; })();
+const comp = await selectComposition({ serveUrl, id, port: STILLS_PORT, puppeteerInstance: browser });
 const jobs = Math.max(1, Math.min(pts.length, Number(opt("jobs", process.env.STILLS_JOBS ?? "1"))));
 let next = 0;
 await Promise.all(Array.from({ length: jobs }, async () => {
   while (next < pts.length) {
     const p = pts[next++];
     const [name, fr] = p.split(":");
-    await renderStill({ composition: comp, serveUrl, port: Number(process.env.STILLS_PORT ?? 3457), frame: Number(fr), output: path.join(outDir, name + ".png"), scale, puppeteerInstance: browser, timeoutInMilliseconds: Number(process.env.RT || 180000), chromiumOptions: { gl: "angle" } });
+    await renderStill({ composition: comp, serveUrl, port: STILLS_PORT, frame: Number(fr), output: path.join(outDir, name + ".png"), scale, puppeteerInstance: browser, timeoutInMilliseconds: Number(process.env.RT || 180000), chromiumOptions: { gl: "angle" } });
     console.log("still", name);
     // every renderStill leaves a ~1.6 GB remotion-*-assets* folder (audio preprocessing of the long cut) until exit: 35 stills = 58 GB = a full S: (2026-11-09). Delete them right after each still (single job only: parallel jobs may still use theirs).
     if (jobs === 1) for (const d of fs.readdirSync(os.tmpdir())) if (/^remotion-v[\d.]+-assets/.test(d)) { try { fs.rmSync(path.join(os.tmpdir(), d), { recursive: true, force: true }); } catch { /* in use */ } }

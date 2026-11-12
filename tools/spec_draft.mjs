@@ -31,7 +31,8 @@ const pauseAfter = (t) => {
 };
 
 // splits (cut timeline) straight from the detector
-const splits = sources.filter((w) => w.split).map((w) => ({ ...w.split, clipName: "المقطع المردود عليه" }));
+// a «clip» narrower than 120 px at the frame edge is a false window (2026-11-12, lesson camera: 4-px windows at x 1916)
+const splits = sources.filter((w) => w.split && (w.split.clip?.w ?? w.clip?.w ?? 999) >= 120).map((w) => ({ ...w.split, clipName: "المقطع المردود عليه" }));
 
 // his face per stretch → portrait cams (cached track of the cut, shared with face_fast.mjs)
 const cut = path.join("public", `${p}_cut.mp4`), st = fs.statSync(cut);

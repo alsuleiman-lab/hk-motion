@@ -21,6 +21,8 @@ if (!bumper || bumper.size !== (() => { try { return fs.statSync(file).size; } c
 const results = [];
 const add = (ok, msg) => { results.push(ok); console.log(`${ok ? "✔" : "✘"} ${msg}`); };
 
+/* (2026-11-12) the opening bumper must sit right before his first greeting (tools/bumper_at.mjs), not at 0 when the video opens with a clip or a hook */
+if (gateName && bumper && bumper.position !== "end") { try { const want = Number(spawnSync("node", ["tools/bumper_at.mjs", gateName], { encoding: "utf8" }).stdout.trim()); add(Math.abs((bumper.at ?? 0) - want) <= 0.6, `فاصل الافتتاح عند ${(bumper.at ?? 0).toFixed(2)}ث${Math.abs((bumper.at ?? 0) - want) <= 0.6 ? " = قبل أول تحية" : ` والمطلوب ${want.toFixed(2)}ث (قبل «بسم الله/السلام عليكم»)`}`); } catch { /* no words */ } }
 add(dur > minSec && dur > 0, `المدة ${dur.toFixed(2)}ث${bumper ? ` (منها فاصل الافتتاح «${bumper.title}» ${bumper.seconds}ث)` : ""}`);
 // the audio gate (tools/audio_gate.mjs) is MANDATORY for every montage (user order 2026-10-21)
 import fs from "node:fs";

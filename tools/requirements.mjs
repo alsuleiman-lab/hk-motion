@@ -137,6 +137,16 @@ function build() {
       add({ kind: "state", text: W.slice(Math.max(0, i - 2), i + 4).map((x) => x.w).join(" "), t: w.s, need: VISL, before: 2, after: 5, ctx: ctx(W, w.s) });
     });
   }
+  // 2c) QUESTION SERIES (user 2026-11-12, frame 1411: «كنت أطرح مجموعة من الأسئلة… تكتب السؤال الأول، الثاني، الثالث»; rule: الأسئلة والقوائم ← StatRow):
+  //     two or more of HIS questions (a word ending in ؟/?) within 20 s, outside the opponent's clip windows → a listing card (rows) over them
+  {
+    const sp = read(`data/specs/${p}.json`, {}), inClip = (t) => (sp.splits ?? []).some((x) => t >= x.from && t < x.to);
+    const qs = W.filter((w) => /[؟?]$/.test(String(w.w)) && !inClip(w.s)).map((w) => w.s);
+    let g = [];
+    const flush = () => { if (g.length >= 2) add({ kind: "questions", text: `سلسلة ${g.length} أسئلة`, t: g[0], need: ["rows"], before: 8, after: 2, ctx: ctx(W, g[0]) }); g = []; };
+    for (const t of qs) { if (g.length && t - g[g.length - 1] > 20) flush(); g.push(t); }
+    flush();
+  }
   // 3) described people / groups / buildings / acts / animals
   const dep = read("data/depict_lexicon.json", {});
   const terms = new Map(); for (const [g, list] of Object.entries(dep)) if (g !== "_") for (const f of list) terms.set(bare(f), g);
@@ -178,7 +188,7 @@ function build() {
 // prophets, God and angels are never drawn or photographed
 const NO_PICTURE = /(وسلم|صلى الله|عيسى|عيسي|المسيح|موسى|موسي|ابراهيم|نوح|يوسف|يعقوب|اسحاق|اسماعيل|داود|سليمان|يونس|ايوب|زكريا|يحيى|هارون|ادم|محمد ﷺ|رسول الله|النبي|جبريل|ميكائيل|الله)/;
 const VIS = ["pic", "tphoto", "scholar", "peek", "bgclip", "full", "person", "pmap", "flash", "crop", "scene", "flag", "news"];
-const KIND = { state: "حالة ← صورة المشهد (التوليد مسموح)", place: "مكان ← خريطة", person: "شخص ← صورته", date: "تاريخ ← عنصر التاريخ", depict: "وصف ← صورة", order: "تعليمة مونتاج", ordercand: "كلام للمونتير؟" };
+const KIND = { questions: "سلسلة أسئلة ← بطاقة بنود", state: "حالة ← صورة المشهد (التوليد مسموح)", place: "مكان ← خريطة", person: "شخص ← صورته", date: "تاريخ ← عنصر التاريخ", depict: "وصف ← صورة", order: "تعليمة مونتاج", ordercand: "كلام للمونتير؟" };
 function ctx(W, t) { const i = W.findIndex((w) => w.s >= t); return W.slice(Math.max(0, i - 5), i + 8).map((w) => w.w).join(" "); }
 
 // ───────────── check the spec against it ─────────────

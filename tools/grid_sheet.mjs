@@ -23,8 +23,12 @@ const T = path.join(".tmp", spec.id), out = path.join(T, "grid_sheet_" + id), sh
 fs.rmSync(out, { recursive: true, force: true }); fs.mkdirSync(out, { recursive: true });
 const r = spawnSync("node", ["tools/stills.mjs", id, out, ...pts, "--scale", scale], { stdio: ["ignore", "ignore", "inherit"] });
 if (r.status !== 0) { console.error("stills failed"); process.exit(1); }
+/* (2026-11-12) a sheet with frames missing passed as «OK» (2 of 18 drawn): every asked frame must exist, or the eye review did not happen */
+{ const got = fs.readdirSync(out).filter((f) => f.endsWith(".png")).length; if (got < pts.length) { console.error(`stills failed: ${got}/${pts.length} frames drawn`); process.exit(1); } }
 const cols = 6, rows = Math.ceil(pts.length / cols);
-const f = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-framerate", "1", "-i", path.join(out, "s%03d.png"), "-vf", `tile=${cols}x${rows}:padding=6:color=white`, "-frames:v", "1", "-q:v", "3", sheet], { encoding: "utf8" });
+/* (2026-11-12) frames of different sizes made ffmpeg rebuild the tile and keep only the last frames (2 of 18 shown): one fixed size, no filter re-init */
+const W = 1920, H = id.endsWith("-L") ? 1080 : 1920;
+const f = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-framerate", "1", "-reinit_filter", "0", "-i", path.join(out, "s%03d.png"), "-vf", `scale=${spec.id && W > H ? "640:360" : "360:640"},tile=${cols}x${rows}:padding=6:color=white`, "-frames:v", "1", "-q:v", "3", sheet], { encoding: "utf8" });
 if (f.status !== 0) { console.error(f.stderr); process.exit(1); }
 fs.rmSync(out, { recursive: true, force: true });
 console.log(`${pts.length} إطاراً (${per}/دقيقة) → ${sheet}`);

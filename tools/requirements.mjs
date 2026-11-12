@@ -52,7 +52,7 @@ function build() {
     if (rows.some((x) => x.kind === r.kind && bare(x.text) === bare(r.text))) return;
     if (r.kind === "person" && rows.some((x) => x.kind === "person" && norm(x.text).split(" ").some((a) => a.length >= 4 && norm(r.text).split(" ").includes(a)))) return;
     if (r.kind === "depict") { const root = (t) => bare(t).replace(/(يين|يه|ين|ي|ه)$/, ""); if (rows.some((x) => x.kind === "depict" && root(x.text) === root(r.text))) return; }   // الهندوسية = الهندوسي = الهندوس   // a name / thing is pictured once, at its first mention
-    if (r.t != null && ["date", "place", "person"].includes(r.kind) && rows.some((x) => x.kind === r.kind && x.t != null && Math.abs(x.t - r.t) < (r.kind === "date" ? 4 : 2.5))) return;   // the same moment heard by both passes
+    if (r.t != null && ["date", "place", "person", "state"].includes(r.kind) && rows.some((x) => x.kind === r.kind && x.t != null && Math.abs(x.t - r.t) < (r.kind === "date" ? 4 : 2.5))) return;   // the same moment heard by both passes
     rows.push({ id: rows.length + 1, ...r });
   };
 
@@ -124,6 +124,19 @@ function build() {
     if (isDate && w.s - lastDate > 8) { lastDate = w.s; add({ kind: "date", text: W.slice(Math.max(0, i - 2), i + 3).map((x) => x.w).join(" "), t: w.s, need: ["date", "timeline"], before: 1, after: 5, ctx: ctx(W, w.s) }); }
   });
 
+  // 2b) STATES (user 2026-11-12: «واقف على الجسر، يسجدون له، يستلقي على الأرض ويرفع يديه إلى السماء — هذه تسمى حالات… تولَّد لها صور»): a scene of a posture or an act
+  //     described in the speech → a picture of that scene at its words; a locally generated still is allowed for a state (faceless, no women). One row per scene (30 s apart).
+  {
+    const STATE = /^(يسجد|يسجدون|سجد|سجدوا|ساجد|ساجدين|السجود|واقف|واقفا|وقف|يقف|يقفون|يستلقي|مستلق|مستلقيا|استلقى|يرفع|رافعا|يقبل|يقبلون|يقبلوا|قبلوا|تقبيل|ينحني|ينحنون|انحنى|ينبطح|الانبطاح|بالانبطاح|يركع|راكع|يركعون|يبكي|يبكون|يصرخ|يرقص|يرقصون|يجلس|جالس|جالسا|قاعد|يصلي|يصلون|يتعبد|يتعبدون|يطوف|يطوفون|يتضرع|يتمرغ|يزحف|يزحفون|يتهافتون|طوابير|يحمل|يحملون|يهرب|صعد|اصعده|نزل|يمشي|يمشون|يغتسل|يأكل|يشرب|يرضع|رضيع|رضيعا)$/;
+    let lastState = -99;
+    W.forEach((w, i) => {
+      const k = bare(w.w);
+      if (!STATE.test(k) && !STATE.test(norm(w.w))) return;
+      if (w.s - lastState < 30) return;
+      lastState = w.s;
+      add({ kind: "state", text: W.slice(Math.max(0, i - 2), i + 4).map((x) => x.w).join(" "), t: w.s, need: VISL, before: 2, after: 5, ctx: ctx(W, w.s) });
+    });
+  }
   // 3) described people / groups / buildings / acts / animals
   const dep = read("data/depict_lexicon.json", {});
   const terms = new Map(); for (const [g, list] of Object.entries(dep)) if (g !== "_") for (const f of list) terms.set(bare(f), g);
@@ -165,7 +178,7 @@ function build() {
 // prophets, God and angels are never drawn or photographed
 const NO_PICTURE = /(وسلم|صلى الله|عيسى|عيسي|المسيح|موسى|موسي|ابراهيم|نوح|يوسف|يعقوب|اسحاق|اسماعيل|داود|سليمان|يونس|ايوب|زكريا|يحيى|هارون|ادم|محمد ﷺ|رسول الله|النبي|جبريل|ميكائيل|الله)/;
 const VIS = ["pic", "tphoto", "scholar", "peek", "bgclip", "full", "person", "pmap", "flash", "crop", "scene", "flag", "news"];
-const KIND = { place: "مكان ← خريطة", person: "شخص ← صورته", date: "تاريخ ← عنصر التاريخ", depict: "وصف ← صورة", order: "تعليمة مونتاج", ordercand: "كلام للمونتير؟" };
+const KIND = { state: "حالة ← صورة المشهد (التوليد مسموح)", place: "مكان ← خريطة", person: "شخص ← صورته", date: "تاريخ ← عنصر التاريخ", depict: "وصف ← صورة", order: "تعليمة مونتاج", ordercand: "كلام للمونتير؟" };
 function ctx(W, t) { const i = W.findIndex((w) => w.s >= t); return W.slice(Math.max(0, i - 5), i + 8).map((w) => w.w).join(" "); }
 
 // ───────────── check the spec against it ─────────────

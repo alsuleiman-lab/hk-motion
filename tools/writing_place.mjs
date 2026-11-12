@@ -33,6 +33,12 @@ for (const it of W.items) {
   const times = q.map((_, j) => +fresh[hit + j].s.toFixed(2)), lastEnd = fresh[hit + q.length]?.s ?? times[times.length - 1] + 0.6;
   out.push({ ...it, times, at: times[0], lastEnd });
 }
+/* (user 2026-11-12) «القصاصات والملاحظة الممزقة: كل واحدة منهما مرة واحدة في الدقيقة، ولا يجوز تكرارها»: per minute of the video at most ONE scraps and ONE torn */
+{
+  const per = {};
+  for (const o of out) { const k = `${o.t}@${Math.floor(o.at / 60)}`; (per[k] ??= []).push(o); }
+  for (const [k, list] of Object.entries(per)) if (list.length > 1) { const [t, m] = k.split("@"); bad.push(`الدقيقة ${m}: ${list.length} ${t === "torn" ? "ملاحظات ممزقة" : "قصاصات"} (المسموح واحدة): ${list.map((o) => `«${o.text}»`).join("، ")}`); }
+}
 if (bad.length) { console.log(`✘ writing_place: ${bad.length} عبارة مرفوضة:\n  ` + bad.join("\n  ")); process.exit(1); }
 out.sort((a, b) => a.at - b.at);
 const items = out.map((o, i) => {

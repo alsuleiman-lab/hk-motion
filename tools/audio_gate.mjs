@@ -23,10 +23,19 @@ const nsOut = `.tmp/gates/${name}.noise.json`;
 const ns = run(["tools/noise_scan.py", src16, tr, nsOut, "--map", map]);
 let nsj = { cut: [], review: [] }; try { nsj = JSON.parse(fs.readFileSync(nsOut, "utf8")); } catch { /* keep empty */ }
 rep(ns.status === 0 && nsj.cut.length === 0, `أصوات غير كلامية للحذف: ${nsj.cut.length} ${nsj.cut.map((r) => `[${r[0]}-${r[1]} «${r[2]}»]`).join(" ")}`);
-if (nsj.review.length) console.log(`⚠ للمراجعة (اسأل المستخدم بزمنها قبل الإبقاء): ${nsj.review.map((r) => `[${r[0]}-${r[1]} «${r[2]}» ${r[3]}]`).join(" ")}`);
+/* (2026-11-12) a «review» sound used to print a warning and PASS — a 1.4 s «اووووو» stayed in «سانت رامبال». Now every review item blocks until it is decided in
+   .tmp/<project>/noise_ok.json {"<source start>": "keep: why (it is speech: «قال» misheard)"}; the rest are cut with --rem at the measured silence. */
+{
+  let ok = {}; try { ok = JSON.parse(fs.readFileSync(`.tmp/${name}/noise_ok.json`, "utf8")); } catch { /* none decided */ }
+  const open = nsj.review.filter((r) => !ok[String(r[0])]);
+  if (nsj.review.length) console.log(`للمراجعة: ${nsj.review.map((r) => `[${r[0]}-${r[1]} «${r[2]}» ${r[3]}${ok[String(r[0])] ? " ← " + ok[String(r[0])] : ""}]`).join(" ")}`);
+  rep(open.length === 0, `أصوات للمراجعة لم تُحسم: ${open.length} ${open.map((r) => `[${r[0]}-${r[1]} «${r[2]}»]`).join(" ")} — احذفها (--rem) أو اكتب سبب الإبقاء في .tmp/${name}/noise_ok.json`);
+}
 const jc = run(["tools/join_click_scan.py", audio, map, "--ratio", "5"]);
 const bad = (jc.stdout.match(/flagged clicks: (\d+)/) ?? [])[1];
 rep(jc.status === 0 && Number(bad) === 0, `نقرات عند وصلات القص: ${bad ?? "?"} ${jc.stdout.split("\n")[1] ?? ""}`);
+/* (2026-11-12) a join must sit in a pause: voiced sound on both sides = a word cut mid-way («بنا… بنارس») */
+{ const jw = run(["-I", "tools/join_word_scan.py", audio, map]); rep(jw.status === 0, (jw.stdout || "").trim().split("\n").slice(0, 4).join(" | ") || "join_word_scan لم يعمل"); }
 // ONE fixed rule for everything, NO exceptions (user 2026-10-22): no silence > 0.40 s anywhere — also inside other people's clip windows. Every pause is checked by time and length.
 const pc = run(["tools/pause_check.py", audio, "0.40"]);
 let pauses = null; try { pauses = JSON.parse((pc.stdout.split(String.fromCharCode(10))[1] ?? "[]").trim()); } catch { /* unparsable -> fail below */ }

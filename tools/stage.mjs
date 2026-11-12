@@ -248,6 +248,8 @@ if (stage === "check") {
       await step(norm ? "spec_normalize" : "spec_normalize --dry", "node", ["tools/spec_normalize.mjs", sf, "--o", comp.endsWith("-L") ? "land" : "port", ...(norm ? [] : ["--dry"])], /spec_normalize|✘/);
   }
   await step("typecheck", "node", ["node_modules/typescript/bin/tsc", "-p", "."], /error TS/);
+  // every video of the montage path reaches the render as a <VSlot> on the GPU (R-RENDER-GPU.2, user 2026-11-12: new elements use the new system)
+  await step("video_lint", "node", ["tools/gpu/video_lint.mjs"], /video_lint|^\s+src\//);
   // one colour identity (src/brand.ts, user 2026-10-27): the montage's spec carries no colours of its own
   await step("rules_lint", "node", ["tools/rules_lint.mjs"], /^✘|✔ rules_lint/);
   await step("element_usage", "node", ["tools/element_usage.mjs", "check"], /^✘|✔ element_usage/);   // the user's «متى تستخدمه» texts are synced and binding (2026-11-02)

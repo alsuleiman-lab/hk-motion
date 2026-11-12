@@ -20,7 +20,9 @@ const base = (f) => path.basename(f).replace(/\.[^.]+$/, "");
 if (mode === "under") {
   const o = process.argv[4] === "R" ? "port" : "land";
   const UNDER_TYPES = new Set(["pmap", "full", "treefx"]);
-  const W = (spec.behind ?? []).filter((w) => (w.matte ?? spec.matte) && (!w.only || w.only === o) && (o === "land" || w.dx === undefined));
+  const W = (spec.behind ?? []).filter((w) => (w.matte ?? spec.matte) && (!w.only || w.only === o) && (o === "land" || w.dx === undefined))
+    /* (2026-11-12) a `mini` window (landscape) cuts him out on the GPU too: what lies under him there (its map) is in the under layer */
+    .concat(o === "land" ? spec.items.filter((m) => m.t === "mini" && (m.matte ?? spec.matte)).map((m) => ({ from: m.from, to: m.to })) : []);
   const shown = (x) => x.t === "full" ? (!x.only || x.only === o) : x.t === "pmap" ? !x.only && (o === "land" || x.iso) : x.t === "treefx" ? o === "land" && !x.only : false;
   const r = spec.items.filter((x) => UNDER_TYPES.has(x.t) && shown(x) && W.some((w) => (x.from ?? 0) < w.to && (x.to ?? 0) > w.from))
     .map((x) => [Math.max(0, Math.floor(x.from * 30) - 1), Math.ceil(x.to * 30) + 1]).sort((p, q) => p[0] - q[0]);

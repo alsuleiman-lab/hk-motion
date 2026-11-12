@@ -1,10 +1,10 @@
 {
- "stamped": "2026-11-12T21:37:28.340Z",
- "brief": "13ba80c020c915bc0624d6ca15661ec5a8d56665",
+ "stamped": "2026-11-12T22:37:59.731Z",
+ "brief": "e8f991aa0cc2d5e0b26febd0fdcc7615db04bc6b",
  "sources": {
-  "PREFERENCES.md": "f293bf7449cff3bdc0d64751b0bb5d7a5abd315d",
+  "PREFERENCES.md": "1ade2be1aa53a047bf5524e65449fa884b95d5bb",
   "WORKFLOW_CHECKLIST.md": "f8a28d7f07161c4547b5ac707594d40732d36818",
   ".claude/skills/video-montage/critical-rules.md": "2fcb3666f210c84fb3e849da500c97214a5f0456",
-  ".claude/skills/video-montage/SKILL.md": "e3603263759c8b7d34a740a6f2da06ac6119b9d7"
+  ".claude/skills/video-montage/SKILL.md": "3417745cf10f06435ebcb83f69674b26c1917304"
  }
 }

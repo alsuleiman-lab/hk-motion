@@ -4,7 +4,7 @@ import { GFX_ONLY, useT } from "./MG";
 import { SafeVideo } from "./SafeMedia";
 import { clamp } from "./PortraitKit";
 import { Img } from "remotion";
-import { VSlot, HY } from "./hybrid/Slot";
+import { VSlot, HY, HYL } from "./hybrid/Slot";
 
 /**
  * GazaFx — video-specific effects ordered by the user INSIDE the recording of «أين الله من فيضانات غزة؟» («مونتاج … انتهى مونتاج»):
@@ -95,13 +95,20 @@ const HClipInner: React.FC<{ src: string; d: number; start: number; zoom: number
     ? { position: "absolute", left: -(1 - k) * 1120, top: 0, width: 1120, height: 1080, WebkitMaskImage: "linear-gradient(to right, #000 0, #000 78%, transparent 100%)", maskImage: "linear-gradient(to right, #000 0, #000 78%, transparent 100%)" }
     : { position: "absolute", left: 0, top: 944 + (1 - k) * 976, width: 1080, height: 976, WebkitMaskImage: "linear-gradient(to bottom, transparent 0, #000 16%, #000 100%)", maskImage: "linear-gradient(to bottom, transparent 0, #000 16%, #000 100%)" };
   const sc = zoom * (1 + 0.04 * (t / Math.max(1, d)));   // a slow push so the clip never sits dead still
+  const bw = land ? 1120 : 1080, bh = land ? 1080 : 976, scs = Number(sc.toFixed(4));
   return (
     <AbsoluteFill>
-      <div style={{ ...box, overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, transform: `scale(${sc.toFixed(4)})`, transformOrigin: `${fx}% ${fy}%` }}>
-          {HY ? <VSlot src={src} startFrom={Math.round(start * FPS)} w={land ? 1120 : 1080} h={land ? 1080 : 976} /> : <ClipVideo src={src} start={start} style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: `${fx}% ${fy}%` }} />}
-        </div>
-      </div>
+      {HY
+        /* (2026-11-12) hybrid / GPU render: the same picture as the browser's — objectFit cover at objectPosition fx% fy%, the slow push (scale about
+           fx% fy% of the box), CLIPPED to the box (before: stretched to the box and spilling ~224 px over his half), and the box's CSS mask fade as a
+           compositor feather (landscape: the right 22 %; portrait: the top 16 %). Portrait: level 1, above the PortPanel ground (layer 1). */
+        ? <VSlot src={src} startFrom={Math.round(start * FPS)} w={bw} h={bh} style={{ left: box.left, top: box.top }} fit="cover" fitPos={[fx / 100, fy / 100]} fitZoom={[scs, (fx / 100) * bw, (fy / 100) * bh]}
+            fx={land ? { featherR: 0.22 * bw } : { featherT: 0.16 * bh }} grow={0} z={HYL && !land ? 1 : 0} />
+        : <div style={{ ...box, overflow: "hidden" }}>
+          <div style={{ position: "absolute", inset: 0, transform: `scale(${scs})`, transformOrigin: `${fx}% ${fy}%` }}>
+            <ClipVideo src={src} start={start} style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: `${fx}% ${fy}%` }} />
+          </div>
+        </div>}
       {label ? <div style={{ position: "absolute", left: land ? 34 : 40, top: land ? 1010 : 1850, direction: "rtl", fontFamily: "Noto Kufi Arabic", fontWeight: 800, fontSize: land ? 27 : 28, color: "#fff", background: "rgba(24,16,8,.82)", padding: "6px 18px", borderRadius: 10 }}>{label}</div> : null}
     </AbsoluteFill>
   );

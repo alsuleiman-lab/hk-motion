@@ -21,7 +21,7 @@ export const HYL = HY !== undefined && !!P.hybridLayers;
 /** background colour that disappears in the hybrid "top" layer (so the video below it is visible) */
 export const hyBg = <T,>(c: T): T | undefined => (HY === "top" ? undefined : c);
 
-type Rec = { id: string; src: string; t: number; f: number; rate: number; m: number[]; w: number; h: number; r: number | number[]; o: number; vx: number; vy: number; vw: number; vh: number; fx: Record<string, number>; mt?: string; mtT?: number; fl?: number; z?: number; g?: number; fit?: string };
+type Rec = { id: string; src: string; t: number; f: number; rate: number; m: number[]; w: number; h: number; r: number | number[]; o: number; vx: number; vy: number; vw: number; vh: number; fx: Record<string, number>; mt?: string; mtT?: number; fl?: number; z?: number; g?: number; fit?: string; fp?: number[]; fz?: number[] };
 const G: { frame: number; slots: Map<string, Rec>; flushedFrame: number; host: HTMLDivElement | null; under: boolean } = { frame: -1, slots: new Map(), flushedFrame: -2, host: null, under: false };
 
 const MEAS = new Map<string, () => void>(); // latest measuring function of every mounted slot
@@ -92,7 +92,11 @@ export const UnderHim: React.FC<{ active: boolean; from?: number; to?: number; c
   return null;
 };
 
-export type SlotFx = { blur?: number; brightness?: number; contrast?: number; saturate?: number; /** dark radial veil of a background clip (BgClip dim), drawn by the compositor */ veil?: number; /** soft transparent left edge, px of the box (his video slid aside, 2026-11-12) */ featherL?: number };
+export type SlotFx = { blur?: number; brightness?: number; contrast?: number; saturate?: number; /** dark radial veil of a background clip (BgClip dim), drawn by the compositor */ veil?: number; /** soft transparent left edge, px of the box (his video slid aside, 2026-11-12) */ featherL?: number;
+  /** (2026-11-12) the same linear fade on the right / top / bottom edge (CSS mask-image linear-gradient of the box), px of the box */
+  featherR?: number; featherT?: number; featherB?: number;
+  /** (2026-11-12) CSS drop-shadow(0 shadowY shadowBlur rgba(shR, shG, shB, shadowA)) of what the slot shows (a cut-out: of his outline), drawn by the compositor */
+  shadowY?: number; shadowBlur?: number; shadowA?: number; shR?: number; shG?: number; shB?: number };
 const cssFilter = (fx?: SlotFx) => (fx ? [fx.blur ? `blur(${fx.blur}px)` : "", fx.contrast != null ? `contrast(${fx.contrast})` : "", fx.saturate != null ? `saturate(${fx.saturate})` : "", fx.brightness != null ? `brightness(${fx.brightness})` : ""].filter(Boolean).join(" ") || undefined : undefined);
 // NOTE: the compositor applies the CSS filter functions in the order  contrast -> saturate -> brightness  (the order used by this project); blur always first.
 
@@ -123,10 +127,14 @@ export type VSlotProps = {
   grow?: number;
   /** (2026-11-12) objectFit of the video's REAL size in the box, centred (vx/vy/vw/vh ignored): the compositor knows the source's dimensions */
   fit?: "cover" | "contain";
+  /** with `fit`: objectPosition as fractions [x, y] (default centred) */
+  fitPos?: [number, number];
+  /** with `fit`: then a zoom [z, ox, oy] about the box point (ox, oy) — CSS scale(z) with transform-origin there; the picture stays clipped to the box */
+  fitZoom?: [number, number, number];
 };
 
 let SEQ = 0;
-export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, playbackRate = 1, muted = true, w, h, radius = 0, vx = 0, vy = 0, vw, vh, fx, style, matte, z = 0, grow, fit }) => {
+export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, playbackRate = 1, muted = true, w, h, radius = 0, vx = 0, vy = 0, vw, vh, fx, style, matte, z = 0, grow, fit, fitPos, fitZoom }) => {
   const env = getRemotionEnvironment();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -149,7 +157,7 @@ export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, pla
     G.slots.set(idRef.current, {
       id: idRef.current, src, t, f, rate: playbackRate, ...(matte ? { mt: matte.src, mtT: matte.startFrom / fps + frame / fps, fl: matte.floor ?? 0 } : {}),
       m: [(p1.x - p0.x) / w, (p1.y - p0.y) / w, (p2.x - p0.x) / h, (p2.y - p0.y) / h, p0.x, p0.y],
-      w, h, r: radius, o, vx, vy, vw: VW, vh: VH, fx: { blur: 0, brightness: 1, contrast: 1, saturate: 1, ...(fx ?? {}) }, ...(z ? { z } : {}), ...(grow !== undefined ? { g: grow } : {}), ...(fit ? { fit } : {}),
+      w, h, r: radius, o, vx, vy, vw: VW, vh: VH, fx: { blur: 0, brightness: 1, contrast: 1, saturate: 1, ...(fx ?? {}) }, ...(z ? { z } : {}), ...(grow !== undefined ? { g: grow } : {}), ...(fit ? { fit, ...(fitPos ? { fp: fitPos } : {}), ...(fitZoom ? { fz: fitZoom } : {}) } : {}),
     });
     };
     measure();
@@ -164,6 +172,6 @@ export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, pla
     const dot = (x: number, y: number) => <div data-probe style={{ position: "absolute", left: x, top: y, width: 0, height: 0 }} />;
     return <div ref={ref} style={{ ...box, overflow: "visible" }}>{dot(0, 0)}{dot(w, 0)}{dot(0, h)}</div>;
   }
-  const common = { src: staticFile(env.isStudio && studioSrc ? studioSrc : src), muted, startFrom: Math.round(startFrom), playbackRate, style: { position: "absolute" as const, ...(fit ? { left: 0, top: 0, width: w, height: h, objectFit: fit } : { left: vx, top: vy, width: VW, height: VH }), maxWidth: "none" as const, filter: cssFilter(fx) } };
+  const common = { src: staticFile(env.isStudio && studioSrc ? studioSrc : src), muted, startFrom: Math.round(startFrom), playbackRate, style: { position: "absolute" as const, ...(fit ? { left: 0, top: 0, width: w, height: h, objectFit: fit, ...(fitPos ? { objectPosition: `${fitPos[0] * 100}% ${fitPos[1] * 100}%` } : {}), ...(fitZoom ? { transform: `scale(${fitZoom[0]})`, transformOrigin: `${fitZoom[1]}px ${fitZoom[2]}px` } : {}) } : { left: vx, top: vy, width: VW, height: VH }), maxWidth: "none" as const, filter: cssFilter(fx) } };
   return <div style={box}>{env.isStudio ? <Video {...common} /> : <OffthreadVideo {...common} />}</div>;
 };

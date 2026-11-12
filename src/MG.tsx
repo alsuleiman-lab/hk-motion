@@ -559,28 +559,32 @@ export const PanelToCanvas: React.FC<{
 export const PhoneChips: React.FC<{
   at: number; cx?: number; cy?: number; w?: number; h?: number; dur?: number; scroll?: number; screen?: React.ReactNode; notch?: boolean;
   chips?: { text: string; side: "left" | "right"; at: number; dy?: number }[]; rings?: string[]; accent?: string;
-}> = ({ at, cx = 960, cy = 540, w = 390, h = 800, dur = 5.6, scroll = 560, screen, chips = [], rings = [], accent, notch = true }) => {
+  /** (2026-11-12, GPU renderer) a VIDEO on the screen: "below" = rings, body, bezel and screen ground only (drawn under the video, in a <HyLayer>);
+   *  "top" = the same boxes without their grounds, the screen content (the <VSlot>), notch, glare and chips. Omitted: everything, as before. */
+  hy?: "below" | "top";
+}> = ({ at, cx = 960, cy = 540, w = 390, h = 800, dur = 5.6, scroll = 560, screen, chips = [], rings = [], accent, notch = true, hy }) => {
+  const B = hy !== "top", T = hy !== "below";
   const t = useT(at), acc = accent ?? GLOW;
   if (t < -0.01) return null;
   const rise = 1 - Math.pow(1 - clamp(t / 0.87), 3), phoneY = (1 - rise) * 700;
   const sizes = [2240, 1760, 1280, 840];
   return (
     <AbsoluteFill style={{ overflow: "hidden" }}>
-      {rings.length ? sizes.map((d, i) => {
+      {B && rings.length ? sizes.map((d, i) => {
         const sc = 1 + 0.06 * Math.sin((t / dur) * 1.5 * Math.PI * 2 + i * 1.7);
         return <div key={i} style={{ position: "absolute", left: cx - d / 2, top: cy - d / 2, width: d, height: d, borderRadius: "50%", background: rings[i], transform: `scale(${sc})`, boxShadow: "inset 0 3px 0 rgba(255,255,255,.12), 0 0 0 1px rgba(255,255,255,.08)" }} />;
       }) : null}
-      {rings.length ? <div style={{ position: "absolute", left: cx - 380, top: cy - 380, width: 760, height: 760, borderRadius: "50%", background: `radial-gradient(circle, ${acc}22, transparent 65%)` }} /> : null}
-      <div style={{ position: "absolute", left: cx - w / 2 - 14, top: cy - h / 2 - 14 + phoneY, width: w + 28, height: h + 28, borderRadius: 78, background: `linear-gradient(145deg,${BRAND.paper2},${BRAND.gray})`, boxShadow: `0 ${10 + 30 * rise}px ${20 + 40 * rise}px rgba(0,0,0,.45), 0 4px 8px rgba(0,0,0,.5)` }}>
-        <div style={{ position: "absolute", left: 7, top: 7, right: 7, bottom: 7, borderRadius: 71, background: BRAND.base3 }}>
-          <div style={{ position: "absolute", left: 7, top: 7, right: 7, bottom: 7, borderRadius: 64, overflow: "hidden", background: BRAND.card }}>
+      {B && rings.length ? <div style={{ position: "absolute", left: cx - 380, top: cy - 380, width: 760, height: 760, borderRadius: "50%", background: `radial-gradient(circle, ${acc}22, transparent 65%)` }} /> : null}
+      <div style={{ position: "absolute", left: cx - w / 2 - 14, top: cy - h / 2 - 14 + phoneY, width: w + 28, height: h + 28, borderRadius: 78, ...(B ? { background: `linear-gradient(145deg,${BRAND.paper2},${BRAND.gray})`, boxShadow: `0 ${10 + 30 * rise}px ${20 + 40 * rise}px rgba(0,0,0,.45), 0 4px 8px rgba(0,0,0,.5)` } : {}) }}>
+        <div style={{ position: "absolute", left: 7, top: 7, right: 7, bottom: 7, borderRadius: 71, background: B ? BRAND.base3 : undefined }}>
+          <div style={{ position: "absolute", left: 7, top: 7, right: 7, bottom: 7, borderRadius: 64, overflow: "hidden", background: B ? BRAND.card : undefined }}>
             <div style={{ position: "absolute", left: 0, top: 0, width: "100%", transform: `translateY(${-scroll * clamp(t / dur)}px)` }}>{screen}</div>
-            {notch ? <div style={{ position: "absolute", left: "50%", top: 12, width: 104, height: 30, marginLeft: -52, borderRadius: 16, background: "#000" }} /> : null}
-            <div style={{ position: "absolute", inset: 0, borderRadius: 64, background: "linear-gradient(115deg,rgba(255,255,255,.18),transparent 35%)", pointerEvents: "none" }} />
+            {T && notch ? <div style={{ position: "absolute", left: "50%", top: 12, width: 104, height: 30, marginLeft: -52, borderRadius: 16, background: "#000" }} /> : null}
+            {T ? <div style={{ position: "absolute", inset: 0, borderRadius: 64, background: "linear-gradient(115deg,rgba(255,255,255,.18),transparent 35%)", pointerEvents: "none" }} /> : null}
           </div>
         </div>
       </div>
-      {chips.map((c, i) => {
+      {(T ? chips : []).map((c, i) => {
         const tt = t - (c.at - at);
         if (tt < 0) return null;
         const sp = spring({ frame: Math.round(tt * FPS), fps: FPS, config: { damping: 13, stiffness: 190 } });

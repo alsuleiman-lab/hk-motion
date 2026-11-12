@@ -1,6 +1,6 @@
 ﻿import React from "react";
 import { BRAND_BAR, RED, alpha, currentStars } from "./brand";
-import { VSlot, HY, hyBg } from "./hybrid/Slot";
+import { VSlot, HY, HYL, HyLayer, hyBg } from "./hybrid/Slot";
 import { AbsoluteFill, Img, OffthreadVideo, Sequence, getInputProps, getRemotionEnvironment, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { PhoneChips, useT, kufiF, zainF, naskhF, GFX_ONLY } from "./MG";
 import { Pic } from "./EuKit";
@@ -78,6 +78,14 @@ export const PhoneWin: React.FC<{ at: number; to: number; src: string; dur: numb
   const t = useT(0);
   if (t < at - 0.01 || t > to + 0.5) return null;
   const out = clamp((to + 0.5 - t) / 0.4);
+  if (HYL) return (   /* GPU renderer (2026-11-12): the phone (body, bezel, black screen) in layer 1 above his footage, the clip on the GPU on its screen (level 1,
+                         objectFit contain of its real size, the screen's 64 px corners), the glare on top. Same time base as before (no startFrom: comp time). */
+    <AbsoluteFill style={{ opacity: out, transform: `translateY(${(1 - out) * 120}px)` }}>
+      <HyLayer z={1}><PhoneChips at={at} cx={cx} cy={cy} w={w} h={h} dur={dur} scroll={0} notch={false} chips={[]} hy="below" screen={<div style={{ width: w, height: h, background: "#000" }} />} /></HyLayer>
+      <PhoneChips at={at} cx={cx} cy={cy} w={w} h={h} dur={dur} scroll={0} notch={false} chips={[]} hy="top"
+        screen={<div style={{ position: "relative", width: w, height: h }}><VSlot src={src} w={w} h={h} fit="contain" radius={64} fx={blur ? { blur } : undefined} z={1} grow={0} /></div>} />
+    </AbsoluteFill>
+  );
   return (
     <AbsoluteFill style={{ opacity: out, transform: `translateY(${(1 - out) * 120}px)` }}>
       <PhoneChips at={at} cx={cx} cy={cy} w={w} h={h} dur={dur} scroll={0} notch={false} chips={[]} screen={<div style={{ width: w, height: h, background: "#000", overflow: "hidden" }}><RV src={staticFile(src)} style={{ width: w, height: h, objectFit: "contain", filter: blur ? `blur(${blur}px)` : undefined }} /></div>} />

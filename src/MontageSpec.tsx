@@ -700,6 +700,9 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => 
       {spec.cut ? <Audio src={staticFile(spec.cut)} volume={0.8} /> : null}
       {(spec.sfx ?? []).filter((x) => !x.only || x.only === o).map((x, i) => <Sequence key={"sfx" + i} from={Math.max(0, Math.round(x.at * 30))} durationInFrames={x.dur ? Math.round(x.dur * 30) : 45}><Audio src={staticFile(x.src)} volume={x.vol} /></Sequence>)}
       {o === "port" || !spec.cut ? (HY ? <HybridBg><WarmBase /></HybridBg> : <WarmBase />) : null}
+      {/* (2026-11-12) the base's stars drift with the frame (KhBg); the hybrid's static background froze them. In a portrait half-screen window the base
+          shows beside his shrunk video: GPU renderer, there only, the live base as layer 0 (under his video) */}
+      {HYL && o === "port" && (spec.psplits ?? []).some((w) => f / 30 >= w.from - 0.01 && f / 30 <= w.to + 0.4) ? <HyLayer z={0}><WarmBase /></HyLayer> : null}
       {wrapStage(<>
       <Sequence from={0} durationInFrames={spec.tail ? Math.round(spec.tail.from * 30) : spec.frames}>{(() => { const b2 = o === "port" && spec.psplits?.length ? <PortSplit windows={spec.psplits}>{body}</PortSplit> : body; return spec.shake?.length ? <HandheldShake windows={spec.shake} amp={6} rot={0.4}>{b2}</HandheldShake> : b2; })()}</Sequence>
       {o === "port" && spec.psplits?.length ? <PortPanel windows={spec.psplits} /> : null}

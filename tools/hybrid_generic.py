@@ -28,7 +28,9 @@ W, H, FPS = a.w, a.h, a.fps
 START, END = a.start, a.end
 NF = END - START + 1
 import os
-BIAS = float(os.environ.get("HY_BIAS", "0.0001"))
+# source frame = the NEAREST to the slot time, as Remotion's frame extractor picks it (2026-11-12: a 25 fps clip in a 30 fps video was one frame
+# early half the time with the old floor(t*fps + 0.0001); identical for clips at the video's own rate). HY_BIAS overrides it for tests.
+BIAS = float(os.environ.get("HY_BIAS", "0.5"))
 dev = "cuda"
 torch.backends.cudnn.benchmark = True
 FS = W * H * 3 // 2
@@ -348,7 +350,11 @@ def draw_slot(out, s, src, mat=None):
     if s.get("fit") in ("cover", "contain"):   # (2026-11-12) VSlot fit: objectFit of the REAL source size in the box, centred
         sh0, sw0 = src.shape[1:]
         kf = (max if s["fit"] == "cover" else min)(s["w"] / sw0, s["h"] / sh0)
-        s = dict(s, vw=sw0 * kf, vh=sh0 * kf, vx=(s["w"] - sw0 * kf) / 2, vy=(s["h"] - sh0 * kf) / 2)
+        px_, py_ = s.get("fp", (0.5, 0.5))   # objectPosition as fractions (CSS: offset = (box - picture) * p)
+        s = dict(s, vw=sw0 * kf, vh=sh0 * kf, vx=(s["w"] - sw0 * kf) * px_, vy=(s["h"] - sh0 * kf) * py_)
+        if s.get("fz"):   # then a zoom z about the box point (ox, oy): CSS transform scale(z) with transform-origin there
+            z_, ox_, oy_ = s["fz"]
+            s = dict(s, vx=ox_ + z_ * (s["vx"] - ox_), vy=oy_ + z_ * (s["vy"] - oy_), vw=s["vw"] * z_, vh=s["vh"] * z_)
     ma, mb, mc, md, me, mf = s["m"]
     w, h = s["w"], s["h"]
     det = ma * md - mb * mc
@@ -401,6 +407,10 @@ def draw_slot(out, s, src, mat=None):
     fl_px = s["fx"].get("featherL", 0)
     if fl_px:  # (2026-11-12) his video slid aside: the left edge fades to transparent over fl_px box pixels, revealing the background
         cov = cov * (qx / fl_px).clamp(0, 1)
+    for key_, ramp_ in (("featherR", lambda p: (w - qx) / p), ("featherT", lambda p: qy / p), ("featherB", lambda p: (h - qy) / p)):   # (2026-11-12) CSS mask-image
+        p_ = s["fx"].get(key_, 0)   # linear-gradient fades of the box edges, px of the box
+        if p_:
+            cov = cov * ramp_(p_).clamp(0, 1)
     if mat is not None:  # (2026-11-12) isolated cut-out: alpha = matte red; below `fl` (fraction of the height) the original picture stays whole — as MaskedVideo's shader
         al = F.grid_sample(mat[0:1][None], torch.stack([gx, gy], -1)[None], mode="bilinear", padding_mode="border", align_corners=False)[0, 0] / 255.0
         fl = s.get("fl", 0) or 0
@@ -409,6 +419,24 @@ def draw_slot(out, s, src, mat=None):
             v = v.clamp(0, 1)
             al = torch.maximum(al, v * v * (3 - 2 * v))
         cov = cov * al.clamp(0, 1)
+    shy = s["fx"].get("shadowY", 0)
+    if shy or s["fx"].get("shadowBlur", 0):   # (2026-11-12) CSS drop-shadow(0 shadowY shadowBlur rgba(shR,shG,shB,shadowA)) of what the slot shows (its
+        # coverage, the cut-out's matte included), in the slot's own space: offset and blur scaled by the transform; drawn under the picture
+        sg, dy = s["fx"].get("shadowBlur", 0) / 2 * scl, shy * scl
+        pad = int(math.ceil(3 * sg + abs(dy))) + 2
+        Y0, Y1, X0, X1 = max(0, y0 - pad), min(H, y1 + pad), max(0, x0 - pad), min(W, x1 + pad)
+        a = torch.zeros(1, Y1 - Y0, X1 - X0, device=cov.device)
+        a[0, y0 - Y0:y1 - Y0, x0 - X0:x1 - X0] = cov
+        a = gauss_blur(a.expand(3, -1, -1).contiguous(), sg)[0:1] if sg >= 0.4 else a
+        sy = int(round(dy))
+        a = torch.roll(a, shifts=sy, dims=1)
+        if sy > 0:
+            a[:, :sy] = 0
+        elif sy < 0:
+            a[:, sy:] = 0
+        a = a * s["fx"].get("shadowA", 0.5)
+        col = torch.tensor([s["fx"].get("shR", 0), s["fx"].get("shG", 0), s["fx"].get("shB", 0)], device=cov.device, dtype=out.dtype).view(3, 1, 1)
+        out[:, Y0:Y1, X0:X1] = out[:, Y0:Y1, X0:X1] * (1.0 - a) + col * a
     reg = out[:, y0:y1, x0:x1]
     out[:, y0:y1, x0:x1] = reg * (1.0 - cov[None]) + smp * cov[None]
     return out

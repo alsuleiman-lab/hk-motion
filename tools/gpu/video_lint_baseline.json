@@ -1,0 +1,20 @@
+{
+ "note": "browser videos in the montage path accepted on 2026-11-12 (older code). New code may not add to this list.",
+ "keys": [
+  "src/GazaFx.tsx|1f06b7882768",
+  "src/GazaFx.tsx|28ba73aa4a82",
+  "src/GazaFx.tsx|fa4cea9c4e45",
+  "src/KhKit.tsx|175393568e76",
+  "src/KhKit.tsx|3caa0cf9b87f",
+  "src/KhKit.tsx|4ac9333bc918",
+  "src/KhKit.tsx|72b82fafd72f",
+  "src/KhKit.tsx|977e3e36f1d5",
+  "src/KhKit.tsx|b40989ab4815",
+  "src/KhKit.tsx|be428129d1ff",
+  "src/KhKit.tsx|e7d2aa45b52d",
+  "src/PortraitKit.tsx|36262f5de3c0",
+  "src/PortraitKit.tsx|60509c5593ab",
+  "src/PortraitKit.tsx|99d2b5900e9b",
+  "src/RefStyle.tsx|f2d938102c28"
+ ]
+}

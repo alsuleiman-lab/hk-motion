@@ -1,0 +1,170 @@
+{
+ "frames": 10,
+ "psnrMin": 67.92,
+ "psnrMean": 68.09,
+ "framesBelow45": [],
+ "timingChecked": 10,
+ "timingFail": [],
+ "rows": [
+  {
+   "frame": 9010,
+   "psnr": 68.1,
+   "maxAbs": 10,
+   "pctOver2": 0.029,
+   "pctOver8": 0.001,
+   "timing": {
+    "ncc": {
+     "-1": 0.93733,
+     "0": 0.99998,
+     "1": 0.95101
+    },
+    "best": 0,
+    "ok": true
+   }
+  },
+  {
+   "frame": 9070,
+   "psnr": 68.1,
+   "maxAbs": 10,
+   "pctOver2": 0.029,
+   "pctOver8": 0.001,
+   "timing": {
+    "ncc": {
+     "-1": 0.97366,
+     "0": 0.99998,
+     "1": 0.97868
+    },
+    "best": 0,
+    "ok": true
+   }
+  },
+  {
+   "frame": 9130,
+   "psnr": 68.11,
+   "maxAbs": 10,
+   "pctOver2": 0.029,
+   "pctOver8": 0.001,
+   "timing": {
+    "ncc": {
+     "-1": 0.96381,
+     "0": 0.99998,
+     "1": 0.96204
+    },
+    "best": 0,
+    "ok": true
+   }
+  },
+  {
+   "frame": 9190,
+   "psnr": 68.08,
+   "maxAbs": 10,
+   "pctOver2": 0.029,
+   "pctOver8": 0.001,
+   "timing": {
+    "ncc": {
+     "-1": 0.97376,
+     "0": 0.99998,
+     "1": 0.97291
+    },
+    "best": 0,
+    "ok": true
+   }
+  },
+  {
+   "frame": 9250,
+   "psnr": 68.11,
+   "maxAbs": 10,
+   "pctOver2": 0.03,
+   "pctOver8": 0.0,
+   "timing": {
+    "ncc": {
+     "-1": 0.91334,
+     "0": 0.99998,
+     "1": 0.92644
+    },
+    "best": 0,
+    "ok": true
+   }
+  },
+  {
+   "frame": 9310,
+   "psnr": 67.92,
+   "maxAbs": 12,
+   "pctOver2": 0.03,
+   "pctOver8": 0.001,
+   "timing": {
+    "ncc": {
+     "-1": 0.98216,
+     "0": 0.99999,
+     "1": 0.98121
+    },
+    "best": 0,
+    "ok": true
+   }
+  },
+  {
+   "frame": 9370,
+   "psnr": 68.13,
+   "maxAbs": 10,
+   "pctOver2": 0.029,
+   "pctOver8": 0.0,
+   "timing": {
+    "ncc": {
+     "-1": 0.96479,
+     "0": 0.99998,
+     "1": 0.96196
+    },
+    "best": 0,
+    "ok": true
+   }
+  },
+  {
+   "frame": 9430,
+   "psnr": 68.13,
+   "maxAbs": 10,
+   "pctOver2": 0.029,
+   "pctOver8": 0.001,
+   "timing": {
+    "ncc": {
+     "-1": 0.96009,
+     "0": 0.99998,
+     "1": 0.96559
+    },
+    "best": 0,
+    "ok": true
+   }
+  },
+  {
+   "frame": 9490,
+   "psnr": 68.11,
+   "maxAbs": 10,
+   "pctOver2": 0.029,
+   "pctOver8": 0.001,
+   "timing": {
+    "ncc": {
+     "-1": 0.95862,
+     "0": 0.99998,
+     "1": 0.95747
+    },
+    "best": 0,
+    "ok": true
+   }
+  },
+  {
+   "frame": 9550,
+   "psnr": 68.12,
+   "maxAbs": 10,
+   "pctOver2": 0.029,
+   "pctOver8": 0.0,
+   "timing": {
+    "ncc": {
+     "-1": 0.95221,
+     "0": 0.99998,
+     "1": 0.89516
+    },
+    "best": 0,
+    "ok": true
+   }
+  }
+ ]
+}

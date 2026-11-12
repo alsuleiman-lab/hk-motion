@@ -3,7 +3,7 @@ import { galleryPlace } from "./galleryPlace";
 import React from "react";
 import { AbsoluteFill, Audio, Img, Sequence, continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig , getRemotionEnvironment } from "remotion";
 import { PaperTear } from "./PaperTear";
-import { Gfx, BrushX, NoteCard, HandheldShake, SourceWalk, BlurRise, RewriteWindow, FlashCut, PinnedPhoto, TimelineTravel, PanelToCanvas, Clock, DashArc, useT } from "./MG";
+import { Gfx, BrushX, Stamp, NoteCard, HandheldShake, SourceWalk, BlurRise, RewriteWindow, FlashCut, PinnedPhoto, TimelineTravel, PanelToCanvas, Clock, DashArc, useT } from "./MG";
 import { KeyChip, ReelVerseFull, VerseWords } from "./MGExtras";
 import { TitleBar } from "./TitleBar";
 import type { BarTheme } from "./TitleBar";
@@ -118,6 +118,7 @@ export type SpecItem = Common & (
   | { t: "weights"; at: number; until: number; fig: string; crowd: string; n?: number }
   /** the gallery BrushX: a red hand-brushed X over a picture he rejects (user 2026-11-10: «حط عليها اكس»); x/y/w/h are landscape px of the picture */
   | { t: "brushx"; at: number; x: number; y: number; w: number; h: number; until?: number }
+  | { t: "stamp"; at: number; until?: number; text: string; x?: number; y?: number; size?: number; land?: { x?: number; y?: number } }
   /** a person's cut-out (background removed) that PEEKS in from the bottom-right corner like someone leaning in at a window, then draws back (user order inside «سانت رامبال», 2026-11-11); `ar` = height / width of the PNG, `dx` shifts it sideways (a second head behind the first) */
   | { t: "peek"; src: string; ar: number; at: number; until: number; w?: number; dx?: number; corner?: "br" | "bl"; say?: string }
 );
@@ -232,6 +233,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
       return <Only key={i} from={it.at} to={it.until}><NoteCard at={it.at} x={x} y={L ? ov.y ?? 150 : it.y ?? 1440} w={w} h={h} label={it.label ?? "حديث شريف"} tag={it.tag} title={it.title} lines={0} size={size} cps={it.cps ?? Math.max(10, Math.round([...it.title].length / Math.max(2, it.until - it.at - 1.2)))} /></Only>;
     }
     case "peek": return <Only key={i} from={it.at} to={it.until}><PeekIn src={it.src} ar={it.ar} at={it.at} until={it.until} w={it.w ?? (L ? 400 : 460)} dx={it.dx ?? 0} corner={it.corner ?? "bl"} z={i} say={it.say} /></Only>;
+    case "stamp": return <Only key={i} from={it.at} to={it.until ?? it.at + 2.5}><Stamp at={it.at} x={L ? ov.x ?? it.land?.x ?? 250 : it.x ?? 330} y={L ? ov.y ?? it.land?.y ?? 760 : it.y ?? 1470} text={it.text} size={it.size ?? 56} /></Only>;   // «هذا هو المرجح» (user 2026-11-12): the gallery red stamp at the word
     case "brushx": return L ?<BrushX key={i} at={it.at} x={ov.x ?? it.x} y={ov.y ?? it.y} w={ov.w ?? it.w} h={ov.h ?? it.h} until={it.until} /> : null;
     case "poison":
       return L ? <PoisonClip key={i} id={it.id} at={it.at} until={it.until} x={it.mode === "half" ? 0 : it.x ?? 16} y={it.mode === "half" ? 0 : it.y ?? 150} scale={it.mode === "half" ? 1 : it.scale ?? 0.7} cfg={{ map: it.map, only: it.parts, nobadges: !it.badges }} refs={it.refs ?? []} /> : null;
@@ -499,7 +501,7 @@ const MiniMe: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; 
 };
 
 /** every item type the renderer knows (= the elements approved in the gallery); anything else is an error, never silently skipped (user 2026-10-28) */
-const APPROVED_TYPES = new Set(["word", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "hadith", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date", "poison", "note", "bgclip", "hclip", "wm", "zoomblend", "horror", "tvoff", "brushx", "peek", "weights"]);
+const APPROVED_TYPES = new Set(["word", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "hadith", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date", "poison", "note", "bgclip", "hclip", "wm", "zoomblend", "horror", "tvoff", "brushx", "peek", "weights", "stamp"]);
 
 /** one item's placement data (dx, dy, k): moved by (dx, dy) and scaled by k about the CENTRE OF WHAT IT DRAWS, measured once on screen
  *  (user 2026-11-09: «التكبير لم يعمل» — a fixed origin pushed left-column / top elements out of the frame); ox / oy, when given, win */

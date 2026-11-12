@@ -74,9 +74,10 @@ for (let round = 0; round < 6; round++) {
     const [a, b] = g[1] != null ? [+g[1] * 60 + +g[2], +g[3] * 60 + +g[4]] : [+g[5], +g[6]];
     // only words that START inside the gap: a word spoken before the gap would make its caption «written before spoken» in the timing check (and the loop would drop and re-add it forever)
     const ws = words.filter((w) => w.s >= a - 0.05 && w.s < b - 0.05);
-    /* (2026-11-12, constitution stage 4) writing is CHOSEN by reading (.tmp/<p>/writing.json, one torn + one scraps a minute): a gap is never filled with
+    /* (2026-11-12, user: zoom only at important words) a gap is REPORTED for a picture of what is said or a card of his words — never a push-in.
+       (2026-11-12, constitution stage 4) writing is CHOSEN by reading (.tmp/<p>/writing.json, one torn + one scraps a minute): a gap is never filled with
        mechanically cut speech any more — always a slow push-in (gap_zooms.mjs does the same before this tool) */
-    if (true) { s2.zooms = [...(s2.zooms || []), { from: +a.toFixed(2), to: +b.toFixed(2), amt: 0.05 }].sort((x, y) => x.from - y.from); ch++; continue; }
+    if (true) { notes.push(`فراغ ${a.toFixed(1)}–${b.toFixed(1)}ث: املأه بصورة ما يُقال أو ببطاقة بكلماته، لا بتقريب (أمر 2026-11-12)`); continue; }
     for (let k = 0; k < ws.length; k += 6) {
       const c = ws.slice(k, k + 6), nxt = ws[k + 6];
       // the timing check ignores words under 3 letters: a caption must open with a word it can see (else it reads as «written before spoken»)
@@ -93,7 +94,7 @@ for (let round = 0; round < 6; round++) {
   for (const m of gout.matchAll(/✘ (\w+)#(\d+) \[land\][^\n]*الخط/g)) kill.add(r3[+m[2] - 1]);
   for (const m of gout.matchAll(/✘ (?:nameTag|subscribe)#\d+ [^\n]*?مع ([^\n]+)/g)) for (const x of m[1].split("+")) { const n = x.match(/#(\d+)/); if (n) kill.add(r3[+n[1] - 1]); }
   kill.delete(undefined); for (const k of [...kill]) if (["nameTag", "subscribe", "cover"].includes(k.t)) kill.delete(k);
-  if (kill.size) { s3.zooms = [...(s3.zooms || []), ...[...kill].map((i) => ({ from: i.at, to: i.until ?? i.at + 2, amt: 0.05 })).filter((z) => z.to > z.from + 0.3)].sort((a, b) => a.from - b.from); s3.items = s3.items.filter((i) => !kill.has(i)); ch++; write(s3); }
+  if (kill.size) for (const i of kill) notes.push(`✘ لا مكان لـ${i.t} عند ${i.at ?? i.from}ث (فوق الوجه أو بلا خانة): غيّر وقته أو نوعه — لا يُحذف ولا يُستبدل بتقريب (أمر 2026-11-12)`);
   if (!ch) break;
 }
 gridW();

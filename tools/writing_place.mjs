@@ -42,6 +42,13 @@ for (const it of W.items) {
   for (const o of out) { const k = `${o.t}@${Math.floor(o.at / 60)}`; (per[k] ??= []).push(o); }
   for (const [k, list] of Object.entries(per)) if (list.length > 1) { const [t, m] = k.split("@"); bad.push(`الدقيقة ${m}: ${list.length} ${t === "torn" ? "ملاحظات ممزقة" : "قصاصات"} (المسموح واحدة): ${list.map((o) => `«${o.text}»`).join("، ")}`); }
 }
+/* (user 2026-11-12) «الكتابة لازم توافق قولي كلمة بكلمة»: a list card (rows) — its title, every label and every small line — is his spoken words, consecutive */
+if (fs.existsSync(specF)) {
+  const has = (txt) => { const q = String(txt).split(/\s+/).map(norm).filter(Boolean); return !q.length || N.some((_, i) => q.every((x, j) => N[i + j] === x)); };
+  for (const r of JSON.parse(fs.readFileSync(specF, "utf8")).items.filter((x) => x.t === "rows")) {
+    for (const txt of [r.title?.text, ...(r.rows ?? []).flatMap((x) => [x.label, x.sub])].filter(Boolean)) if (!has(txt)) bad.push(`بطاقة البنود عند ${r.from}ث: «${txt}» ليست كلماته متتابعة كما نطقها`);
+  }
+}
 if (bad.length && !process.argv.includes("--hold")) { console.log(`✘ writing_place: ${bad.length} عبارة مرفوضة:\n  ` + bad.join("\n  ")); process.exit(1); }
 out.sort((a, b) => a.at - b.at);
 const items = out.map((o, i) => {
@@ -56,7 +63,7 @@ if (process.argv.includes("--hold")) {
   const solo = spec.items.filter((x) => ["nameTag", "subscribe"].includes(x.t)).map((x) => [x.at, x.at + (x.dur ?? 3)]);
   // the writing band holds ONE thing at a time (portrait full mode): a card of a mention (picture, date, verse, hadith, news…) wins; writing that starts
   // inside a card moves just after it if its words are still being said, else it goes; writing never runs into the next card
-  const CARD = new Set(["tphoto", "pic", "date", "scholar", "news", "note", "verse", "flag", "clock", "rows", "hadith", "timeline", "rewrite"]);
+  const CARD = new Set(["stamp", "peek", "tphoto", "pic", "date", "scholar", "news", "note", "verse", "flag", "clock", "rows", "hadith", "timeline", "rewrite"]);
   const cards = spec.items.filter((x) => CARD.has(x.t)).map((x) => [x.at ?? x.from ?? x.times?.[0], x.until ?? x.to ?? (x.at ?? x.from) + 4]).filter(([a]) => a != null).concat(solo).sort((p, q) => p[0] - q[0]);
   const drop = new Set();
   for (const it of Wr) {
@@ -76,7 +83,7 @@ if (process.argv.includes("--hold")) {
     const it = Wr[i], last = it.times ? it.times[it.times.length - 1] : it.at + 1.2, next = Wr[i + 1]?.at ?? 1e9;
     const cardNext = Math.min(...cards.map(([a]) => a).filter((a) => a > it.at), 1e9);
     // the next writing or card always wins the band: a phrase stays to its last word (+0.25 s) only if nothing starts before that
-    const cap = Math.min(next - 0.35, cardNext - 0.35);   // grid_plan keeps 0.15 s on each side of a slot user
+    const cap = Math.min(next - 0.2, cardNext - 0.2);   // grid_plan needs ≥ 0.15 s between two users of a slot; coverage allows ≤ 0.3 s empty in the first minute
     it.until = +Math.min(cap, Math.max(last + 0.25, Math.min(cap, it.at + 7))).toFixed(2);
     if (it.until < it.at + 0.6) drop.add(it);   // no room before the next one: the phrase goes (never a span that ends before it starts)
     if (solo.some(([a, b]) => it.at < b && it.until > a)) { const [a, b] = solo.find(([a, b]) => it.at < b && it.until > a); if (it.at >= a) { it.at = +(b + 0.1).toFixed(2); if (it.times) it.times = it.times.map((t) => Math.max(t, it.at)); } }

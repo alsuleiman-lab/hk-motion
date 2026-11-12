@@ -35,46 +35,6 @@ import fatimaSheikhaynSpec from "../data/specs/fatima_sheikhayn.json";
 const FatimaSheikhaynComp: React.FC = () => <MontageFromSpec spec={fatimaSheikhaynSpec as unknown as MontageSpec} />;
 import saintRambalSpec from "../data/specs/saint_rambal.json";
 const SaintRambalComp: React.FC = () => <MontageFromSpec spec={saintRambalSpec as unknown as MontageSpec} />;
-import QCs_01Spec from "../data/specs/qc_01.json";
-const QCs_01Comp: React.FC = () => <MontageFromSpec spec={QCs_01Spec as unknown as MontageSpec} />;
-import QCs_02Spec from "../data/specs/qc_02.json";
-const QCs_02Comp: React.FC = () => <MontageFromSpec spec={QCs_02Spec as unknown as MontageSpec} />;
-import QCs_03Spec from "../data/specs/qc_03.json";
-const QCs_03Comp: React.FC = () => <MontageFromSpec spec={QCs_03Spec as unknown as MontageSpec} />;
-import QCs_04Spec from "../data/specs/qc_04.json";
-const QCs_04Comp: React.FC = () => <MontageFromSpec spec={QCs_04Spec as unknown as MontageSpec} />;
-import QCs_05Spec from "../data/specs/qc_05.json";
-const QCs_05Comp: React.FC = () => <MontageFromSpec spec={QCs_05Spec as unknown as MontageSpec} />;
-import QCs_06Spec from "../data/specs/qc_06.json";
-const QCs_06Comp: React.FC = () => <MontageFromSpec spec={QCs_06Spec as unknown as MontageSpec} />;
-import QCs_07Spec from "../data/specs/qc_07.json";
-const QCs_07Comp: React.FC = () => <MontageFromSpec spec={QCs_07Spec as unknown as MontageSpec} />;
-import QCs_08Spec from "../data/specs/qc_08.json";
-const QCs_08Comp: React.FC = () => <MontageFromSpec spec={QCs_08Spec as unknown as MontageSpec} />;
-import QCs_09Spec from "../data/specs/qc_09.json";
-const QCs_09Comp: React.FC = () => <MontageFromSpec spec={QCs_09Spec as unknown as MontageSpec} />;
-import QCs_10Spec from "../data/specs/qc_10.json";
-const QCs_10Comp: React.FC = () => <MontageFromSpec spec={QCs_10Spec as unknown as MontageSpec} />;
-import QCs_11Spec from "../data/specs/qc_11.json";
-const QCs_11Comp: React.FC = () => <MontageFromSpec spec={QCs_11Spec as unknown as MontageSpec} />;
-import QCs_12Spec from "../data/specs/qc_12.json";
-const QCs_12Comp: React.FC = () => <MontageFromSpec spec={QCs_12Spec as unknown as MontageSpec} />;
-import QCs_14Spec from "../data/specs/qc_14.json";
-const QCs_14Comp: React.FC = () => <MontageFromSpec spec={QCs_14Spec as unknown as MontageSpec} />;
-import QCs_15Spec from "../data/specs/qc_15.json";
-const QCs_15Comp: React.FC = () => <MontageFromSpec spec={QCs_15Spec as unknown as MontageSpec} />;
-import QCs_16Spec from "../data/specs/qc_16.json";
-const QCs_16Comp: React.FC = () => <MontageFromSpec spec={QCs_16Spec as unknown as MontageSpec} />;
-import QCs_17Spec from "../data/specs/qc_17.json";
-const QCs_17Comp: React.FC = () => <MontageFromSpec spec={QCs_17Spec as unknown as MontageSpec} />;
-import QCs_18Spec from "../data/specs/qc_18.json";
-const QCs_18Comp: React.FC = () => <MontageFromSpec spec={QCs_18Spec as unknown as MontageSpec} />;
-import QCs_19Spec from "../data/specs/qc_19.json";
-const QCs_19Comp: React.FC = () => <MontageFromSpec spec={QCs_19Spec as unknown as MontageSpec} />;
-import QCs_20Spec from "../data/specs/qc_20.json";
-const QCs_20Comp: React.FC = () => <MontageFromSpec spec={QCs_20Spec as unknown as MontageSpec} />;
-import QCs_21Spec from "../data/specs/qc_21.json";
-const QCs_21Comp: React.FC = () => <MontageFromSpec spec={QCs_21Spec as unknown as MontageSpec} />;
 const StreamMayyitIlmRComp: React.FC = () => <MontageFromSpec spec={streamMayyitIlmSpec as unknown as MontageSpec} />;
 
 
@@ -100,26 +60,6 @@ export const RemotionRoot: React.FC = () => {
         {/* بث للحوار مع المخالفين (1) */}
         <Composition id="Stream-Arsh-Fakh-R"component={StreamArshFakhRComp} durationInFrames={streamArshFakhSpec.frames} fps={30} width={1080} height={1920} />
         <Composition id="Stream-Mayyit-Ilm-R" component={StreamMayyitIlmRComp} durationInFrames={streamMayyitIlmSpec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-01-R" component={QCs_01Comp} durationInFrames={QCs_01Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-02-R" component={QCs_02Comp} durationInFrames={QCs_02Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-03-R" component={QCs_03Comp} durationInFrames={QCs_03Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-04-R" component={QCs_04Comp} durationInFrames={QCs_04Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-05-R" component={QCs_05Comp} durationInFrames={QCs_05Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-06-R" component={QCs_06Comp} durationInFrames={QCs_06Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-07-R" component={QCs_07Comp} durationInFrames={QCs_07Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-08-R" component={QCs_08Comp} durationInFrames={QCs_08Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-09-R" component={QCs_09Comp} durationInFrames={QCs_09Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-10-R" component={QCs_10Comp} durationInFrames={QCs_10Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-11-R" component={QCs_11Comp} durationInFrames={QCs_11Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-12-R" component={QCs_12Comp} durationInFrames={QCs_12Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-14-R" component={QCs_14Comp} durationInFrames={QCs_14Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-15-R" component={QCs_15Comp} durationInFrames={QCs_15Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-16-R" component={QCs_16Comp} durationInFrames={QCs_16Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-17-R" component={QCs_17Comp} durationInFrames={QCs_17Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-18-R" component={QCs_18Comp} durationInFrames={QCs_18Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-19-L" component={QCs_19Comp} durationInFrames={QCs_19Spec.frames} fps={30} width={1920} height={1080} />
-        <Composition id="QC-20-R" component={QCs_20Comp} durationInFrames={QCs_20Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QC-21-R" component={QCs_21Comp} durationInFrames={QCs_21Spec.frames} fps={30} width={1080} height={1920} />
       </Folder>
 
       {SHOW_REFERENCE && <Composition id="FamilyStickCast" component={FamilyStickCast} durationInFrames={180} fps={30} width={1080} height={1920} />}

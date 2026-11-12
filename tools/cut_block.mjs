@@ -22,7 +22,8 @@ const T = path.join(".tmp", p), specF = path.join("data", "specs", `${p}.json`),
 const spec = JSON.parse(fs.readFileSync(specF, "utf8"));
 const src = path.join("public", spec.cut);
 const ff = (args) => { const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", ...args], { encoding: "utf8" }); if (r.status !== 0) { console.error(r.stderr); process.exit(1); } };
-let n = 1; while (fs.existsSync(path.join("public", `${p}_cut_s_b${n}.mp4`))) n++;
+/* the next number is above every version ever used (a deleted b1 must not be reused: Studio caches by name) */
+let n = 1 + Math.max(0, ...fs.readdirSync("public").map((f) => Number(f.match(new RegExp(`^${p}_cut_s_b(\d+)`))?.[1] ?? 0)), Number(fs.existsSync(path.join(T, "cut_block_n.txt")) ? fs.readFileSync(path.join(T, "cut_block_n.txt"), "utf8") : 0)); fs.writeFileSync(path.join(T, "cut_block_n.txt"), String(n));
 const outName = `${p}_cut_s_b${n}.mp4`, out = path.join("public", outName);
 console.log(`cut_block: ${SA != null ? "استبدال" : "حذف"} ${A.toFixed(3)}–${B.toFixed(3)}ث (الإطار ${fA}–${fB})${SA != null ? ` بالأصل ${SA.toFixed(2)}–${SB.toFixed(2)}ث` : ""}، إزاحة ما بعده ${D.toFixed(3)}ث → ${outName}`);
 const ORIG = path.join("public", JSON.parse(fs.readFileSync(path.join(T, "prep_config.json"), "utf8")).source.replace(/^public[\/]/, ""));

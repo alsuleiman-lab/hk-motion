@@ -33,10 +33,13 @@ ap.add_argument("--start", type=int, default=0)
 ap.add_argument("--end", type=int, required=True)
 ap.add_argument("--cq", type=int, default=int(os.environ.get("HY_CQ", "15")))   # flat cartoon art needs a lower cq to reach the 14 Mbps floor
 ap.add_argument("--dump", default="")                  # debug: also write the composited frames at these indices as PNG (comma list) into this dir  "dir:1,2,3"
+ap.add_argument("--frames", default="")                # (2026-11-13) only these scattered frames (comma list, ascending), e.g. the check sheet's stills
 a = ap.parse_args()
 W, H, FPS = a.w, a.h, a.fps
 START, END = a.start, a.end
-NF = END - START + 1
+FRAMES = sorted(set(int(x) for x in a.frames.split(",") if x)) if a.frames else None
+FIDX = {f: i for i, f in enumerate(FRAMES)} if FRAMES else None
+NF = len(FRAMES) if FRAMES else END - START + 1
 import os
 # source frame = the NEAREST to the slot time, as Remotion's frame extractor picks it (2026-11-12: a 25 fps clip in a 30 fps video was one frame
 # early half the time with the old floor(t*fps + 0.0001); identical for clips at the video's own rate). HY_BIAS overrides it for tests.
@@ -436,6 +439,13 @@ WINS = {}                                        # window id -> {"conn", "mode",
 CONNS = []
 blocks = {"top": [[x, min(END, x + a.block - 1)] for x in range(START, END + 1, a.block)],
           "under": [[x, min(y, x + a.block - 1)] for (ua, y) in UNDER_RANGES for x in range(ua, y + 1, a.block)]}
+if FRAMES:   # one-frame blocks at the listed frames only
+    blocks = {"top": [[f, f] for f in FRAMES], "under": [[f, f] for f in FRAMES if any(x <= f <= y for x, y in UNDER_RANGES)]}
+
+
+def ahead_ok(f):
+    """a block may start only --lookahead frames ahead of the encoder (in list mode: that many LISTED frames / 4)"""
+    return FIDX[f] - FIDX.get(consumed[0], 0) < max(4, a.lookahead // 4) if FRAMES else f < consumed[0] + a.lookahead
 STATS = {"tex": 0, "stale": 0, "fetch": 0.0, "seek": [], "paint": [], "layerFrames": 0}
 FATAL = []
 wlock = threading.Lock()
@@ -477,7 +487,7 @@ def schedule():
                     csend(w["conn"], {"t": "do", "w": wid, "a": x, "b": y})
                 continue
             q = blocks[w["mode"]]
-            if q and q[0][0] < consumed[0] + a.lookahead:
+            if q and ahead_ok(q[0][0]):
                 x, y = q.pop(0)
                 w["busy"] = True
                 csend(w["conn"], {"t": "do", "w": wid, "a": x, "b": y})
@@ -820,7 +830,7 @@ def put_pm(out, L):
 DUMP_PREFIX = os.environ.get("GR_DUMP_PREFIX", "gp")
 t0 = time.time()
 for i in range(NF):
-    fno = START + i
+    fno = FRAMES[i] if FRAMES else START + i
     _a = time.time()
     with cv:
         consumed[0] = fno
@@ -879,7 +889,7 @@ for i in range(NF):
         _t = _pf("draw", _t)
     _t = time.time() if FINE else 0
     out = put_pm(out, top)
-    if fno in dump_set:
+    if fno in dump_set or (FRAMES and dump_dir):
         cv2.imwrite(f"{dump_dir}/{DUMP_PREFIX}_{fno:06d}.png", out.round().clamp(0, 255).byte().permute(1, 2, 0).cpu().numpy()[..., ::-1])
         if os.environ.get("GR_DUMP_LAYER"):   # debug: the raw graphics layer (premultiplied BGRA) as Chromium painted it
             cv2.imwrite(f"{dump_dir}/{DUMP_PREFIX}_layer_{fno:06d}.png", top[:H].cpu().numpy())

@@ -25,7 +25,7 @@ process.chdir(root);
 try { os.setPriority(process.pid, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch {} // every child (Electron, its GPU process, python, ffmpeg) inherits BelowNormal
 acquireRenderLock("gpu " + compId);   // one render at a time, like every other render entry point
 const out = path.resolve(root, arg("out", `render_work/gpu/${compId}.mp4`));
-const logProgress = startMonitor(path.join(root, ".tmp", "render_logs", `gpu_render_${compId}.log`), path.basename(out, path.extname(out)));
+const logProgress = startMonitor(path.join(root, ".tmp", "render_logs", `gpu_render_${compId}${process.argv.includes("--frames") ? "_frames" : ""}.log`), path.basename(out, path.extname(out)));   /* a frames run never overwrites the video render's log */
 const work = path.join(root, ".tmp/gpu_render/work", compId);
 fs.rmSync(work, { recursive: true, force: true });
 fs.mkdirSync(work, { recursive: true });
@@ -80,8 +80,12 @@ const composition = await selectComposition({ serveUrl, id: compId, inputProps, 
 const W = composition.width, H = composition.height, FPS = composition.fps;
 /* NVENC H.264 refuses tiny frames (measured 2026-11-13: 140×140 "Frame Dimension less than the minimum"): such a composition is an image asset — a still */
 if (W < 160 || H < 160) { console.error(`✘ ${compId} is ${W}×${H}: too small for the NVENC video encoder — it is an image asset; render it as a still (node tools/stills.mjs ${compId} <dir> x:0 --scale 1)`); process.exit(2); }
-const start =Number(arg("start", 0)), end = Math.min(Number(arg("end", composition.durationInFrames - 1)), composition.durationInFrames - 1);
-const NF = end - start + 1;
+/* --frames "f,f,…" --frames-dir <dir> (2026-11-13): only these scattered frames, each written as a PNG (gp_<frame>.png) into the dir — no video, no audio (check sheets) */
+const FRAME_LIST = (() => { const s = arg("frames", null); return s && s !== true ? [...new Set(String(s).split(",").filter(Boolean).map(Number))].filter((f) => f >= 0 && f < composition.durationInFrames).sort((a, b) => a - b) : null; })();
+const FRAMES_DIR = FRAME_LIST ? path.resolve(root, String(arg("frames-dir", path.join(work, "frames")))) : null;
+if (FRAMES_DIR) fs.mkdirSync(FRAMES_DIR, { recursive: true });
+const start = FRAME_LIST ? FRAME_LIST[0] : Number(arg("start", 0)), end = FRAME_LIST ? FRAME_LIST[FRAME_LIST.length - 1] : Math.min(Number(arg("end", composition.durationInFrames - 1)), composition.durationInFrames - 1);
+const NF = FRAME_LIST ? FRAME_LIST.length : end - start + 1;
 log(`${compId}: ${W}x${H} @${FPS}, frames ${start}-${end} (${NF})`);
 
 // ---- static background (rendered once, as in hybrid_any) ----
@@ -159,7 +163,7 @@ const PROCS = Math.max(1, Number(arg("procs", 2)) || 1), WINDOWS = Math.max(1, N
 log("starting the GPU compositor…");
 const video = path.join(work, "video_noaudio.mp4");
 const dump = arg("dump", null);
-const comp_py = spawn(PY, ["-u", "tools/gpu_compositor.py", "--ctl", String(CTL_PORT), "--workers", String(PROCS), "--block", String(BLOCK), "--lookahead", String(arg("lookahead", 240)), "--geom", String(GEOM_PORT), "--out", video, "--bg", bgPng, "--bg-parts", `${bgParts.base}|${bgParts.stars}|${bgParts.vignette}`, "--public", `${root}/public`, "--w", String(W), "--h", String(H), "--fps", String(FPS), "--start", String(start), "--end", String(end), ...(NU ? ["--under", UNDER.map(([a, b]) => a + "-" + b).join(",")] : []), ...(dump && dump !== true ? ["--dump", dump] : [])], { cwd: root, stdio: ["ignore", "pipe", "inherit"] });
+const comp_py = spawn(PY, ["-u", "tools/gpu_compositor.py", "--ctl", String(CTL_PORT), "--workers", String(PROCS), "--block", String(BLOCK), "--lookahead", String(arg("lookahead", 240)), "--geom", String(GEOM_PORT), "--out", video, "--bg", bgPng, "--bg-parts", `${bgParts.base}|${bgParts.stars}|${bgParts.vignette}`, "--public", `${root}/public`, "--w", String(W), "--h", String(H), "--fps", String(FPS), "--start", String(start), "--end", String(end), ...(NU ? ["--under", UNDER.map(([a, b]) => a + "-" + b).join(",")] : []), ...(FRAME_LIST ? ["--frames", FRAME_LIST.join(","), "--dump", FRAMES_DIR.replace(/\\/g, "/") + ":"] : dump && dump !== true ? ["--dump", dump] : [])], { cwd: root, stdio: ["ignore", "pipe", "inherit"] });
 let ready; const readyP = new Promise((res) => (ready = res));
 let pyOut = "";
 const tg0 = Date.now();
@@ -207,6 +211,12 @@ await Promise.all(workers.map((w) => (w.exitCode !== null ? null : new Promise((
 killWorkers();
 if (server.listening) server.close();
 if (closeRemotionServer) { try { await closeRemotionServer(); } catch {} }
+if (FRAME_LIST) {
+  smi.kill(); clearInterval(cpuTimer);
+  log(`DONE ${NF} frames → ${FRAMES_DIR} in ${((Date.now() - T_START) / 1000).toFixed(1)} s (graphics + composite ${timing.graphicsPlusCompositeSec.toFixed(1)} s, bundle ${timing.bundleSec.toFixed(1)} s, background ${timing.bgSec.toFixed(1)} s)`);
+  logProgress(`DONE ${FRAMES_DIR}`);
+  process.exit(0);
+}
 
 // ---- audio: same mix as hybrid_any, from the audio assets each window collected (window.remotion_collectAssets, as renderFrames does) ----
 t = Date.now();

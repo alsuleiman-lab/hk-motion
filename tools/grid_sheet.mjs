@@ -21,8 +21,23 @@ for (let m = 0; m * 60 < dur; m++) for (let k = 0; k < per; k++) {
 if (!pts.length) for (let k = 1; k <= 3; k++) pts.push(`s${String(pts.length).padStart(3, "0")}:${Math.round((dur * k / 4) * fps)}`);   // clips under ~10 s: no minute-sample fits, sample quarters
 const T = path.join(".tmp", spec.id), out = path.join(T, "grid_sheet_" + id), sheet = path.join(T, `grid_sheet_${id}.jpg`);
 fs.rmSync(out, { recursive: true, force: true }); fs.mkdirSync(out, { recursive: true });
-const r = spawnSync("node", ["tools/stills.mjs", id, out, ...pts, "--scale", scale], { stdio: ["ignore", "ignore", "inherit"] });
-if (r.status !== 0) { console.error("stills failed"); process.exit(1); }
+/* (user 2026-11-13: «شغلة الإطارات بدنا ننقلها») the frames come from the GPU engine (tools/gpu_render.mjs --frames): 32 s instead of 139 s for 29 frames
+   of a 10-min montage, the same pixels as its video render. --browser = the old way (tools/stills.mjs, Remotion's browser), also the fallback when the engine fails */
+const frameOf = (p) => Number(p.split(":")[1]);
+let ok = false;
+if (!argv.includes("--browser")) {
+  const gdir = path.join(out, "gpu");
+  const g = spawnSync("node", ["tools/gpu_render.mjs", "--comp", id, "--frames", [...new Set(pts.map(frameOf))].join(","), "--frames-dir", gdir, "--procs", "1", "--windows", "3"], { stdio: ["ignore", "ignore", "inherit"] });
+  if (g.status === 0 && pts.every((p) => fs.existsSync(path.join(gdir, `gp_${String(frameOf(p)).padStart(6, "0")}.png`)))) {
+    pts.forEach((p) => fs.copyFileSync(path.join(gdir, `gp_${String(frameOf(p)).padStart(6, "0")}.png`), path.join(out, `${p.split(":")[0]}.png`)));
+    fs.rmSync(gdir, { recursive: true, force: true });
+    ok = true;
+  } else { console.error("GPU engine frames failed — falling back to the browser stills"); fs.rmSync(gdir, { recursive: true, force: true }); }
+}
+if (!ok) {
+  const r = spawnSync("node", ["tools/stills.mjs", id, out, ...pts, "--scale", scale], { stdio: ["ignore", "ignore", "inherit"] });
+  if (r.status !== 0) { console.error("stills failed"); process.exit(1); }
+}
 /* (2026-11-12) a sheet with frames missing passed as «OK» (2 of 18 drawn): every asked frame must exist, or the eye review did not happen */
 { const got = fs.readdirSync(out).filter((f) => f.endsWith(".png")).length; if (got < pts.length) { console.error(`stills failed: ${got}/${pts.length} frames drawn`); process.exit(1); } }
 const cols = 6, rows = Math.ceil(pts.length / cols);

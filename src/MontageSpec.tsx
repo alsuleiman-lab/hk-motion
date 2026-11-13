@@ -14,6 +14,7 @@ import { Banner, StatRow, Pic, Subscribe, Sources, Flag } from "./EuKit";
 import type { FlagCode } from "./EuKit";
 import { FONT_TITLE, FONT_TEXT } from "./localFonts";
 import { BAR_WARM, WarmBase, Only, PopCard, Word, PhoneWin, SheikhLayers, PaperScene, PaperMap, FamilyTree, TreeFx, Parchment, miniEase, FullImage, Marker, RV, LANDSCAPE, clamp } from "./PortraitKit";
+import { KhBg } from "./KhKit";
 import type { TreeNode, TreeLink, MapPt, MapLeg } from "./PortraitKit";
 import { CoverKit, COVER_PALETTES, PaperCoverKit, PAPER_COVER_END } from "./CoverKit";
 import type { CoverProps } from "./CoverKit";
@@ -472,7 +473,7 @@ export const TailVoice: React.FC<{ tl: NonNullable<MontageSpec["tail"]> }> = ({ 
   const bars = Array.from({ length: 41 }, (_, i) => 0.25 + 0.75 * Math.abs(Math.sin(f * 0.23 + i * 0.9) * Math.cos(f * 0.11 + i * 0.37)));
   return (
     <AbsoluteFill>
-      <WarmBase />
+      <KhBg smooth />{/* WarmBase with evenly drifting stars (src/KhKit.tsx `smooth`; user 2026-11-13) */}
       <div style={{ position: "absolute", left, top, width: cw, background: BRAND.card, borderRadius: 12, padding: 14, boxSizing: "border-box", transform: "rotate(-1.2deg)", boxShadow: "0 14px 34px rgba(0,0,0,.45)" }}>
         <div style={{ width: cw - 28, height: ch, overflow: "hidden", background: BRAND.ink }}><Pic src={tl.photos[idx]} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
         <div style={{ height: 120, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>

@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Img, getInputProps, getRemotionEnvironment, continueRender, delayRender, Easing, interpolate, OffthreadVideo, spring, staticFile, useCurrentFrame, Video } from "remotion";
+import { AbsoluteFill, Img, getInputProps, useVideoConfig, getRemotionEnvironment, continueRender, delayRender, Easing, interpolate, OffthreadVideo, spring, staticFile, useCurrentFrame, Video } from "remotion";
 import { SafeVideo } from "./SafeMedia";
 import { Pic, TITLE, TEXT } from "./EuKit";
 import { DrawIcon } from "./MotionKit";
@@ -43,7 +43,19 @@ const STAR = `<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140' v
 /** decorated calm-blue background (never black / plain): gradient + slowly drifting star lattice + vignette */
 /** star drift of KhBg, px per frame (x, y) — the GPU compositor reproduces it (tools/gpu_compositor.py, --stars-drift); keep both in step */
 export const KHBG_DRIFT = [0.25, 0.15] as const;
-export const KhBg: React.FC<{ a?: string; b?: string; c?: string; star?: number }> =({ a: a0, b: b0, c: c0, star = 0.16 }) => {
+/* `smooth` (2026-11-13, user: «أصلح تجمّد النجوم في مونتاج الصوت فقط» — the closing voice message, TailVoice, only): Chromium rounds
+   background-position, so 0.25 px a frame moved the stars ~0.05, 0.1, 0.6, 0.6 px — a stop then a jump. With `smooth` the same lattice (same phase)
+   is drawn as vector stars at their exact fractional positions (Chromium anti-aliases paths at any fraction; a moved background image or even a
+   transformed layer is snapped to whole pixels in this renderer): even steps. Off = as always. */
+const STAR_D = STAR.match(/ d='([^']+)'/)![1];
+const SmoothStars: React.FC<{ f: number; star: number }> = ({ f, star }) => {
+  const { width, height } = useVideoConfig();
+  const ox = (f * KHBG_DRIFT[0]) % 140, oy = (f * KHBG_DRIFT[1]) % 140, nx = Math.ceil(width / 140) + 1, ny = Math.ceil(height / 140) + 1;
+  const cells: React.ReactNode[] = [];
+  for (let j = -1; j < ny; j++) for (let i = -1; i < nx; i++) cells.push(<g key={i + "_" + j} transform={`translate(${i * 140 + ox} ${j * 140 + oy})`}><path d={STAR_D} /><circle cx={70} cy={70} r={14} /></g>);
+  return <AbsoluteFill style={{ opacity: star }}><svg width={width} height={height} style={{ position: "absolute", left: 0, top: 0 }}><g fill="none" stroke="#f3e3c0" strokeWidth={1.6}>{cells}</g></svg></AbsoluteFill>;
+};
+export const KhBg: React.FC<{ a?: string; b?: string; c?: string; star?: number; smooth?: boolean }> =({ a: a0, b: b0, c: c0, star = 0.16, smooth = false }) => {
   const f = useCurrentFrame(), [da, db, dc] = currentStars(), a = a0 ?? da, b = b0 ?? db, c = c0 ?? dc;   // default colours follow the video's palette
   /* (2026-11-12) GPU renderer: the static background (<HybridBg>) is rendered once, which froze the drifting stars. tools/gpu_render.mjs renders its
      three parts apart (inputProps hyBgPart = "base" | "stars" | "vignette", the stars at position 0 0) and the compositor drifts the stars per frame
@@ -52,7 +64,8 @@ export const KhBg: React.FC<{ a?: string; b?: string; c?: string; star?: number 
   return (
     <AbsoluteFill>
       {!part || part === "base" ? <AbsoluteFill style={{ background: `linear-gradient(135deg, ${a}, ${b} 52%, ${c})` }} /> : null}
-      {!part || part === "stars" ? <AbsoluteFill style={{ backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(STAR)}")`, backgroundSize: "140px 140px", backgroundPosition: part ? "0px 0px" : `${f * KHBG_DRIFT[0]}px ${f * KHBG_DRIFT[1]}px`, opacity: star }} /> : null}
+      {smooth && !part ? <SmoothStars f={f} star={star} />
+      : !part || part === "stars" ? <AbsoluteFill style={{ backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(STAR)}")`, backgroundSize: "140px 140px", backgroundPosition: part ? "0px 0px" : `${f * KHBG_DRIFT[0]}px ${f * KHBG_DRIFT[1]}px`, opacity: star }} /> : null}
       {!part || part === "vignette" ? <AbsoluteFill style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(20,14,8,.30) 100%)" }} /> : null}
     </AbsoluteFill>
   );

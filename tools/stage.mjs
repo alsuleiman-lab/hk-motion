@@ -92,7 +92,9 @@ if (stage === "prep") {
   const a16 = path.join(T, "a16k.wav");
   await must("audio 16k", "ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", src, "-vn", "-ac", "1", "-ar", "16000", "-threads", "4", a16]);
   const srcWin = audioOnly ? Promise.resolve() : sources(src);
-  const sheet = audioOnly ? Promise.resolve() : must("contact sheet", "ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", src, "-vf", "fps=1/6,scale=320:-1,tile=8x8", "-frames:v", "1", path.join(T, "sheet.jpg")]);
+  /* contact sheet decoded on the card (2026-11-13: 9 s instead of 46 s for an 18-min 1080p source, and the 4 processor threads stay free for the transcript); the processor if NVDEC refuses the file */
+  const sheetArgs = (gpu) => ["-v", "error", "-y", ...(gpu ? ["-hwaccel", "cuda", "-hwaccel_output_format", "cuda"] : ["-threads", "4"]), "-i", src, "-vf", gpu ? "fps=1/6,scale_cuda=320:-2,hwdownload,format=nv12,tile=8x8" : "fps=1/6,scale=320:-1,tile=8x8", "-frames:v", "1", path.join(T, "sheet.jpg")];
+  const sheet = audioOnly ? Promise.resolve() : run("ffmpeg", sheetArgs(true)).then((r) => (r.code === 0 ? r : must("contact sheet", "ffmpeg", sheetArgs(false))));
   await must("VAD", PY, ["tools/vad_segments.py", a16, path.join(T, "vad.json"), "--padstart", "100", "--padend", "180", "--minsil", "150"]);
   await must("per-VAD transcript", PY, ["tools/transcribe_vad_segments.py", a16, path.join(T, "vad.json"), path.join(T, "tr_vad.json"), "--device", opt("asr-device", "cuda"), "--threads", opt("asr-threads", "4")]);
   await sheet;
@@ -244,9 +246,10 @@ if (stage === "check") {
   await run("node", ["tools/make_preview_proxy.mjs", "--auto", p]);   // light Studio copies of every heavy video (no stutter in the preview; renders use the full files)
   const step = async (label, cmd, args, pick) => {
     const r = await run(cmd, args);
+    const ts = Date.now();
     const key = r.out.trim().split("\n").filter((l) => pick.test(l)).slice(-2).join(" | ") || r.out.trim().split("\n").pop();
     if (r.code !== 0) failed++;
-    say(`${r.code === 0 ? "✔" : "✘"} ${label}: ${key}`);
+    say(`${r.code === 0 ? "✔" : "✘"} ${label} (${((Date.now() - ts) / 1000).toFixed(0)}s): ${key}`);   /* seconds per step (2026-11-13): where the check spends its time */
   };
   // build it right, not check-and-redo (user 2026-11-11): with --normalize (streams/lessons) the spec is completed here first;
   // any other spec gets a dry report of what is still incomplete (fix it in the plan, then check)

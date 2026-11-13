@@ -65,6 +65,7 @@ for (const n of specs) { del(path.join(specDir, n)); say(`✔ حُذف ملف ا
 for (const id of ids) { if (!dry) spawnSync("node", ["tools/set_title.mjs", id, "--remove"], { encoding: "utf8" }); say(`✔ أُزيل عنوان التركيبة ${id}`); }
 
 // 4) data around the project
+{ const f = path.join("data", "episode_refs", `${key}.json`); if (fs.existsSync(f)) { del(f); say(`✔ حُذف ملف المقاطع السابقة data/episode_refs/${key}.json`); } }
 const yt = path.join("data", "youtube");
 if (fs.existsSync(yt)) for (const n of fs.readdirSync(yt)) if (n.toLowerCase().startsWith(key)) { del(path.join(yt, n)); say(`✔ حُذفت حزمة يوتيوب ${n}`); }
 { const f = path.join("data", "preview_proxies.json");

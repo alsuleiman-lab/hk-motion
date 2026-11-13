@@ -2,7 +2,6 @@
 export const COMPOSITION_DATES: Record<string, number> = {
   "EuText-Practice": 1794531444971,
   "ElementsLab": 1794531392511,
-  "MaskedVideo-Demo": 1794530962291,
   "FamilyStickCast": 1794251609798,
   "DodoFamilyCast": 1794251608889,
   "TypeCompare-Demo": 1793449204598,

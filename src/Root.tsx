@@ -13,7 +13,6 @@ import { ElementsLab, ELEMENTS_LAB_FRAMES } from "./ElementsLab";
 import { MorphDemo, MORPH_DEMO_FRAMES } from "./MorphDemo";
 import { TimelineDemo, TIMELINE_DEMO_FRAMES } from "./TimelineDemo";
 
-import { MaskTest, MASKTEST_FRAMES } from "./MaskedVideo";
 import { KhAlphaTrial, ALPHATRIAL_FRAMES } from "./KhAlphaTrial";
 import { HybridGrad, HybridGradP135, HybridGradP160, HybridStar, HybridVig } from "./hybrid/HybridAssets";
 
@@ -88,7 +87,6 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="TimelineTravel-Demo" component={TravelDemo} durationInFrames={TRAVEL_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
         <Composition id="CollageAssemble-Demo" component={CollageDemo} durationInFrames={COLLAGE_DEMO_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="CollageAssemble-L-Demo" component={CollageDemoL} durationInFrames={COLLAGE_DEMO_FRAMES} fps={30} width={1920} height={1080} />
-        <Composition id="MaskedVideo-Demo" component={MaskTest} durationInFrames={MASKTEST_FRAMES} fps={30} width={1920} height={1080} />
       </Folder>}
       <ReelsComps />
       <Folder name="أدوات">

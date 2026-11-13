@@ -109,13 +109,6 @@ const MaskedVideoInner: React.FC<{ video: string; matte: string; videoStartFrom?
   );
 };
 
-/** test composition (Studio id «MaskedVideo-Demo»): flat colour background + the masked Sheikh — compare it with the old alpha-WebM path */
-export const MaskTest: React.FC = () => (
-  <AbsoluteFill style={{ background: "#2f7a4a" }}>
-    <MaskedVideo video="kh_cut_s.mp4" videoStartFrom={Math.round(2.6 * 30)} matte="kh/mask_test.mp4" />
-  </AbsoluteFill>
-);
-export const MASKTEST_FRAMES = 360;
 /** fast face check (inputProps {gfxOnly:true}): the isolated figure is a video, never a graphic — nothing is decoded, an empty box keeps its place */
 type MVProps = React.ComponentProps<typeof MaskedVideoInner> & { /** hybrid render: draw the cut-out on the GPU compositor (nothing under it may be drawn by Chrome) */ gpu?: boolean };
 /* hybrid render (2026-11-12, user: «نقل العزل كله إلى كرت الشاشة»): the cut-out is a masked <VSlot> — the compositor decodes the video AND the matte with NVDEC

@@ -41,7 +41,6 @@ export const COMPOSITION_TITLES: Record<string, string> = {
   "HybridVig": "أصل الهجين: تعتيم الأطراف",
   "HybridVigP": "أصل الهجين: تعتيم الأطراف طولي",
   "HybridStar": "أصل الهجين: نجمة",
-  "MaskedVideo-Demo": "عرض الفيديو المقنّع (مرجع)",
   "KitabSunna-L": "صوفي يحذّر من كل من يقول الكتاب والسنة — عرضي",
   "KitabSunna": "صوفي يحذّر من كل من يقول الكتاب والسنة — طولي",
   "FatimaSheikhayn-L": "هل تلوّثت زوجات أبي بكر وعمر بالدنيا؟ — عرضي",

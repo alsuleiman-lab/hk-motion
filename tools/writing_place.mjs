@@ -85,7 +85,7 @@ if (process.argv.includes("--hold")) {
     const it = Wr[i], last = it.times ? it.times[it.times.length - 1] : it.at + 1.2, next = Wr[i + 1]?.at ?? 1e9;
     const cardNext = Math.min(...cards.map(([a]) => a).filter((a) => a > it.at), 1e9);
     // the next writing or card always wins the band: a phrase stays to its last word (+0.25 s) only if nothing starts before that
-    const cap = Math.min(next - 0.2, cardNext - 0.2);   // grid_plan needs ≥ 0.15 s between two users of a slot; coverage allows ≤ 0.3 s empty in the first minute
+    const cap = Math.min(next - 0.2, cardNext - 0.2, (spec.frames ?? 1e9) / 30 - 0.1);   // never past the video's end; grid_plan needs ≥ 0.15 s between two users of a slot; coverage allows ≤ 0.3 s empty in the first minute
     it.until = +Math.min(cap, Math.max(last + 0.25, Math.min(cap, it.at + 7))).toFixed(2);
     if (it.until < it.at + 0.6) drop.add(it);   // no room before the next one: the phrase goes (never a span that ends before it starts)
     if (solo.some(([a, b]) => it.at < b && it.until > a)) { const [a, b] = solo.find(([a, b]) => it.at < b && it.until > a); if (it.at >= a) { it.at = +(b + 0.1).toFixed(2); if (it.times) it.times = it.times.map((t) => Math.max(t, it.at)); } }

@@ -26,6 +26,8 @@ console.log(t(sh(`node tools/spec_draft.mjs ${id} --title "${P.title}"`)));
   s.items.sort((a, b) => (a.at ?? a.from ?? 0) - (b.at ?? b.from ?? 0));
   if (P.skipMentions) s.skipMentions = P.skipMentions;
   if (P.skipRequired) s.skipRequired = P.skipRequired;
+  if (P.zooms) s.zooms = P.zooms;   // zoom only at the key words I chose (lesson correction 2026-11-12), not the draft's
+  if (P.shake) s.shake = P.shake;
   wr(s); }
 fs.writeFileSync(`.tmp/${id}/writing.json`, JSON.stringify({ fix: P.fix ?? {}, items: P.writing }, null, 1));
 { const wo = sh(`node tools/writing_place.mjs ${id} --write`); console.log(t(wo)); if (/✘ writing_place/.test(wo)) { console.error("✘ البناء توقف: عبارة مرفوضة — صحّحها في الخطة (أو fix) ثم أعد"); process.exit(1); } }

@@ -90,6 +90,14 @@ if (cmd === "stage") {
   // (composition, component, public assets, tools, render_work, .tmp, titles/dates); exit 1 while anything remains so "approved & cleaned" cannot be claimed early.
   { const reg = readJson(path.join(".tmp", "active_montage.json"), {}); const list = (reg.projects ?? (reg.project ? [reg.project] : [])).filter((p) => p !== project);
     try { if (list.length) fs.writeFileSync(path.join(".tmp", "active_montage.json"), JSON.stringify({ projects: list, startedAt: reg.startedAt })); else fs.unlinkSync(path.join(".tmp", "active_montage.json")); console.log(`✔ أُنهي تسجيل المونتاج «${project}»`); } catch { console.log("لا مونتاج مسجَّل"); } }
+  /* (2026-11-13, user: «لا أزال أشوف الفيديو الخاص به موجود في المكان الأصلي») the ORIGINAL he sent goes to the Recycle Bin on approval — read its path
+     from .tmp/<p>/prep_config.json BEFORE clean_temp erases that folder */
+  { const orig = readJson(path.join(".tmp", project, "prep_config.json"), {}).original;
+    if (orig && fs.existsSync(orig)) {
+      const ps = (await import("node:child_process")).spawnSync("powershell", ["-NoProfile", "-Command", `Add-Type -AssemblyName Microsoft.VisualBasic; [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($env:MG_ORIG, 'OnlyErrorDialogs', 'SendToRecycleBin')`], { encoding: "utf8", env: { ...process.env, MG_ORIG: orig } });
+      console.log(fs.existsSync(orig) ? `✘ الأصل لم يُنقل إلى السلة: ${orig} ${ps.stderr || ""}` : `✔ الأصل نُقل إلى سلة المحذوفات: ${orig}`);
+      if (fs.existsSync(orig)) process.exitCode = 1;
+    } else if (orig) console.log(`الأصل غير موجود (نُقل من قبل): ${orig}`); }
   const cp = (await import("node:child_process")).spawnSync("node", ["tools/clean_temp.mjs", "--approval", "--project", project], { encoding: "utf8" });
   console.log("— تنظيف المؤقتات (الاعتماد: كل ما لم يُكتب في آخر 3 دقائق، ما لم يعمل رندر) —\n" + ((cp.stdout || "") + (cp.stderr || "")).trim().split("\n").slice(-6).join("\n"));
   const key = project.toLowerCase(), left = [];

@@ -24,6 +24,9 @@ class H(http.server.BaseHTTPRequestHandler):
         self.send_response(200); self._cors(); self.send_header("Content-Type", ctype); self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
     def do_GET(self):
         p = urllib.parse.unquote(self.path.split("?")[0])
+        if p == "/":   # (2026-11-13) watch page for the tunnel link: every clip under root, playable with seeking (Range)
+            items = "".join(f'<h3>{(x["sub"] + " / ") if x["sub"] else ""}{x["name"][:-4]}</h3><video controls preload="metadata" src="/{urllib.parse.quote(x["sub"] + "/" if x["sub"] else "")}{urllib.parse.quote(x["name"])}"></video>' for x in files())
+            return self._bytes(('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>جاهز</title><body dir="rtl" style="font:16px sans-serif;background:#111;color:#eee;margin:0 auto;max-width:900px;padding:12px">' + items + '<style>video{width:100%;max-height:80vh;background:#000;margin-bottom:24px}</style></body>').encode("utf8"), "text/html; charset=utf-8")
         if p == "/up.html": return self._bytes(open(os.path.join(HERE, "upload_helper.html"), "rb").read(), "text/html; charset=utf-8")
         if p == "/list": return self._bytes(json.dumps(files(), ensure_ascii=False).encode("utf8"), "application/json; charset=utf-8")
         rel = p.lstrip("/")

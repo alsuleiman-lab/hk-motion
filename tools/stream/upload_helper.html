@@ -6,9 +6,11 @@
 // File objects to the opener by postMessage. Message {cmd:'send', sub, have:[names]} → {cmd:'file'}… then {cmd:'done'} or {cmd:'error'}.
 const log = (m) => { document.getElementById('s').textContent = m; };
 window.addEventListener('message', async (ev) => {
-  if (ev.origin !== 'https://ok.ru' || !ev.data || ev.data.cmd !== 'send') return;
+  const OK = ['https://ok.ru', 'https://studio.youtube.com', 'https://drive.google.com'];   /* (2026-11-13) YouTube Studio and Drive too */
+  if (!OK.includes(ev.origin) || !ev.data || ev.data.cmd !== 'send') return;
+  const O = ev.origin;
   try {
-    const list = (await (await fetch('/list')).json()).filter((x) => ev.data.sub == null || x.sub === ev.data.sub);
+    const list = (await (await fetch('/list')).json()).filter((x) => (ev.data.sub == null || x.sub === ev.data.sub) && (!ev.data.names || ev.data.names.includes(x.name)));
     const skip = new Set(ev.data.have || []); let n = 0;
     for (const it of list) {
       if (skip.has(it.name)) continue;
@@ -19,10 +21,10 @@ window.addEventListener('message', async (ev) => {
         for (let k = 0; k < 5 && !bl; k++) { try { const r = await fetch(u, { headers: { Range: 'bytes=' + a + '-' + e } }); const x = await r.blob(); if (x.size === e - a + 1) bl = x; } catch (_) { await new Promise((z) => setTimeout(z, 1500)); } }
         if (!bl) throw new Error('chunk ' + it.name); parts.push(bl);
       }
-      ev.source.postMessage({ cmd: 'file', file: new File(parts, it.name, { type: 'video/mp4' }), size: it.size, i: ++n, total: list.length }, 'https://ok.ru');
+      ev.source.postMessage({ cmd: 'file', file: new File(parts, it.name, { type: 'video/mp4' }), size: it.size, i: ++n, total: list.length }, O);
     }
-    ev.source.postMessage({ cmd: 'done', total: n }, 'https://ok.ru'); log('تم');
-  } catch (e) { ev.source.postMessage({ cmd: 'error', msg: String(e) }, 'https://ok.ru'); log('خطأ ' + e); }
+    ev.source.postMessage({ cmd: 'done', total: n }, O); log('تم');
+  } catch (e) { ev.source.postMessage({ cmd: 'error', msg: String(e) }, O); log('خطأ ' + e); }
 });
 </script>
 </body>

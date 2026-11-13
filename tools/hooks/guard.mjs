@@ -216,6 +216,13 @@ if (mode === "stop") {
       if (o.type === "assistant") last = (o.message?.content ?? []).filter((x) => x.type === "text").map((x) => x.text).join("\n");
     }
   } catch { process.exit(0); }
+  // ARABIC ONLY (user 2026-11-13: «لا افهم غير العربي» — an English reply slipped out after a context summary): a reply whose prose is mostly
+  // Latin letters is sent back to be rewritten in Arabic; code blocks, inline code, links and paths do not count
+  {
+    const prose = last.replace(/```[\s\S]*?```/g, " ").replace(/`[^`]*`/g, " ").replace(/\]\([^)]*\)/g, "]").replace(/https?:\/\/\S+/g, " ").replace(/[A-Za-z]:[\\/]\S*/g, " ").replace(/\S+\.(mp4|json|mjs|tsx?|md|py|sh|jpg|png)\b/g, " ");
+    const lat = (prose.match(/[A-Za-z]/g) || []).length, ar = (prose.match(/[؀-ۿ]/g) || []).length;
+    if (lat >= 40 && lat > ar) emit({ decision: "block", reason: "ردّك الأخير مكتوب بغير العربية. المستخدم لا يفهم إلا العربية (أمره 2026-11-11 و2026-11-13): أعد كتابة الرد نفسه كاملاً بالعربية الواضحة، بلا أسماء أوامر ولا إنجليزي." });
+  }
   if (/^\s*(✅\s*)?انتهيتُ من المونتاج/.test(last)) {
     const dir = path.join(ROOT, ".tmp", "gates");
     const now = Date.now(), DAY = 24 * 3600e3;

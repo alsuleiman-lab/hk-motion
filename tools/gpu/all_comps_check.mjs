@@ -34,9 +34,9 @@ let comps;
     log("bundling once (kept for every composition)…");
     await waitLock();
     fs.mkdirSync(path.join(OUT, "_bundle", "gpu"), { recursive: true });
-    const r = spawnSync("node", ["tools/gpu_render.mjs", "--comp", "Poison-01-Cell", "--start", "0", "--end", "1", "--out", path.join(OUT, "_bundle", "x.mp4"), "--props", JSON.stringify(PROPS), "--no-bumper", "--procs", "1"],
+    const r = spawnSync("node", ["tools/gpu_render.mjs", "--comp", "TimelineCounter-Demo", "--start", "0", "--end", "1", "--out", path.join(OUT, "_bundle", "x.mp4"), "--props", JSON.stringify(PROPS), "--no-bumper", "--procs", "1"],
       { encoding: "utf8", env: { ...process.env, GR_KEEP_BUNDLE: "1" }, maxBuffer: 64 << 20 });
-    const made = path.join(root, ".tmp/gpu_render/bundle_keep_Poison-01-Cell");
+    const made = path.join(root, ".tmp/gpu_render/bundle_keep_TimelineCounter-Demo");
     if (!fs.existsSync(path.join(made, "index.html"))) { log("could not build the bundle:\n" + (r.stdout + r.stderr).slice(-2000)); process.exit(1); }
     fs.renameSync(made, KEEP);
   }

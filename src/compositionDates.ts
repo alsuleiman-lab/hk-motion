@@ -31,10 +31,6 @@ export const COMPOSITION_DATES: Record<string, number> = {
   "FatimaSheikhayn": 0,
   "SyriaTrash-L": 0,
   "SyriaTrash": 0,
-  "QD-4": 0,
-  "QD-3": 0,
-  "QD-2": 0,
-  "QD-1": 0,
   "Stream-Arsh-Fakh-R": 0,
   "Stream-Mayyit-Ilm-R": 0,
 };

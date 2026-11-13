@@ -43,14 +43,6 @@ const StreamMayyitIlmRComp: React.FC = () => <MontageFromSpec spec={streamMayyit
 
 import { ReelsComps } from "./ReelsComps";
 
-import L_qd_1Spec from "../data/specs/qd_1.json";
-const L_qd_1Comp: React.FC = () => <MontageFromSpec spec={L_qd_1Spec as unknown as MontageSpec} />;
-import L_qd_2Spec from "../data/specs/qd_2.json";
-const L_qd_2Comp: React.FC = () => <MontageFromSpec spec={L_qd_2Spec as unknown as MontageSpec} />;
-import L_qd_3Spec from "../data/specs/qd_3.json";
-const L_qd_3Comp: React.FC = () => <MontageFromSpec spec={L_qd_3Spec as unknown as MontageSpec} />;
-import L_qd_4Spec from "../data/specs/qd_4.json";
-const L_qd_4Comp: React.FC = () => <MontageFromSpec spec={L_qd_4Spec as unknown as MontageSpec} />;
 export const RemotionRoot: React.FC = () => {
   return (
     <ByRecency>
@@ -64,10 +56,6 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="SyriaTrash" component={SyriaTrashComp} durationInFrames={specFrames(syriaTrashSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
       </Folder>
       <Folder name="البثوث">
-        <Composition id="QD-4" component={L_qd_4Comp} durationInFrames={L_qd_4Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QD-3" component={L_qd_3Comp} durationInFrames={L_qd_3Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QD-2" component={L_qd_2Comp} durationInFrames={L_qd_2Spec.frames} fps={30} width={1080} height={1920} />
-        <Composition id="QD-1" component={L_qd_1Comp} durationInFrames={L_qd_1Spec.frames} fps={30} width={1080} height={1920} />
         {/* بث للحوار مع المخالفين (1) */}
         <Composition id="Stream-Arsh-Fakh-R"component={StreamArshFakhRComp} durationInFrames={specFrames(streamArshFakhSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
         <Composition id="Stream-Mayyit-Ilm-R" component={StreamMayyitIlmRComp} durationInFrames={specFrames(streamMayyitIlmSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />

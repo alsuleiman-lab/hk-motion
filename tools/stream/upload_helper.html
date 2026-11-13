@@ -24,6 +24,7 @@ window.addEventListener('message', async (ev) => {
       ev.source.postMessage({ cmd: 'file', file: new File(parts, it.name, { type: 'video/mp4' }), size: it.size, i: ++n, total: list.length }, O);
     }
     ev.source.postMessage({ cmd: 'done', total: n }, O); log('تم');
+    setTimeout(() => window.close(), 1500);   /* (user 2026-11-13: «هذا لازم يغلق بعد التمام») the files are already handed over */
   } catch (e) { ev.source.postMessage({ cmd: 'error', msg: String(e) }, O); log('خطأ ' + e); }
 });
 </script>

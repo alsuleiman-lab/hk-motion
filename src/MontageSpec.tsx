@@ -502,7 +502,7 @@ export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: nu
   return (
     <AbsoluteFill style={{ background: hyBg(BRAND.base), transform: `translate3d(${dx}px, 0, 0) scale(${z})`, willChange: "transform", transformOrigin: LANDSCAPE.faceOrigin }}>
       {/* (user 2026-11-12, frame 6758) slid aside, his video's left part turns transparent and melts into the background (\`feather\` px): CSS mask here, the same ramp in the GPU compositor (fx.featherL) */}
-      {HY ? <VSlot src={cut} w={LANDSCAPE.W} h={LANDSCAPE.H} fx={fth > 0 ? { featherL: fth } : undefined} /> : <div style={{ position: "absolute", inset: 0, ...(fth > 0 ? { WebkitMaskImage: `linear-gradient(to right, transparent 0px, black ${fth}px)`, maskImage: `linear-gradient(to right, transparent 0px, black ${fth}px)` } : {}) }}><RV src={staticFile(cut)} style={{ position: "absolute", left: 0, top: 0, width: LANDSCAPE.W, height: LANDSCAPE.H }} /></div>}
+      {HY ? <VSlot src={cut} w={LANDSCAPE.W} h={LANDSCAPE.H} fx={fth > 0 ? { featherL: fth } : undefined} grow={0} /> : <div style={{ position: "absolute", inset: 0, ...(fth > 0 ? { WebkitMaskImage: `linear-gradient(to right, transparent 0px, black ${fth}px)`, maskImage: `linear-gradient(to right, transparent 0px, black ${fth}px)` } : {}) }}><RV src={staticFile(cut)} style={{ position: "absolute", left: 0, top: 0, width: LANDSCAPE.W, height: LANDSCAPE.H }} /></div>}
     </AbsoluteFill>
   );
 };
@@ -547,7 +547,7 @@ const MiniMe: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; 
     return (
       <AbsoluteFill style={{ transformOrigin: `${fx}px ${fy}px`, transform: `translate(${(it.cx - fx) * e}px, ${(it.cy - fy) * e}px) scale(${1 + (it.scale - 1) * e})` }}>
         <VSlot src={cut} startFrom={Math.round(it.from * 30)} w={LANDSCAPE.W} h={LANDSCAPE.H} matte={{ src: matte.src, startFrom: (matte.startFrom ?? 0) + Math.round((it.from - (matte.start ?? 0)) * 30) }}
-          fx={e > 0.05 ? { shadowY: 10, shadowBlur: 18, shadowA: 0.55, shR: 20, shG: 12, shB: 4 } : undefined} />
+          fx={e > 0.05 ? { shadowY: 10, shadowBlur: 18, shadowA: 0.55, shR: 20, shG: 12, shB: 4 } : undefined} grow={0} />
       </AbsoluteFill>
     );
   }
@@ -657,11 +657,11 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
 };
 /** TESTS ONLY (2026-11-12): inputProps {specTest: {items?, psplits?, dropBehind?: [index…]}} adds elements to the spec for ONE render or still
  *  (gpu_render --props / stills.mjs --props) — the spec files are never touched while a queue may be rendering from them. Absent: no effect. */
-type SpecTest = { items?: SpecItem[]; psplits?: NonNullable<MontageSpec["psplits"]>; dropBehind?: number[] };
+type SpecTest = { items?: SpecItem[]; psplits?: NonNullable<MontageSpec["psplits"]>; dropBehind?: number[]; dropCut?: boolean };
 const withSpecTest = (s: MontageSpec): MontageSpec => {
   const x = (getInputProps() as { specTest?: SpecTest }).specTest;
   if (!x) return s;
-  return { ...s, items: [...s.items, ...(x.items ?? [])], psplits: [...(s.psplits ?? []), ...(x.psplits ?? [])], behind: (s.behind ?? []).filter((_, i) => !(x.dropBehind ?? []).includes(i)) };
+  return { ...s, ...(x.dropCut ? { cut: undefined } : {}), items: [...s.items, ...(x.items ?? [])], psplits: [...(s.psplits ?? []), ...(x.psplits ?? [])], behind: (s.behind ?? []).filter((_, i) => !(x.dropBehind ?? []).includes(i)) };
 };
 const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => {
   const spec = withGallery(withHalfWays(withSpecTest(raw)));
@@ -700,9 +700,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => 
       {spec.cut ? <Audio src={staticFile(spec.cut)} volume={0.8} /> : null}
       {(spec.sfx ?? []).filter((x) => !x.only || x.only === o).map((x, i) => <Sequence key={"sfx" + i} from={Math.max(0, Math.round(x.at * 30))} durationInFrames={x.dur ? Math.round(x.dur * 30) : 45}><Audio src={staticFile(x.src)} volume={x.vol} /></Sequence>)}
       {o === "port" || !spec.cut ? (HY ? <HybridBg><WarmBase /></HybridBg> : <WarmBase />) : null}
-      {/* (2026-11-12) the base's stars drift with the frame (KhBg); the hybrid's static background froze them. In a portrait half-screen window the base
-          shows beside his shrunk video: GPU renderer, there only, the live base as layer 0 (under his video) */}
-      {HYL && o === "port" && (spec.psplits ?? []).some((w) => f / 30 >= w.from - 0.01 && f / 30 <= w.to + 0.4) ? <HyLayer z={0}><WarmBase /></HyLayer> : null}
+      {/* the base's stars drift with the frame (KhBg): the GPU renderer renders this background's parts apart and its compositor drifts the stars (2026-11-12) */}
       {wrapStage(<>
       <Sequence from={0} durationInFrames={spec.tail ? Math.round(spec.tail.from * 30) : spec.frames}>{(() => { const b2 = o === "port" && spec.psplits?.length ? <PortSplit windows={spec.psplits}>{body}</PortSplit> : body; return spec.shake?.length ? <HandheldShake windows={spec.shake} amp={6} rot={0.4}>{b2}</HandheldShake> : b2; })()}</Sequence>
       {o === "port" && spec.psplits?.length ? <PortPanel windows={spec.psplits} /> : null}

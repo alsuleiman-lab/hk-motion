@@ -103,7 +103,8 @@ export const SheikhLayers: React.FC<{ cut: string; cams: Cam[]; zooms?: { from: 
   return (
     <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, transform: `scale(${z})`, transformOrigin: `540px ${originY}px` }}>
       <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: hyBg(BRAND.ink) }}>
-        {HY ? <VSlot src={cut} w={1080} h={1920} vx={-(cam.cx - 304) * K} vy={0} vw={1920 * K} vh={1920} /> : <RV src={staticFile(cut)} style={{ position: "absolute", left: -(cam.cx - 304) * K, top: 0, width: 1920 * K, height: 1920 }} />}
+        {/* hybrid: the picture snapped to whole pixels as the browser paints the <img> (left/right edges rounded in its layer; 2026-11-13: ½ px off before) */}
+        {HY ? <VSlot src={cut} w={1080} h={1920} vx={Math.round(-(cam.cx - 304) * K)} vy={0} vw={Math.round(-(cam.cx - 304) * K + 1920 * K) - Math.round(-(cam.cx - 304) * K)} vh={1920} grow={0} /> : <RV src={staticFile(cut)} style={{ position: "absolute", left: -(cam.cx - 304) * K, top: 0, width: 1920 * K, height: 1920 }} />}
       </div>
     </div>
   );

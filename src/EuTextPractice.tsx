@@ -1,5 +1,6 @@
 import React from "react";
-import { AbsoluteFill, OffthreadVideo, staticFile } from "remotion";
+import { AbsoluteFill, staticFile } from "remotion";
+import { HybridHost, HyVideo, hyBg } from "./hybrid/Slot";
 import { BlurRise, Gfx, MGTheme, kufiF, useSp, useT } from "./MG";
 import { Banner, Sources, StatRow, useFonts } from "./EuKit";
 
@@ -55,8 +56,9 @@ export const EuTextPractice: React.FC = () => {
   useFonts();
   return (
     <MGTheme theme="steel">
-      <AbsoluteFill style={{ background: "#16202c" }}>
-        <OffthreadVideo src={staticFile("kit_sample_sheikh.mp4")} muted />
+      <HybridHost>
+      <AbsoluteFill style={{ background: hyBg("#16202c") }}>
+        <HyVideo src={staticFile("kit_sample_sheikh.mp4")} muted style={{ width: 1920, height: 1080 }} />
         <Gfx>
           <Scene b={SCENE_OUT}>
             {/* 1) title first: «البلد/الموضوع: …» or a short question */}
@@ -74,6 +76,7 @@ export const EuTextPractice: React.FC = () => {
           <Phrases end={19.6} items={[{ text: "عبارة مفتاحية من كلامه", at: 11.4 }, { text: "عبارة ثانية قصيرة", at: 13.8 }, { text: "سؤال يختم الفكرة؟", at: 16.4 }]} />
         </Gfx>
       </AbsoluteFill>
+      </HybridHost>
     </MGTheme>
   );
 };

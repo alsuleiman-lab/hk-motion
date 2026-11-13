@@ -349,9 +349,10 @@ VEIL_RGB = torch.tensor([6.0, 12.0, 22.0], device=dev).view(3, 1, 1)  # BgClip v
 def draw_slot(out, s, src, mat=None):
     if s.get("fit") in ("cover", "contain"):   # (2026-11-12) VSlot fit: objectFit of the REAL source size in the box, centred
         sh0, sw0 = src.shape[1:]
-        kf = (max if s["fit"] == "cover" else min)(s["w"] / sw0, s["h"] / sh0)
+        fx0_, fy0_, fw0_, fh0_ = s.get("fr", (0, 0, s["w"], s["h"]))   # the rect the picture is fitted in (HyVideo: its own box; else the clip box)
+        kf = (max if s["fit"] == "cover" else min)(fw0_ / sw0, fh0_ / sh0)
         px_, py_ = s.get("fp", (0.5, 0.5))   # objectPosition as fractions (CSS: offset = (box - picture) * p)
-        s = dict(s, vw=sw0 * kf, vh=sh0 * kf, vx=(s["w"] - sw0 * kf) * px_, vy=(s["h"] - sh0 * kf) * py_)
+        s = dict(s, vw=sw0 * kf, vh=sh0 * kf, vx=fx0_ + (fw0_ - sw0 * kf) * px_, vy=fy0_ + (fh0_ - sh0 * kf) * py_)
         if s.get("fz"):   # then a zoom z about the box point (ox, oy): CSS transform scale(z) with transform-origin there
             z_, ox_, oy_ = s["fz"]
             s = dict(s, vx=ox_ + z_ * (s["vx"] - ox_), vy=oy_ + z_ * (s["vy"] - oy_), vw=s["vw"] * z_, vh=s["vh"] * z_)
@@ -395,7 +396,10 @@ def draw_slot(out, s, src, mat=None):
         src = F.interpolate(src[None], size=(nh, nw), mode="bilinear", antialias=True, align_corners=False)[0]
     gx = (qx - s["vx"]) / s["vw"] * 2 - 1
     gy = (qy - s["vy"]) / s["vh"] * 2 - 1
-    smp = F.grid_sample(src[None], torch.stack([gx, gy], -1)[None], mode="bilinear", padding_mode="border", align_corners=False)[0]
+    up_ = os.environ.get("GR_UPSCALE", "bilinear") if (kx > 1.05 or ky > 1.05) else "bilinear"   # (2026-11-13 test) enlargement filter
+    smp = F.grid_sample(src[None], torch.stack([gx, gy], -1)[None], mode=up_, padding_mode="border", align_corners=False)[0]
+    if up_ == "bicubic":
+        smp = smp.clamp(0, 255)
     smp = apply_fx(smp, s["fx"], scl)
     veil = s["fx"].get("veil", 0)
     if veil:  # (2026-11-12) BgClip's dark veil = CSS radial-gradient(ellipse at 50% 45%, rgba(6,12,22,veil*.5) 0%, rgba(6,12,22,veil+.25) 100%), farthest-corner, in the box

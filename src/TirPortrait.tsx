@@ -4,7 +4,8 @@ import { loadFont as loadRakkas } from "@remotion/google-fonts/Rakkas";
 import { lalezar } from "./RefStyle";
 import { TitleBar } from "./TitleBar";
 import { cut } from "./tirTime";
-import { TirVid, TIR_SRC, TOP } from "./TirVideo";
+import { TirVid, TIR_SRC, TOP, UnderV } from "./TirVideo";
+import { HY, HybridBg, HybridHost, HyLevel, hyBg } from "./hybrid/Slot";
 import { ExplainerScene, SCENES } from "./TirExplainers";
 import { CROP, NoteCard, SPK, SplitNote, SplitType, STAR, SWITCH_AT, VARIANTS } from "./SplitScene";
 import splits from "../public/tir_split_segments_v4.json";
@@ -57,17 +58,21 @@ const PortraitSplit: React.FC<{ src: string; type: SplitType; startFrame: number
   const cardH = 1880 - cardTop;
   const sk = 1032 / SPK.w;
   return (
+    <HyLevel z={1}>{/* GPU renderer: above the lesson's full-frame video (level 0) */}
     <AbsoluteFill>
-      {TOP ? null : <AbsoluteFill style={{ background: "linear-gradient(160deg, #24456e, #2f5f94 48%, #6b4630)" }} />}
-      {TOP ? null : <AbsoluteFill style={{ backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(STAR)}")`, backgroundSize: "140px 140px", backgroundPosition: `${f * 0.25}px ${f * 0.15}px`, opacity: 0.2 }} />}
+      <UnderV>{/* the designed background under the video windows (GPU renderer: a layer below them) */}
+        <AbsoluteFill style={{ background: "linear-gradient(160deg, #24456e, #2f5f94 48%, #6b4630)" }} />
+        <AbsoluteFill style={{ backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(STAR)}")`, backgroundSize: "140px 140px", backgroundPosition: `${f * 0.25}px ${f * 0.15}px`, opacity: 0.2 }} />
+      </UnderV>
       {hasNotes ? <NoteCard notes={notes as SplitNote[]} w={1032} /> : null}
-      <div style={{ position: "absolute", left: 24 + (1032 - pW) / 2, top: y0 + (areaH - pH) / 2, transform: `rotate(${vr}deg) scale(${vs})`, borderRadius: 26, overflow: "hidden", border: "7px solid #f6ecd3", boxShadow: TOP ? "none" : "0 18px 48px rgba(20,12,4,.6)", background: TOP ? "transparent" : "#fff" }}>
+      <div style={{ position: "absolute", left: 24 + (1032 - pW) / 2, top: y0 + (areaH - pH) / 2, transform: `rotate(${vr}deg) scale(${vs})`, borderRadius: 26, overflow: "hidden", border: "7px solid #f6ecd3", boxShadow: TOP ? "none" : "0 18px 48px rgba(20,12,4,.6)", background: TOP ? "transparent" : hyBg("#fff") }}>
         <Cropped src={src} crop={c} scale={pk} from={startFrame} w={pW} h={pH} />
       </div>
       <div style={{ position: "absolute", left: 24, top: cardTop, width: 1032, height: cardH, borderRadius: 30, overflow: "hidden", border: "7px solid #f6ecd3", boxShadow: TOP ? "none" : "0 18px 48px rgba(20,12,4,.6)" }}>
         <Cropped src={src} crop={SPK} scale={sk} from={startFrame} w={1032} h={cardH} />
       </div>
     </AbsoluteFill>
+    </HyLevel>
   );
 };
 
@@ -144,18 +149,23 @@ export const TirPortraitContent: React.FC<{ names?: boolean }> = ({ names = true
 );
 
 export const TirPortrait: React.FC = () => (
-<AbsoluteFill style={{ background: TOP ? "transparent" : "#24456e" }}>
+<HybridHost>
+<AbsoluteFill style={{ background: TOP ? "transparent" : hyBg("#24456e") }}>
+    {HY ? <HybridBg><AbsoluteFill style={{ background: "#24456e" }} /></HybridBg> : null}
     <TirPortraitContent />
     <TitleBar title={TIR_TITLE} />
     <Sequence  durationInFrames={3} layout="none">
       <Cover />
     </Sequence>
   </AbsoluteFill>
+</HybridHost>
 );
 
 /** the 3-minute essence in portrait (see TirShort in TirLandscape.tsx) */
 export const TirShortPortrait: React.FC = () => (
-<AbsoluteFill style={{ background: TOP ? "transparent" : "#24456e" }}>
+<HybridHost>
+<AbsoluteFill style={{ background: TOP ? "transparent" : hyBg("#24456e") }}>
+    {HY ? <HybridBg><AbsoluteFill style={{ background: "#24456e" }} /></HybridBg> : null}
     {SHORT_SEGS.map((g, i) => (
       <Sequence key={i} from={g.s} durationInFrames={g.n} layout="none">
         <Sequence from={-g.a} layout="none">
@@ -174,4 +184,5 @@ export const TirShortPortrait: React.FC = () => (
       <Cover />
     </Sequence>
   </AbsoluteFill>
+</HybridHost>
 );

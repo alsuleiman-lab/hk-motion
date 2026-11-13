@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, spring, staticFile, useCurrentFrame } from "remotion";
-import { TirVid, TOP } from "./TirVideo";
+import { TirVid, TOP, UnderV } from "./TirVideo";
+import { HyLevel, hyBg } from "./hybrid/Slot";
 import { cairo } from "./Scenes";
 import { lalezar } from "./RefStyle";
 
@@ -67,12 +68,15 @@ export const SplitScene: React.FC<{ src: string; type: SplitType; startFrame: nu
   const vs = prev.s + (cur.s - prev.s) * m, vdy0 = prev.dy + (cur.dy - prev.dy) * m, vr = prev.r + (cur.r - prev.r) * m;
   const lim = Math.max(0, (availH - pH * vs) / 2 - 10), vdy = Math.max(-lim, Math.min(lim, vdy0));
   return (
+    <HyLevel z={1}>{/* GPU renderer: the scene covers the lesson's full-frame video (level 0): its background and videos are one level above it */}
     <AbsoluteFill style={{ opacity: a }}>
-      {TOP ? null : <AbsoluteFill style={{ background: `linear-gradient(135deg, ${bgA}, #2f5f94 48%, ${bgB})` }} />}
-      {TOP ? null : <AbsoluteFill style={{ backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(STAR)}")`, backgroundSize: "140px 140px", backgroundPosition: `${f * 0.25}px ${f * 0.15}px`, opacity: 0.2 }} />}
-      {TOP ? null : <AbsoluteFill style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(25,15,8,.32) 100%)" }} />}
+      <UnderV>{/* the designed background lies under the two video windows (GPU renderer: a layer below the videos) */}
+        <AbsoluteFill style={{ background: `linear-gradient(135deg, ${bgA}, #2f5f94 48%, ${bgB})` }} />
+        <AbsoluteFill style={{ backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(STAR)}")`, backgroundSize: "140px 140px", backgroundPosition: `${f * 0.25}px ${f * 0.15}px`, opacity: 0.2 }} />
+        <AbsoluteFill style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(25,15,8,.32) 100%)" }} />
+      </UnderV>
       {/* panel (left) */}
-      <div style={{ position: "absolute", left: PAD + (zoneW - pW) / 2 - slide, top: y0 + (availH - pH) / 2, transform: `translateY(${vdy}px) rotate(${vr}deg) scale(${vs})`, borderRadius: 26, overflow: "hidden", border: "7px solid #f6ecd3", boxShadow: TOP ? "none" : "0 18px 48px rgba(20,12,4,.6)", background: TOP ? "transparent" : "#fff" }}>
+      <div style={{ position: "absolute", left: PAD + (zoneW - pW) / 2 - slide, top: y0 + (availH - pH) / 2, transform: `translateY(${vdy}px) rotate(${vr}deg) scale(${vs})`, borderRadius: 26, overflow: "hidden", border: "7px solid #f6ecd3", boxShadow: TOP ? "none" : "0 18px 48px rgba(20,12,4,.6)", background: TOP ? "transparent" : hyBg("#fff") }}>
         <Cropped src={src} crop={c} scale={pk} from={startFrame} />
       </div>
       {notes && notes.length ? <NoteCard notes={notes} w={zoneW} /> : null}
@@ -81,5 +85,6 @@ export const SplitScene: React.FC<{ src: string; type: SplitType; startFrame: nu
         <Cropped src={src} crop={SPK} scale={sk} from={startFrame} />
       </div>
     </AbsoluteFill>
+    </HyLevel>
   );
 };

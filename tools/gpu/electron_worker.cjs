@@ -159,7 +159,9 @@ const onMsg = (m) => {
     runQueue(st);
   } else if (m.t === "quit") {
     fs.writeFileSync(path.join(cfg.workDir, `chromevideo_${process.pid}.json`), JSON.stringify(CHROME));
-    for (const st of wins) if (st.mode === "top") fs.writeFileSync(path.join(cfg.workDir, `assets_${process.pid}_${st.k}.json`), JSON.stringify(st.assets));
+    /* `wins` is indexed by the GLOBAL window number: in the 2nd process it starts at windowBase (holes before it). `st &&` (2026-11-13): a hole threw
+       here, so that process never wrote its audio records (silent stretches in videos rendered with --procs 2) */
+    for (const st of wins) if (st && st.mode === "top") fs.writeFileSync(path.join(cfg.workDir, `assets_${process.pid}_${st.k}.json`), JSON.stringify(st.assets));
     send({ t: "bye" });
     setTimeout(() => app.exit(0), 200);
   }

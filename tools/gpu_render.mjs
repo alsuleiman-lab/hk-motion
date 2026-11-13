@@ -78,14 +78,28 @@ const PROPS = (() => { const s = arg("props", null); const j = s && s !== true ?
 const inputProps = { ...PROPS, hybrid: "top", hybridPort: GEOM_PORT, hybridLayers: true };   /* hybridLayers: <HyLayer>/<VSlot z> active (GPU renderer only) */
 const composition = await selectComposition({ serveUrl, id: compId, inputProps, chromiumOptions: { gl: "angle" } });
 const W = composition.width, H = composition.height, FPS = composition.fps;
-const start = Number(arg("start", 0)), end = Math.min(Number(arg("end", composition.durationInFrames - 1)), composition.durationInFrames - 1);
+/* NVENC H.264 refuses tiny frames (measured 2026-11-13: 140×140 "Frame Dimension less than the minimum"): such a composition is an image asset — a still */
+if (W < 160 || H < 160) { console.error(`✘ ${compId} is ${W}×${H}: too small for the NVENC video encoder — it is an image asset; render it as a still (node tools/stills.mjs ${compId} <dir> x:0 --scale 1)`); process.exit(2); }
+const start =Number(arg("start", 0)), end = Math.min(Number(arg("end", composition.durationInFrames - 1)), composition.durationInFrames - 1);
 const NF = end - start + 1;
 log(`${compId}: ${W}x${H} @${FPS}, frames ${start}-${end} (${NF})`);
 
 // ---- static background (rendered once, as in hybrid_any) ----
 t = Date.now();
 const bgPng = path.join(work, "bg.png");
-await renderStill({ composition, serveUrl, inputProps: { ...inputProps, hybrid: "bg" }, output: bgPng, imageFormat: "png", frame: start, chromiumOptions: { gl: "angle" }, overwrite: true });
+/* (2026-11-12) the decorated background (KhBg) has DRIFTING stars, which one static image froze: its three parts are rendered apart too (hyBgPart,
+   src/KhKit.tsx) and the compositor drifts the stars every frame between the gradient and the vignette. No KhBg in the background = an empty stars
+   image, and the compositor keeps the plain static background. One browser for the four stills. */
+const bgParts = { base: path.join(work, "bg_base.png"), stars: path.join(work, "bg_stars.png"), vignette: path.join(work, "bg_vignette.png") };
+{
+  const { openBrowser } = await import("@remotion/renderer");
+  const browser = await openBrowser("chrome", { chromiumOptions: { gl: "angle" } });
+  try {
+    await renderStill({ composition, serveUrl, inputProps: { ...inputProps, hybrid: "bg" }, output: bgPng, imageFormat: "png", frame: start, chromiumOptions: { gl: "angle" }, overwrite: true, puppeteerInstance: browser });
+    for (const [part, file] of Object.entries(bgParts))
+      await renderStill({ composition, serveUrl, inputProps: { ...inputProps, hybrid: "bg", hyBgPart: part }, output: file, imageFormat: "png", frame: start, chromiumOptions: { gl: "angle" }, overwrite: true, puppeteerInstance: browser });
+  } finally { await browser.close({ silent: true }).catch(() => {}); }
+}
 timing.bgSec = (Date.now() - t) / 1000;
 
 // ---- the bundle is served by @remotion/renderer's OWN server (RenderInternals.prepareServer, as renderFrames does): same files, and its /proxy
@@ -145,7 +159,7 @@ const PROCS = Math.max(1, Number(arg("procs", 2)) || 1), WINDOWS = Math.max(1, N
 log("starting the GPU compositor…");
 const video = path.join(work, "video_noaudio.mp4");
 const dump = arg("dump", null);
-const comp_py = spawn(PY, ["-u", "tools/gpu_compositor.py", "--ctl", String(CTL_PORT), "--workers", String(PROCS), "--block", String(BLOCK), "--lookahead", String(arg("lookahead", 240)), "--geom", String(GEOM_PORT), "--out", video, "--bg", bgPng, "--public", `${root}/public`, "--w", String(W), "--h", String(H), "--fps", String(FPS), "--start", String(start), "--end", String(end), ...(NU ? ["--under", UNDER.map(([a, b]) => a + "-" + b).join(",")] : []), ...(dump && dump !== true ? ["--dump", dump] : [])], { cwd: root, stdio: ["ignore", "pipe", "inherit"] });
+const comp_py = spawn(PY, ["-u", "tools/gpu_compositor.py", "--ctl", String(CTL_PORT), "--workers", String(PROCS), "--block", String(BLOCK), "--lookahead", String(arg("lookahead", 240)), "--geom", String(GEOM_PORT), "--out", video, "--bg", bgPng, "--bg-parts", `${bgParts.base}|${bgParts.stars}|${bgParts.vignette}`, "--public", `${root}/public`, "--w", String(W), "--h", String(H), "--fps", String(FPS), "--start", String(start), "--end", String(end), ...(NU ? ["--under", UNDER.map(([a, b]) => a + "-" + b).join(",")] : []), ...(dump && dump !== true ? ["--dump", dump] : [])], { cwd: root, stdio: ["ignore", "pipe", "inherit"] });
 let ready; const readyP = new Promise((res) => (ready = res));
 let pyOut = "";
 const tg0 = Date.now();

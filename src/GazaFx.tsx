@@ -47,7 +47,7 @@ const BgClipInner: React.FC<{ src: string; d: number; fade: number; start: numbe
   return (
     <AbsoluteFill>
       {/* hybrid: the dark veil is applied by the compositor to the clip itself (fx.veil = the same radial gradient), so his GPU cut-out stays on top of it */}
-      {HY ? <VSlot src={src} startFrom={Math.round(start * FPS)} w={W} h={H} vx={(W - vw) / 2} vy={(H - vh) / 2} vw={vw} vh={vh} fx={{ veil: dim }} />
+      {HY ? <VSlot src={src} startFrom={Math.round(start * FPS)} w={W} h={H} vx={(W - vw) / 2} vy={(H - vh) / 2} vw={vw} vh={vh} fx={{ veil: dim }} grow={0} />
         : <ClipVideo src={src} start={start} style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
       {HY ? null : <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 45%, rgba(6,12,22,${dim * 0.5}) 0%, rgba(6,12,22,${dim + 0.25}) 100%)` }} />}
     </AbsoluteFill>
@@ -66,7 +66,7 @@ const BgClipPort: React.FC<{ src: string; start: number; dim: number; iso: PortI
   const kbS = Math.max(W / 1920, H / 1080), bvwS = 1920 * kbS, box_ = Math.min(0, Math.max(W - bvwS, W / 2 - bvwS * (iso.focusX ?? 0.5)));
   return (
     <AbsoluteFill>
-      {none ? null : HY ? <VSlot src={src} startFrom={Math.round(start * FPS)} w={W} h={H} vx={soft ? box_ : (W - bvw) / 2} vy={(H - bvh) / 2} vw={bvw} vh={bvh} fx={bfx} />
+      {none ? null : HY ? <VSlot src={src} startFrom={Math.round(start * FPS)} w={W} h={H} vx={soft ? box_ : (W - bvw) / 2} vy={(H - bvh) / 2} vw={bvw} vh={bvh} fx={bfx} grow={0} />
         : <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}><ClipVideo src={src} start={start} style={{ position: "absolute", left: soft ? box_ : (W - bvw) / 2, top: (H - bvh) / 2, width: bvw, height: bvh, filter: `blur(${bfx.blur}px) brightness(${bfx.brightness})` }} /></div>}
       {HY ? <>
         <VSlot src={src} startFrom={Math.round(start * FPS)} w={bw} h={bh} radius={r} vx={ox} vy={oy} vw={vw} vh={vh} fx={{ veil: dim * 0.6 }} style={{ left: bx, top: by, transform: `rotate(${iso.rot ?? 0}deg)` }} />

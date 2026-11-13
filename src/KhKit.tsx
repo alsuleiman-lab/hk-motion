@@ -41,13 +41,19 @@ export const CropView: React.FC<{ crop: Crop; scale: number; from: number; style
 const STAR = `<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'><g fill='none' stroke='#f3e3c0' stroke-width='1.6'><path d='M70 8 L84 40 L116 26 L102 58 L134 70 L102 82 L116 114 L84 100 L70 132 L56 100 L24 114 L38 82 L6 70 L38 58 L24 26 L56 40 Z'/><circle cx='70' cy='70' r='14'/></g></svg>`;
 
 /** decorated calm-blue background (never black / plain): gradient + slowly drifting star lattice + vignette */
-export const KhBg: React.FC<{ a?: string; b?: string; c?: string; star?: number }> = ({ a: a0, b: b0, c: c0, star = 0.16 }) => {
+/** star drift of KhBg, px per frame (x, y) — the GPU compositor reproduces it (tools/gpu_compositor.py, --stars-drift); keep both in step */
+export const KHBG_DRIFT = [0.25, 0.15] as const;
+export const KhBg: React.FC<{ a?: string; b?: string; c?: string; star?: number }> =({ a: a0, b: b0, c: c0, star = 0.16 }) => {
   const f = useCurrentFrame(), [da, db, dc] = currentStars(), a = a0 ?? da, b = b0 ?? db, c = c0 ?? dc;   // default colours follow the video's palette
+  /* (2026-11-12) GPU renderer: the static background (<HybridBg>) is rendered once, which froze the drifting stars. tools/gpu_render.mjs renders its
+     three parts apart (inputProps hyBgPart = "base" | "stars" | "vignette", the stars at position 0 0) and the compositor drifts the stars per frame
+     with the same 0.25 / 0.15 px per frame (KHBG_DRIFT). Without that prop: as always. */
+  const part = (getInputProps() as { hyBgPart?: string }).hyBgPart;
   return (
     <AbsoluteFill>
-      <AbsoluteFill style={{ background: `linear-gradient(135deg, ${a}, ${b} 52%, ${c})` }} />
-      <AbsoluteFill style={{ backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(STAR)}")`, backgroundSize: "140px 140px", backgroundPosition: `${f * 0.25}px ${f * 0.15}px`, opacity: star }} />
-      <AbsoluteFill style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(20,14,8,.30) 100%)" }} />
+      {!part || part === "base" ? <AbsoluteFill style={{ background: `linear-gradient(135deg, ${a}, ${b} 52%, ${c})` }} /> : null}
+      {!part || part === "stars" ? <AbsoluteFill style={{ backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(STAR)}")`, backgroundSize: "140px 140px", backgroundPosition: part ? "0px 0px" : `${f * KHBG_DRIFT[0]}px ${f * KHBG_DRIFT[1]}px`, opacity: star }} /> : null}
+      {!part || part === "vignette" ? <AbsoluteFill style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(20,14,8,.30) 100%)" }} /> : null}
     </AbsoluteFill>
   );
 };

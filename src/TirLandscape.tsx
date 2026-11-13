@@ -8,6 +8,7 @@ import { SFX_LEVELS, WHOOSH_EVERY } from "./sfxConfig";
 import splits from "../public/tir_split_segments_v4.json";
 import { cut, TIR_CUT_SECONDS } from "./tirTime";
 import { DEBUG, TirVid, TIR_SRC, TOP } from "./TirVideo";
+import { HY, HybridBg, HybridHost, hyBg } from "./hybrid/Slot";
 import { ExplainerScene } from "./TirExplainers";
 import { BEHIND, BOOKS, BROLL, NAME_AT, QUOTES, SCENES, SUBSCRIBE_AT, ZOOMS } from "./tirData";
 export { BEHIND, BOOKS, BROLL, NAME_AT, QUOTES, SUBSCRIBE_AT, ZOOMS };
@@ -48,7 +49,7 @@ export const Board: React.FC<{ src: string; dur: number }> = ({ src, dur }) => {
     <div style={{ position: "absolute", left: 60, top: 70, width: 640, height: 360, opacity: Math.min(1, inP * 1.6) * (1 - out), transform: `translateY(${(1 - inP) * -90}px) rotate(${-2 + swing}deg) scale(${0.9 + 0.1 * inP})`, transformOrigin: "top center" }}>
       <div style={{ position: "absolute", left: 90, top: -70, width: 6, height: 80, background: "repeating-linear-gradient(180deg,#bfa56a 0 8px,#7a5a26 8px 14px)" }} />
       <div style={{ position: "absolute", right: 90, top: -70, width: 6, height: 80, background: "repeating-linear-gradient(180deg,#bfa56a 0 8px,#7a5a26 8px 14px)" }} />
-      <div style={{ width: "100%", height: "100%", borderRadius: 14, overflow: "hidden", border: "14px solid #7a4b2a", boxShadow: TOP ? "none" : "0 22px 50px rgba(40,25,10,.55), inset 0 0 0 4px #c9a36a" }}>
+      <div style={{ width: "100%", height: "100%", borderRadius: 14, overflow: "hidden", border: "14px solid #7a4b2a", boxShadow: TOP ? "none" : HY ? "0 22px 50px rgba(40,25,10,.55)" /* the inset ring lies under the video (covered by it): not in the graphics layer */ : "0 22px 50px rgba(40,25,10,.55), inset 0 0 0 4px #c9a36a" }}>
         <TirVid src={staticFile(src)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       </div>
     </div>
@@ -172,7 +173,9 @@ export const TirContent: React.FC<{ names?: boolean }> = ({ names = true }) => (
 );
 
 export const TirLandscape: React.FC = () => (
-  <AbsoluteFill style={{ background: TOP ? "transparent" : C.navy }}>
+  <HybridHost>
+  <AbsoluteFill style={{ background: TOP ? "transparent" : hyBg(C.navy) }}>
+    {HY ? <HybridBg><AbsoluteFill style={{ background: C.navy }} /></HybridBg> : null}
     {DEBUG.includes("noshadow") ? <style>{`*{box-shadow:none!important;text-shadow:none!important;-webkit-text-stroke:0!important;filter:none!important;backdrop-filter:none!important}`}</style> : null}
     <TirContent />
     <TitleBar title={TIR_TITLE} />
@@ -180,11 +183,14 @@ export const TirLandscape: React.FC = () => (
       <Cover />
     </Sequence>
   </AbsoluteFill>
+  </HybridHost>
 );
 
 /** THE 3-MINUTE ESSENCE: pieces of the edit played back to back; frames inside each piece are the lesson's own frames (nested negative-offset Sequence), so every scene/geometry is unchanged. The timer starts at 0. */
 export const TirShort: React.FC = () => (
-  <AbsoluteFill style={{ background: TOP ? "transparent" : C.navy }}>
+  <HybridHost>
+  <AbsoluteFill style={{ background: TOP ? "transparent" : hyBg(C.navy) }}>
+    {HY ? <HybridBg><AbsoluteFill style={{ background: C.navy }} /></HybridBg> : null}
     {SHORT_SEGS.map((g, i) => (
       <Sequence key={i} from={g.s} durationInFrames={g.n} layout="none">
         <Sequence from={-g.a} layout="none">
@@ -203,4 +209,5 @@ export const TirShort: React.FC = () => (
       <Cover />
     </Sequence>
   </AbsoluteFill>
+  </HybridHost>
 );

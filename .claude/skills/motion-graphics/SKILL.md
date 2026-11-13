@@ -12,7 +12,13 @@ description: «مكتبة الموشن جرافيك» — explanatory graphics f
 > 2. **ما يُرسم تحت الفيديو** (أرضية النافذة، الورقة، إطار الهاتف، الظل): `<HyLayer z>` مع `<VSlot z>`، أو `hyBg(لون)`، أو `<HybridBg>` للثابت، أو `<UnderHim>` لما تحت الشيخ المعزول. وما فوقه يبقى في الطبقة العادية.
 > 3. **ما لا يدعمه المركِّب بعدُ** (`mask` و`clip-path` و`mix-blend-mode` على الفيديو، وفلاتر CSS أخرى): يُضاف إلى المركِّبين معاً (`tools/gpu_compositor.py` و`tools/hybrid_generic.py`، بالنص نفسه) قبل استعمال العنصر، ولا يُترك للمتصفح.
 > 4. **الفحص الآلي:** `node tools/gpu/video_lint.mjs` (يعمل داخل `node tools/stage.mjs check`) يرفض أي فيديو جديد يفكّه المتصفح في مسار المونتاج. لا يُحدَّث أساسه (`--update-baseline`) لتمرير عنصر جديد.
-> 5. **قبل اعتماد العنصر:** رندر قصير له بـ `node tools/gpu_render.mjs --comp <Id> --start A --end B --out .tmp/gpu_render/<x>.mp4 --no-bumper --dump "dir:إطارات"`، و`chromeVideo` في تقريره فارغ، ثم يُقارَن بلقطات Remotion (`node tools/stills.mjs … --scale 1`) بالعين وبالأرقام. الشكل في المعرض وفي الرندر واحد.
+> 5. **قبل اعتماد العنصر:** رندر قصير له بـ `node tools/gpu_render.mjs --comp <Id> --start A --end B --out .tmp/gpu_render/<x>.mp4 --no-bumper --dump "dir:إطارات"`، و`chromeVideo` في تقريره فارغ، ثم يُقارَن بلقطات Remotion (`node tools/stills.mjs … --scale 1`) بالعين وبالأرقام. الشكل في المعرض وفي الرندر واحد. (أو `node tools/gpu/all_comps_check.mjs --ids <Id>` يفعل الثلاثة.)
+>
+> **كود قديم أو مكوّن معقّد المواضع:**
+> - `<HyVideo>` (`src/hybrid/Slot.tsx`) بديل مباشر لـ `<OffthreadVideo>` بالخصائص نفسها: يقيس موضعه وقصّه من الصفحة.
+> - مشهد يغطي فيديو كامل الإطار تحته يُلفّ بـ `<HyLevel z={1}>`.
+> - والتركيبة كلها داخل `<HybridHost>`.
+> - مثاله دروس Tir (`TirVideo.tsx`، `UnderV`).
 
 
 تتقدّم قواعد `PREFERENCES.md` و`WORKFLOW_CHECKLIST.md` على الأمثلة المرجعية أدناه. المقاطع الزمنية توثّق ما ظهر في فيديو مرجعي، وليست قائمة ألوان أو قوالب يجب نسخها؛ أعد تكييف كل عنصر مع التفضيلات الحالية، واحذف ما يتعارض معها.

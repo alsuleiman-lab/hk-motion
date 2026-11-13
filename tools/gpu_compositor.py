@@ -23,6 +23,8 @@ ap.add_argument("--mark-rows", type=int, default=8)
 ap.add_argument("--geom", type=int, required=True)     # slot geometry POSTs from the page
 ap.add_argument("--out", required=True)
 ap.add_argument("--bg", default="")                    # static background PNG (rendered once with {hybrid:"bg"})
+ap.add_argument("--bg-parts", default="")              # "base|stars|vignette" PNGs of the decorated background (KhBg), stars at position 0 0
+ap.add_argument("--stars-drift", default="0.25,0.15")  # KhBg star drift, px per frame (src/KhKit.tsx KHBG_DRIFT)
 ap.add_argument("--public", required=True)             # real public/ folder (video sources)
 ap.add_argument("--w", type=int, default=1920)
 ap.add_argument("--h", type=int, default=1080)
@@ -561,6 +563,72 @@ else:
     BG = torch.zeros(3, H, W, device=dev)
 
 
+def _prem(path):
+    """a PNG with alpha -> (premultiplied RGB 0..255 (3,H,W), alpha 0..1 (1,H,W)) on the GPU, or None"""
+    im = cv2.imread(path, cv2.IMREAD_UNCHANGED) if path and os.path.exists(path) else None
+    if im is None or im.ndim != 3 or im.shape[2] != 4:
+        return None
+    t = torch.from_numpy(np.ascontiguousarray(im[..., [2, 1, 0, 3]])).to(dev).permute(2, 0, 1).float()
+    al = t[3:4] / 255.0
+    return t[:3] * al, al
+
+
+# (2026-11-12) the decorated background's stars DRIFT (KhBg: background-position = frame × 0.25 / 0.15 px). The static background froze them; with its
+# three parts rendered apart (tools/gpu_render.mjs) the background of every frame is: gradient, then the stars shifted for that frame, then the vignette.
+# The star layer is periodic (140 px × the composition's scale, found by autocorrelation), so a shift = sampling the frame-0 stars at a wrapped position.
+STARS = None
+if a.bg_parts:
+    _pb, _ps, _pv = (a.bg_parts.split("|") + ["", "", ""])[:3]
+    _base, _st, _vig = _prem(_pb), _prem(_ps), _prem(_pv)
+    _m = (_base[1][0] > 0.5).nonzero() if _base is not None else None
+    if _m is not None and _m.numel() and _st is not None and _vig is not None and float(_st[1].max()) > 0.01:
+        _y0, _x0, _y1, _x1 = int(_m[:, 0].min()), int(_m[:, 1].min()), int(_m[:, 0].max()) + 1, int(_m[:, 1].max()) + 1
+    else:
+        _y0 = _x0 = _y1 = _x1 = 0
+    if _x1 - _x0 >= 300 and _y1 - _y0 >= 300:   # a real background area (not a 140 px asset, not an empty image): else the plain static background
+
+        def _period(sig, lo=100, hi=200):   # autocorrelation peak of a 1-D profile, sub-pixel (parabola)
+            s = sig - sig.mean()
+            f = torch.fft.rfft(s, n=2 * s.numel())
+            ac = torch.fft.irfft(f * f.conj())[: s.numel()]
+            k = int(torch.argmax(ac[lo:hi])) + lo
+            y0, y1, y2 = float(ac[k - 1]), float(ac[k]), float(ac[k + 1])
+            den = y0 - 2 * y1 + y2   # negative at a peak
+            return k + (0.5 * (y0 - y2) / den if abs(den) > 1e-12 else 0.0)
+
+        _a = _st[1][0, _y0:_y1, _x0:_x1]
+        PX, PY = _period(_a.mean(0)), _period(_a.mean(1))
+        _dx, _dy = (float(v) for v in a.stars_drift.split(","))
+        _sc = (PX / 140.0 + PY / 140.0) / 2   # the composition's scale (MontageSpec's root scale), applied to the drift too
+        _inside = torch.zeros(1, H, W, device=dev)
+        _inside[:, _y0:_y1, _x0:_x1] = 1
+        if abs(PX - PY) > 2 or not 0.8 < _sc < 1.2:   # not the KhBg star tile: keep the static background
+            print(f"background: star period not found ({PX:.1f} x {PY:.1f} px): static background", flush=True)
+        else:
+            STARS = {"base": _base[0], "st": torch.cat([_st[0], _st[1]], 0)[None], "vig": _vig, "box": (_x0, _y0, _x1, _y1), "inside": _inside,
+                     "drift": (_dx * _sc, _dy * _sc), "snap": os.environ.get("GR_STAR_SNAP", "none")}
+            print(f"background: drifting stars, period {PX:.2f} x {PY:.2f} px (scale {_sc:.4f}), area {_x0},{_y0}-{_x1},{_y1}", flush=True)
+
+
+def bg_for(fno):
+    """the background of comp frame `fno`: the static image, or (KhBg) gradient + that frame's stars + vignette"""
+    if STARS is None:
+        return BG.clone()
+    S = STARS
+    ox, oy = fno * S["drift"][0], fno * S["drift"][1]
+    if S["snap"] == "round":
+        ox, oy = round(ox), round(oy)
+    x0, y0, x1, y1 = S["box"]
+    px_, py_ = PX, PY
+    u = x0 + 2 + torch.remainder(xs - ox - (x0 + 2), px_)          # wrapped back into the first period inside the stars' area
+    v = y0 + 2 + torch.remainder(ys - oy - (y0 + 2), py_)
+    g = torch.stack([u / W * 2 - 1, v / H * 2 - 1], -1)[None]
+    sv = F.grid_sample(S["st"], g, mode="bilinear", padding_mode="border", align_corners=False)[0] * S["inside"]
+    out = S["base"] * (1.0 - sv[3:4]) + sv[:3]
+    out = out * (1.0 - S["vig"][1]) + S["vig"][0]
+    return out
+
+
 def rrect_sdf(qx, qy, hx, hy, r):
     px = qx.abs() - (hx - r)
     py = qy.abs() - (hy - r)
@@ -608,9 +676,10 @@ VEIL_RGB = torch.tensor([6.0, 12.0, 22.0], device=dev).view(3, 1, 1)  # BgClip v
 def draw_slot(out, s, src, mat=None):
     if s.get("fit") in ("cover", "contain"):   # (2026-11-12) VSlot fit: objectFit of the REAL source size in the box, centred
         sh0, sw0 = src.shape[1:]
-        kf = (max if s["fit"] == "cover" else min)(s["w"] / sw0, s["h"] / sh0)
+        fx0_, fy0_, fw0_, fh0_ = s.get("fr", (0, 0, s["w"], s["h"]))   # the rect the picture is fitted in (HyVideo: its own box; else the clip box)
+        kf = (max if s["fit"] == "cover" else min)(fw0_ / sw0, fh0_ / sh0)
         px_, py_ = s.get("fp", (0.5, 0.5))   # objectPosition as fractions (CSS: offset = (box - picture) * p)
-        s = dict(s, vw=sw0 * kf, vh=sh0 * kf, vx=(s["w"] - sw0 * kf) * px_, vy=(s["h"] - sh0 * kf) * py_)
+        s = dict(s, vw=sw0 * kf, vh=sh0 * kf, vx=fx0_ + (fw0_ - sw0 * kf) * px_, vy=fy0_ + (fh0_ - sh0 * kf) * py_)
         if s.get("fz"):   # then a zoom z about the box point (ox, oy): CSS transform scale(z) with transform-origin there
             z_, ox_, oy_ = s["fz"]
             s = dict(s, vx=ox_ + z_ * (s["vx"] - ox_), vy=oy_ + z_ * (s["vy"] - oy_), vw=s["vw"] * z_, vh=s["vh"] * z_)
@@ -654,7 +723,10 @@ def draw_slot(out, s, src, mat=None):
         src = F.interpolate(src[None], size=(nh, nw), mode="bilinear", antialias=True, align_corners=False)[0]
     gx = (qx - s["vx"]) / s["vw"] * 2 - 1
     gy = (qy - s["vy"]) / s["vh"] * 2 - 1
-    smp = F.grid_sample(src[None], torch.stack([gx, gy], -1)[None], mode="bilinear", padding_mode="border", align_corners=False)[0]
+    up_ = os.environ.get("GR_UPSCALE", "bilinear") if (kx > 1.05 or ky > 1.05) else "bilinear"   # (2026-11-13 test) enlargement filter
+    smp = F.grid_sample(src[None], torch.stack([gx, gy], -1)[None], mode=up_, padding_mode="border", align_corners=False)[0]
+    if up_ == "bicubic":
+        smp = smp.clamp(0, 255)
     smp = apply_fx(smp, s["fx"], scl)
     veil = s["fx"].get("veil", 0)
     if veil:  # (2026-11-12) BgClip's dark veil = CSS radial-gradient(ellipse at 50% 45%, rgba(6,12,22,veil*.5) 0%, rgba(6,12,22,veil+.25) 100%), farthest-corner, in the box
@@ -774,7 +846,7 @@ for i in range(NF):
         NOHOST.discard(fno)
         out = torch.zeros_like(BG)
     else:
-        out = BG.clone()
+        out = bg_for(fno)
     if os.environ.get("HY_DEBUG"): print("SLOTS", fno, json.dumps(slots)[:900], flush=True)
     # stacking (2026-11-12): layer 0 → plain videos z=0 → layer 1 → plain videos z=1 → … → under-him layer → masked cut-outs → top layer
     plain = [x for x in slots if not x.get("mt")]

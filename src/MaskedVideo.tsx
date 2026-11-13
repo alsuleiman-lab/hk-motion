@@ -121,5 +121,5 @@ type MVProps = React.ComponentProps<typeof MaskedVideoInner> & { /** hybrid rend
 /* hybrid render (2026-11-12, user: «نقل العزل كله إلى كرت الشاشة»): the cut-out is a masked <VSlot> — the compositor decodes the video AND the matte with NVDEC
    and applies alpha = matte red (+ the floor) exactly like the WebGL shader below; Chrome draws nothing per frame (was 6.4 fps with JPEG frames, 2.6 with videos) */
 export const MaskedVideo: React.FC<MVProps> = ({ gpu, ...p }) => (GFX_ONLY ? <div style={{ position: "absolute", width: p.width ?? 1920, height: p.height ?? 1080 }} />
-  : HY && gpu ? <VSlot src={p.video} startFrom={p.videoStartFrom ?? 0} w={p.width ?? 1920} h={p.height ?? 1080} style={p.style} matte={{ src: p.matte, startFrom: p.matteStartFrom ?? 0, floor: p.floor ?? 0 }} />
+  : HY && gpu ? <VSlot src={p.video} startFrom={p.videoStartFrom ?? 0} w={p.width ?? 1920} h={p.height ?? 1080} style={p.style} matte={{ src: p.matte, startFrom: p.matteStartFrom ?? 0, floor: p.floor ?? 0 }} grow={0} />
   : <MaskedVideoInner {...p} />);

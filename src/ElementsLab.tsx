@@ -1,5 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
-import { AbsoluteFill, OffthreadVideo, Sequence, staticFile, useVideoConfig } from "remotion";
+import { AbsoluteFill, Sequence, staticFile, useVideoConfig } from "remotion";
+import { HybridHost, HyVideo, hyBg } from "./hybrid/Slot";
 import {
   Bars, BlurRise, BrushX, Clock, CollageAssemble, ConvergeMerge, CornerTags, DashArc, EllipseMark, FlashCut, GlowCounter,
   Highlight, MGTheme, NoteCard, PanelToCanvas, PhoneChips, PinnedPhoto,
@@ -48,11 +49,11 @@ const Page: React.FC = () => (
   <AbsoluteFill style={{ background: "#efe6d0" }}><Real src="books/bukhari2.jpg" pos="50% 35%" /></AbsoluteFill>
 );
 const Rec: React.FC<{ style?: React.CSSProperties }> = ({ style }) => (
-  <OffthreadVideo src={staticFile(GALLERY_CUT)} muted style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080, objectFit: "cover", ...style }} />
+  <HyVideo src={staticFile(GALLERY_CUT)} muted style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080, objectFit: "cover", ...style }} />
 );
 /** his real frame behind the element, never shifted, blurred or scaled: the screen is not split here (only verses and hadiths split it — user 2026-10-30) */
 const Stage: React.FC<{ id: string; children: React.ReactNode }> = ({ children }) => (
-  <><AbsoluteFill style={{ background: BRAND.base }}><Rec /></AbsoluteFill>{children}</>
+  <><AbsoluteFill style={{ background: hyBg(BRAND.base) }}><Rec /></AbsoluteFill>{children}</>
 );
 /** the stars background in the dark paper colour of the palette, read at render time so it follows the colour pattern (user 2026-10-30: «ألوانها تتغير مع النمط اللوني») */
 const BgKhLive: React.FC<{ brand?: BrandName }> = () => <KhBg a={BRAND.navy} b={BRAND.navy} c={BRAND.navyDeep} />;
@@ -97,13 +98,13 @@ const SPEC_E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   PaperCover: { node: <PaperCoverKit format="landscape" line1="عنوان الغلاف" line2="سطر تحت العنوان" /> },
   PushIn: { node: (
     <AbsoluteFill style={{ transform: "scale(1.08)", transformOrigin: "51.6% 30.5%" }}>
-      <OffthreadVideo src={staticFile(GALLERY_CUT)} muted style={{ width: 1920, height: 1080 }} />
+      <HyVideo src={staticFile(GALLERY_CUT)} muted style={{ width: 1920, height: 1080 }} />
     </AbsoluteFill>) },
 };
 /** the ten name-tag designs (src/NameCards.tsx), each over a real frame at the name-tag line under the chin */
 const NAME_E: Record<string, { node: React.ReactNode }> = Object.fromEntries(Object.entries(NAME_CARDS).map(([id, C]) => [
   id,
-  { node: <><OffthreadVideo src={staticFile(GALLERY_CUT)} muted style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080 }} /><C at={0.2} x={960} y={880} /></> },
+  { node: <><HyVideo src={staticFile(GALLERY_CUT)} muted style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080 }} /><C at={0.2} x={960} y={880} /></> },
 ]));
 const E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   StatRow: { node: <><Banner at={0.1} x={560} y={170} w={800} text="إيطاليا: ضيق المعيشة" size={48} flag="it" /><StatRow at={0.4} countAt={0.6} x={560} y={330} w={800} h={170} icon="Banknote" label="بند فيه رقم (2024)" sub="سطر صغير يوضّح" to={322} unit="مليون يورو" rot={-1} big={84} flag="fr" /><StatRow at={0.8} x={560} y={530} w={800} h={150} icon="Wallet" label="والبند الثاني من كلامه" rot={1} /></> },
@@ -138,7 +139,7 @@ const E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   CornerTags: { node: <CornerTags right={["الموضوع", "الحكم"]} left={["محمد بن شمس الدين"]} y={120} size={34} /> },
   DashArc: { node: <><PinnedPhoto at={0.1} x={1260} y={300} w={300} h={380} name="ابن عثيمين"><Real src="people/ibn_uthaymeen.jpg" pos="50% 15%" /></PinnedPhoto><PinnedPhoto at={0.5} x={360} y={300} w={300} h={380} name="أحمد الطيب"><Real src="broll/ahmed_el_tayeb.jpg" pos="50% 15%" /></PinnedPhoto><DashArc at={0.9} x1={1260} y1={420} x2={660} y2={420} lift={160} /></> },
   PaperMap: { node: <PaperMap at={0.1} until={3} x={460} y={140} w={1000} h={800} center={[36, 38]} spanLat={10} highlight={["Syria"]} pts={[{ name: "دمشق", lon: 36.3, lat: 33.5, at: 0.3 }, { name: "حلب", lon: 37.2, lat: 36.2, at: 0.7 }]} legs={[{ from: [36.3, 33.5], to: [37.2, 36.2], at: 1.0, dur: 1, car: true }]} /> },
-  HandheldShake: { node: <HandheldShake windows={[{ from: 0.2, to: 2.8 }]} amp={6} rot={0.4}><OffthreadVideo src={staticFile(GALLERY_CUT)} muted /></HandheldShake> },
+  HandheldShake: { node: <HandheldShake windows={[{ from: 0.2, to: 2.8 }]} amp={6} rot={0.4}><HyVideo src={staticFile(GALLERY_CUT)} muted style={{ width: 1920, height: 1080 }} /></HandheldShake> },
 };
 
 /** the studio composition shows the elements drawn here (a transition that only TransitionsLab draws, like TrSection, is left out) */
@@ -156,7 +157,7 @@ const G = GRIDS as unknown as Record<Orient, Record<string, { slots?: Record<str
 export const slotRect = (o: Orient, mode: Mode, slot: string): Rect | null => { const r = G[o]?.[mode]?.slots?.[slot]?.rect; return r ? [r[0], r[1], r[2] - r[0], r[3] - r[1]] : null; };
 /** his face centre in the gallery clip (face track of public/gallery_silent_clip.mp4: x 811–1121); the portrait crop keeps it in the middle, as SheikhLayers does */
 const FACE_CX = 966, PK = 1920 / 1080, PORT_LEFT = Math.round(540 - FACE_CX * PK), PORT_W = Math.round(1920 * PK);
-const PortRec: React.FC = () => <OffthreadVideo src={staticFile(GALLERY_CUT)} muted style={{ position: "absolute", top: 0, left: PORT_LEFT, width: PORT_W, height: 1920 }} />;
+const PortRec: React.FC = () => <HyVideo src={staticFile(GALLERY_CUT)} muted style={{ position: "absolute", top: 0, left: PORT_LEFT, width: PORT_W, height: 1920 }} />;
 const Him: React.FC<{ o: Orient }> = ({ o }) => (o === "land" ? <Rec /> : <PortRec />);
 const HimCut: React.FC<{ o: Orient }> = ({ o }) => (o === "land"
   ? <MaskedVideo video={GALLERY_CUT} matte={GALLERY_MATTE} width={1920} height={1080} />
@@ -180,9 +181,9 @@ const HalfBase: React.FC<{ o: Orient; source: boolean }> = ({ o, source }) => {
   if (o === "land") return <DebateDossier at={0} main={{ src: GALLERY_CUT }} guest={{ src: OPP, aspect: 544 / 720 }} />;
   const p = slotRect("port", "half", "panel")!;
   return (
-    <AbsoluteFill style={{ background: BRAND.base }}>
+    <AbsoluteFill style={{ background: hyBg(BRAND.base) }}>
       <AbsoluteFill style={{ transform: "scale(0.66)", transformOrigin: "50% 0%" }}><PortRec /></AbsoluteFill>
-      {source ? <div style={{ position: "absolute", left: p[0], top: p[1], width: p[2], height: p[3], borderRadius: 18, overflow: "hidden", border: `6px solid ${BRAND.card}`, boxSizing: "border-box" }}><OffthreadVideo src={staticFile(OPP)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div> : null}
+      {source ? <div style={{ position: "absolute", left: p[0], top: p[1], width: p[2], height: p[3], borderRadius: 18, overflow: "hidden", border: `6px solid ${BRAND.card}`, boxSizing: "border-box" }}><HyVideo src={staticFile(OPP)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div> : null}
     </AbsoluteFill>
   );
 };
@@ -293,6 +294,7 @@ export const ElementsLab: React.FC = () => {
   useFonts();
   return (
     <MGTheme theme="steel">
+      <HybridHost>
       <AbsoluteFill>
         {LAB_ITEMS.map((m, i) => {
           const e = E[m.id] ?? SPEC_E[m.id] ?? NAME_E[m.id], real = realScene(m.id);
@@ -307,6 +309,7 @@ export const ElementsLab: React.FC = () => {
           );
         })}
       </AbsoluteFill>
+      </HybridHost>
     </MGTheme>
   );
 };

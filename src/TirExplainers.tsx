@@ -6,7 +6,8 @@ import { loadFont as loadRakkas } from "@remotion/google-fonts/Rakkas";
 import { cairo } from "./Scenes";
 import { lalezar } from "./RefStyle";
 import { cut } from "./tirTime";
-import { STUDIO, TirVid, TOP } from "./TirVideo";
+import { STUDIO, TirVid, TOP, UnderV } from "./TirVideo";
+import { HyLevel } from "./hybrid/Slot";
 /** soft drop shadow; none in the graphics-only hybrid pass, a cheap one in the Studio preview */
 const sh = (s: string) => (TOP ? "none" : STUDIO ? "0 4px 10px rgba(20,12,4,.4)" : s);
 
@@ -214,6 +215,7 @@ export const ExplainerScene: React.FC<{ scene: Scene; src: string; startFrame: n
   const size = portrait ? Math.round(size0 * 1.12) : size0;
   const titleSize = 76;
   return (
+    <HyLevel z={1}>{/* GPU renderer: the explainer covers the lesson's full-frame video (level 0): its background and videos one level above */}
     <AbsoluteFill style={{ opacity: a }}>
       {/* user's favourite style: the speaker video enlarged behind the writing under a blue veil + stars, and the speaker again in the side card (hybrid renderer draws the video + veil itself) */}
       {TOP || !videoBg ? null : (
@@ -223,9 +225,11 @@ export const ExplainerScene: React.FC<{ scene: Scene; src: string; startFrame: n
         </AbsoluteFill>
       )}
       {videoBg ? <div style={{ position: "absolute", left: 0, top: 0, width: 1920 - spkW - PAD * 2, height: 1080, backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(STAR)}")`, backgroundSize: "140px 140px", backgroundPosition: STUDIO ? "0px 0px" : `${f * 0.25}px ${f * 0.15}px`, opacity: 0.2 }} /> : null}
-      {TOP || videoBg ? null :<AbsoluteFill style={{ background: "linear-gradient(135deg, #24456e, #2f5f94 48%, #6b4630)" }} />}
-      {TOP || videoBg ? null :<AbsoluteFill style={{ backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(STAR)}")`, backgroundSize: "140px 140px", backgroundPosition: STUDIO ? "0px 0px" : `${f * 0.25}px ${f * 0.15}px`, opacity: 0.2 }} />}
-      {TOP || videoBg ? null :<AbsoluteFill style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(25,15,8,.32) 100%)" }} />}
+      {videoBg ? null : <UnderV>{/* the designed background under the speaker's card (GPU renderer: a layer below the videos) */}
+        <AbsoluteFill style={{ background: "linear-gradient(135deg, #24456e, #2f5f94 48%, #6b4630)" }} />
+        <AbsoluteFill style={{ backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(STAR)}")`, backgroundSize: "140px 140px", backgroundPosition: STUDIO ? "0px 0px" : `${f * 0.25}px ${f * 0.15}px`, opacity: 0.2 }} />
+        <AbsoluteFill style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(25,15,8,.32) 100%)" }} />
+      </UnderV>}
       {/* written side */}
       <div style={{ position: "absolute", left: PAD - slide, top: 0, width: zoneW, height: portrait ? 1010 : 1080, direction: "rtl" }}>
         <div style={{ position: "absolute", left: 20, right: 20, top: 58, display: "flex", justifyContent: "center" }}>
@@ -271,5 +275,6 @@ export const ExplainerScene: React.FC<{ scene: Scene; src: string; startFrame: n
         </div>
       </div>
     </AbsoluteFill>
+    </HyLevel>
   );
 };

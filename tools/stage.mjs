@@ -124,6 +124,7 @@ if (stage === "cut") {
   const prepConfig = fs.existsSync(cfgFile) ? JSON.parse(fs.readFileSync(cfgFile, "utf8")) : {};
   const src = prepConfig.source ?? path.join("public", `${p}_src.mp4`), mapF = path.join("public", `${p}_map.json`), wav = path.join(T, "cut.wav");
   const rem = (opt("rem", "") || "").split(",").filter(Boolean).map((r) => r.split("-").map(Number));
+  try { for (const d of JSON.parse(fs.readFileSync(path.join(T, "stray_drops.json"), "utf8"))) rem.push(d.range); say(`stray drops: ${rem.length} range(s) incl. stray_drops.json`); } catch { /* none yet */ }   // (2026-11-13) a leftover sound found by stray_find.py stays removed in every rebuild
   { const r = await must("vad_onset_fix", PY, ["tools/vad_onset_fix.py", p]); say(r.out.trim().split("\n").pop()); }   // never start a segment inside a word (first syllable clipped)
   const vad = JSON.parse(fs.readFileSync(path.join(T, "vad.json"), "utf8")).speech;
   let segs = [];
@@ -159,6 +160,7 @@ if (stage === "cut") {
   writeMap();
   // pauses > 0.40 s: trim them at the nearest join (65% from the end of the left segment, 35% from the start of the right one), then re-check
   for (let round = 0; round < 4; round++) {
+    { const jp = await run(PY, ["-I", "tools/join_polish.py", p]); say(jp.out.trim().split(String.fromCharCode(10)).slice(-2).join(" | ")); if (jp.code !== 0) { say("✘ join_polish — حافة بلا صمت: عالجها بـ--rem أو cut_at"); finish(1); } segments = JSON.parse(fs.readFileSync(mapF, "utf8")).segments; }   // (2026-11-13) every edge → real silence: no leftover of a deleted word, no clipped word
     await must("audio cut", "node", ["tools/cut_edl.mjs", "audio", src, mapF, wav]);
     const pc = await run(PY, ["tools/pause_check.py", wav, "0.40"]);
     let pauses = []; try { pauses = JSON.parse((pc.out.split("\n")[1] ?? "[]").trim()); /* same parsing as audio_gate.mjs */ } catch { /* none */ }
@@ -179,13 +181,18 @@ if (stage === "cut") {
     writeMap();
     if (!fixed) break;
   }
+  { const jp = await run(PY, ["-I", "tools/join_polish.py", p]); say(jp.out.trim().split(String.fromCharCode(10)).slice(-2).join(" | ")); if (jp.code !== 0) { say("✘ join_polish — حافة بلا صمت"); finish(1); } segments = JSON.parse(fs.readFileSync(mapF, "utf8")).segments; await must("audio cut", "node", ["tools/cut_edl.mjs", "audio", src, mapF, wav]); }
   const gate = await run("node", ["tools/audio_gate.mjs", p, "--cut", wav, "--map", mapF, "--tr", path.join(T, "tr_vad.json"), "--src16k", path.join(T, "a16k.wav"), "--audio", wav, ...(opt("keep", "") ? ["--keep", opt("keep", "")] : [])]);
   if (gate.code !== 0 && process.env.SKIP_GATE === "1") say("⚠ audio_gate متجاوَز (SKIP_GATE) — يُفحص كل مقطع بعد التقسيم");
   else if (gate.code !== 0) { say(`✘ audio_gate — ${gate.out.trim().split("\n").slice(-6).join(" | ")}`); say("fix with --rem (source seconds) and re-run this stage; nothing was built"); finish(1); }
   say("audio_gate ✔");
+  // VOICE CLEAN-UP (user 2026-11-13, picked by ear: «الشبكة الصغيرة لإزالة الضجيج» = RNNoise, tools/audio_clean.mjs): his voice only, after the gate, before any sfx/bumper mix
+  const wavClean = wav.replace(/.wav$/i, "_clean.wav");
+  await must("voice clean-up", "node", ["tools/audio_clean.mjs", wav, wavClean]);
+  say("voice clean-up ✔ (RNNoise)");
   if (prepConfig.audioOnly) {
     const audioAsset = path.join("public", p, `voice_${Date.now()}.wav`);
-    fs.copyFileSync(wav, audioAsset);
+    fs.copyFileSync(wavClean, audioAsset);
     fs.writeFileSync(cfgFile, JSON.stringify({ ...prepConfig, cutAudio: audioAsset }, null, 2));
     const cutWords = remapWords(JSON.parse(fs.readFileSync(path.join(T, "words_vad.json"), "utf8")), JSON.parse(fs.readFileSync(mapF, "utf8")).segments);
     fs.writeFileSync(path.join(T, "cut_words.json"), JSON.stringify(cutWords));
@@ -197,7 +204,7 @@ if (stage === "cut") {
     finish(0);
   }
   const cut = path.join("public", `${p}_cut.mp4`);
-  await must("NVENC build", "node", ["tools/cut_edl.mjs", "build", src, mapF, cut]);
+  await must("NVENC build", "node", ["tools/cut_edl.mjs", "build", src, mapF, cut, "--audio-from", wavClean]);
   // duplicated frames of the recording (frame-rate conversion) make the motion judder: ALWAYS smooth them right here (PREFERENCES §6 «تسجيلاته ترتجف»); the video is built on <p>_cut_s.mp4
   const srcWin = sources(src, ["--map", mapF]);
   const cutS = path.join("public", `${p}_cut_s.mp4`);
@@ -208,6 +215,7 @@ if (stage === "cut") {
   const job = `const {spawnSync}=require("child_process"),fs=require("fs");const r=spawnSync(${JSON.stringify("C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe")},["tools/smooth_dups.py",${JSON.stringify(cut)},${JSON.stringify(part)}],{encoding:"utf8",windowsHide:true});fs.writeFileSync(${JSON.stringify(path.join(T, "smooth.log"))},(r.stdout||"")+(r.stderr||""));if(r.status===0){fs.renameSync(${JSON.stringify(part)},${JSON.stringify(cutS)})}fs.rmSync(${JSON.stringify(running)},{force:true});`;
   spawn(process.execPath, ["-e", job], { detached: true, stdio: "ignore", windowsHide: true }).unref();
   const cutWords = remapWords(JSON.parse(fs.readFileSync(path.join(T, "words_vad.json"), "utf8")), JSON.parse(fs.readFileSync(mapF, "utf8")).segments);
+  for (const stale of ["cut_words.aligned.json", "cut_words_large.raw.json", "cut_words_large.json", "drift_fresh.json"]) { try { fs.rmSync(path.join(T, stale)); } catch { /* absent */ } }   // (2026-11-13) a stale alignment from the previous cut shifted every word 0.45 s
   fs.writeFileSync(path.join(T, "cut_words.json"), JSON.stringify(cutWords));
   fs.writeFileSync(path.join(T, "cut_transcript.txt"), toText(cutWords));
   await srcWin;
@@ -272,6 +280,13 @@ if (stage === "check") {
   if (fs.existsSync(path.join(T, "spec_frozen.json"))) await step("spec_block", "node", ["tools/spec_block.mjs", "diff", p], /spec_block|^\s+\S/);
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("requirements", "node", ["tools/requirements.mjs", p, "--check"], /requirements|^\s+\S/);
   if (fs.existsSync(path.join(T, "montage_notes.json"))) await step("montage_notes", "node", ["tools/montage_notes.mjs", "check", p], /✘|✔/);
+  /* (user 2026-11-13: «أنت ما وضعت الفاصل… كل مرة عم تخطئ فيه» + «وجود امرأة يعني تغبيش»): the bumper position is written by the check itself and must exist (reels excepted),
+     and no face may stay visible in a clip window / B-roll without an explicit decision (tools/clip_people_gate.py) */
+  if (fs.existsSync(path.join("data", "specs", `${p}.json`))) {
+    await step("bumper_at --write", "node", ["tools/bumper_at.mjs", p, "--write"], /bumper|فاصل|✘|—/);
+    await step("bumper_present", "node", ["-e", "const s=JSON.parse(require('fs').readFileSync('data/specs/" + p + ".json','utf8'));if(s.kind==='reel'){console.log('✔ bumper_present (ريل)');process.exit(0)}if(!s.bumper||typeof s.bumper.at!=='number'){console.log('✘ bumper_present: لا فاصل في المواصفة');process.exit(1)}console.log('✔ bumper_present '+s.bumper.id+' @'+s.bumper.at)"], /bumper_present/);
+    await step("clip_people_gate", PY, ["-I", "tools/clip_people_gate.py", path.join("data", "specs", `${p}.json`)], /clip_people_gate|وجه/);
+  }
   // continuous captions lose no spoken word (user 2026-11-09): a report, judged by me
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) { const lw = await run("node", ["tools/lost_words_check.mjs", path.join("data", "specs", `${p}.json`)]); for (const l of lw.out.trim().split("\n").slice(-8)) say(l); }
   // verse-reading audit (user 2026-11-09: «إن أخطأتُ بقراءة أي آية اكتب لي بوضوح قبل الرندر»): the FULL report goes to the user, never a one-line summary

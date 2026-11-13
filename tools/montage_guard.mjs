@@ -100,6 +100,10 @@ if (cmd === "stage") {
     } else if (orig) console.log(`الأصل غير موجود (نُقل من قبل): ${orig}`); }
   const cp = (await import("node:child_process")).spawnSync("node", ["tools/clean_temp.mjs", "--approval", "--project", project], { encoding: "utf8" });
   console.log("— تنظيف المؤقتات (الاعتماد: كل ما لم يُكتب في آخر 3 دقائق، ما لم يعمل رندر) —\n" + ((cp.stdout || "") + (cp.stderr || "")).trim().split("\n").slice(-6).join("\n"));
+  // (2026-11-13, user: «لما نعتمد مشروع كل ملفاته تروح… ليش دائما انبهك؟») code + spec + titles + data are purged automatically, not listed
+  { const ap = (await import("node:child_process")).spawnSync("node", ["tools/approve_purge.mjs", project], { encoding: "utf8" });
+    console.log("— حذف الكود والبيانات —\n" + ((ap.stdout || "") + (ap.stderr || "")).trim());
+    if (ap.status !== 0) process.exitCode = 1; }
   const key = project.toLowerCase(), left = [];
   // approval deletes the project's own files (name starts with the project key) in public/, .tmp/, .tmp/gates, render_work/ and tools/; code (src/, Root.tsx, titles) stays for the agent to remove and typecheck
   // safety: a key under 4 letters is only listed (too many shared names match), and a tool named in the rules or skills is shared, never deleted
@@ -110,11 +114,13 @@ if (cmd === "stage") {
     try { for (const n of fs.readdirSync(d)) if (n.toLowerCase().startsWith(key) && !(d === "tools" && docs.includes(n)) && !/^(sheikh_gallery|broll_lib|fonts|sfx|collage)$/i.test(n)) { /* permanent libraries are never deleted */ fs.rmSync(path.join(d, n), { recursive: true, force: true }); removed++; } } catch { /* no such dir */ }
   }
   console.log(key.length >= 4 ? `✔ حُذف ${removed} من ملفات «${project}» (public/ و.tmp/ وrender_work/ وtools/)` : `⚠ اسم المشروع «${project}» أقصر من 4 أحرف: لا حذف آلي، احذف البقايا المسرودة يدوياً`);
-  const has = (n) => n.toLowerCase().includes(key);
+  const norm = (x) => x.toLowerCase().replace(/[^a-z0-9؀-ۿ]/g, ""), nkey = norm(key);
+  const has = (n) => n.toLowerCase().includes(key) || (nkey.length >= 6 && norm(n).includes(nkey)); /* MuftiIraqComps.tsx = mufti_iraq */
   const scan = (dirp, label, filter = () => true) => { try { for (const n of fs.readdirSync(dirp)) if (has(n) && filter(n)) left.push(`${label}/${n}`); } catch { /* no such dir */ } };
   scan("src", "src", (n) => !/Demo/i.test(n));
   scan("tools", "tools"); scan("public", "public"); scan("render_work", "render_work"); scan(".tmp", ".tmp");
-  for (const f of ["src/Root.tsx", "src/compositionTitles.ts", "src/compositionDates.ts"]) {
+  scan(path.join("data", "specs"), "data/specs"); scan(path.join("data", "youtube"), "data/youtube");
+  for (const f of ["src/Root.tsx", "src/ReelsComps.tsx", "src/compositionTitles.ts", "src/compositionDates.ts"]) {
     try { fs.readFileSync(f, "utf8").split("\n").forEach((l, i) => { if (has(l) && !/Demo/.test(l)) left.push(`${f}:${i + 1}  ${l.trim().slice(0, 90)}`); }); } catch { /* none */ }
   }
   if (left.length) {

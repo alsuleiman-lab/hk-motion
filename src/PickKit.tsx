@@ -235,5 +235,156 @@ export const ViciousCycle: React.FC<Base & { r?: number; steps: { text: string; 
   );
 };
 
-export const PICK_KIT = { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle } as const;
+/* ───────── round 2 picks (user 2026-11-14) ───────── */
+
+/** 13 · حاشية على الكلمة — a strange word of a hadith/text: gold underline under it, a thread down to a margin note with its meaning */
+export const Footnote: React.FC<Base & { w?: number; size?: number; before: string; word: string; after?: string; wordAt: number; meaning: string; noteAt: number; source?: string }> = ({ at, until, x, y, w = 940, size = 72, before, word, after = "", wordAt, meaning, noteAt, source }) => {
+  const { k } = useK(); const u = ease(k(wordAt, 0.4, until)), n = k(noteAt, 0.45, until);
+  return (
+    <div style={abs({ left: x, top: y, width: w })}>
+      <div style={abs({ left: 0, width: w, top: 0, textAlign: "center", fontFamily: naskhF, fontSize: size, lineHeight: 1.5, color: BRAND.card, ...wipe(ease(k(at, 0.6, until))) })}>
+        {before} <span style={{ position: "relative", color: u > 0 ? BRAND.accent : BRAND.card }}>{word}<i style={{ position: "absolute", right: 0, left: 0, bottom: -6, height: 7, borderRadius: 4, background: BRAND.accent, transformOrigin: "100% 50%", transform: `scaleX(${u})` }} /></span> {after}
+      </div>
+      <div style={abs({ left: w / 2 - 3, top: size * 1.6, width: 6, height: 70 * ease(n), background: BRAND.accent })} />
+      <div style={abs({ left: w * 0.1, width: w * 0.8, top: size * 1.6 + 70, padding: "26px 34px", borderRadius: 14, background: BRAND.card, borderRight: `12px solid ${BRAND.accent}`, boxShadow: "0 20px 50px rgba(0,0,0,.45)", fontFamily: kufiF, fontSize: size * 0.58, lineHeight: 1.6, color: BRAND.ink, ...pop(n, 0.6) })}>
+        <b style={{ color: BRAND.accentDeep }}>{word}:</b> {meaning}
+      </div>
+      {source ? <div style={abs({ left: w * 0.1, top: size * 1.6 + 70 + size * 2.6, fontFamily: kufiF, fontSize: size * 0.4, color: BRAND.light, ...wipe(ease(k(noteAt + 0.6, 0.4, until))) })}>{source}</div> : null}
+    </div>
+  );
+};
+
+const rnd1 = (i: number) => { const v = Math.sin(i * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+/** 14 · جدار الشبهة ينهار — the doubt's words on a brick wall; the evidence card rams it and the bricks fall */
+export const ClaimWall: React.FC<{ at: number; until: number; x: number; y: number; words: string[]; hitAt: number; ram?: string }> = ({ at, until, x, y, words, hitAt, ram = "الدليل" }) => {
+  const { t, k } = useK(); const bricks: { c: number; r: number; txt: string; i: number }[] = [];
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const i = r * 4 + c; bricks.push({ c, r, i, txt: i % 3 === 1 ? words[Math.floor(i / 3) % words.length] ?? "" : "" }); }
+  const m = clamp((t - (hitAt - 0.8)) / 0.8);
+  return (
+    <div style={abs({ left: x, top: y })}>
+      {bricks.map((b) => { const kb = k(at + b.i * 0.03, 0.35, until), f = Math.max(0, t - hitAt - rnd1(b.i) * 0.3);
+        return <div key={b.i} style={abs({ left: 630 - b.c * 190 - (b.r % 2) * 90, top: b.r * 110, width: 180, height: 100, borderRadius: 6, background: `linear-gradient(${BRAND.mark}, ${BRAND.navyDeep})`, boxShadow: "inset 0 -8px 0 rgba(0,0,0,.25)", display: "grid", placeItems: "center", fontFamily: kufiF, fontSize: 36, color: BRAND.card, visibility: kb > 0 && t < until ? "visible" : "hidden", transform: `scale(${0.6 + 0.4 * back(kb)}) translate(${f * (rnd1(b.i + 9) - 0.3) * 300}px,${f * f * 900}px) rotate(${f * (rnd1(b.i + 3) - 0.5) * 400}deg)` })}>{b.txt}</div>; })}
+      <div style={abs({ left: -330 + 520 * ease(m), top: 170, width: 300, height: 120, borderRadius: 14, background: BRAND.green, display: "grid", placeItems: "center", fontFamily: kufiF, fontSize: 52, color: "#fff", boxShadow: "0 16px 40px rgba(0,0,0,.5)", visibility: m > 0 && t < until ? "visible" : "hidden" })}>{ram}</div>
+    </div>
+  );
+};
+
+/** 15 · دعوى بلا برهان (redesigned on the user's note «فكرة جميلة لكن الشكل فاسد»): their claim quoted on top; under it the evidence box stays empty
+ *  while a lens searches it, then «لا يوجد» inside the box and the stamp under it */
+export const NoProof: React.FC<Base & { w?: number; claim: string; claimAt?: number; searchAt: number; verdictAt: number; box?: string; empty?: string; stamp?: string }> = ({ at, until, x, y, w = 920, claim, claimAt, searchAt, verdictAt, box = "الدليل", empty = "لا يوجد", stamp = "دعوى بلا برهان" }) => {
+  const { t, k } = useK(); const s = clamp((t - searchAt) / Math.max(0.6, verdictAt - searchAt)), v = k(verdictAt, 0.35, until), st = k(verdictAt + 0.5, 0.3, until);
+  const lx = w * 0.5 + Math.sin(s * Math.PI * 3) * w * 0.28, ly = 330 + Math.cos(s * Math.PI * 2) * 50;
+  return (
+    <div style={abs({ left: x, top: y, width: w })}>
+      <div style={abs({ left: 0, width: w, top: 0, padding: "26px 40px", borderRadius: 16, background: BRAND.navy, borderRight: `12px solid ${BRAND.mark}`, fontFamily: naskhF, fontSize: 56, lineHeight: 1.5, color: BRAND.card, textAlign: "center", ...wipe(ease(k(claimAt ?? at, 0.5, until))) })}>«{claim}»</div>
+      <div style={abs({ left: w * 0.12, width: w * 0.76, top: 220, height: 240, borderRadius: 16, border: `6px dashed ${BRAND.light}`, ...pop(k(searchAt - 0.3, 0.35, until), 0.7) })}>
+        <div style={abs({ right: 24, top: -30, padding: "2px 18px", background: BRAND.base3, fontFamily: kufiF, fontSize: 38, color: BRAND.light })}>{box}</div>
+        <div style={abs({ inset: 0, display: "grid", placeItems: "center", fontFamily: kufiF, fontSize: 70, color: BRAND.mark, ...pop(v, 0.3) })}>{empty}</div>
+      </div>
+      {s > 0 && s < 1 && t < until ? <div style={abs({ left: lx - 60, top: ly - 60, width: 120, height: 120, borderRadius: "50%", border: `12px solid ${BRAND.card}`, background: "rgba(255,255,255,.12)" })}><div style={abs({ left: 92, top: 92, width: 22, height: 70, borderRadius: 10, background: BRAND.card, transform: "rotate(-45deg)" })} /></div> : null}
+      <div style={abs({ left: 0, width: w, top: 500, textAlign: "center" })}><span style={{ display: "inline-block", padding: "10px 40px", border: `8px solid ${BRAND.mark}`, borderRadius: 14, fontFamily: kufiF, fontSize: 60, color: BRAND.mark, visibility: st > 0 ? "visible" : "hidden", transform: `rotate(-6deg) scale(${2.2 - 1.2 * ease(st)})` }}>{stamp}</span></div>
+    </div>
+  );
+};
+
+/** 16 · السند المنقطع — the chain from the compiler down; the link after `breakAfter` breaks red, the reason beside it */
+export const BrokenIsnad: React.FC<Base & { names: { name: string; at: number }[]; breakAfter: number; breakAt: number; reason: string }> = ({ until, x, y, names, breakAfter, breakAt, reason }) => {
+  const { t, k } = useK(); const step = Math.min(165, 820 / names.length), b = t > breakAt, gapH = step - 100;
+  return (
+    <div style={abs({ left: x, top: y })}>
+      {names.slice(1).map((_, i) => { const kl = ease(k(names[i + 1].at - 0.2, 0.3, until)), br = i === breakAfter && b;
+        return <div key={i} style={abs({ left: 220, top: i * step + 100, width: 20, height: gapH * kl, background: br ? BRAND.mark : BRAND.light, transform: br ? `scaleY(${t > breakAt + 0.2 ? 0.3 : 1}) translateX(${Math.sin(t * 40) * 4 * clamp(breakAt + 0.4 - t)}px)` : "none" })} />; })}
+      {names.map((n, i) => <div key={i} style={abs({ left: 0, top: i * step, width: 460, height: 100, borderRadius: 50, background: BRAND.card, display: "grid", placeItems: "center", fontFamily: kufiF, fontSize: 42, color: BRAND.ink, boxShadow: "0 10px 26px rgba(0,0,0,.4)", ...pop(k(n.at, 0.35, until), 0.5) })}>{n.name}</div>)}
+      <div style={abs({ left: 150, top: breakAfter * step + 100 + gapH / 2 - 50, width: 160, textAlign: "center", fontFamily: kufiF, fontSize: 80, color: BRAND.mark, ...pop(k(breakAt + 0.1, 0.3, until), 0.2) })}>✕</div>
+      <div style={abs({ left: 480, top: breakAfter * step + 100 + gapH / 2 - 30, width: "auto", maxWidth: 440, padding: "8px 20px", borderRadius: 10, background: BRAND.mark, fontFamily: kufiF, fontSize: 38, lineHeight: 1.4, color: "#fff", ...wipe(ease(k(breakAt + 0.4, 0.4, until))) })}>{reason}</div>
+    </div>
+  );
+};
+
+/** 17 · سُلّم درجة الحديث — the grades from «صحيح» to «موضوع»; a pointer comes down to this narration's grade (index) and lights it */
+export const GradeLadder: React.FC<Base & { grade: number; pointerAt: number; grades?: string[] }> = ({ at, until, x, y, grade, pointerAt, grades = ["صحيح", "حسن", "ضعيف", "ضعيف جداً", "موضوع"] }) => {
+  const { t, k } = useK(); const cols = [BRAND.green, BRAND.blue, BRAND.accent, BRAND.mark, BRAND.navyDeep], u = ease(clamp((t - pointerAt) / 1.2)), on = t > pointerAt + 1.2;
+  return (
+    <div style={abs({ left: x, top: y })}>
+      {grades.map((g, i) => <div key={i} style={abs({ left: 180, top: i * 140, width: 560, height: 110, borderRadius: 12, background: "rgba(255,255,255,.08)", borderRight: `16px solid ${cols[i % 5]}`, display: "flex", alignItems: "center", paddingRight: 40, fontFamily: kufiF, fontSize: 54, color: BRAND.card, boxShadow: on && i === grade ? `0 0 40px ${cols[i % 5]}` : "none", transform: on && i === grade ? "scale(1.06)" : "none", ...wipe(ease(k(at + i * 0.1, 0.35, until))) })}>{g}</div>)}
+      <div style={abs({ left: 20, top: grade * 140 * u, width: 140, height: 110, display: "grid", placeItems: "center", fontFamily: kufiF, fontSize: 90, color: BRAND.accent, visibility: t > pointerAt && t < until ? "visible" : "hidden" })}>◀</div>
+    </div>
+  );
+};
+
+/** 18 · الفجوة بين تاريخين — two dates on a line, an arc rises between them and counts the years (a narrator who did not meet the one he narrates from) */
+export const YearsGap: React.FC<Base & { a: { label: string; year: number }; b: { label: string; year: number }; arcAt: number; unit?: string; suffix?: string }> = ({ at, until, x, y, a, b, arcAt, unit = "سنة", suffix = "بينهما" }) => {
+  const { t, k } = useK(); const d = Math.abs(b.year - a.year), u = ease(clamp((t - arcAt) / 1.2)) * clamp((until - t) / 0.35), lk = ease(k(at, 0.5, until));
+  return (
+    <div style={abs({ left: x, top: y, width: 940 })}>
+      <svg width={940} height={500} style={{ position: "absolute", overflow: "visible" }}>
+        <path d="M0 400 H900" stroke={BRAND.light} strokeWidth={6} fill="none" style={dash(900, lk)} />
+        <path d="M770 400 C770 90 130 90 130 400" fill="none" stroke={BRAND.accent} strokeWidth={8} style={dash(1250, u)} />
+        <circle cx={770} cy={400} r={20} fill={BRAND.green} visibility={k(at + 0.4, 0.3, until) > 0 ? "visible" : "hidden"} />
+        <circle cx={130} cy={400} r={20} fill={BRAND.mark} visibility={k(at + 0.8, 0.3, until) > 0 ? "visible" : "hidden"} />
+      </svg>
+      <div style={abs({ left: 610, top: 440, width: 320, textAlign: "center", fontFamily: kufiF, fontSize: 38, lineHeight: 1.5, color: BRAND.card, ...wipe(ease(k(at + 0.4, 0.4, until))) })}>{a.label}<br />{arDigits(a.year)} هـ</div>
+      <div style={abs({ left: -30, top: 440, width: 320, textAlign: "center", fontFamily: kufiF, fontSize: 38, lineHeight: 1.5, color: BRAND.card, ...wipe(ease(k(at + 0.8, 0.4, until))) })}>{b.label}<br />{arDigits(b.year)} هـ</div>
+      <div style={abs({ left: 150, width: 600, top: -40, textAlign: "center", fontFamily: kufiF, fontSize: 72, color: BRAND.accent, visibility: u > 0 ? "visible" : "hidden" })}>{arDigits(Math.round(d * u))} {unit} {suffix}</div>
+    </div>
+  );
+};
+
+/** 19 · أعمار الأئمة المتقاطعة — life bars on the Hijri axis (birth → death); the shared years of two of them are framed: who met whom */
+export const Lifespans: React.FC<Base & { people: { name: string; from: number; to: number; at: number }[]; overlap?: [number, number]; overlapAt?: number; label?: string; labelAt?: number }> = ({ at, until, x, y, people, overlap, overlapAt, label, labelAt }) => {
+  const { k } = useK(); const Y0 = Math.floor(Math.min(...people.map((p) => p.from)) / 50) * 50, Y1 = Math.ceil(Math.max(...people.map((p) => p.to)) / 50) * 50, X = (v: number) => 900 - ((v - Y0) / Math.max(1, Y1 - Y0)) * 880;
+  const ticks: number[] = []; for (let v = Y0; v <= Y1; v += 50) ticks.push(v);
+  const cols = [BRAND.blue, BRAND.accent, BRAND.green, BRAND.light], ka = ease(k(at, 0.5, until));
+  const ov = overlap ? [Math.max(people[overlap[0]].from, people[overlap[1]].from), Math.min(people[overlap[0]].to, people[overlap[1]].to)] : null;
+  return (
+    <div style={abs({ left: x, top: y, width: 940 })}>
+      {label ? <div style={abs({ left: 0, width: 920, top: 0, textAlign: "center", fontFamily: kufiF, fontSize: 46, color: BRAND.card, ...wipe(ease(k(labelAt ?? at + 2.5, 0.5, until))) })}>{label}</div> : null}
+      {people.map((p, i) => <div key={i} style={abs({ left: X(p.to), top: 110 + i * 150, width: X(p.from) - X(p.to), height: 100, borderRadius: 12, background: cols[i % 4], display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 22px", fontFamily: kufiF, fontSize: 38, color: BRAND.ink, overflow: "hidden", whiteSpace: "nowrap", ...wipe(ease(k(p.at, 0.6, until))) })}><span>{p.name}</span><span style={{ fontSize: 28 }}>{arDigits(p.from)}–{arDigits(p.to)}</span></div>)}
+      {ov && overlap && ov[1] > ov[0] ? <div style={abs({ left: X(ov[1]), top: 110 + Math.min(...overlap) * 150 - 14, width: X(ov[0]) - X(ov[1]), height: (Math.abs(overlap[1] - overlap[0]) + 1) * 150 - 22, border: `5px dashed ${BRAND.card}`, borderRadius: 12, ...pop(k(overlapAt ?? at + 2, 0.4, until), 0.8) })} /> : null}
+      <div style={abs({ left: 0, top: 110 + people.length * 150, width: 920, height: 4, background: BRAND.light, ...wipe(ka) })} />
+      {ticks.map((v) => <div key={v} style={abs({ left: X(v) - 60, top: 130 + people.length * 150, width: 120, textAlign: "center", fontFamily: kufiF, fontSize: 28, color: BRAND.light, ...wipe(ka) })}>{arDigits(v)} هـ</div>)}
+    </div>
+  );
+};
+
+/** 20 · مفترق الطريقين — the road splits in two, a sign on each, and a light walks the chosen one */
+export const Crossroads: React.FC<Base & { right: string; left: string; signsAt: number; go?: "right" | "left"; goAt?: number; rightGood?: boolean }> = ({ at, until, x, y, right, left, signsAt, go = "right", goAt, rightGood = true }) => {
+  const { t, k } = useK();
+  const bz = (q: number, a: number, b2: number, c: number, d: number) => (1 - q) ** 3 * a + 3 * (1 - q) ** 2 * q * b2 + 3 * (1 - q) * q * q * c + q ** 3 * d;
+  const pt = (u: number): [number, number] => { if (u < 0.4) return [450, 760 - 300 * (u / 0.4)]; const v = (u - 0.4) / 0.6, s = go === "right" ? 1 : -1; return [450 + s * bz(v, 0, 0, 260, 300), bz(v, 460, 310, 280, 90)]; };
+  const g = clamp((t - (goAt ?? signsAt + 0.8)) / 1.6), [dx, dy] = pt(g);
+  const sign = (txt: string, good: boolean, lx: number, kk: number) => <div style={abs({ left: lx, top: 0, width: 280, padding: 14, textAlign: "center", borderRadius: 10, background: good ? BRAND.green : BRAND.mark, fontFamily: kufiF, fontSize: 40, color: "#fff", ...pop(kk, 0.3) })}>{txt}</div>;
+  return (
+    <div style={abs({ left: x, top: y, width: 900 })}>
+      <svg width={900} height={800} style={{ position: "absolute", overflow: "visible" }} fill="none" stroke={BRAND.light} strokeOpacity={0.55} strokeWidth={70} strokeLinecap="round">
+        <path d="M450 760 V460" style={dash(300, ease(k(at, 0.5, until)))} />
+        <path d="M450 460 C450 310 710 280 750 90" style={dash(520, ease(k(at + 0.5, 0.5, until)))} />
+        <path d="M450 460 C450 310 190 280 150 90" style={dash(520, ease(k(at + 0.5, 0.5, until)))} />
+      </svg>
+      {sign(right, rightGood, 610, k(signsAt, 0.3, until))}{sign(left, !rightGood, 10, k(signsAt + 0.2, 0.3, until))}
+      {g > 0 && t < until ? <div style={abs({ left: dx - 20, top: dy - 20, width: 40, height: 40, borderRadius: "50%", background: BRAND.card, boxShadow: `0 0 30px ${BRAND.accent}` })} /> : null}
+    </div>
+  );
+};
+
+/** 21 · إطار التنبيه — red corners close in on the WHOLE frame and pulse, a «تنبيه مهم» bar drops at the top: before a grave warning (full frame: he is not slid) */
+export const AlertFrame: React.FC<{ at: number; until: number; text?: string; barAt?: number; W?: number; H?: number }> = ({ at, until, text = "تنبيه مهم", barAt, W = 1920, H = 1080 }) => {
+  const { t, k } = useK(); const kk = ease(k(at, 0.4, until)), pulse = 1 + 0.04 * Math.sin(t * 9), RED = "#c0453a", kb = ease(k(barAt ?? at + 0.4, 0.4, until));
+  const corner = (sx: boolean, sy: boolean) => {
+    const css: React.CSSProperties = { width: 180, height: 180, visibility: kk > 0 ? "visible" : "hidden", transform: `translate(${(sx ? 1 : -1) * (1 - kk) * 200}px,${(sy ? 1 : -1) * (1 - kk) * 200}px) scale(${pulse})` };
+    if (sx) { css.right = 40; css.borderRight = `16px solid ${RED}`; } else { css.left = 40; css.borderLeft = `16px solid ${RED}`; }
+    if (sy) { css.bottom = 40; css.borderBottom = `16px solid ${RED}`; } else { css.top = 40; css.borderTop = `16px solid ${RED}`; }
+    return <div style={abs(css)} />;
+  };
+  return (
+    <div style={abs({ left: 0, top: 0, width: W, height: H, pointerEvents: "none" })}>
+      {corner(false, false)}{corner(true, false)}{corner(false, true)}{corner(true, true)}
+      <div style={abs({ left: W / 2 - 300, top: 40, width: 600, padding: 16, textAlign: "center", borderRadius: "0 0 18px 18px", background: RED, fontFamily: kufiF, fontSize: 52, color: "#fff", visibility: kb > 0 ? "visible" : "hidden", transform: `translateY(${(1 - kb) * -160}px)` })}>⚠ {text}</div>
+    </div>
+  );
+};
+
+export const PICK_KIT = { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle, Footnote, ClaimWall, NoProof, BrokenIsnad, GradeLadder, YearsGap, Lifespans, Crossroads, AlertFrame } as const;
 export type PickName = keyof typeof PICK_KIT;
+/** drawn over the whole frame: he is NOT slid right and no panel is blended behind it */
+export const PICK_FULL_FRAME = new Set<string>(["AlertFrame"]);

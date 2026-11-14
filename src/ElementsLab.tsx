@@ -26,7 +26,7 @@ import LAB from "../data/elements_lab.json";
 import GRIDS from "../data/layout_grids.json";
 import { TRANSITIONS, TransitionScene } from "./TransitionsLab";
 import { Keycaps, Burst } from "./KhaamKit";
-import { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle } from "./PickKit";
+import { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle, Footnote, ClaimWall, NoProof, BrokenIsnad, GradeLadder, YearsGap, Lifespans, Crossroads, AlertFrame } from "./PickKit";
 import { VerseNoor, VerseBigWord, HalfScene, BlendPanel, halfK } from "./VerseKit";
 import { HadithQuote, HadithBooks, HadithIsnad } from "./HadithKit";
 
@@ -176,6 +176,15 @@ const PickScene: React.FC<{ o: Orient; children: React.ReactNode }> = ({ o, chil
   ? <HalfScene him={<Rec />} start={0} until={2.95}><PickBlend />{children}</HalfScene>
   : <><PortRec /><div style={{ position: "absolute", left: 0, top: 860, width: 1920, height: 1080, transform: "scale(0.9)", transformOrigin: "0 0" }}>{children}</div></>;
 const VERSE_SCENES: Record<string, (o: Orient) => React.ReactNode> = {
+  Footnote: (o) => <PickScene o={o}><Footnote at={0.1} until={2.95} x={90} y={230} before="«إذا بايعتَ فقل: لا" word="خِلابة" after="»" wordAt={0.7} meaning="الخديعة؛ أي لا خداع في هذا البيع." noteAt={1.2} source="متفق عليه" /></PickScene>,
+  ClaimWall: (o) => <PickScene o={o}><ClaimWall at={0.1} until={2.95} x={110} y={300} words={["الدين", "تشدد", "لا", "يناسب", "هذا", "العصر"]} hitAt={1.8} /></PickScene>,
+  NoProof: (o) => <PickScene o={o}><NoProof at={0.1} until={2.95} x={100} y={200} claim="الحديث مكذوب على النبي" searchAt={0.8} verdictAt={1.9} /></PickScene>,
+  BrokenIsnad: (o) => <PickScene o={o}><BrokenIsnad at={0.1} until={2.95} x={120} y={150} names={["المصنِّف", "الراوي الثالث", "الراوي الثاني", "التابعي", "الصحابي"].map((name, i) => ({ name, at: 0.2 + i * 0.18 }))} breakAfter={2} breakAt={1.6} reason="لم يسمع منه" /></PickScene>,
+  GradeLadder: (o) => <PickScene o={o}><GradeLadder at={0.1} until={2.95} x={150} y={200} grade={3} pointerAt={0.9} /></PickScene>,
+  YearsGap: (o) => <PickScene o={o}><YearsGap at={0.1} until={2.95} x={100} y={240} a={{ label: "وفاة الشيخ (مثال)", year: 179 }} b={{ label: "ولادة الراوي (مثال)", year: 230 }} arcAt={1.0} /></PickScene>,
+  Lifespans: (o) => <PickScene o={o}><Lifespans at={0.1} until={2.95} x={100} y={170} people={[{ name: "مالك", from: 93, to: 179, at: 0.4 }, { name: "الشافعي", from: 150, to: 204, at: 0.8 }, { name: "أحمد", from: 164, to: 241, at: 1.2 }]} overlap={[1, 2]} overlapAt={1.8} label="عاش أحمد في زمن الشافعي ٤٠ سنة" labelAt={2.0} /></PickScene>,
+  Crossroads: (o) => <PickScene o={o}><Crossroads at={0.1} until={2.95} x={110} y={150} right="طريق السنة" left="طريق البدعة" signsAt={0.8} goAt={1.3} /></PickScene>,
+  AlertFrame: (o) => <>{o === "land" ? <Rec /> : <PortRec />}<AlertFrame at={0.1} until={2.95} W={o === "land" ? 1920 : 1080} H={o === "land" ? 1080 : 1920} /></>,
   InkQuote: (o) => <PickScene o={o}><InkQuote at={0.1} until={2.95} x={90} y={380} size={96} lines={[{ text: "الكلمةُ أمانة", at: 0.3 }, { text: "فاحفظها", at: 1.3 }]} source="مثال" /></PickScene>,
   BigQuestion: (o) => <PickScene o={o}><BigQuestion at={0.1} until={2.95} x={90} y={150} size={460} text="لماذا ينتشر؟" textAt={1.0} /></PickScene>,
   ChatThread: (o) => <PickScene o={o}><ChatThread at={0.1} until={2.95} x={110} y={250} w={900} msgs={[{ text: "هل رأيت المقطع المنتشر؟", at: 0.3 }, { text: "نعم، لكنه محتوى هابط", at: 1.2, me: true }, { text: "فلماذا يشاهده الملايين؟", at: 2.0 }]} /></PickScene>,

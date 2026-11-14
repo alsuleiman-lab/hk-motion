@@ -1305,5 +1305,140 @@
    "port": "frame"
   },
   "orient": "both"
+ },
+ {
+  "id": "Footnote",
+  "ar": "حاشية على الكلمة",
+  "kit": "PickKit",
+  "group": "الآيات",
+  "where": "كلما شرح كلمة غريبة في حديث أو أثر أو بيت (غريب الحديث، معنى لفظة): السطر، ثم خط تحت الكلمة عند نطقها، ثم الحاشية بمعناها عند شرحه.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"Footnote\", at, until, … }؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: before, word, after?, wordAt, meaning, noteAt, source?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "ClaimWall",
+  "ar": "جدار الشبهة ينهار",
+  "kit": "PickKit",
+  "group": "نماذج الرد",
+  "where": "كلما عرض شبهة ثم هدمها بدليل واحد قاطع: كلمات الشبهة على الجدار عند عرضها، والدليل يصدمه عند نطق الدليل.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"ClaimWall\", at, until, … }؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: words: [], hitAt, ram?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "NoProof",
+  "ar": "دعوى بلا برهان",
+  "kit": "PickKit",
+  "group": "نماذج الرد",
+  "where": "كلما بيّن أن المخالف ادّعى بلا دليل («أين الدليل؟»، «مجرد دعوى»، «لا دليل عليه»): دعواه بنصها، والصندوق يُفتَّش فلا يوجد شيء، ثم الختم.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"NoProof\", at, until, … }؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: claim, claimAt?, searchAt, verdictAt, box?, empty?, stamp?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "BrokenIsnad",
+  "ar": "السند المنقطع",
+  "kit": "PickKit",
+  "group": "الاقتباس والسؤال",
+  "where": "كلما بيّن انقطاعاً أو إرسالاً أو تدليساً في إسناد («لم يسمع منه»، «منقطع»، «مرسل»، «لم يدركه»): الرواة بأسمائهم عند ذكرهم، والحلقة تنكسر عند بيان العلة.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"BrokenIsnad\", at, until, … }؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: names: [{ name, at }], breakAfter, breakAt, reason",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "GradeLadder",
+  "ar": "سُلّم درجة الحديث",
+  "kit": "PickKit",
+  "group": "الاقتباس والسؤال",
+  "where": "كلما حكم على حديث أو رواية بدرجة (صحيح، حسن، ضعيف، ضعيف جداً، موضوع): المؤشر ينزل إلى الدرجة عند نطق الحكم.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"GradeLadder\", at, until, … }؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: grade (0 صحيح … 4 موضوع), pointerAt, grades?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "YearsGap",
+  "ar": "الفجوة بين تاريخين",
+  "kit": "PickKit",
+  "group": "الأرقام والزمن",
+  "where": "كلما بيّن أن بين شخصين أو حدثين زمناً يمنع اللقاء أو السماع (وفاة هذا قبل ولادة ذاك، «بينهما مئة سنة»): التاريخان ثم القوس يعدّ السنين.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"YearsGap\", at, until, … }؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: a: { label, year }, b: { label, year }, arcAt, unit?, suffix?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "Lifespans",
+  "ar": "أعمار الأئمة المتقاطعة",
+  "kit": "PickKit",
+  "group": "الأرقام والزمن",
+  "where": "كلما ذكر علماء أو رواة متعاصرين وأراد بيان من أدرك من، أو ترتيب طبقاتهم: شريط حياة لكل واحد بالهجري، وتظليل سنوات التلاقي.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"Lifespans\", at, until, … }؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: people: [{ name, from, to, at }], overlap?: [i, j], overlapAt?, label?, labelAt?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "Crossroads",
+  "ar": "مفترق الطريقين",
+  "kit": "PickKit",
+  "group": "التدفق والربط",
+  "where": "كلما خيّر بين سبيلين متقابلين (سنة وبدعة، حق وباطل، طاعة ومعصية) أو بيّن عاقبة كل منهما: الطريق يتفرع واللافتتان عند نطقهما، والنقطة تسلك الصحيح.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"Crossroads\", at, until, … }؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: right, left, signsAt, go?: right|left, goAt?, rightGood?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "AlertFrame",
+  "ar": "إطار التنبيه",
+  "kit": "PickKit",
+  "group": "علامات على النص",
+  "where": "قبل تحذير شرعي أو معلومة خطيرة ينبّه عليها بقوله («انتبه»، «احذر»، «تنبيه مهم»، «خطير جداً»): الإطار كله بلا إزاحة، والشريط بنصه.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"AlertFrame\", at, until, … }؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: text?, barAt? (لا ينزاح الشيخ لهذا العنصر)",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
  }
 ]

@@ -8,7 +8,7 @@
 //                                                     are trimmed at their join automatically (up to 4 rounds); audio_gate; only if it passes: one NVENC build
 //                                                     → public/<p>_cut.mp4 and the cut transcript .tmp/<p>/cut_transcript.txt (for timing elements).
 //   node tools/stage.mjs check <p> <CompId> --file src/<X>.tsx --minutes <m> [--skip 0-12,40-55]
-//                                                     typecheck → rules_lint → element_usage → brand_audit (spec) → mg_usage_audit → writing_sync (spec: no writing before its words) → coverage_check (spec) → grid_plan + grid_sheet (spec montage; else face_check) → frame_audit (old TSX only), one after another (never two renders at once).
+//                                                     typecheck → rules_lint → element_usage → brand_audit (spec) → mg_usage_audit → writing_sync (spec: no writing before its words) → coverage_check (spec) → pick_triggers (spec: the picked elements where due) → grid_plan + grid_sheet (spec montage; else face_check) → frame_audit (old TSX only), one after another (never two renders at once).
 // Exit code 1 when any step fails; the summary names the step and the log line to read.
 import fs from "node:fs";
 import os from "node:os";
@@ -128,6 +128,7 @@ if (stage === "cut") {
   const rem = (opt("rem", "") || "").split(",").filter(Boolean).map((r) => r.split("-").map(Number));
   try { for (const d of JSON.parse(fs.readFileSync(path.join(T, "stray_drops.json"), "utf8"))) rem.push(d.range); say(`stray drops: ${rem.length} range(s) incl. stray_drops.json`); } catch { /* none yet */ }   // (2026-11-13) a leftover sound found by stray_find.py stays removed in every rebuild
   { const r = await must("vad_onset_fix", PY, ["tools/vad_onset_fix.py", p]); say(r.out.trim().split("\n").pop()); }   // never start a segment inside a word (first syllable clipped)
+  fs.writeFileSync(path.join(T, "explicit_rem.json"), JSON.stringify(rem));   // the removals he/I ordered (not pause trims): join_polish absorbs the stray sounds beside them
   const vad = JSON.parse(fs.readFileSync(path.join(T, "vad.json"), "utf8")).speech;
   let segs = [];
   for (let [s, e] of vad) {   // VAD speech minus the removed ranges
@@ -245,8 +246,8 @@ if (stage === "check") {
   let failed = 0;
   await run("node", ["tools/make_preview_proxy.mjs", "--auto", p]);   // light Studio copies of every heavy video (no stutter in the preview; renders use the full files)
   const step = async (label, cmd, args, pick) => {
-    const r = await run(cmd, args);
     const ts = Date.now();
+    const r = await run(cmd, args);
     const key = r.out.trim().split("\n").filter((l) => pick.test(l)).slice(-2).join(" | ") || r.out.trim().split("\n").pop();
     if (r.code !== 0) failed++;
     say(`${r.code === 0 ? "✔" : "✘"} ${label} (${((Date.now() - ts) / 1000).toFixed(0)}s): ${key}`);   /* seconds per step (2026-11-13): where the check spends its time */
@@ -258,6 +259,7 @@ if (stage === "check") {
     if (fs.existsSync(sf) && fs.existsSync(path.join(T, "cut_words.json")))
       await step(norm ? "spec_normalize" : "spec_normalize --dry", "node", ["tools/spec_normalize.mjs", sf, "--o", comp.endsWith("-L") ? "land" : "port", ...(norm ? [] : ["--dry"])], /spec_normalize|✘/);
   }
+  await step("studio_drag_lint", "node", ["tools/studio_drag_lint.mjs"], /studio_drag_lint|^s+src/);
   await step("typecheck", "node", ["node_modules/typescript/bin/tsc", "-p", "."], /error TS/);
   // every video of the montage path reaches the render as a <VSlot> on the GPU (R-RENDER-GPU.2, user 2026-11-12: new elements use the new system)
   await step("video_lint", "node", ["tools/gpu/video_lint.mjs"], /video_lint|^\s+src\//);
@@ -273,6 +275,7 @@ if (stage === "check") {
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("source_crop", "node", ["tools/source_crop.mjs", path.join("data", "specs", `${p}.json`), "--write"], /✘|→|لا نوافذ/);
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("writing_sync", "node", ["tools/writing_sync.mjs", path.join("data", "specs", `${p}.json`)], /^s*✘|writing_sync/);
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("coverage_check", "node", ["tools/coverage_check.mjs", path.join("data", "specs", `${p}.json`)], /^✘|PASSED|FAILED/);
+  if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("pick_triggers", "node", ["tools/pick_triggers.mjs", path.join("data", "specs", `${p}.json`)], /^✘|PASSED|FAILED/);   // the 12 picked elements are used where due (user 2026-11-14)
   // every card at the gallery's size and place (user 2026-11-11: «حل مشكلة عدم الالتزام بمواقع المعرض جذرياً»): exact gallery-sample geometry, run gallery_geometry --write last in every build
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("gallery_geometry", "node", ["tools/gallery_geometry.mjs", path.join("data", "specs", `${p}.json`)], /gallery_geometry|^s+S/);
   // fragments left by cuts or trailing-off speech (user 2026-11-11, third time «صوت غريب… نصف كلمة»): each decided before any link

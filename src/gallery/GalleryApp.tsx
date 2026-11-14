@@ -239,8 +239,7 @@ const App: React.FC = () => {
   return (
     <>
       <div className="bar palette-top" role="group" aria-label="النمط اللوني">
-        <span>النمط اللوني:</span>
-        {BRAND_NAMES.map((b) => <button key={b} type="button" className="chip" aria-pressed={b === brand} onClick={() => pickBrand(b)}><i style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, marginInlineEnd: 6, verticalAlign: -1, background: PALETTES[b].accent, boxShadow: `inset 0 0 0 3px ${PALETTES[b].base}` }} />{PALETTES[b].label}</button>)}
+        {BRAND_NAMES.map((b) => <button key={b} type="button" title={PALETTES[b].label} aria-label={PALETTES[b].label} aria-pressed={b === brand} onClick={() => pickBrand(b)} style={{ width: 44, height: 44, padding: 0, borderRadius: 10, cursor: "pointer", background: PALETTES[b].accent, border: b === brand ? "4px solid var(--ink)" : "4px solid transparent", boxShadow: `inset 0 0 0 7px ${PALETTES[b].base}` }} />)}
       </div>
       <header>
         <div>

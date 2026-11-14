@@ -49,7 +49,7 @@ http.createServer((req, res) => {
   }
   if (url.pathname === "/api/choice" && req.method === "POST") {
     let body = ""; req.on("data", (c) => { body += c; if (body.length > 1e6) req.destroy(); });
-    req.on("end", () => { try { const d = JSON.parse(body); fs.writeFileSync(path.resolve("data/choice_pick.json"), JSON.stringify({ ...d, savedAt: new Date().toISOString() }, null, 1)); res.writeHead(200, { "Content-Type": MIME[".json"] }); res.end("{}"); } catch { res.writeHead(400); res.end(); } });
+    req.on("end", () => { try { const d = JSON.parse(body); const out = JSON.stringify({ ...d, savedAt: new Date().toISOString() }, null, 1); fs.writeFileSync(path.resolve("data/choice_pick.json"), out); if (/^[a-z0-9_]+$/i.test(d.round || "")) fs.writeFileSync(path.resolve(`data/choice_pick_${d.round}.json`), out);   /* one file per page too, so a second page never wipes the first */ res.writeHead(200, { "Content-Type": MIME[".json"] }); res.end("{}"); } catch { res.writeHead(400); res.end(); } });
     return;
   }
   if (url.pathname === "/api/notes") {

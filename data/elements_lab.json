@@ -1125,5 +1125,185 @@
    "port": "frame"
   },
   "orient": "both"
+ },
+ {
+  "id": "InkQuote",
+  "ar": "اقتباس يُكتب بالحبر",
+  "kit": "PickKit",
+  "group": "الاقتباس والسؤال",
+  "where": "كلما نقل قولاً مأثوراً قصيراً لعالم أو حكمة أو عبارة يريد حفظها (ليس آية ولا حديثاً): سطراً سطراً مع نطقه، تحت علامة اقتباس كبيرة، والقائل في «source».",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"InkQuote\", at, until, … } ؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: lines: [{ text, at }], source?, size?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "BigQuestion",
+  "ar": "علامة استفهام عملاقة",
+  "kit": "PickKit",
+  "group": "الاقتباس والسؤال",
+  "where": "كلما طرح سؤالاً محورياً ثم شرع يجيب عنه («لماذا…؟»، «فما الحل؟»، «هل يجوز…؟»): العلامة عند أول السؤال، والنص عند نطقه.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"BigQuestion\", at, until, … } ؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: text, textAt, size?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "ChatThread",
+  "ar": "محادثة رسائل",
+  "kit": "PickKit",
+  "group": "الاقتباس والسؤال",
+  "where": "كلما حكى حواراً جرى بينه وبين شخص، أو سؤالاً وصله برسالة، أو «قال لي… فقلت له…»: فقاعة لكل قول عند نطقه، وكلامه هو me:true.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"ChatThread\", at, until, … } ؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: msgs: [{ text, at, me? }]",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "StickyNotes",
+  "ar": "أوراق لاصقة",
+  "kit": "PickKit",
+  "group": "البنود والقوائم",
+  "where": "كلما عدّد صفات أو أسباباً أو آفات قصيرة (كلمة أو كلمتان لكل واحدة، من 2 إلى 4): ورقة لكل واحدة عند نطقها.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"StickyNotes\", at, until, … } ؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: notes: [{ text, at, x, y, rot?, tint?: card|paper|accent }], size?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "FlapBoard",
+  "ar": "لوحة المطار الدوّارة",
+  "kit": "PickKit",
+  "group": "البنود والقوائم",
+  "where": "كلما سرد عناوين متتابعة بإيقاع («الأول… الثاني…»، أو مراحل رحلة/حال)، أو أراد مفاجأة بعبارة بعد تشويق: سطر لكل عنوان يستقر عند نطقه.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"FlapBoard\", at, until, … } ؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: rows: [{ text, at }], w?, size?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "SearchBar",
+  "ar": "شريط البحث",
+  "kit": "PickKit",
+  "group": "المصادر المعروضة",
+  "where": "إلزامي كلما ذكر حلقة سابقة له أو كتاباً من كتبه أو أحال إليهما («راجعوا حلقة…»، «في كتابي…»): صورة الحلقة أو غلاف الكتاب فوق، ثم يُكتب في شريط البحث كيف يُبحث عنها. ويُستعمل أيضاً لما «يبحث عنه الناس».",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"SearchBar\", at, until, … } ؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: img (صورة الحلقة/الغلاف), imgAt, imgCaption?, query, typeAt, cps?, results?: [], resultsAt?",
+  "section": "image",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "MythFact",
+  "ar": "خطأ شائع والصواب",
+  "kit": "PickKit",
+  "group": "نماذج الرد",
+  "where": "لتصحيح أي شيء (أمر المستخدم): كلما ذكر قولاً أو فهماً خاطئاً ثم صحّحه — الخطأ يُشطب عند نقضه، والصواب بعلامة صح عند نطقه.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"MythFact\", at, until, … } ؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: myth, mythAt, fact, factAt, mythTag?, factTag?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "RingStat",
+  "ar": "الحلقة الممتلئة",
+  "kit": "PickKit",
+  "group": "الأرقام والزمن",
+  "where": "كلما ذكر نسبة مئوية واحدة موثّقة («٧٠٪ من…»، «ثلاثة أرباع…»): الحلقة تمتلئ إليها والرقم يعدّ، والوصف تحتها. مع رابط المصدر كالعادة.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"RingStat\", at, until, … } ؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: value (0–100), label, labelAt?, r?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "LineGrowth",
+  "ar": "الخط البياني الصاعد",
+  "kit": "PickKit",
+  "group": "الأرقام والزمن",
+  "where": "كلما ذكر ازدياداً أو تضاعفاً عبر السنين بأرقام («تضاعف خلال خمس سنوات»، «من … إلى …»): الخط يصعد والزيادة في آخره. مع رابط المصدر.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"LineGrowth\", at, until, … } ؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: values: [], fromLabel, toLabel, tag, tagAt?, title?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "DecisionFlow",
+  "ar": "مخطط القرار",
+  "kit": "PickKit",
+  "group": "التدفق والربط",
+  "where": "كلما بيّن حكماً مشروطاً بتفصيل («إن كان كذا فـ… وإلا فـ…»، «يُنظر: هل…؟»): الحالة ثم السؤال ثم فرعا نعم ولا عند نطق كل فرع.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"DecisionFlow\", at, until, … } ؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: start, q, qAt, yes, no, yesAt, noAt?, yesTag?, noTag?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "MindMap",
+  "ar": "الخريطة الذهنية",
+  "kit": "PickKit",
+  "group": "التدفق والربط",
+  "where": "كلما فكّك موضوعاً إلى جوانب أو أركان أو مداخل (3 إلى 6) حول أصل واحد: الأصل في الوسط وكل جانب يتفرع عند نطقه.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"MindMap\", at, until, … } ؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: center, nodes: [{ text, at }], r?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "ViciousCycle",
+  "ar": "الحلقة المفرغة",
+  "kit": "PickKit",
+  "group": "التدفق والربط",
+  "where": "كلما وصف دائرة يعيد فيها الفعل نفسه (ذنب ← ندم ← عودة، فراغ ← تصفح ← إدمان، شبهة ← شك ← بعد): محطة عند كل نطق ثم تدور النقطة.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"ViciousCycle\", at, until, … } ؛ في العرضي ينزاح الشيخ يميناً وتمتزج اللوحة خلفه تلقائياً. الخصائص: steps: [{ text, at }], spinAt?, r?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
  }
 ]

@@ -5,7 +5,7 @@ import { AbsoluteFill, Audio, Img, Sequence, Video, continueRender, delayRender,
 import { PaperTear } from "./PaperTear";
 import { Gfx, BrushX, Stamp, NoteCard, HandheldShake, SourceWalk, BlurRise, RewriteWindow, FlashCut, PinnedPhoto, TimelineTravel, PanelToCanvas, Clock, DashArc, useT } from "./MG";
 import { KeyChip, ReelVerseFull, VerseWords } from "./MGExtras";
-import { VerseNoorPanel, VerseBigWordPanel, halfShift, HALF_LEAD } from "./VerseKit";
+import { VerseNoorPanel, VerseBigWordPanel, halfShift, HALF_LEAD, BlendPanel, halfK } from "./VerseKit";
 import { HadithQuotePanel, HadithBooksPanel, HadithIsnad } from "./HadithKit";
 import { TitleBar } from "./TitleBar";
 import type { BarTheme } from "./TitleBar";
@@ -22,6 +22,8 @@ import { ThumbProOpen, THUMBPRO_END, THUMBPRO_TEAR_END } from "./ThumbPro";
 import type { ThumbProps } from "./ThumbPro";
 import { TornNote, NewsClip, TornPhoto, WordScraps, DateCalendar } from "./PaperKit";
 import { BRAND, applyBrand } from "./brand";
+import { PICK_KIT } from "./PickKit";
+import type { PickName } from "./PickKit";
 import type { BrandName } from "./brand";
 import { MaskedVideo } from "./MaskedVideo";
 import { DEBATE_LAYOUTS } from "./DebateLayouts";
@@ -83,7 +85,7 @@ export type SpecItem = Common & (
   /** style "pro" (user 2026-10-28) = ThumbPro cover (duel / word / evidence, skill thumbnail-design) for frames 0–2, then the cover itself tears into paper strips (stop-motion) until frame 35; `proLand` overrides `pro` in landscape */
   | { t: "cover"; style: "pro"; tearOrder?: number[]; pro: Omit<ThumbProps, "format">; proLand?: Partial<Omit<ThumbProps, "format">> }
   /** style "image" (user 2026-11-02): a finished cover picture the user supplies (public/ path) for frames 0–2, then it rips in two (PaperTear) and is gone by THUMBPRO_END; portrait = the picture centred over its own blurred copy */
-  | { t: "cover"; style: "image"; src: string }
+  | { t: "cover"; style: "image"; src: string; srcPort?: string }
   /** family tree on a paper card (user 2026-10-29): landscape = left half of a split screen (his frame slides right through `shifts`), portrait = card under the beard; node/link positions are relative (0..1) */
   | { t: "tree"; from: number; to: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number; nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number }
   /** paper map (user 2026-10-29): landscape = the whole frame behind his shrunk cut-out (`mini`), portrait = a card under the beard */
@@ -118,6 +120,8 @@ export type SpecItem = Common & (
   | { t: "hclip"; src: string; from: number; to: number; start?: number; zoom?: number; fx?: number; fy?: number; label?: string }
   | { t: "wm"; text: string; from: number; to: number; opacity?: number; ramp?: number; x?: number; y: number; size?: number; rot?: number }
   | { t: "zoomblend"; at: number; amt?: number }
+  /** the 12 elements picked from the temporary gallery (2026-11-14, src/PickKit.tsx); when each is due: PREFERENCES «عناصر المعرض المؤقت المعتمدة». land = landscape overrides of any prop */
+  | { t: "pick"; el: PickName; at: number; until: number; x?: number; y?: number; noShift?: boolean; land?: Record<string, unknown>; [prop: string]: unknown }
   | { t: "horror"; from: number; to: number }
   /** CRT screen switching off over everything from `at` (user order inside «فضل شاكر», 2026-11-10) */
   | { t: "tvoff"; at: number; dur?: number }
@@ -294,6 +298,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
         </Only>
       );
     }
+    case "pick": { const C = PICK_KIT[it.el] as React.FC<Record<string, unknown>>; const { t: _t, el: _e, land, ...rest } = it as { t: string; el: string; land?: Record<string, unknown> } & Record<string, unknown>; return C ? <Only key={i} from={it.at - HALF_LEAD} to={it.until}>{L && !it.noShift ? <PickPanel at={it.at} until={it.until} /> : null}<C {...rest} {...(L ? land ?? {} : {})} /></Only> : null; }   // landscape: he slides right and the approved panel blends behind it, as in the half-screen ways
     case "subscribe": return <Subscribe key={i} at={it.at} x={L ? ov.x ?? 1300 : it.x} y={L ? ov.y ?? 790 : it.y} dur={it.dur} />;
     case "verse": {
       // a verse he recites INSIDE his talk = the known verse card (VerseWords) in the writing area / the empty side, his picture visible (user 2026-11-01); full screen (full:true) only for a lone recitation
@@ -555,7 +560,7 @@ const MiniMe: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; 
 };
 
 /** every item type the renderer knows (= the elements approved in the gallery); anything else is an error, never silently skipped (user 2026-10-28) */
-const APPROVED_TYPES = new Set(["word", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "hadith", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date", "note", "bgclip", "hclip", "wm", "zoomblend", "horror", "tvoff", "brushx", "peek", "weights", "stamp"]);
+const APPROVED_TYPES = new Set(["word", "pick", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "hadith", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date", "note", "bgclip", "hclip", "wm", "zoomblend", "horror", "tvoff", "brushx", "peek", "weights", "stamp"]);
 
 /** one item's placement data (dx, dy, k): moved by (dx, dy) and scaled by k about the CENTRE OF WHAT IT DRAWS, measured once on screen
  *  (user 2026-11-09: «التكبير لم يعمل» — a fixed origin pushed left-column / top elements out of the frame); ox / oy, when given, win */
@@ -611,7 +616,9 @@ const withGallery = (s: MontageSpec): MontageSpec => s.galleryOwn ? s : { ...s, 
 const VERSE_WAYS = ["noor", "bigword"] as const, HADITH_WAYS = ["quote", "books"] as const;
 const draw = (key: string, n: number) => { let h = 2166136261; for (const c of key) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) % n; };
 const ayaOf = (it: { aya?: number; refText: string }) => it.aya ?? Number((it.refText.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).match(/\d+/) ?? ["0"])[0]);
-const isHalfWay = (it: SpecItem) => (it.t === "verse" && !it.full && (it.way === "noor" || it.way === "bigword")) || (it.t === "note" && !!it.phrases?.length && (it.way === "quote" || it.way === "books"));
+/** a picked element (PickKit) in landscape sits on the left half: the approved blended panel behind it, while he is slid right (shift window below) */
+const PickPanel: React.FC<{ at: number; until: number }> = ({ at, until }) => { const t = useT(); return <BlendPanel k={halfK(t, at - HALF_LEAD, until)} t={t} id={"pk" + at} />; };
+const isHalfWay = (it: SpecItem) => (it.t === "pick" && !it.noShift) || (it.t === "verse" && !it.full && (it.way === "noor" || it.way === "bigword")) || (it.t === "note" && !!it.phrases?.length && (it.way === "quote" || it.way === "books"));
 /** a note with only `title`: split the matn into short phrases (at punctuation, then ≤5 words) and spread them over the spoken span by length */
 const autoPhrases = (title: string, at: number, until: number) => {
   const parts = title.replace(/[«»"]/g, "").split(/[،,.؛:!؟?\n]+/).map((p) => p.trim()).filter(Boolean)
@@ -630,6 +637,7 @@ const withHalfWays = (s: MontageSpec): MontageSpec => {
     return it;
   });
   const extra = items.filter(isHalfWay).map((it) => it.t === "verse" ? halfShift(it.times[0] - HALF_LEAD, it.until ?? it.times[it.times.length - 1] + 1.2)
+    : it.t === "pick" ? halfShift(it.at - HALF_LEAD, it.until)
     : halfShift((it as { phrases: { at: number }[] }).phrases[0].at - HALF_LEAD, (it as { until: number }).until));
   return extra.length ? { ...s, items, shifts: [...(s.shifts ?? []), ...extra].sort((a, b) => a.from - b.from) } : { ...s, items };
 };
@@ -687,12 +695,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => 
     : (spec.cut ? <SheikhLayers cut={spec.cut} cams={spec.cams ?? [{ from: 0, to: 9999, cx: 990 }]} zooms={spec.zooms} /> : null);
   return (
     <HybridHost>
-    <AbsoluteFill
-      style={{
-        background: hyBg(BRAND.base),
-        scale: 0.994
-      }}
-    >
+    <AbsoluteFill style={{ background: hyBg(BRAND.base) }}>
       {spec.cut ? <Audio src={staticFile(spec.cut)} volume={0.8} /> : null}
       {(spec.sfx ?? []).filter((x) => !x.only || x.only === o).map((x, i) => <Sequence key={"sfx" + i} from={Math.max(0, Math.round(x.at * 30))} durationInFrames={x.dur ? Math.round(x.dur * 30) : 45}><Audio src={staticFile(x.src)} volume={x.vol} /></Sequence>)}
       {o === "port" || !spec.cut ? (HY ? <HybridBg><WarmBase /></HybridBg> : <WarmBase />) : null}
@@ -737,7 +740,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => 
       {horrors.length ? <HorrorVeil windows={horrors} /> : null}
       {mine("weights").map((x, i) => <WeightsOnBack key={"wt" + i} at={x.at} until={x.until} fig={x.fig} crowd={x.crowd} n={x.n} />)}
       {mine("tvoff").map((x, i) => <TvOff key={"tv" + i} at={x.at} dur={x.dur} />)}
-      {cover && cover.style === "image" && f < THUMBPRO_END ? <PaperTear from={3} to={THUMBPRO_TEAR_END} sheet={<AbsoluteFill style={{ background: "#0d0f14" }}>{o === "land" ? null : <Img src={staticFile(cover.src)} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "blur(40px) brightness(.55)", transform: "scale(1.2)" }} />}<Img src={staticFile(cover.src)} style={o === "land" ? { width: "100%", height: "100%", objectFit: "cover" } : { position: "absolute", left: 0, top: "50%", width: "100%", transform: "translateY(-50%)" }} /></AbsoluteFill>} /> : null}
+      {cover && cover.style === "image" && f < THUMBPRO_END ? <PaperTear from={3} to={THUMBPRO_TEAR_END} sheet={<AbsoluteFill style={{ background: "#0d0f14" }}>{o === "land" ? null : <Img src={staticFile(cover.srcPort ?? cover.src)} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "blur(40px) brightness(.55)", transform: "scale(1.2)" }} />}<Img src={staticFile(o === "land" ? cover.src : (cover.srcPort ?? cover.src))} style={o === "land" ? { width: "100%", height: "100%", objectFit: "cover" } : { position: "absolute", left: 0, top: "50%", width: "100%", transform: "translateY(-50%)" }} /></AbsoluteFill>} /> : null}
       {cover && cover.style === "pro" && f < THUMBPRO_END ? <ThumbProOpen format={o === "land" ? "landscape" : "portrait"} tearOrder={cover.tearOrder} {...cover.pro} {...(o === "land" ? cover.proLand : {})} /> : null}
       {cover && cover.style !== "pro" && cover.style !== "image" && (cover.style ?? "paper") === "paper" && f < PAPER_COVER_END ? <PaperCoverKit format={o === "land" ? "landscape" : "portrait"} palette={COVER_PALETTES[cover.palette ?? "steel"]} tearOrder={cover.tearOrder} {...cover.kit} {...(o === "land" ? cover.kitLand : {})} /> : null}
       {cover && cover.style !== "image" && cover.style === "kit" && f < (cover.frames ?? 3) ? <CoverKit format={o === "land" ? "landscape" : "portrait"} palette={COVER_PALETTES[cover.palette ?? "steel"]} {...cover.kit} {...(o === "land" ? cover.kitLand : {})} /> : null}

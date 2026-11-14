@@ -5,6 +5,7 @@ import {
   Bars, BlurRise, BrushX, Clock, CollageAssemble, ConvergeMerge, CornerTags, DashArc, EllipseMark, FlashCut, GlowCounter,
   Highlight, MGTheme, NoteCard, PanelToCanvas, PhoneChips, PinnedPhoto,
   HandheldShake, PaperBg, RewriteWindow, SakugaMove, SpotlightCard, Stamp, Strike, T, TimelineCounter, TimelineTravel, TypeBox, kufiF, naskhF,
+  useT,
 } from "./MG";
 import { Banner, Sources, StatRow, useFonts } from "./EuKit";
 import { Marker, PaperMap, Word } from "./PortraitKit";
@@ -25,7 +26,8 @@ import LAB from "../data/elements_lab.json";
 import GRIDS from "../data/layout_grids.json";
 import { TRANSITIONS, TransitionScene } from "./TransitionsLab";
 import { Keycaps, Burst } from "./KhaamKit";
-import { VerseNoor, VerseBigWord } from "./VerseKit";
+import { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle } from "./PickKit";
+import { VerseNoor, VerseBigWord, HalfScene, BlendPanel, halfK } from "./VerseKit";
 import { HadithQuote, HadithBooks, HadithIsnad } from "./HadithKit";
 
 import { BRAND, applyBrand } from "./brand";
@@ -168,7 +170,24 @@ const NUR = { words: ["ٱللَّهُ", "نُورُ", "ٱلسَّمَٰوَٰت�
 /** the hadith sample: «إنما الأعمال بالنيات» (صحيح البخاري 1، صحيح مسلم 1907 — checked in Shamela) */
 const HAD = { lead: "قال رسول الله ﷺ", phrases: [{ text: "إنما الأعمال بالنيات", at: 0.5, key: "بالنيات" }, { text: "وإنما لكل امرئ ما نوى", at: 1.4 }], src: "صحيح البخاري (١) — صحيح مسلم (١٩٠٧)" };
 const ISNAD = ["الحميدي", "سفيان بن عيينة", "يحيى بن سعيد الأنصاري", "محمد بن إبراهيم التيمي", "علقمة بن وقاص الليثي", "عمر بن الخطاب", "النبي ﷺ"];
+/** the 12 picked elements (src/PickKit.tsx, user 2026-11-14): landscape = he slides right and the approved panel blends behind the element, as the engine does; portrait = the element in the lower half */
+const PickBlend: React.FC = () => { const t = useT(); return <BlendPanel k={halfK(t, 0, 2.95)} t={t} id="pkg" />; };
+const PickScene: React.FC<{ o: Orient; children: React.ReactNode }> = ({ o, children }) => o === "land"
+  ? <HalfScene him={<Rec />} start={0} until={2.95}><PickBlend />{children}</HalfScene>
+  : <><PortRec /><div style={{ position: "absolute", left: 0, top: 860, width: 1920, height: 1080, transform: "scale(0.9)", transformOrigin: "0 0" }}>{children}</div></>;
 const VERSE_SCENES: Record<string, (o: Orient) => React.ReactNode> = {
+  InkQuote: (o) => <PickScene o={o}><InkQuote at={0.1} until={2.95} x={90} y={380} size={96} lines={[{ text: "الكلمةُ أمانة", at: 0.3 }, { text: "فاحفظها", at: 1.3 }]} source="مثال" /></PickScene>,
+  BigQuestion: (o) => <PickScene o={o}><BigQuestion at={0.1} until={2.95} x={90} y={150} size={460} text="لماذا ينتشر؟" textAt={1.0} /></PickScene>,
+  ChatThread: (o) => <PickScene o={o}><ChatThread at={0.1} until={2.95} x={110} y={250} w={900} msgs={[{ text: "هل رأيت المقطع المنتشر؟", at: 0.3 }, { text: "نعم، لكنه محتوى هابط", at: 1.2, me: true }, { text: "فلماذا يشاهده الملايين؟", at: 2.0 }]} /></PickScene>,
+  StickyNotes: (o) => <PickScene o={o}><StickyNotes until={2.95} size={300} notes={[{ text: "تفاهة", at: 0.3, x: 140, y: 200 }, { text: "إثارة", at: 0.9, x: 540, y: 280, tint: "paper" }, { text: "ربحٌ سريع", at: 1.5, x: 300, y: 600, tint: "accent" }]} /></PickScene>,
+  FlapBoard: (o) => <PickScene o={o}><FlapBoard at={0.1} until={2.95} x={80} y={260} w={980} rows={[{ text: "الوجهة: الوعي", at: 0.9 }, { text: "الرحلة: التثبّت", at: 1.4 }, { text: "الحالة: في الموعد", at: 1.9 }]} /></PickScene>,
+  SearchBar: (o) => <PickScene o={o}><SearchBar at={0.1} until={2.95} x={110} y={120} w={900} img="episodes/1Gn_-DLPTjI.jpg" imgAt={0.1} imgH={420} imgCaption="حلقة سابقة" query="محمد بن شمس الدين المحتوى الهابط" typeAt={0.8} cps={20} /></PickScene>,
+  MythFact: (o) => <PickScene o={o}><MythFact until={2.95} x={90} y={300} myth="المنع وحده يكفي" mythAt={0.2} fact="البديل النافع يسدّ الفراغ" factAt={1.6} /></PickScene>,
+  RingStat: (o) => <PickScene o={o}><RingStat at={0.1} until={2.95} x={560} y={470} r={200} value={73} label="من المراهقين يشاهدونه يومياً (مثال)" labelAt={1.9} /></PickScene>,
+  LineGrowth: (o) => <PickScene o={o}><LineGrowth at={0.1} until={2.95} x={90} y={200} values={[10, 14, 20, 32, 40]} fromLabel="٢٠٢٠" toLabel="٢٠٢٥" tag="+٣٠٠٪" tagAt={2.0} /></PickScene>,
+  DecisionFlow: (o) => <PickScene o={o}><DecisionFlow at={0.1} until={2.95} x={80} y={150} start="منشورٌ مثير" q="هل ينفع؟" qAt={0.7} yes="انشره" no="تجاهله" yesAt={1.5} /></PickScene>,
+  MindMap: (o) => <PickScene o={o}><MindMap at={0.1} until={2.95} x={560} y={560} r={380} center="المحتوى" nodes={[{ text: "المصدر", at: 0.6 }, { text: "النية", at: 0.9 }, { text: "الأثر", at: 1.2 }, { text: "الجمهور", at: 1.5 }, { text: "البديل", at: 1.8 }]} /></PickScene>,
+  ViciousCycle: (o) => <PickScene o={o}><ViciousCycle at={0.1} until={2.95} x={560} y={520} r={260} steps={[{ text: "فراغ", at: 0.2 }, { text: "تصفّح", at: 0.6 }, { text: "إدمان", at: 1.0 }, { text: "ندم", at: 1.4 }]} spinAt={1.9} /></PickScene>,
   VerseNoor: () => <VerseNoor {...NUR} him={<Rec />} />,
   VerseBigWord: () => <VerseBigWord {...NUR} times={[0.4, 0.75, 1.1, 1.45]} him={<Rec />} />,
   HadithQuote: () => <HadithQuote him={<Rec />} {...HAD} />,

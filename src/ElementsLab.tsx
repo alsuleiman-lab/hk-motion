@@ -26,7 +26,7 @@ import LAB from "../data/elements_lab.json";
 import GRIDS from "../data/layout_grids.json";
 import { TRANSITIONS, TransitionScene } from "./TransitionsLab";
 import { Keycaps, Burst } from "./KhaamKit";
-import { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle, Footnote, ClaimWall, NoProof, BrokenIsnad, GradeLadder, YearsGap, Lifespans, Crossroads, AlertFrame } from "./PickKit";
+import { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle, Footnote, ClaimWall, NoProof, BrokenIsnad, GradeLadder, YearsGap, Lifespans, Crossroads, AlertFrame, NeverMeet, RisingTimeline, MinuteTeaser, PipSource, PIP, pipK } from "./PickKit";
 import { VerseNoor, VerseBigWord, HalfScene, BlendPanel, halfK } from "./VerseKit";
 import { HadithQuote, HadithBooks, HadithIsnad } from "./HadithKit";
 
@@ -171,11 +171,17 @@ const NUR = { words: ["ٱللَّهُ", "نُورُ", "ٱلسَّمَٰوَٰت�
 const HAD = { lead: "قال رسول الله ﷺ", phrases: [{ text: "إنما الأعمال بالنيات", at: 0.5, key: "بالنيات" }, { text: "وإنما لكل امرئ ما نوى", at: 1.4 }], src: "صحيح البخاري (١) — صحيح مسلم (١٩٠٧)" };
 const ISNAD = ["الحميدي", "سفيان بن عيينة", "يحيى بن سعيد الأنصاري", "محمد بن إبراهيم التيمي", "علقمة بن وقاص الليثي", "عمر بن الخطاب", "النبي ﷺ"];
 /** the 12 picked elements (src/PickKit.tsx, user 2026-11-14): landscape = he slides right and the approved panel blends behind the element, as the engine does; portrait = the element in the lower half */
+/** gallery only: his clip shrinking into the corner window the same way the engine scales LandFootage for PipSource */
+const PipHim: React.FC = () => { const t = useT(), u = pipK(t, 0.3, 2.95); return <AbsoluteFill style={{ transform: `scale(${1 - (1 - PIP.s) * u})`, transformOrigin: `${PIP.W - PIP.m / (1 - PIP.s)}px ${PIP.m / (1 - PIP.s)}px` }}><Rec /></AbsoluteFill>; };
 const PickBlend: React.FC = () => { const t = useT(); return <BlendPanel k={halfK(t, 0, 2.95)} t={t} id="pkg" />; };
 const PickScene: React.FC<{ o: Orient; children: React.ReactNode }> = ({ o, children }) => o === "land"
   ? <HalfScene him={<Rec />} start={0} until={2.95}><PickBlend />{children}</HalfScene>
   : <><PortRec /><div style={{ position: "absolute", left: 0, top: 860, width: 1920, height: 1080, transform: "scale(0.9)", transformOrigin: "0 0" }}>{children}</div></>;
 const VERSE_SCENES: Record<string, (o: Orient) => React.ReactNode> = {
+  NeverMeet: (o) => <PickScene o={o}><NeverMeet at={0.1} until={2.95} x={110} y={260} a="التوحيد" b="الشرك" joinAt={1.2} /></PickScene>,
+  RisingTimeline: (o) => <PickScene o={o}><RisingTimeline at={0.1} until={2.95} x={40} y={120} events={[{ date: "١١ هـ", title: "بيعة الصدّيق", at: 0.3 }, { date: "٣٥ هـ", title: "مقتل عثمان", at: 1.0 }, { date: "٤١ هـ", title: "عام الجماعة", at: 1.7 }, { date: "٦١ هـ", title: "مقتل الحسين", at: 2.4 }]} /></PickScene>,
+  MinuteTeaser: (o) => <PickScene o={o}><MinuteTeaser at={0.1} until={2.95} x={150} y={150} img="episodes/1Gn_-DLPTjI.jpg" time="٢٣:١٤" frac={0.62} text="وفي آخر الحلقة: الجواب عن الشبهة الكبرى" thumbAt={1.7} textAt={2.0} /></PickScene>,
+  PipSource: (o) => <><div style={{ position: "absolute", inset: 0, transformOrigin: `${PIP.W - PIP.m / (1 - PIP.s)}px ${PIP.m / (1 - PIP.s)}px` }}><PipHim /></div><PipSource at={0.3} until={2.95} src="books/bukhari2.jpg" title="صفحة المصدر" /></>,
   Footnote: (o) => <PickScene o={o}><Footnote at={0.1} until={2.95} x={90} y={230} before="«إذا بايعتَ فقل: لا" word="خِلابة" after="»" wordAt={0.7} meaning="الخديعة؛ أي لا خداع في هذا البيع." noteAt={1.2} source="متفق عليه" /></PickScene>,
   ClaimWall: (o) => <PickScene o={o}><ClaimWall at={0.1} until={2.95} x={110} y={300} words={["الدين", "تشدد", "لا", "يناسب", "هذا", "العصر"]} hitAt={1.8} /></PickScene>,
   NoProof: (o) => <PickScene o={o}><NoProof at={0.1} until={2.95} x={100} y={200} claim="الحديث مكذوب على النبي" searchAt={0.8} verdictAt={1.9} /></PickScene>,

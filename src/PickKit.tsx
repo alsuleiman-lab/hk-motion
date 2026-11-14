@@ -384,7 +384,85 @@ export const AlertFrame: React.FC<{ at: number; until: number; text?: string; ba
   );
 };
 
-export const PICK_KIT = { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle, Footnote, ClaimWall, NoProof, BrokenIsnad, GradeLadder, YearsGap, Lifespans, Crossroads, AlertFrame } as const;
+/* ───────── round 3 picks (user 2026-11-14) ───────── */
+
+/** 22 · خطّان لا يلتقيان — two parallel lines with a name each; an arrow tries to join them and bounces back: what never meets (التوحيد والشرك) */
+export const NeverMeet: React.FC<Base & { a: string; b: string; joinAt: number; label?: string; labelAt?: number; aGood?: boolean }> = ({ at, until, x, y, a, b, joinAt, label = "لا يجتمعان", labelAt, aGood = true }) => {
+  const { t, k } = useK(); const s = clamp((t - joinAt) / 1), ca = aGood ? BRAND.green : BRAND.mark, cb = aGood ? BRAND.mark : BRAND.green;
+  return (
+    <div style={abs({ left: x, top: y, width: 900 })}>
+      <div style={abs({ left: 0, width: 900, top: -30, textAlign: "center", fontFamily: kufiF, fontSize: 56, color: BRAND.card, ...wipe(ease(k(at + 0.4, 0.4, until))) })}>{a}</div>
+      <div style={abs({ left: 0, top: 80, width: 900, height: 14, borderRadius: 7, background: ca, ...wipe(ease(k(at, 0.7, until))) })} />
+      <div style={abs({ left: 0, top: 320, width: 900, height: 14, borderRadius: 7, background: cb, ...wipe(ease(k(at + 0.2, 0.7, until))) })} />
+      <div style={abs({ left: 0, width: 900, top: 360, textAlign: "center", fontFamily: kufiF, fontSize: 56, color: BRAND.card, ...wipe(ease(k(at + 0.6, 0.4, until))) })}>{b}</div>
+      <div style={abs({ left: 420, top: 110, width: 60, height: 190, display: "grid", placeItems: "center", fontFamily: kufiF, fontSize: 110, color: BRAND.card, visibility: s > 0 && t < until ? "visible" : "hidden", transform: `scaleY(${1 - 0.5 * Math.abs(Math.sin(s * Math.PI * 3)) * (1 - s)})` })}>⇕</div>
+      <div style={abs({ left: 0, width: 900, top: 470, textAlign: "center", fontFamily: kufiF, fontSize: 46, color: BRAND.card, ...wipe(ease(k(labelAt ?? joinAt + 1, 0.4, until))) })}>{label}</div>
+    </div>
+  );
+};
+
+/** 23 · الخط الزمني الصاعد — a vertical timeline rising; each event (date + title) passes the centre mark and is enlarged while it is the current one */
+export const RisingTimeline: React.FC<Base & { events: { date: string; title: string; at: number }[]; h?: number }> = ({ at, until, x, y, events, h = 840 }) => {
+  const { t, k } = useK(); const step = 220, mid = h * 0.45;
+  // the rail scrolls so the event being spoken sits at the centre mark
+  const idx = events.reduce((n, e, i) => (t >= e.at ? i : n), 0), prev = events[Math.max(0, idx)], nxt = events[idx + 1];
+  const f = nxt ? ease(clamp((t - (nxt.at - 0.5)) / 0.5)) : 0, off = (idx + f) * step;
+  return (
+    <div style={abs({ left: x, top: y, width: 1000, height: h, overflow: "hidden", ...wipe(ease(k(at, 0.4, until))) })}>
+      <div style={abs({ left: 476, top: 0, width: 8, height: h, background: BRAND.light })} />
+      {events.map((e, i) => { const ty = mid + i * step - off, cur = i === idx && t >= e.at, kk = k(e.at - 0.6, 0.35, until);
+        return <div key={i} style={abs({ left: 0, top: ty - 60, width: 1000, height: 120, transform: cur ? "scale(1.08)" : "none", transformOrigin: "480px 60px", visibility: kk > 0 ? "visible" : "hidden" })}>
+          <div style={abs({ left: 460, top: 40, width: 40, height: 40, borderRadius: "50%", background: cur ? BRAND.card : BRAND.light, boxShadow: cur ? `0 0 20px ${BRAND.card}` : "none" })} />
+          <div style={abs({ left: 540, top: 30, fontFamily: kufiF, fontSize: 50, color: BRAND.light, whiteSpace: "nowrap" })}>{e.date}</div>
+          <div style={abs({ right: 560, top: 30, fontFamily: kufiF, fontSize: 48, color: BRAND.card, whiteSpace: "nowrap" })}>{e.title}</div>
+        </div>; })}
+      {prev ? null : null}
+    </div>
+  );
+};
+
+/** 24 · الدقيقة في المقطع — OPENING TEASER (user note: «اضفه في أول الفيديو كتشويق، لموضوع في آخره»): a player bar whose knob runs to the minute where the
+ *  topic comes later in THIS video, a thumbnail of that moment pops above it with the time, and the teaser line under the bar */
+export const MinuteTeaser: React.FC<Base & { w?: number; img?: string; time: string; frac: number; text: string; textAt?: number; thumbAt?: number }> = ({ at, until, x, y, w = 820, img, time, frac, text, textAt, thumbAt }) => {
+  const { t, k } = useK(); const u = ease(clamp((t - at - 0.5) / 1.4)) * frac, kx = w - u * w, kt = k(thumbAt ?? at + 2, 0.35, until);
+  return (
+    <div style={abs({ left: x, top: y, width: w })}>
+      <div style={abs({ left: 0, top: 0, width: w, height: 460, borderRadius: 14, background: "#0b0d10", overflow: "hidden", ...pop(k(at, 0.4, until), 0.9) })}>
+        {img ? <Pic src={img} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "brightness(.55)" }} /> : null}
+        <div style={abs({ inset: 0, display: "grid", placeItems: "center", fontFamily: kufiF, fontSize: 120, color: "rgba(255,255,255,.8)" })}>▶</div>
+      </div>
+      <div style={abs({ left: 0, top: 490, width: w, height: 12, borderRadius: 6, background: "rgba(255,255,255,.25)", ...wipe(ease(k(at + 0.2, 0.4, until))) })}>
+        <div style={abs({ right: 0, top: 0, bottom: 0, width: u * w, borderRadius: 6, background: BRAND.mark })} />
+      </div>
+      <div style={abs({ left: kx - 16, top: 480, width: 32, height: 32, borderRadius: "50%", background: BRAND.mark, boxShadow: "0 0 0 6px rgba(192,69,58,.3)", visibility: t > at + 0.5 && t < until ? "visible" : "hidden" })} />
+      <div style={abs({ left: Math.max(0, Math.min(w - 280, kx - 140)), top: 200, width: 280, padding: 8, borderRadius: 10, background: BRAND.card, textAlign: "center", fontFamily: kufiF, fontSize: 40, color: BRAND.ink, boxShadow: "0 16px 40px rgba(0,0,0,.5)", ...pop(kt, 0.3) })}>
+        <div style={{ height: 130, borderRadius: 6, overflow: "hidden", background: BRAND.navy, marginBottom: 6 }}>{img ? <Pic src={img} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : null}</div>{time}
+      </div>
+      <div style={abs({ left: 0, width: w, top: 540, textAlign: "center", fontFamily: kufiF, fontSize: 48, lineHeight: 1.4, color: BRAND.card, ...wipe(ease(k(textAt ?? at + 2.4, 0.5, until))) })}>{text}</div>
+    </div>
+  );
+};
+
+/** 25 · الصورة في الزاوية — the source fills the screen while HE shrinks into a framed window in the top-right corner (the engine scales his footage:
+ *  LandFootage `pips`); this draws the source around the window hole and the window's white frame. Landscape only. */
+export const PIP = { s: 0.3, m: 40, W: 1920, H: 1080 };
+export const pipK = (t: number, at: number, until: number) => ease(Math.min(clamp((t - at) / 0.7), clamp((until - t) / 0.6)));
+export const PipSource: React.FC<{ at: number; until: number; src?: string; title?: string; fit?: "contain" | "cover" }> = ({ at, until, src, title, fit = "contain" }) => {
+  const { t } = useK(); const u = pipK(t, at, until); if (u <= 0) return null;
+  const sc = 1 - (1 - PIP.s) * u, w = PIP.W * sc, h = PIP.H * sc, x0 = PIP.W - PIP.m * u - w, y0 = PIP.m * u;
+  const hole = `polygon(evenodd, 0 0, ${PIP.W}px 0, ${PIP.W}px ${PIP.H}px, 0 ${PIP.H}px, 0 0, ${x0}px ${y0}px, ${x0}px ${y0 + h}px, ${x0 + w}px ${y0 + h}px, ${x0 + w}px ${y0}px, ${x0}px ${y0}px)`;
+  return (
+    <div style={abs({ left: 0, top: 0, width: PIP.W, height: PIP.H })}>
+      <div style={abs({ inset: 0, clipPath: hole, background: `radial-gradient(ellipse at 40% 50%, ${BRAND.base2}, ${BRAND.base3})` })}>
+        {src ? <Pic src={src} style={{ position: "absolute", left: 80, top: 80, width: PIP.W * 0.62, height: PIP.H - 160, objectFit: fit }} /> : null}
+        {title ? <div style={abs({ left: 80, width: PIP.W * 0.62, top: src ? PIP.H - 150 : PIP.H / 2 - 60, textAlign: "center", fontFamily: naskhF, fontSize: src ? 56 : 110, color: BRAND.accent })}>{title}</div> : null}
+      </div>
+      <div style={abs({ left: x0 - 12, top: y0 - 12, width: w + 24, height: h + 24, border: "12px solid #fff", borderRadius: 18 * u, boxShadow: "0 20px 60px rgba(0,0,0,.6)", pointerEvents: "none" })} />
+    </div>
+  );
+};
+
+export const PICK_KIT = { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle, Footnote, ClaimWall, NoProof, BrokenIsnad, GradeLadder, YearsGap, Lifespans, Crossroads, AlertFrame, NeverMeet, RisingTimeline, MinuteTeaser, PipSource } as const;
 export type PickName = keyof typeof PICK_KIT;
 /** drawn over the whole frame: he is NOT slid right and no panel is blended behind it */
-export const PICK_FULL_FRAME = new Set<string>(["AlertFrame"]);
+export const PICK_FULL_FRAME = new Set<string>(["AlertFrame", "PipSource"]);

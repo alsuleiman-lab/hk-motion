@@ -22,7 +22,7 @@ import { ThumbProOpen, THUMBPRO_END, THUMBPRO_TEAR_END } from "./ThumbPro";
 import type { ThumbProps } from "./ThumbPro";
 import { TornNote, NewsClip, TornPhoto, WordScraps, DateCalendar } from "./PaperKit";
 import { BRAND, applyBrand } from "./brand";
-import { PICK_KIT, PICK_FULL_FRAME } from "./PickKit";
+import { PICK_KIT, PICK_FULL_FRAME, PIP, pipK } from "./PickKit";
 import type { PickName } from "./PickKit";
 import type { BrandName } from "./brand";
 import { MaskedVideo } from "./MaskedVideo";
@@ -491,7 +491,7 @@ export const TailVoice: React.FC<{ tl: NonNullable<MontageSpec["tail"]> }> = ({ 
 };
 
 /** landscape footage: his whole 1920×1080 frame with the occasional push-in on his face (same easing as SheikhLayers) */
-export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: number; amt?: number }[]; splits?: Split[]; shifts?: { from: number; to: number; dx: number; feather?: number }[] }> = ({ cut, zooms = [], splits = [], shifts = [] }) => {
+export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: number; amt?: number }[]; splits?: Split[]; shifts?: { from: number; to: number; dx: number; feather?: number }[]; pips?: { at: number; until: number }[] }> = ({ cut, zooms = [], splits = [], shifts = [], pips = [] }) => {
   const t = useT(0);
   const sh = shifts.find((s) => t >= s.from && t <= s.to + 0.4);
   const dx = sh ? sh.dx * Math.min(clamp((t - sh.from) / 0.4), clamp((sh.to + 0.4 - t) / 0.4)) : 0;
@@ -499,9 +499,10 @@ export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: nu
   const sp = splits.find((x) => t >= x.from && t < x.to);
   if (sp) { const L = DEBATE_LAYOUTS[sp.layout ?? "dossier"]; return <L at={sp.from} main={{ src: cut, x: sp.sheikh.x, w: sp.sheikh.w }} guest={{ src: cut, x: sp.clip.x, w: sp.clip.w, y: sp.clip.y, h: sp.clip.h, blur: sp.blur }} guestName={sp.clipName} url={sp.clipUrl} />; }
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 1.2);
+  const pp = pips.find((q) => t >= q.at && t <= q.until), pu = pp ? pipK(t, pp.at, pp.until) : 0;   // PipSource (user 2026-11-14): he shrinks into the top-right corner window
   const z = zz ? 1 + (zz.amt ?? 0.08) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1;
   return (
-    <AbsoluteFill style={{ background: hyBg(BRAND.base), transform: `translate3d(${dx}px, 0, 0) scale(${z})`, willChange: "transform", transformOrigin: LANDSCAPE.faceOrigin }}>
+    <AbsoluteFill style={{ background: hyBg(BRAND.base), transform: pu > 0 ? `scale(${1 - (1 - PIP.s) * pu})` : `translate3d(${dx}px, 0, 0) scale(${z})`, willChange: "transform", transformOrigin: pu > 0 ? `${PIP.W - PIP.m / (1 - PIP.s)}px ${PIP.m / (1 - PIP.s)}px` : LANDSCAPE.faceOrigin }}>
       {/* (user 2026-11-12, frame 6758) slid aside, his video's left part turns transparent and melts into the background (\`feather\` px): CSS mask here, the same ramp in the GPU compositor (fx.featherL) */}
       {HY ? <VSlot src={cut} w={LANDSCAPE.W} h={LANDSCAPE.H} fx={fth > 0 ? { featherL: fth } : undefined} grow={0} /> : <div style={{ position: "absolute", inset: 0, ...(fth > 0 ? { WebkitMaskImage: `linear-gradient(to right, transparent 0px, black ${fth}px)`, maskImage: `linear-gradient(to right, transparent 0px, black ${fth}px)` } : {}) }}><RV src={staticFile(cut)} style={{ position: "absolute", left: 0, top: 0, width: LANDSCAPE.W, height: LANDSCAPE.H }} /></div>}
     </AbsoluteFill>
@@ -691,7 +692,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => 
   const hasFx = pulses.length > 0 || horrors.length > 0;
   const wrapStage = (kids: React.ReactNode) => hasFx ? <FxStage pulses={pulses} horrors={horrors}>{kids}</FxStage> : <>{kids}</>;   // an element, not a component type: the videos inside never remount
   const body = o === "land"
-    ? (spec.cut ? <LandFootage cut={spec.cut} zooms={spec.zooms} splits={spec.splits} shifts={spec.shifts} /> : null)
+    ? (spec.cut ? <LandFootage cut={spec.cut} zooms={spec.zooms} splits={spec.splits} shifts={spec.shifts} pips={spec.items.filter((x) => x.t === "pick" && x.el === "PipSource" && x.only !== "port").map((x) => ({ at: (x as { at: number }).at, until: (x as { until: number }).until }))} /> : null)
     : (spec.cut ? <SheikhLayers cut={spec.cut} cams={spec.cams ?? [{ from: 0, to: 9999, cx: 990 }]} zooms={spec.zooms} /> : null);
   return (
     <HybridHost>

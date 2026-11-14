@@ -1500,5 +1500,155 @@
    "port": "frame"
   },
   "orient": "land"
+ },
+ {
+  "id": "QACard",
+  "ar": "بطاقة السؤال والجواب",
+  "kit": "PickKit2",
+  "group": "الاقتباس والسؤال",
+  "where": "كلما قرأ سؤال سائل ثم أجاب جواباً مختصراً: السؤال على البطاقة عند قراءته، وتنقلب إلى الجواب عند أول كلمة منه.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"QACard\", at, until, … } (src/PickKit2.tsx). الخصائص: q, a, flipAt, qTag?, aTag?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "ThoughtBubble",
+  "ar": "فقاعة التفكير مع شخص",
+  "kit": "PickKit2",
+  "group": "كلام الخصم",
+  "where": "كلما نقل كلام شخص ثم كشف مقصوده الحقيقي («يقول كذا ويريد كذا»): صورة الشخص الحقيقية إن وُجدت (وإلا هيئة بلا ملامح)، وفقاعة كلامه، ثم فقاعة ما يقصده.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"ThoughtBubble\", at, until, … } (src/PickKit2.tsx). الخصائص: img?, name?, say, sayAt, think, thinkAt",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "WordCloud",
+  "ar": "سحابة الكلمات",
+  "kit": "PickKit2",
+  "group": "العبارات والكلمات",
+  "where": "كلما وصف خطاب جهة أو شعاراتها المتكررة، أو عدّد كلمات كثيرة يرددونها: الكلمات بأحجام حسب تكرارها.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"WordCloud\", at, until, … } (src/PickKit2.tsx). الخصائص: words: [{ text, weight 1–5, at }], title?, titleAt?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "CopiedMessages",
+  "ar": "الطلبات والرسائل الكثيرة",
+  "kit": "PickKit2",
+  "group": "العبارات والكلمات",
+  "where": "كلما قال: طُلب مني عمل حلقة، أو سألني ناس كثيرون، أو وصلتني رسائل (أمر المستخدم)؛ وكذلك لشائعة أو رسالة منقولة تنتشر: الرسالة تتكاثر نسخاً والعدد تحتها.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"CopiedMessages\", at, until, … } (src/PickKit2.tsx). الخصائص: text, tag?, count?, label?, n?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "Iceberg",
+  "ar": "الجبل الجليدي",
+  "kit": "PickKit2",
+  "group": "نماذج الرد",
+  "where": "كلما بيّن أن ظاهر الأمر قليل وما يخفيه كثير (شعار برّاق وراءه مقاصد): كلمة الظاهر أمام القمة (أمر المستخدم)، ثم يصفو الماء فتظهر كلمات المخفي.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"Iceberg\", at, until, … } (src/PickKit2.tsx). الخصائص: top: [], hidden: [], revealAt, topLabel?, hiddenLabel?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "CommentsFlood",
+  "ar": "سيل التعليقات",
+  "kit": "PickKit2",
+  "group": "المصادر المعروضة",
+  "where": "كلما ذكر ما يكتبه الناس أو يسألونه عن موضوع، أو ردود الجمهور وتعليقاتهم: التعليقات تتصاعد كبث مباشر.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"CommentsFlood\", at, until, … } (src/PickKit2.tsx). الخصائص: comments: [], speed?, gap?",
+  "section": "image",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "BrushWipe",
+  "ar": "ضربة الفرشاة",
+  "kit": "PickKit2",
+  "group": "بين الفصول",
+  "where": "انتقال بين محورين أو فصلين: ضربة فرشاة بلون الهوية تمسح الإطار كله ثم تنسحب، وعليها عنوان المحور التالي.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"BrushWipe\", at, until, … } (src/PickKit2.tsx). الخصائص: title?, at (الإطار كله بلا إزاحة)",
+  "section": "move",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "RootsTree",
+  "ar": "الجذور والفروع",
+  "kit": "PickKit2",
+  "group": "التدفق والربط",
+  "where": "معنى مجسَّد: كلما تكلم عن أصول وما يتفرع عنها، أو أسباب وثمراتها، أو أصل خفي وأثر ظاهر: الجذور بأسماء الأصول تحت الأرض، والأغصان بأسماء الفروع فوقها.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"RootsTree\", at, until, … } (src/PickKit2.tsx). الخصائص: roots: [{ text, at }], branches: [{ text, at }], trunkAt?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "Battery",
+  "ar": "البطارية",
+  "kit": "PickKit2",
+  "group": "الأرقام والزمن",
+  "where": "معنى مجسَّد: كلما تكلم عن شيء يزيد وينقص أو يُستنزف ويُشحن (الإيمان، الهمة، الطاقة، الحسنات): البطارية تتغير مع كل جملة.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"Battery\", at, until, … } (src/PickKit2.tsx). الخصائص: steps: [{ level 0–5, at, label }], title?",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
+  "id": "FillGlasses",
+  "ar": "الكأس يمتلئ",
+  "kit": "PickKit2",
+  "group": "الأرقام والزمن",
+  "where": "معنى مجسَّد: كلما تكلم عن نصيب أو قدر يمتلئ أو يفرغ، أو قارن حظ أمرين (العمل بالسنة والعمل بالرأي، القلب الممتلئ والفارغ): كأس أو اثنتان أو ثلاث.",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"FillGlasses\", at, until, … } (src/PickKit2.tsx). الخصائص: items: [{ label, value 0–100, at }]",
+  "section": "text",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
  }
 ]

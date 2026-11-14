@@ -28,6 +28,7 @@ import { TRANSITIONS, TransitionScene } from "./TransitionsLab";
 import { Keycaps, Burst } from "./KhaamKit";
 import { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle, Footnote, ClaimWall, NoProof, BrokenIsnad, GradeLadder, YearsGap, Lifespans, Crossroads, AlertFrame, NeverMeet, RisingTimeline, MinuteTeaser, PipSource, PIP, pipK } from "./PickKit";
 import { VerseNoor, VerseBigWord, HalfScene, BlendPanel, halfK } from "./VerseKit";
+import { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, Battery, FillGlasses } from "./PickKit2";
 import { HadithQuote, HadithBooks, HadithIsnad } from "./HadithKit";
 
 import { BRAND, applyBrand } from "./brand";
@@ -178,6 +179,16 @@ const PickScene: React.FC<{ o: Orient; children: React.ReactNode }> = ({ o, chil
   ? <HalfScene him={<Rec />} start={0} until={2.95}><PickBlend />{children}</HalfScene>
   : <><PortRec /><div style={{ position: "absolute", left: 0, top: 860, width: 1920, height: 1080, transform: "scale(0.9)", transformOrigin: "0 0" }}>{children}</div></>;
 const VERSE_SCENES: Record<string, (o: Orient) => React.ReactNode> = {
+  QACard: (o) => <PickScene o={o}><QACard at={0.1} until={2.95} x={160} y={300} q="هل يجوز تأخير قضاء رمضان؟" a="الجواب المختصر هنا (مثال)" flipAt={1.4} /></PickScene>,
+  ThoughtBubble: (o) => <PickScene o={o}><ThoughtBubble at={0.1} until={2.95} x={90} y={170} name="المخالف (مثال)" say="نحن نحترم الجميع" sayAt={0.5} think="إلا أهل السنة" thinkAt={1.5} /></PickScene>,
+  WordCloud: (o) => <PickScene o={o}><WordCloud at={0.1} until={2.95} x={560} y={480} words={[["التسامح", 5], ["الحرية", 3], ["الآخر", 3], ["الحوار", 4], ["التنوير", 2], ["التعايش", 2], ["الإنسانية", 1], ["العقل", 2], ["التطور", 1]].map(([text, weight], i) => ({ text: text as string, weight: weight as number, at: 0.2 + i * 0.15 }))} title="أكثر الكلمات في خطابهم (مثال)" /></PickScene>,
+  CopiedMessages: (o) => <PickScene o={o}><CopiedMessages at={0.1} until={2.95} x={110} y={150} text="يا شيخ نريد حلقة عن هذا الموضوع" tag="طلب" count={1200} label="طلب حلقة (مثال)" /></PickScene>,
+  Iceberg: (o) => <PickScene o={o}><Iceberg at={0.1} until={2.95} x={110} y={130} top={["التجديد"]} hidden={["إسقاط السنة", "هدم الإجماع", "تمييع العقيدة"]} revealAt={1.2} /></PickScene>,
+  CommentsFlood: (o) => <PickScene o={o}><CommentsFlood at={0.1} until={2.95} x={150} y={110} comments={["جزاك الله خيراً يا شيخ", "هل هذا الكلام صحيح؟", "أريد الدليل من فضلك", "سمعت غير هذا", "ما حكم من فعل ذلك؟", "نريد حلقة عن هذا"]} /></PickScene>,
+  BrushWipe: (o) => <>{o === "land" ? <Rec /> : <PortRec />}<BrushWipe at={0.4} until={2.95} title="المحور الجديد" W={o === "land" ? 1920 : 1080} H={o === "land" ? 1080 : 1920} /></>,
+  RootsTree: (o) => <PickScene o={o}><RootsTree at={0.1} until={2.95} x={110} y={120} roots={["الكتاب", "السنة", "الإجماع"].map((text, i) => ({ text, at: 0.4 + i * 0.25 }))} branches={["الفقه", "الآداب", "الأخلاق"].map((text, i) => ({ text, at: 1.6 + i * 0.25 }))} /></PickScene>,
+  Battery: (o) => <PickScene o={o}><Battery at={0.1} until={2.95} x={110} y={250} title="الإيمان يزيد وينقص" steps={[{ level: 4, at: 0.5, label: "" }, { level: 1, at: 1.0, label: "بالمعاصي ينقص" }, { level: 5, at: 2.0, label: "وبالطاعة يزيد" }]} /></PickScene>,
+  FillGlasses: (o) => <PickScene o={o}><FillGlasses at={0.1} until={2.95} x={110} y={220} items={[{ label: "العمل بالسنة", value: 85, at: 0.3 }, { label: "العمل بالرأي", value: 25, at: 0.6 }]} /></PickScene>,
   NeverMeet: (o) => <PickScene o={o}><NeverMeet at={0.1} until={2.95} x={110} y={260} a="التوحيد" b="الشرك" joinAt={1.2} /></PickScene>,
   RisingTimeline: (o) => <PickScene o={o}><RisingTimeline at={0.1} until={2.95} x={40} y={120} events={[{ date: "١١ هـ", title: "بيعة الصدّيق", at: 0.3 }, { date: "٣٥ هـ", title: "مقتل عثمان", at: 1.0 }, { date: "٤١ هـ", title: "عام الجماعة", at: 1.7 }, { date: "٦١ هـ", title: "مقتل الحسين", at: 2.4 }]} /></PickScene>,
   MinuteTeaser: (o) => <PickScene o={o}><MinuteTeaser at={0.1} until={2.95} x={150} y={150} img="episodes/1Gn_-DLPTjI.jpg" time="٢٣:١٤" frac={0.62} text="وفي آخر الحلقة: الجواب عن الشبهة الكبرى" thumbAt={1.7} textAt={2.0} /></PickScene>,

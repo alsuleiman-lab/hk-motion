@@ -44,6 +44,13 @@ const RULES = [
   { el: "NeverMeet", re: /(لا يجتمعان|لا يلتقيان|ضدان|لا يجتمع .{1,20} و)/g, why: "أمران لا يجتمعان" },
   { el: "RisingTimeline", also: ["timeline"], re: /(سنه [0-9٠-٩]+ .{1,80} سنه [0-9٠-٩]+ .{1,80} سنه [0-9٠-٩]+)/g, why: "أحداث متتابعة بتواريخها" },
   { el: "MinuteTeaser", re: /(في اخر الحلقه|في اخر هذا|اخر المقطع|في نهايه الحلقه|سنعرف في|ساخبركم في اخر)/g, why: "تشويق لموضوع في آخر الفيديو" },
+  { el: "QACard", re: /(السائل يقول|يسال السائل|سال سائل|يقول السائل|سوال يقول|وصلني سوال)/g, why: "سؤال سائل وجوابه" },
+  { el: "ThoughtBubble", re: /(يقول كذا ويريد|ظاهره .{1,30} ويريد|ويقصد|يقصد بذلك|مراده|مقصوده)/g, why: "كلام شخص ومقصوده" },
+  { el: "CopiedMessages", re: /(طلب مني|طلبوا مني|سالني (كثير|ناس|بعض)|كثير من الاخوه سالوا|وصلتني رسائل|راسلني كثير)/g, why: "طلبات أو أسئلة كثيرة وصلته" },
+  { el: "Iceberg", re: /(ظاهره|في الظاهر|ما خفي|ما وراء|تحت الشعار|ما يخفونه)/g, why: "ظاهر قليل ومخفي كثير" },
+  { el: "CommentsFlood", re: /(التعليقات|في التعليقات|كتبوا لي|يعلقون|المعلقين)/g, why: "تعليقات الناس" },
+  { el: "Battery", also: ["FillGlasses"], re: /(يزيد وينقص|يزيد بالطاعه|ينقص بالمعصيه|ضعف الايمان|قوه الايمان|الهمه)/g, why: "شيء يزيد وينقص" },
+  { el: "RootsTree", re: /(اصول|الاصل .{1,20} الفرع|جذور|جذر|ثمرات|ثمره)/g, why: "أصل وفروع" },
   { el: "StickyNotes", also: ["FlapBoard", "rows"], re: /(اولا .{1,200} ثانيا|الامر الاول|السبب الاول|الصفه الاولي|من اسباب)/g, why: "تعداد صفات أو أسباب" },
 ];
 const items = spec.items ?? [], skip = new Set((spec.skipPicks ?? []).map((s) => s.el));
@@ -58,5 +65,11 @@ for (const r of RULES) {
   else if (skip.has(r.el)) console.log(`– ${r.el}: مُعفى في المواصفة (مستحق عند ${where})`);
   else { fails++; console.log(`✘ ${r.el}: ${r.why} عند ${where} — لم يُستعمل. أضف { t: "pick", el: "${r.el}", … } هناك، أو اكتب سبب تركه في "skipPicks"`); }
 }
+
+// drawn metaphors (user 2026-11-14: «كن مبدعاً أثناء الحلقات بإضافة المعاني والتعبير عنها بهذه الطريقة … دون أن يكون لذلك أصل عندنا وبدون أن تولّد صور»):
+// at least one per 2 minutes of the video (spec "skipMetaphors": "why" waives it)
+const METAPHORS = ["RootsTree", "Battery", "FillGlasses", "Iceberg", "ViciousCycle", "Crossroads", "ClaimWall", "NeverMeet", "MindMap", "DecisionFlow", "StickyNotes", "WordCloud"];
+const mins = (spec.frames ?? 0) / (spec.fps ?? 30) / 60, needM = Math.max(1, Math.ceil(mins / 2)), gotM = items.filter((it) => it.t === "pick" && METAPHORS.includes(it.el)).length;
+if (mins > 0.5) { if (gotM >= needM) console.log(`✔ المعاني المجسّدة: ${gotM} (المطلوب ${needM})`); else if (spec.skipMetaphors) console.log(`– المعاني المجسّدة: ${gotM} من ${needM}، معفى: ${spec.skipMetaphors}`); else { fails++; console.log(`✘ المعاني المجسّدة: ${gotM} من ${needM} — عبّر عن معاني كلامه برسوم مجسّدة (جذور، بطارية، كأس، جبل جليدي، دائرة، مفترق…)`); } }
 console.log(fails ? `pick_triggers FAILED: ${fails} عنصراً مستحقاً لم يُستعمل` : "pick_triggers PASSED");
 process.exit(fails ? 1 : 0);

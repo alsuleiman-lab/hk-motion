@@ -35,8 +35,12 @@ const fps = 30, W = 110, H = 80, SZ = W * H;
 // and compare the series of frame-to-frame differences over every frame. Same pass rule (--min, default 0.96) and the same gate file.
 if (rest.includes("--full")) {
   const FW = 64, FH = 48, FSZ = FW * FH, c = opt("crop", "800,230,320,330").split(",").map(Number), sc = (opt("src-crop", "") || opt("crop", "800,230,320,330")).split(",").map(Number);
+  /* (user 2026-11-14 «من المفترض ان نعمل على الكرت فقط») the whole-video decode runs on the card (NVDEC, bit-exact with the CPU decoder for H.264);
+     only the small crop is shrunk on the CPU, with the same filter, so the numbers are the same. Falls back to the CPU decode if NVDEC refuses the file. */
   const dec = (file, [cx, cy, cw, ch], skip) => { const tmp = `.tmp/${name}_full_${skip}.raw`; fs.mkdirSync(".tmp", { recursive: true });
-    const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", file, "-an", "-vf", `crop=${cw}:${ch}:${cx}:${cy},scale=${FW}:${FH},format=gray`, "-f", "rawvideo", tmp], { stdio: "inherit" });
+    const vf = `crop=${cw}:${ch}:${cx}:${cy},scale=${FW}:${FH},format=gray`;
+    let r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-hwaccel", "cuda", "-hwaccel_output_format", "cuda", "-i", file, "-an", "-vf", `hwdownload,format=nv12,${vf}`, "-f", "rawvideo", tmp], { stdio: "inherit" });
+    if (r.status !== 0) r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", file, "-an", "-vf", vf, "-f", "rawvideo", tmp], { stdio: "inherit" });
     if (r.status !== 0) { console.error("decode failed"); process.exit(1); } const b = fs.readFileSync(tmp); fs.rmSync(tmp); return b; };
   const A = dec(out, c, "out"), B = dec(src, sc, "src");
   const N = Math.floor(Math.min(A.length, B.length) / FSZ), shift = Math.round(offset);

@@ -28,12 +28,6 @@ import type { MontageSpec } from "./MontageSpec";
 import streamArshFakhSpec from "../data/specs/stream_arsh_fakh_reel.json";
 import streamMayyitIlmSpec from "../data/specs/stream_mayyit_ilm_reel.json";
 const StreamArshFakhRComp: React.FC = () => <MontageFromSpec spec={streamArshFakhSpec as unknown as MontageSpec} />;
-import kitabSunnaSpec from "../data/specs/kitab_sunna.json";
-const KitabSunnaComp: React.FC = () => <MontageFromSpec spec={kitabSunnaSpec as unknown as MontageSpec} />;
-import fatimaSheikhaynSpec from "../data/specs/fatima_sheikhayn.json";
-const FatimaSheikhaynComp: React.FC = () => <MontageFromSpec spec={fatimaSheikhaynSpec as unknown as MontageSpec} />;
-import syriaTrashSpec from "../data/specs/syria_trash_content.json";
-const SyriaTrashComp: React.FC = () => <MontageFromSpec spec={syriaTrashSpec as unknown as MontageSpec} />;
 const StreamMayyitIlmRComp: React.FC = () => <MontageFromSpec spec={streamMayyitIlmSpec as unknown as MontageSpec} />;
 
 
@@ -47,12 +41,6 @@ export const RemotionRoot: React.FC = () => {
     <ByRecency>
 
       <Folder name="مونتاج الجلسة">
-        <Composition id="KitabSunna-L" component={KitabSunnaComp} durationInFrames={specFrames(kitabSunnaSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
-        <Composition id="KitabSunna" component={KitabSunnaComp} durationInFrames={specFrames(kitabSunnaSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="FatimaSheikhayn-L" component={FatimaSheikhaynComp} durationInFrames={specFrames(fatimaSheikhaynSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
-        <Composition id="FatimaSheikhayn" component={FatimaSheikhaynComp} durationInFrames={specFrames(fatimaSheikhaynSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="SyriaTrash-L" component={SyriaTrashComp} durationInFrames={specFrames(syriaTrashSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
-        <Composition id="SyriaTrash" component={SyriaTrashComp} durationInFrames={specFrames(syriaTrashSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
       </Folder>
       <Folder name="البثوث">
         {/* بث للحوار مع المخالفين (1) */}

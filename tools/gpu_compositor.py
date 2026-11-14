@@ -45,6 +45,18 @@ import os
 # early half the time with the old floor(t*fps + 0.0001); identical for clips at the video's own rate). HY_BIAS overrides it for tests.
 BIAS = float(os.environ.get("HY_BIAS", "0.5"))
 dev = "cuda"
+# (user 2026-11-14 «من المفترض ان نعمل على الكرت فقط») CUDA's default on a 20-core machine is to SPIN a CPU core while waiting for the GPU
+# (stream/event synchronize, .cpu(), the bridge's cuStreamSynchronize). Blocking sync = the thread sleeps until the GPU signals: same frames, less CPU.
+# Must be set before torch creates the primary context.
+if os.environ.get("GR_SPIN") is None:
+    try:
+        import ctypes
+        _cu = ctypes.WinDLL("nvcuda.dll"); _d = ctypes.c_int()
+        _cu.cuInit(0); _cu.cuDeviceGet(ctypes.byref(_d), 0)
+        _r = _cu.cuDevicePrimaryCtxSetFlags_v2(_d, 0x04)   # CU_CTX_SCHED_BLOCKING_SYNC
+        if _r: print(f"WARNING: blocking sync not set (CUresult {_r})", flush=True)
+    except Exception as e:
+        print("WARNING: blocking sync not set: " + str(e), flush=True)
 torch.backends.cudnn.benchmark = True
 FS = W * H * 3 // 2
 
@@ -785,9 +797,56 @@ def draw_slot(out, s, src, mat=None):
 
 # ---------------- encoder thread ----------------
 q_out = queue.Queue(maxsize=6)
+H264_BSF = "h264_metadata=colour_primaries=1:transfer_characteristics=1:matrix_coefficients=1:video_full_range_flag=0"
+# (user 2026-11-14 «من المفترض ان نعمل على الكرت فقط») NVENC straight from CUDA memory (PyNvVideoCodec): the frame never leaves the card.
+# Before: every frame was copied GPU -> CPU, pushed through a pipe (~90 MB/s) to ffmpeg, which copied it back to the GPU for NVENC
+# (measured ~1 CPU core for the pipe thread + ffmpeg). Same NVENC settings as the ffmpeg line below. GR_FFENC=1 = the old ffmpeg way.
+NVENC = nvc is not None and not os.environ.get("GR_FFENC")
+PIN = [] if NVENC else [torch.empty(FS, dtype=torch.uint8, pin_memory=True) for _ in range(10)]   # > queue (6) + the one being written + the one being filled
+ENC_STREAM = torch.cuda.current_stream()
+
+
+class _NV12:   # the encoder's input: Y (H,W,1) and interleaved UV (H/2,W/2,2) planes of one contiguous CUDA buffer
+    def __init__(self, t):
+        self.t = t; self.p = [t[:W * H].view(H, W, 1), t[W * H:].view(H // 2, W // 2, 2)]
+
+    def cuda(self):
+        return self.p
+
+
+def t_write_nvenc():
+    raw = a.out[:-4] + "_nvenc.mp4"
+    enc = nvc.CreateEncoder(W, H, "NV12", False, codec="h264", preset="P5", tuning_info="high_quality", rc="vbr", cq=a.cq,
+                            bitrate=18000000, maxbitrate=26000000, vbvbufsize=52000000, profile="high", gop=250, bf=3, fps=FPS, gpu_id=0,
+                            cudastream=ENC_STREAM.cuda_stream)   # R-RENDER-QUALITY.1 settings, as the ffmpeg line; gop/bf = ffmpeg's nvenc defaults (measured)
+    # the library's own muxer writes every packet with its timestamp (a raw .h264 stream lost the B-frame display order when ffmpeg re-wrapped it:
+    # measured, frames 0/1 swapped and the whole stream 1 frame short in time)
+    TB = 90000
+    mux = nvc.FFmpegMuxer(file_path=raw, media_format=nvc.GetMediaFormat(raw), codec="h264", width=W, height=H, fps_num=FPS, fps_den=1,
+                          timebase_num=1, timebase_den=TB, extradata=enc.GetSequenceParams())
+    mux.SetUniformPtsIncrement(TB // FPS)
+    n = 0
+    while True:
+        b = q_out.get()
+        if b is None:
+            break
+        b[1].synchronize()   # the frame is drawn (blocking wait: the thread sleeps), whatever stream the encoder copies on
+        pp = nvc.NV_ENC_PIC_PARAMS(); pp.inputTimeStamp = n; n += 1
+        for pk in enc.Encode(_NV12(b[0]), pp):
+            mux.MuxVideoPacket(bytes(pk["data"]), pk["picture_type"], pk["timestamp"])
+    for pk in enc.EndEncode():
+        mux.MuxVideoPacket(bytes(pk["data"]), pk["picture_type"], pk["timestamp"])
+    mux.Finalize()
+    del mux   # the file is complete only once the muxer object is gone (measured: «Invalid data» before)
+    r = subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", raw, "-c", "copy", "-bsf:v", H264_BSF, a.out])   # colour tags, as the ffmpeg line
+    if r.returncode:
+        print("ERROR: muxing the NVENC stream failed", flush=True); os._exit(4)
+    os.remove(raw)
 
 
 def t_write():
+    if NVENC:
+        return t_write_nvenc()
     enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "nv12", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
                             "-c:v", "h264_nvenc", "-preset", "p5", "-tune", "hq", "-rc", "vbr", "-cq", str(a.cq), "-b:v", "18M", "-maxrate", "26M", "-bufsize", "52M", "-profile:v", "high",   # R-RENDER-QUALITY.1: final >= 14 Mbps (cq alone gave 10.3 Mbps on a lesson)
                            
@@ -894,9 +953,12 @@ for i in range(NF):
         if os.environ.get("GR_DUMP_LAYER"):   # debug: the raw graphics layer (premultiplied BGRA) as Chromium painted it
             cv2.imwrite(f"{dump_dir}/{DUMP_PREFIX}_layer_{fno:06d}.png", top[:H].cpu().numpy())
     _t = _pf("top", _t)
-    nv_h = torch.empty(FS, dtype=torch.uint8, pin_memory=True)
-    nv_h.copy_(rgb_to_nv12(out), non_blocking=True)
-    ev = torch.cuda.Event(); ev.record()
+    if NVENC:   # stays on the card: the encoder reads it on this same stream (queued behind the drawing), the queue keeps it alive until then
+        nv_h = rgb_to_nv12(out)
+    else:
+        nv_h = PIN[i % len(PIN)]   # a ring of pinned buffers (was a fresh pinned allocation per frame: page-locking 3 MB costs CPU every frame)
+        nv_h.copy_(rgb_to_nv12(out), non_blocking=True)
+    ev = torch.cuda.Event(blocking=True); ev.record()
     nv = (nv_h, ev)
     _t = _pf("nv12", _t)
     _d = time.time()

@@ -170,6 +170,11 @@ const onMsg = (m) => {
 app.on("child-process-gone", (_e, d) => log(`child process gone: ${d.type} ${d.reason} ${d.exitCode}`));
 app.on("gpu-info-update", () => { if (DEBUG) log("gpu-info-update: compositing=" + app.getGPUFeatureStatus().gpu_compositing); });
 app.whenReady().then(async () => {
+  /* (user 2026-11-14 «الرندر الحالي اخذ طاقة المعالج») Chromium does not keep the BelowNormal it inherits: it raises its GPU process to AboveNormal
+     and the page renderers to Normal (measured: base priority 10 and 8 during a render) — so the render pushed the user's own programs aside.
+     Put every child back to BelowNormal, again every 2 s since Chromium re-applies its priorities as windows open and paint. */
+  const lowAll = () => { for (const m of app.getAppMetrics()) if (m.pid !== process.pid) try { os.setPriority(m.pid, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch { /* gone or not ours */ } };
+  lowAll(); setInterval(lowAll, 2000).unref();
   sock = net.connect(cfg.ctlPort, "127.0.0.1");
   sock.setNoDelay(true);
   await new Promise((res, rej) => { sock.once("connect", res); sock.once("error", rej); });

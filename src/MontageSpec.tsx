@@ -303,7 +303,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
         </Only>
       );
     }
-    case "pick": { const C = PICK_KIT[it.el] as React.FC<Record<string, unknown>>; const { t: _t, el: _e, land, noShift: _ns, ...rest0 } = it as { t: string; el: string; land?: Record<string, unknown>; noShift?: boolean } & Record<string, unknown>; const ns = it.noShift ?? !!PICK_NOSPLIT[it.el], xy = PICK_XY[it.el], rest = { ...(rest0.x == null && xy ? { x: xy[0], y: xy[1] } : {}), ...rest0 }, lp = { ...(ns ? PICK_NOSPLIT[it.el] ?? {} : {}), ...(land ?? {}) }; return C ? <Only key={i} from={it.at - HALF_LEAD} to={it.until}>{L && !ns && !PICK_FULL_FRAME.has(it.el) ? <PickPanel at={it.at} until={it.until} /> : null}{L && ns && !PICK_FULL_FRAME.has(it.el) ? <LeftShade at={it.at} until={it.until} /> : null}{!L && !PICK_FULL_FRAME.has(it.el) ? <BottomShade at={it.at} until={it.until} /> : null}{L || PICK_FULL_FRAME.has(it.el) ? <C {...rest} {...(L ? lp : {})} /> : <div style={{ position: "absolute", left: 0, top: 860, width: 1920, height: 1080, transform: "scale(0.9)", transformOrigin: "0 0" }}><C {...rest} /></div>}</Only> : null; }   // the gallery decides place and look: its own x,y (PICK_XY), no split screen for PICK_NOSPLIT, portrait = the gallery's lower-half board
+    case "pick": { const ip = { ...it, until: pickUntil(it) }; const C = PICK_KIT[ip.el] as React.FC<Record<string, unknown>>; const { t: _t, el: _e, land, noShift: _ns, ...rest0 } = ip as { t: string; el: string; land?: Record<string, unknown>; noShift?: boolean } & Record<string, unknown>; const ns = ip.noShift ?? !!PICK_NOSPLIT[ip.el], xy = PICK_XY[ip.el], rest = { ...(rest0.x == null && xy ? { x: xy[0], y: xy[1] } : {}), ...rest0 }, lp = { ...(ns ? PICK_NOSPLIT[ip.el] ?? {} : {}), ...(land ?? {}) }; return C ? <Only key={i} from={ip.at - HALF_LEAD} to={ip.until}>{L && !ns && !PICK_FULL_FRAME.has(ip.el) ? <PickPanel at={ip.at} until={ip.until} /> : null}{L && ns && !PICK_FULL_FRAME.has(ip.el) ? <LeftShade at={ip.at} until={ip.until} /> : null}{!L && !PICK_FULL_FRAME.has(ip.el) ? <BottomShade at={ip.at} until={ip.until} /> : null}{L || PICK_FULL_FRAME.has(ip.el) ? <C {...rest} {...(L ? lp : {})} /> : <div style={{ position: "absolute", left: 0, top: 860, width: 1920, height: 1080, transform: "scale(0.9)", transformOrigin: "0 0" }}><C {...rest} /></div>}</Only> : null; }   // the gallery decides place and look: its own x,y (PICK_XY), no split screen for PICK_NOSPLIT, portrait = the gallery's lower-half board
     case "subscribe": return <Subscribe key={i} at={it.at} x={L ? ov.x ?? 1300 : it.x} y={L ? ov.y ?? 790 : it.y} dur={it.dur} />;
     case "verse": {
       // a verse he recites INSIDE his talk = the known verse card (VerseWords) in the writing area / the empty side, his picture visible (user 2026-11-01); full screen (full:true) only for a lone recitation
@@ -622,6 +622,19 @@ const withGallery = (s: MontageSpec): MontageSpec => s.galleryOwn ? s : { ...s, 
 const VERSE_WAYS = ["noor", "bigword"] as const, HADITH_WAYS = ["quote", "books"] as const;
 const draw = (key: string, n: number) => { let h = 2166136261; for (const c of key) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) % n; };
 const ayaOf = (it: { aya?: number; refText: string }) => it.aya ?? Number((it.refText.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).match(/\d+/) ?? ["0"])[0]);
+/** HOLD AFTER COMPLETION (user 2026-11-15: «العناصر تختفي بمجرد أن تتم … لازم تبقى ثانية أو ثانيتين بحيث أن الناس تستوعب»): a picked element never leaves before
+ *  its LAST part has appeared (every `at`/`…At` inside it, typed text ends, the entrance animation ≈0.8 s) + PICK_HOLD seconds — whatever `until` the spec says. */
+export const PICK_HOLD = 1.5;
+type PickItem = Extract<SpecItem, { t: "pick" }>;
+export const pickLastEvent = (it: PickItem): number => {
+  let m = it.at; const walk = (v: unknown, key: string) => { if (typeof v === "number" && (key === "at" || /At$/.test(key))) m = Math.max(m, v); else if (Array.isArray(v)) v.forEach((x) => walk(x, key)); else if (v && typeof v === "object") Object.entries(v).forEach(([k, x]) => walk(x, k)); };
+  Object.entries(it).forEach(([k, v]) => { if (k !== "until" && k !== "land") walk(v, k); });
+  const a = it as unknown as { typeAt?: number; query?: string; cps?: number; lines?: { text: string; at: number }[] };
+  if (a.typeAt != null && a.query) m = Math.max(m, a.typeAt + a.query.length / (a.cps ?? 12));
+  (a.lines ?? []).forEach((l) => { m = Math.max(m, l.at + Math.max(0.5, l.text.length * 0.06)); });
+  return m + 0.8;
+};
+export const pickUntil = (it: PickItem) => Math.max(it.until, pickLastEvent(it) + PICK_HOLD);
 /** a picked element (PickKit) in landscape sits on the left half: the approved blended panel behind it, while he is slid right (shift window below) */
 const PickPanel: React.FC<{ at: number; until: number }> = ({ at, until }) => { const t = useT(); return <BlendPanel k={halfK(t, at - HALF_LEAD, until)} t={t} id={"pk" + at} />; };
 const isHalfWay = (it: SpecItem) => (it.t === "pick" && !(it.noShift ?? !!PICK_NOSPLIT[it.el]) && !PICK_FULL_FRAME.has(it.el)) || (it.t === "verse" && !it.full && (it.way === "noor" || it.way === "bigword")) || (it.t === "note" && !!it.phrases?.length && (it.way === "quote" || it.way === "books"));
@@ -643,7 +656,7 @@ const withHalfWays = (s: MontageSpec): MontageSpec => {
     return it;
   });
   const extra = items.filter(isHalfWay).map((it) => it.t === "verse" ? halfShift(it.times[0] - HALF_LEAD, it.until ?? it.times[it.times.length - 1] + 1.2)
-    : it.t === "pick" ? halfShift(it.at - HALF_LEAD, it.until)
+    : it.t === "pick" ? halfShift(it.at - HALF_LEAD, pickUntil(it))
     : halfShift((it as { phrases: { at: number }[] }).phrases[0].at - HALF_LEAD, (it as { until: number }).until));
   return extra.length ? { ...s, items, shifts: [...(s.shifts ?? []), ...extra].sort((a, b) => a.from - b.from) } : { ...s, items };
 };
@@ -697,7 +710,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => 
   const hasFx = pulses.length > 0 || horrors.length > 0;
   const wrapStage = (kids: React.ReactNode) => hasFx ? <FxStage pulses={pulses} horrors={horrors}>{kids}</FxStage> : <>{kids}</>;   // an element, not a component type: the videos inside never remount
   const body = o === "land"
-    ? (spec.cut ? <LandFootage cut={spec.cut} zooms={spec.zooms} splits={spec.splits} shifts={spec.shifts} pips={spec.items.filter((x) => x.t === "pick" && x.el === "PipSource" && x.only !== "port").map((x) => ({ at: (x as { at: number }).at, until: (x as { until: number }).until }))} /> : null)
+    ? (spec.cut ? <LandFootage cut={spec.cut} zooms={spec.zooms} splits={spec.splits} shifts={spec.shifts} pips={spec.items.filter((x) => x.t === "pick" && x.el === "PipSource" && x.only !== "port").map((x) => ({ at: (x as { at: number }).at, until: pickUntil(x as PickItem) }))} /> : null)
     : (spec.cut ? <SheikhLayers cut={spec.cut} cams={spec.cams ?? [{ from: 0, to: 9999, cx: 990 }]} zooms={spec.zooms} /> : null);
   return (
     <HybridHost>

@@ -2,7 +2,7 @@ import React from "react";
 import { kufiF, naskhF, useT } from "./MG";
 import { BRAND } from "./brand";
 import { Pic } from "./EuKit";
-import { PICK_KIT, PICK_FULL_FRAME, arDigits } from "./PickKit";
+import { PICK_KIT, PICK_FULL_FRAME, arDigits, fitGroup, FitLabel } from "./PickKit";
 
 /**
  * PickKit2 — round 4 picks of the temporary gallery (user 2026-11-14) + the drawn METAPHORS the user praised («الجذور، الإيمان يزيد، الكأس الذي يمتلئ»):
@@ -131,7 +131,8 @@ export const BrushWipe: React.FC<{ at: number; until: number; title?: string; W?
 /** 33 · الجذور والفروع (metaphor) — the ground line; roots below with the roots/causes, branches above with what grows from them */
 export const RootsTree: React.FC<Base & { roots: { text: string; at: number }[]; branches: { text: string; at: number }[]; trunkAt?: number }> = ({ at, until, x, y, roots, branches, trunkAt }) => {
   const { k } = useK(); const dx = (i: number, n: number) => (n === 1 ? 0 : -300 + (600 * i) / (n - 1)), tk = trunkAt ?? (roots[roots.length - 1]?.at ?? at) + 0.3;
-  const lab = (txt: string, bg: string, kk: number, l: number, tp: number) => <div style={abs({ left: l - 90, top: tp, width: 180, padding: 8, textAlign: "center", borderRadius: 10, background: bg, fontFamily: kufiF, fontSize: 30, color: "#fff", ...pop(kk, 0.3) })}>{txt}</div>;
+  const all = [...roots, ...branches].map((q) => q.text), FG = fitGroup(all, { font: 32, minFont: 22, minW: 170, maxW: 240, padX: 16, padY: 8 });
+  const lab = (txt: string, bg: string, kk: number, l: number, tp: number) => { const f = FG[all.indexOf(txt)]; return <FitLabel text={txt} cx={l} cy={tp + f.h / 2} fit={f} css={{ borderRadius: 10, background: bg, color: "#fff", ...pop(kk, 0.3) }} />; };
   return (
     <div style={abs({ left: x, top: y, width: 900, height: 840 })}>
       <div style={abs({ left: 0, top: 400, width: 900, height: 8, background: "#6b4a2a", ...wipe(ease(k(at, 0.4, until))) })} />

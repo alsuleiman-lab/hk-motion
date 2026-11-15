@@ -2,6 +2,7 @@ import React from "react";
 import { kufiF, naskhF, useT } from "./MG";
 import { BRAND } from "./brand";
 import { Pic } from "./EuKit";
+import { measureText } from "@remotion/layout-utils";
 
 /**
  * PickKit — the 12 elements the user picked from the temporary gallery of 50 (2026-11-14), in the channel identity (src/brand.ts, read at draw time).
@@ -20,6 +21,33 @@ const pop = (k: number, from = 0.4, extra = ""): React.CSSProperties => ({ visib
 const abs = (s: React.CSSProperties): React.CSSProperties => ({ position: "absolute", ...s });
 const dash = (len: number, k: number) => ({ strokeDasharray: len, strokeDashoffset: len * (1 - clamp(k)) });
 type Base = { at: number; until: number; x: number; y: number };
+
+/* ── TEXT IN A BOX (user 2026-11-15: «يصغر الخط لكي يتسع داخل صندوق الكتابة، ويوسّع الصندوق … دائماً في تناسق»): every label inside a pill/box/card is
+ *  fitted, never left to overflow. Order: (1) the box widens from minW up to maxW for the text on ONE line at the full font; (2) if it still does not fit,
+ *  the text breaks into TWO balanced lines and the box widens to fit them; (3) only then the font shrinks step by step down to minFont; (4) at minFont the
+ *  box is maxW and the text wraps inside it. The box height follows the lines. Measured with the real font (layout-utils), +6 % safety margin. */
+export type Fit = { fs: number; w: number; h: number; lines: number };
+const textW = (text: string, fs: number, fontFamily: string, weight: string) => { try { return measureText({ text, fontFamily, fontSize: fs, fontWeight: weight }).width * 1.06; } catch { return text.length * fs * 0.6; } };
+const twoLines = (text: string, fs: number, ff: string, fw: string) => { const w = text.split(/\s+/); if (w.length < 2) return textW(text, fs, ff, fw); let best = 1e9;
+  for (let i = 1; i < w.length; i++) best = Math.min(best, Math.max(textW(w.slice(0, i).join(" "), fs, ff, fw), textW(w.slice(i).join(" "), fs, ff, fw))); return best; };
+export const fitBox = (text: string, o: { font: number; minFont?: number; minW: number; maxW: number; padX?: number; padY?: number; lineH?: number; ff?: string; fw?: string; maxLines?: number }): Fit => {
+  const ff = o.ff ?? kufiF, fw = o.fw ?? "800", px = o.padX ?? 28, py = o.padY ?? 14, lh = o.lineH ?? 1.3, minF = o.minFont ?? Math.round(o.font * 0.62), ml = o.maxLines ?? 2;
+  for (let fs = o.font; fs >= minF; fs -= 2) {
+    const one = textW(text, fs, ff, fw) + 2 * px; if (one <= o.maxW) return { fs, w: Math.max(o.minW, one), h: fs * lh + 2 * py, lines: 1 };
+    if (ml >= 2) { const two = twoLines(text, fs, ff, fw) + 2 * px; if (two <= o.maxW) return { fs, w: Math.max(o.minW, two), h: fs * lh * 2 + 2 * py, lines: 2 }; }
+  }
+  return { fs: minF, w: o.maxW, h: minF * lh * ml + 2 * py, lines: ml };
+};
+/** the boxes of ONE element share one font size and one height (the smallest fitted font of the group), each box keeping its own width — harmony */
+export const fitGroup = (texts: string[], o: Parameters<typeof fitBox>[1]): Fit[] => {
+  const fs = Math.min(...texts.map((t) => fitBox(t, o).fs)), fits = texts.map((t) => fitBox(t, { ...o, font: fs, minFont: fs })), h = Math.max(...fits.map((f) => f.h));
+  return fits.map((f) => ({ ...f, h }));
+};
+/** a fitted label centred on (cx, cy); `css` styles the box (background, border, radius…) */
+export const FitLabel: React.FC<{ text: string; cx: number; cy: number; fit: Fit; css: React.CSSProperties; ff?: string }> = ({ text, cx, cy, fit, css, ff }) => (
+  <div style={abs({ left: cx - fit.w / 2, top: cy - fit.h / 2, width: fit.w, height: fit.h, display: "grid", placeItems: "center", textAlign: "center", padding: "0 18px", boxSizing: "border-box", fontFamily: ff ?? kufiF, fontSize: fit.fs, lineHeight: 1.3, ...css })}>{text}</div>
+);
+
 
 /** 1 · اقتباس يُكتب بالحبر — the quote written line by line behind a gold nib, under a big quotation sign (user note: a quote sign, not «» brackets) */
 export const InkQuote: React.FC<Base & { w?: number; size?: number; lines: { text: string; at: number }[]; source?: string }> = ({ at, until, x, y, w = 960, size = 96, lines, source }) => {
@@ -75,7 +103,7 @@ export const StickyNotes: React.FC<{ until: number; size?: number; notes: { text
         <div style={abs({ inset: 0, background: `linear-gradient(160deg, ${bg} 0%, ${bg} 72%, rgba(0,0,0,.12) 100%)`, clipPath: "polygon(0 0,100% 0,100% 84%,84% 100%,0 100%)" })} />
         <div style={abs({ right: 0, bottom: 0, width: size * 0.16, height: size * 0.16, background: "linear-gradient(135deg, rgba(0,0,0,.28), rgba(255,255,255,.55) 55%)", clipPath: "polygon(0 0,100% 0,0 100%)" })} />
         <div style={abs({ left: size * 0.3, top: -size * 0.06, width: size * 0.4, height: size * 0.13, background: "rgba(255,255,255,.55)", transform: "rotate(-4deg)", boxShadow: "0 1px 3px rgba(0,0,0,.15)" })} />
-        <div style={abs({ inset: size * 0.1, display: "grid", placeItems: "center", textAlign: "center", fontFamily: naskhF, fontSize: size * (n.text.length > 9 ? 0.15 : 0.2), lineHeight: 1.3, color: fg })}>{n.text}</div>
+        <div style={abs({ inset: size * 0.1, display: "grid", placeItems: "center", textAlign: "center", fontFamily: naskhF, fontSize: fitBox(n.text, { font: size * 0.2, minFont: size * 0.1, minW: size * 0.8, maxW: size * 0.8, ff: naskhF, fw: "700", padX: 0, maxLines: 3 }).fs, lineHeight: 1.3, color: fg })}>{n.text}</div>
         <div style={abs({ left: size * 0.12, right: size * 0.12, top: size * 0.78, height: 3, background: fg, opacity: 0.18 })} />
       </div>
     );
@@ -92,7 +120,7 @@ export const FlapBoard: React.FC<Base & { w?: number; size?: number; rows: { tex
         const txt = done ? r.text : spin ? r.text.split("").map((c, j) => (c === " " ? " " : pool[Math.floor(t * 14 + j * 7 + i * 3) % pool.length])).join("") : "";
         return (
           <div key={i} style={abs({ left: 30, right: 30, top: 30 + i * (rh + 20), height: rh, background: BRAND.navy, borderRadius: 10, overflow: "hidden" })}>
-            <div style={abs({ inset: 0, display: "grid", placeItems: "center", fontFamily: kufiF, fontSize: size, color: done ? BRAND.card : BRAND.light, transform: spin ? `scaleY(${0.2 + 0.8 * Math.abs(Math.cos(t * 44 + i))})` : "none" })}>{txt}</div>
+            <div style={abs({ inset: 0, display: "grid", placeItems: "center", fontFamily: kufiF, fontSize: fitBox(r.text, { font: size, minFont: Math.round(size * 0.55), minW: w - 120, maxW: w - 120, maxLines: 1 }).fs, color: done ? BRAND.card : BRAND.light, transform: spin ? `scaleY(${0.2 + 0.8 * Math.abs(Math.cos(t * 44 + i))})` : "none" })}>{txt}</div>
             <div style={abs({ left: 0, right: 0, top: rh / 2 - 2, height: 4, background: BRAND.base3 })} />
             {done ? <div style={abs({ right: 0, top: 0, bottom: 0, width: 12, background: BRAND.accent })} /> : null}
           </div>
@@ -129,7 +157,7 @@ export const MythFact: React.FC<{ until: number; x: number; y: number; w?: numbe
   const row = (top: number, tag: string, c: string, text: string, kk: number, mark: string, mk: number, strike?: number) => (
     <div style={abs({ left: 0, width: w, top, height: rh, background: "rgba(255,255,255,.07)", borderRadius: 18, borderRight: `12px solid ${c}`, visibility: kk > 0 ? "visible" : "hidden", transform: `translateX(${(1 - ease(kk)) * -700}px)` })}>
       <div style={abs({ right: 30, top: -size * 0.5, padding: "6px 26px", background: c, borderRadius: 10, color: "#fff", fontFamily: kufiF, fontSize: size * 0.6 })}>{tag}</div>
-      <div style={abs({ right: 40, left: size * 1.8, top: 0, height: rh, display: "flex", alignItems: "center", fontFamily: kufiF, fontSize: size, lineHeight: 1.3, color: BRAND.card })}>
+      <div style={abs({ right: 40, left: size * 1.8, top: 0, height: rh, display: "flex", alignItems: "center", fontFamily: kufiF, fontSize: fitBox(text, { font: size, minFont: Math.round(size * 0.6), minW: w - size * 1.8 - 40, maxW: w - size * 1.8 - 40, padX: 0 }).fs, lineHeight: 1.3, color: BRAND.card })}>
         <span style={{ position: "relative" }}>{text}{strike !== undefined ? <i style={{ position: "absolute", right: -6, left: -6, top: "52%", height: size * 0.15, borderRadius: 5, background: c, transformOrigin: "100% 50%", transform: `scaleX(${strike})` }} /> : null}</span>
       </div>
       <div style={abs({ left: size * 0.4, top: 0, height: rh, display: "flex", alignItems: "center", fontFamily: kufiF, fontSize: size * 1.3, color: c, ...pop(mk, 0.4) })}>{mark}</div>
@@ -184,7 +212,7 @@ export const LineGrowth: React.FC<Base & { w?: number; h?: number; values: numbe
 /** 10 · مخطط القرار — a conditional ruling: the case → a diamond question → «نعم» and «لا» each to its result */
 export const DecisionFlow: React.FC<Base & { start: string; q: string; qAt: number; yes: string; no: string; yesAt: number; noAt?: number; yesTag?: string; noTag?: string }> = ({ at, until, x, y, start, q, qAt, yes, no, yesAt, noAt, yesTag = "نعم", noTag = "لا" }) => {
   const { k } = useK(); const W = 980, kk = k(at, 0.4, until), dq = k(qAt, 0.35, until), ky = k(yesAt, 0.35, until), kn = k(noAt ?? yesAt + 0.25, 0.35, until);
-  const box = (s: React.CSSProperties, bg: string, fg: string, txt: string, kx: number) => <div style={abs({ ...s, borderRadius: 18, background: bg, display: "grid", placeItems: "center", textAlign: "center", padding: "0 16px", fontFamily: kufiF, fontSize: 42, lineHeight: 1.3, color: fg, ...pop(kx, 0.4) })}>{txt}</div>;
+  const box = (s: React.CSSProperties, bg: string, fg: string, txt: string, kx: number) => { const f = fitBox(txt, { font: 42, minFont: 26, minW: Number(s.width), maxW: Number(s.width) }); return <div style={abs({ ...s, borderRadius: 18, background: bg, display: "grid", placeItems: "center", textAlign: "center", padding: "0 16px", fontFamily: kufiF, fontSize: f.fs, lineHeight: 1.3, color: fg, ...pop(kx, 0.4) })}>{txt}</div>; };
   return (
     <div style={abs({ left: x, top: y, width: W, height: 780, background: BRAND.base3, borderRadius: 22, ...pop(kk, 0.9) })}>
       <svg width={W} height={780} style={{ position: "absolute", inset: 0 }} fill="none" stroke={BRAND.light} strokeWidth={8} strokeLinecap="round">
@@ -212,15 +240,19 @@ export const MindMap: React.FC<Base & { center: string; nodes: { text: string; a
       <svg width={1} height={1} style={{ position: "absolute", left: 0, top: 0, overflow: "visible" }}>
         {pos.map(([px, py], i) => <path key={i} d={`M0 0 Q${px / 2 + py * 0.3} ${py / 2 - px * 0.2} ${px} ${py}`} fill="none" stroke={BRAND.accent} strokeWidth={9} strokeLinecap="round" style={dash(Math.hypot(px, py) * 1.15, k(nodes[i].at - 0.35, 0.4, until))} />)}
       </svg>
-      <div style={abs({ left: -150, top: -80, width: 300, height: 160, borderRadius: 80, background: BRAND.accent, display: "grid", placeItems: "center", fontFamily: kufiF, fontSize: 54, color: BRAND.onAccent, ...pop(k(at, 0.4, until), 0.3) })}>{center}</div>
-      {nodes.map((nd, i) => <div key={i} style={abs({ left: pos[i][0] - 140, top: pos[i][1] - 50, width: 280, height: 100, borderRadius: 50, background: BRAND.navy, border: `4px solid ${BRAND.light}`, display: "grid", placeItems: "center", fontFamily: kufiF, fontSize: 42, color: BRAND.card, ...pop(k(nd.at, 0.3, until), 0.3) })}>{nd.text}</div>)}
+      {(() => { const f = fitBox(center, { font: 54, minFont: 36, minW: 300, maxW: 420, padY: 30 }); return <FitLabel text={center} cx={0} cy={0} fit={f} css={{ borderRadius: f.h / 2, background: BRAND.accent, color: BRAND.onAccent, ...pop(k(at, 0.4, until), 0.3) }} />; })()}
+      {nodes.map((nd, i) => { const f = fitGroup(nodes.map((q) => q.text), { font: 42, minFont: 28, minW: 220, maxW: 330 })[i]; return <FitLabel key={i} text={nd.text} cx={pos[i][0]} cy={pos[i][1]} fit={f} css={{ borderRadius: Math.min(50, f.h / 2), background: BRAND.navy, border: `4px solid ${BRAND.light}`, color: BRAND.card, ...pop(k(nd.at, 0.3, until), 0.3) }} />; })}
     </div>
   );
 };
 
 /** 12 · الحلقة المفرغة — a habit that repeats itself: stations on a circle joined by arrows, then a light runs round it without end */
-export const ViciousCycle: React.FC<Base & { r?: number; steps: { text: string; at: number }[]; spinAt?: number }> = ({ at, until, x, y, r = 260, steps, spinAt }) => {
-  const { t, k } = useK(); const n = steps.length, A = steps.map((_, i) => -Math.PI / 2 + (i * 2 * Math.PI) / n), gap = 0.32, sAt = spinAt ?? steps[n - 1].at + 0.6;
+export const ViciousCycle: React.FC<Base & { r?: number; steps: { text: string; at: number }[]; spinAt?: number }> = ({ at, until, x, y, r: r0 = 260, steps, spinAt }) => {
+  let r = r0;
+  const { t, k } = useK(); const n = steps.length, A = steps.map((_, i) => -Math.PI / 2 + (i * 2 * Math.PI) / n), sAt = spinAt ?? steps[n - 1].at + 0.6;
+  const fits = fitGroup(steps.map((s) => s.text), { font: 44, minFont: 30, minW: 220, maxW: 380 }), maxW = Math.max(...fits.map((f) => f.w)), maxH = Math.max(...fits.map((f) => f.h));
+  r = Math.max(r, (maxW + 40) / (2 * Math.sin(Math.PI / Math.max(2, n))), maxH + 40);   // neighbours never overlap
+  const gap = Math.min(0.9, (maxW / 2 + 20) / r);
   const arcD = (a0: number, a1: number) => `M${r * Math.cos(a0)} ${r * Math.sin(a0)} A${r} ${r} 0 0 1 ${r * Math.cos(a1)} ${r * Math.sin(a1)}`;
   const ang = -Math.PI / 2 + (t - sAt) * 2.4;
   return (
@@ -229,7 +261,7 @@ export const ViciousCycle: React.FC<Base & { r?: number; steps: { text: string; 
         <defs><marker id="vcM" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6Z" fill={BRAND.accent} /></marker></defs>
         {A.map((a, i) => <path key={i} d={arcD(a + gap, a + (2 * Math.PI) / n - gap)} fill="none" stroke={BRAND.accent} strokeWidth={10} strokeLinecap="round" markerEnd={k(steps[(i + 1) % n].at - 0.3, 0.4, until) >= 1 ? "url(#vcM)" : undefined} style={dash(r * ((2 * Math.PI) / n - 2 * gap) + 2, k((steps[(i + 1) % n].at || at) - 0.3, 0.4, until))} />)}
       </svg>
-      {steps.map((s, i) => <div key={i} style={abs({ left: r * Math.cos(A[i]) - 120, top: r * Math.sin(A[i]) - 50, width: 240, height: 100, borderRadius: 50, background: BRAND.navy, border: `4px solid ${BRAND.light}`, display: "grid", placeItems: "center", fontFamily: kufiF, fontSize: 44, color: BRAND.card, ...pop(k(s.at, 0.3, until), 0.3) })}>{s.text}</div>)}
+      {steps.map((s, i) => <FitLabel key={i} text={s.text} cx={r * Math.cos(A[i])} cy={r * Math.sin(A[i])} fit={fits[i]} css={{ borderRadius: Math.min(50, fits[i].h / 2), background: BRAND.navy, border: `4px solid ${BRAND.light}`, color: BRAND.card, ...pop(k(s.at, 0.3, until), 0.3) }} />)}
       {t > sAt && t < until ? <div style={abs({ left: r * Math.cos(ang) - 18, top: r * Math.sin(ang) - 18, width: 36, height: 36, borderRadius: "50%", background: BRAND.card, boxShadow: `0 0 24px ${BRAND.card}, 0 0 50px ${BRAND.accent}` })} /> : null}
     </div>
   );
@@ -294,7 +326,7 @@ export const BrokenIsnad: React.FC<Base & { names: { name: string; at: number }[
     <div style={abs({ left: x, top: y })}>
       {names.slice(1).map((_, i) => { const kl = ease(k(names[i + 1].at - 0.2, 0.3, until)), br = i === breakAfter && b;
         return <div key={i} style={abs({ left: 220, top: i * step + 100, width: 20, height: gapH * kl, background: br ? BRAND.mark : BRAND.light, transform: br ? `scaleY(${t > breakAt + 0.2 ? 0.3 : 1}) translateX(${Math.sin(t * 40) * 4 * clamp(breakAt + 0.4 - t)}px)` : "none" })} />; })}
-      {names.map((n, i) => <div key={i} style={abs({ left: 0, top: i * step, width: 460, height: 100, borderRadius: 50, background: BRAND.card, display: "grid", placeItems: "center", fontFamily: kufiF, fontSize: 42, color: BRAND.ink, boxShadow: "0 10px 26px rgba(0,0,0,.4)", ...pop(k(n.at, 0.35, until), 0.5) })}>{n.name}</div>)}
+      {names.map((n, i) => <div key={i} style={abs({ left: 0, top: i * step, width: 460, height: 100, borderRadius: 50, background: BRAND.card, display: "grid", placeItems: "center", textAlign: "center", fontFamily: kufiF, fontSize: fitBox(n.name, { font: 42, minFont: 26, minW: 460, maxW: 460, maxLines: 1 }).fs, color: BRAND.ink, boxShadow: "0 10px 26px rgba(0,0,0,.4)", ...pop(k(n.at, 0.35, until), 0.5) })}>{n.name}</div>)}
       <div style={abs({ left: 150, top: breakAfter * step + 100 + gapH / 2 - 50, width: 160, textAlign: "center", fontFamily: kufiF, fontSize: 80, color: BRAND.mark, ...pop(k(breakAt + 0.1, 0.3, until), 0.2) })}>✕</div>
       <div style={abs({ left: 480, top: breakAfter * step + 100 + gapH / 2 - 30, width: "auto", maxWidth: 440, padding: "8px 20px", borderRadius: 10, background: BRAND.mark, fontFamily: kufiF, fontSize: 38, lineHeight: 1.4, color: "#fff", ...wipe(ease(k(breakAt + 0.4, 0.4, until))) })}>{reason}</div>
     </div>
@@ -353,7 +385,7 @@ export const Crossroads: React.FC<Base & { right: string; left: string; signsAt:
   const bz = (q: number, a: number, b2: number, c: number, d: number) => (1 - q) ** 3 * a + 3 * (1 - q) ** 2 * q * b2 + 3 * (1 - q) * q * q * c + q ** 3 * d;
   const pt = (u: number): [number, number] => { if (u < 0.4) return [450, 760 - 300 * (u / 0.4)]; const v = (u - 0.4) / 0.6, s = go === "right" ? 1 : -1; return [450 + s * bz(v, 0, 0, 260, 300), bz(v, 460, 310, 280, 90)]; };
   const g = clamp((t - (goAt ?? signsAt + 0.8)) / 1.6), [dx, dy] = pt(g);
-  const sign = (txt: string, good: boolean, lx: number, kk: number) => <div style={abs({ left: lx, top: 0, width: 280, padding: 14, textAlign: "center", borderRadius: 10, background: good ? BRAND.green : BRAND.mark, fontFamily: kufiF, fontSize: 40, color: "#fff", ...pop(kk, 0.3) })}>{txt}</div>;
+  const sign = (txt: string, good: boolean, lx: number, kk: number) => { const f = fitBox(txt, { font: 40, minFont: 26, minW: 280, maxW: 360 }); return <FitLabel text={txt} cx={lx + 140} cy={f.h / 2} fit={f} css={{ borderRadius: 10, background: good ? BRAND.green : BRAND.mark, color: "#fff", ...pop(kk, 0.3) }} />; };
   return (
     <div style={abs({ left: x, top: y, width: 900 })}>
       <svg width={900} height={800} style={{ position: "absolute", overflow: "visible" }} fill="none" stroke={BRAND.light} strokeOpacity={0.55} strokeWidth={70} strokeLinecap="round">

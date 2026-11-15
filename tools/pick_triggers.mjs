@@ -66,6 +66,12 @@ for (const r of RULES) {
   else { fails++; console.log(`✘ ${r.el}: ${r.why} عند ${where} — لم يُستعمل. أضف { t: "pick", el: "${r.el}", … } هناك، أو اكتب سبب تركه في "skipPicks"`); }
 }
 
+// misuse lints (user 2026-11-14): the battery is for a MEANING that rises and falls (faith, energy), never for numbers, percentages or money (those = RingStat / a conditional rows card);
+// the claim wall's bricks take single short words (a phrase overflowed the frame, frame 20269)
+for (const [i, it] of items.entries()) {
+  if (it.t === "pick" && it.el === "Battery" && (it.steps ?? []).some((st) => /[0-9٠-٩%]|يورو|دولار|مليون|مليار|ثلث|نصف|ربع/.test(st.label ?? ""))) { fails++; console.log(`✘ Battery#${i}: البطارية لمعنى يزيد وينقص لا لأرقام أو نسب أو مال — استعمل RingStat للنسبة أو الجزء، وبطاقة بنود (sub/subAt) لمبلغ يصير مبلغاً`); }
+  if (it.t === "pick" && it.el === "ClaimWall" && (it.words ?? []).some((w) => w.length > 9 || /\s/.test(w))) { fails++; console.log(`✘ ClaimWall#${i}: كلمات الجدار كلمة قصيرة واحدة لكل لبنة (≤ 9 أحرف بلا فراغ)، لا عبارة تخرج من الإطار`); }
+}
 // drawn metaphors (user 2026-11-14: «كن مبدعاً أثناء الحلقات بإضافة المعاني والتعبير عنها بهذه الطريقة … دون أن يكون لذلك أصل عندنا وبدون أن تولّد صور»):
 // at least one per 2 minutes of the video (spec "skipMetaphors": "why" waives it)
 const METAPHORS = ["RootsTree", "Battery", "FillGlasses", "Iceberg", "ViciousCycle", "Crossroads", "ClaimWall", "NeverMeet", "MindMap", "DecisionFlow", "StickyNotes", "WordCloud"];

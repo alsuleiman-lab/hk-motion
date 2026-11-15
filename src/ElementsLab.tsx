@@ -28,7 +28,7 @@ import { TRANSITIONS, TransitionScene } from "./TransitionsLab";
 import { Keycaps, Burst } from "./KhaamKit";
 import { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle, Footnote, ClaimWall, NoProof, BrokenIsnad, GradeLadder, YearsGap, Lifespans, Crossroads, AlertFrame, NeverMeet, RisingTimeline, MinuteTeaser, PipSource, PIP, pipK } from "./PickKit";
 import { VerseNoor, VerseBigWord, HalfScene, BlendPanel, halfK } from "./VerseKit";
-import { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, Battery, FillGlasses, LeftShade } from "./PickKit2";
+import { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, Battery, FillGlasses, LeftShade, BottomShade, PICK_NOSPLIT } from "./PickKit2";
 import { HadithQuote, HadithBooks, HadithIsnad } from "./HadithKit";
 
 import { BRAND, applyBrand } from "./brand";
@@ -177,7 +177,7 @@ const PipHim: React.FC = () => { const t = useT(), u = pipK(t, 0.3, 2.95); retur
 const PickBlend: React.FC = () => { const t = useT(); return <BlendPanel k={halfK(t, 0, 2.95)} t={t} id="pkg" />; };
 const PickScene: React.FC<{ o: Orient; children: React.ReactNode }> = ({ o, children }) => o === "land"
   ? <HalfScene him={<Rec />} start={0} until={2.95}><PickBlend />{children}</HalfScene>
-  : <><PortRec /><div style={{ position: "absolute", left: 0, top: 860, width: 1920, height: 1080, transform: "scale(0.9)", transformOrigin: "0 0" }}>{children}</div></>;
+  : <><PortRec /><div style={{ position: "absolute", left: 0, top: 860, width: 1920, height: 1080, transform: "scale(0.9)", transformOrigin: "0 0" }}>{children}</div><BottomShade at={0.1} until={2.95} /></>;
 /** RingStat / MythFact: NOT a split screen (user 2026-11-14, frames 13009 and 14105): he stays in the middle, the element sits in the left third of the elements area */
 const PickSceneStill: React.FC<{ o: Orient; children: React.ReactNode }> = ({ o, children }) => o === "land" ? <><Rec /><LeftShade at={0.1} until={2.95} />{children}</> : <PickScene o={o}>{children}</PickScene>;
 const VERSE_SCENES: Record<string, (o: Orient) => React.ReactNode> = {
@@ -206,12 +206,12 @@ const VERSE_SCENES: Record<string, (o: Orient) => React.ReactNode> = {
   AlertFrame: (o) => <>{o === "land" ? <Rec /> : <PortRec />}<AlertFrame at={0.1} until={2.95} W={o === "land" ? 1920 : 1080} H={o === "land" ? 1080 : 1920} /></>,
   InkQuote: (o) => <PickScene o={o}><InkQuote at={0.1} until={2.95} x={90} y={380} size={96} lines={[{ text: "الكلمةُ أمانة", at: 0.3 }, { text: "فاحفظها", at: 1.3 }]} source="مثال" /></PickScene>,
   BigQuestion: (o) => <PickScene o={o}><BigQuestion at={0.1} until={2.95} x={90} y={150} size={460} text="لماذا ينتشر؟" textAt={1.0} /></PickScene>,
-  ChatThread: (o) => <PickSceneStill o={o}><ChatThread at={0.1} until={2.95} x={o === "land" ? 40 : 110} y={250} w={o === "land" ? 580 : 900} msgs={[{ text: "هل رأيت المقطع المنتشر؟", at: 0.3 }, { text: "نعم، لكنه محتوى هابط", at: 1.2, me: true }, { text: "فلماذا يشاهده الملايين؟", at: 2.0 }]} /></PickSceneStill>,
+  ChatThread: (o) => <PickSceneStill o={o}><ChatThread at={0.1} until={2.95} x={110} y={250} w={900} {...(o === "land" ? PICK_NOSPLIT.ChatThread : {})} msgs={[{ text: "هل رأيت المقطع المنتشر؟", at: 0.3 }, { text: "نعم، لكنه محتوى هابط", at: 1.2, me: true }, { text: "فلماذا يشاهده الملايين؟", at: 2.0 }]} /></PickSceneStill>,
   StickyNotes: (o) => <PickScene o={o}><StickyNotes until={2.95} size={300} notes={[{ text: "تفاهة", at: 0.3, x: 140, y: 200 }, { text: "إثارة", at: 0.9, x: 540, y: 280, tint: "paper" }, { text: "ربحٌ سريع", at: 1.5, x: 300, y: 600, tint: "accent" }]} /></PickScene>,
-  FlapBoard: (o) => <PickSceneStill o={o}><FlapBoard at={0.1} until={2.95} x={o === "land" ? 40 : 80} y={260} w={o === "land" ? 600 : 980} rows={[{ text: "الوجهة: الوعي", at: 0.9 }, { text: "الرحلة: التثبّت", at: 1.4 }, { text: "الحالة: في الموعد", at: 1.9 }]} /></PickSceneStill>,
+  FlapBoard: (o) => <PickSceneStill o={o}><FlapBoard at={0.1} until={2.95} x={80} y={260} w={980} {...(o === "land" ? PICK_NOSPLIT.FlapBoard : {})} rows={[{ text: "الوجهة: الوعي", at: 0.9 }, { text: "الرحلة: التثبّت", at: 1.4 }, { text: "الحالة: في الموعد", at: 1.9 }]} /></PickSceneStill>,
   SearchBar: (o) => <PickScene o={o}><SearchBar at={0.1} until={2.95} x={110} y={120} w={900} img="episodes/1Gn_-DLPTjI.jpg" imgAt={0.1} imgH={420} imgCaption="حلقة سابقة" query="محمد بن شمس الدين المحتوى الهابط" typeAt={0.8} cps={20} /></PickScene>,
-  MythFact: (o) => <PickSceneStill o={o}><MythFact until={2.95} x={o === "land" ? 40 : 90} y={300} {...(o === "land" ? { w: 620, size: 40 } : {})} myth="المنع وحده يكفي" mythAt={0.2} fact="البديل النافع يسدّ الفراغ" factAt={1.6} /></PickSceneStill>,
-  RingStat: (o) => <PickSceneStill o={o}><RingStat at={0.1} until={2.95} x={o === "land" ? 330 : 560} y={470} r={200} value={73} label="من المراهقين يشاهدونه يومياً (مثال)" labelAt={1.9} /></PickSceneStill>,
+  MythFact: (o) => <PickSceneStill o={o}><MythFact until={2.95} x={90} y={300} {...(o === "land" ? PICK_NOSPLIT.MythFact : {})} myth="المنع وحده يكفي" mythAt={0.2} fact="البديل النافع يسدّ الفراغ" factAt={1.6} /></PickSceneStill>,
+  RingStat: (o) => <PickSceneStill o={o}><RingStat at={0.1} until={2.95} x={560} y={470} r={200} {...(o === "land" ? PICK_NOSPLIT.RingStat : {})} value={73} label="من المراهقين يشاهدونه يومياً (مثال)" labelAt={1.9} /></PickSceneStill>,
   LineGrowth: (o) => <PickScene o={o}><LineGrowth at={0.1} until={2.95} x={90} y={200} values={[10, 14, 20, 32, 40]} fromLabel="٢٠٢٠" toLabel="٢٠٢٥" tag="+٣٠٠٪" tagAt={2.0} /></PickScene>,
   DecisionFlow: (o) => <PickScene o={o}><DecisionFlow at={0.1} until={2.95} x={80} y={150} start="منشورٌ مثير" q="هل ينفع؟" qAt={0.7} yes="انشره" no="تجاهله" yesAt={1.5} /></PickScene>,
   MindMap: (o) => <PickScene o={o}><MindMap at={0.1} until={2.95} x={560} y={560} r={380} center="المحتوى" nodes={[{ text: "المصدر", at: 0.6 }, { text: "النية", at: 0.9 }, { text: "الأثر", at: 1.2 }, { text: "الجمهور", at: 1.5 }, { text: "البديل", at: 1.8 }]} /></PickScene>,

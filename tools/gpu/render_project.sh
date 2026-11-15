@@ -4,6 +4,8 @@
 cd /s/AI_Tools/Remotion_Workspace; source tools/env.sh >/dev/null 2>&1
 p=$1; L=$2; R=$3; out=$4; mkdir -p "$out"
 spec=data/specs/$p.json
+# the opening bumper goes right before his first greeting with the bumper chosen in the spec (user 2026-11-14, repeated): never at second 0, never random
+export BUMPER_AT=$(node tools/bumper_at.mjs $p 2>/dev/null | tail -1); export BUMPER_ID=$(node -e 'try{console.log(JSON.parse(require("fs").readFileSync("'$spec'","utf8")).bumper?.id??"")}catch{console.log("")}')
 cutsrc="public/$(node -e 'console.log(JSON.parse(require("fs").readFileSync("'$spec'","utf8")).cut)')"
 read -r cx avoid <<<"$(node -e '
 const s=JSON.parse(require("fs").readFileSync("'$spec'","utf8"));

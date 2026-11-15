@@ -23,7 +23,7 @@ import type { ThumbProps } from "./ThumbPro";
 import { TornNote, NewsClip, TornPhoto, WordScraps, DateCalendar } from "./PaperKit";
 import { BRAND, applyBrand } from "./brand";
 import { PIP, pipK } from "./PickKit";
-import { PICK_ALL as PICK_KIT, PICK_ALL_FULL_FRAME as PICK_FULL_FRAME, LeftShade, BottomShade } from "./PickKit2";
+import { PICK_ALL as PICK_KIT, PICK_ALL_FULL_FRAME as PICK_FULL_FRAME, LeftShade, BottomShade, PICK_XY, PICK_NOSPLIT } from "./PickKit2";
 import type { PickAllName as PickName } from "./PickKit2";
 import type { BrandName } from "./brand";
 import { MaskedVideo } from "./MaskedVideo";
@@ -299,7 +299,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
         </Only>
       );
     }
-    case "pick": { const C = PICK_KIT[it.el] as React.FC<Record<string, unknown>>; const { t: _t, el: _e, land, ...rest } = it as { t: string; el: string; land?: Record<string, unknown> } & Record<string, unknown>; return C ? <Only key={i} from={it.at - HALF_LEAD} to={it.until}>{L && !it.noShift && !PICK_FULL_FRAME.has(it.el) ? <PickPanel at={it.at} until={it.until} /> : null}{L && it.noShift && !PICK_FULL_FRAME.has(it.el) ? <LeftShade at={it.at} until={it.until} /> : null}{!L && !PICK_FULL_FRAME.has(it.el) ? <BottomShade at={it.at} until={it.until} /> : null}{L || PICK_FULL_FRAME.has(it.el) ? <C {...rest} {...(L ? land ?? {} : {})} /> : <div style={{ position: "absolute", left: 0, top: 860, width: 1920, height: 1080, transform: "scale(0.9)", transformOrigin: "0 0" }}><C {...rest} /></div>}</Only> : null; }   // landscape: he slides right and the approved panel blends behind it, as in the half-screen ways
+    case "pick": { const C = PICK_KIT[it.el] as React.FC<Record<string, unknown>>; const { t: _t, el: _e, land, noShift: _ns, ...rest0 } = it as { t: string; el: string; land?: Record<string, unknown>; noShift?: boolean } & Record<string, unknown>; const ns = it.noShift ?? !!PICK_NOSPLIT[it.el], xy = PICK_XY[it.el], rest = { ...(rest0.x == null && xy ? { x: xy[0], y: xy[1] } : {}), ...rest0 }, lp = { ...(ns ? PICK_NOSPLIT[it.el] ?? {} : {}), ...(land ?? {}) }; return C ? <Only key={i} from={it.at - HALF_LEAD} to={it.until}>{L && !ns && !PICK_FULL_FRAME.has(it.el) ? <PickPanel at={it.at} until={it.until} /> : null}{L && ns && !PICK_FULL_FRAME.has(it.el) ? <LeftShade at={it.at} until={it.until} /> : null}{!L && !PICK_FULL_FRAME.has(it.el) ? <BottomShade at={it.at} until={it.until} /> : null}{L || PICK_FULL_FRAME.has(it.el) ? <C {...rest} {...(L ? lp : {})} /> : <div style={{ position: "absolute", left: 0, top: 860, width: 1920, height: 1080, transform: "scale(0.9)", transformOrigin: "0 0" }}><C {...rest} /></div>}</Only> : null; }   // the gallery decides place and look: its own x,y (PICK_XY), no split screen for PICK_NOSPLIT, portrait = the gallery's lower-half board
     case "subscribe": return <Subscribe key={i} at={it.at} x={L ? ov.x ?? 1300 : it.x} y={L ? ov.y ?? 790 : it.y} dur={it.dur} />;
     case "verse": {
       // a verse he recites INSIDE his talk = the known verse card (VerseWords) in the writing area / the empty side, his picture visible (user 2026-11-01); full screen (full:true) only for a lone recitation
@@ -620,7 +620,7 @@ const draw = (key: string, n: number) => { let h = 2166136261; for (const c of k
 const ayaOf = (it: { aya?: number; refText: string }) => it.aya ?? Number((it.refText.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).match(/\d+/) ?? ["0"])[0]);
 /** a picked element (PickKit) in landscape sits on the left half: the approved blended panel behind it, while he is slid right (shift window below) */
 const PickPanel: React.FC<{ at: number; until: number }> = ({ at, until }) => { const t = useT(); return <BlendPanel k={halfK(t, at - HALF_LEAD, until)} t={t} id={"pk" + at} />; };
-const isHalfWay = (it: SpecItem) => (it.t === "pick" && !it.noShift && !PICK_FULL_FRAME.has(it.el)) || (it.t === "verse" && !it.full && (it.way === "noor" || it.way === "bigword")) || (it.t === "note" && !!it.phrases?.length && (it.way === "quote" || it.way === "books"));
+const isHalfWay = (it: SpecItem) => (it.t === "pick" && !(it.noShift ?? !!PICK_NOSPLIT[it.el]) && !PICK_FULL_FRAME.has(it.el)) || (it.t === "verse" && !it.full && (it.way === "noor" || it.way === "bigword")) || (it.t === "note" && !!it.phrases?.length && (it.way === "quote" || it.way === "books"));
 /** a note with only `title`: split the matn into short phrases (at punctuation, then ≤5 words) and spread them over the spoken span by length */
 const autoPhrases = (title: string, at: number, until: number) => {
   const parts = title.replace(/[«»"]/g, "").split(/[،,.؛:!؟?\n]+/).map((p) => p.trim()).filter(Boolean)

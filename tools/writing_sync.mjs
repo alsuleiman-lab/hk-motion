@@ -41,7 +41,17 @@ for (const [i, it] of spec.items.entries()) {
   if (it.t === "torn" || it.t === "scraps") { const r = check(`${it.t}#${i}`, it.text, it.at, it.until, (v) => { it.at = v; }, it.only); if (r === "drop") drop.add(i); }
   else if (it.t === "rewrite") check(`rewrite#${i}`, it.oldText, it.oldAt - 0.4, it.until, (v) => { it.oldAt = Math.max(it.oldAt, +(v + 0.4).toFixed(2)); }, it.only);
   else if (it.t === "rows") for (const [n, r] of it.rows.entries()) check(`rows#${i}.${n}`, r.label, r.at, it.to, (v) => { r.at = v; }, it.only);
-  else if (it.t === "note") check(`note#${i}`, it.title, it.at, it.until, (v) => { it.at = v; }, it.only);
+  else if (it.t === "verse" && it.times?.length && it.until != null) {
+    /* user 2026-11-14 («دائماً عند عرض القرآن أو الحديث تتركه على الأقل ثانية بعد أن تتم الكتابة»): a verse card stays at least a second after its last word */
+    const last = it.times[it.times.length - 1];
+    if (it.until - last < 1.2) { bad++; console.log(`  ✘ verse#${i} ${mm(it.times[0])} — تزول بعد ${(it.until - last).toFixed(1)}ث فقط من آخر كلمة (المطلوب ثانية على الأقل بعد تمام الكتابة)`); }
+  }
+  else if (it.t === "note") {
+    check(`note#${i}`, it.title, it.at, it.until, (v) => { it.at = v; }, it.only);
+    /* أمر المستخدم 2026-11-13: بطاقة الحديث تبقى ثانية على الأقل بعد انتهاء كتابتها (بدء الكتابة at+0.25، كل حرف بما فيه «» يُحسب) */
+    const typeEnd = it.at + 0.25 + [...it.title].length / (it.cps ?? Math.max(10, Math.round([...it.title].length / Math.max(2, it.until - it.at - 1.2))));
+    if (it.until - typeEnd < 1.0) { bad++; console.log(`  ✘ note#${i} ${mm(it.at)} — تنتهي كتابتها ${typeEnd.toFixed(1)}ث وتزول ${it.until}ث (تبقى ${(it.until - typeEnd).toFixed(1)}ث، المطلوب ثانية على الأقل): «${String(it.title).slice(0, 40)}»`); }
+  }
 }
 if (fix) { spec.items = spec.items.filter((_, i) => !drop.has(i)); dropped = drop.size; fs.writeFileSync(specF, JSON.stringify(spec, null, 1)); }
 console.log(`writing_sync: ${bad ? "✘ " + bad + " كتابة قبل الكلام" : "✔ لا كتابة قبل كلامها"}${fix ? ` (نُقل ${moved}، حُذف ${dropped})` : ""}${nomatch ? ` · ${nomatch} غير مطابق (ملخّص بلا كلمات منطوقة)` : ""}`);

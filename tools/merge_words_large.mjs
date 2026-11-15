@@ -25,6 +25,10 @@ const out = L.map((l) => {
   if (hit >= 0) { ptr = hit + 1; matched++; return { w: l.w, s: A[hit].s, e: A[hit].e, m: 1 }; }
   return { w: l.w, s: l.s, e: l.e, m: 0 };
 });
+// (2026-11-14, nvidia_crash: «الله» got the time of the previous «الله» and a whole element appeared 0.9 s early) a matched word that goes BACK in time, or shares the previous word's time, falls back to the large model's own time
+let repaired = 0;
+for (let i = 1; i < out.length; i++) if (out[i].m && (out[i].s <= out[i - 1].s - 0.02 || (out[i - 1].m && Math.abs(out[i].s - out[i - 1].s) < 0.001))) { out[i] = { w: L[i].w, s: L[i].s, e: L[i].e, m: 0 }; repaired++; }
+if (repaired) console.log(`merge_words_large: ${repaired} word(s) that went back in time took the large model's time`);
 // unmatched words: keep inside the neighbours and never earlier than the previous word's end
 for (let i = 0; i < out.length; i++) {
   if (out[i].m) continue;

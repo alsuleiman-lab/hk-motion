@@ -191,6 +191,10 @@ export const BottomShade: React.FC<{ at: number; until: number }> = ({ at, until
 };
 export const PICK_KIT2 = { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, Battery, FillGlasses } as const;
 /** every picked element (PickKit + PickKit2) by spec name */
+/** the gallery's own x,y of every picked element (src/ElementsLab.tsx): used when a spec item gives none, so a spec never invents a place (user 2026-11-14: «لابد أن تنتبه إلى أماكن العناصر»). StickyNotes carry their own per-note x,y. */
+export const PICK_XY: Record<string, [number, number]> = { MinuteTeaser: [150, 150], Battery: [110, 250], NoProof: [100, 200], FlapBoard: [80, 260], BigQuestion: [90, 150], NeverMeet: [110, 260], ThoughtBubble: [90, 170], RootsTree: [110, 120], Iceberg: [110, 130], Crossroads: [110, 150], MythFact: [90, 300], InkQuote: [90, 380], ChatThread: [110, 250], MindMap: [560, 560], RingStat: [560, 470], QACard: [160, 300], ViciousCycle: [560, 520], FillGlasses: [110, 220], DecisionFlow: [80, 150], Footnote: [90, 230], ClaimWall: [110, 300], CopiedMessages: [110, 150], WordCloud: [560, 480], CommentsFlood: [110, 150] };
+/** NOT a split screen (user 2026-11-14, frames 8341/10458/11903/13009/14105): he stays centred, the element sits small in the left third over a dark gradient (LeftShade); these are its LANDSCAPE props. The engine and the gallery both read this table. */
+export const PICK_NOSPLIT: Record<string, Record<string, number>> = { RingStat: { x: 330, y: 470 }, MythFact: { x: 40, y: 300, w: 760, size: 40 }, ChatThread: { x: 40, y: 250, w: 580 }, FlapBoard: { x: 40, y: 260, w: 600, size: 44 } };
 export const PICK_ALL = { ...PICK_KIT, ...PICK_KIT2 } as const;
 export type PickAllName = keyof typeof PICK_ALL;
 export const PICK_ALL_FULL_FRAME = new Set<string>([...PICK_FULL_FRAME, "BrushWipe"]);

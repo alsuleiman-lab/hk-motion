@@ -8,7 +8,7 @@ import path from "node:path";
 const p = process.argv[2];
 if (!p) { console.error("usage: node tools/redo_scan.mjs <project>"); process.exit(2); }
 const norm = (w) => w.replace(/[ً-ٰٟـ]/g, "").replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/[^ء-ي]/g, "");
-const MARK = ["افضل", "عفوا", "عفو", "افوال", "افوا", "افو", "اعيد", "اعد", "معليش", "اسف", "غلطت", "غلط", "خطا", "اقصد", "قصدي", "لحظه", "من جديد", "مره ثانيه", "اصحح", "تصحيح", "اعيدها", "عفوان"];
+const MARK = ["افضل", "عفوا", "عفو", "افوال", "افوان", "افون", "افوه", "افوا", "افو", "اعيد", "اعد", "معليش", "اسف", "غلطت", "غلط", "خطا", "اقصد", "قصدي", "لحظه", "من جديد", "مره ثانيه", "اصحح", "تصحيح", "اعيدها", "عفوان"];
 const W = JSON.parse(fs.readFileSync(path.join(".tmp", p, "words.json"), "utf8"));
 const N = W.map((w) => norm(w.w));
 const fmt = (a, b) => W.slice(Math.max(0, a), Math.min(W.length, b)).map((w) => `${w.w}[${w.s.toFixed(1)}]`).join(" ");

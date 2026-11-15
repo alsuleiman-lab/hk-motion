@@ -267,7 +267,7 @@ if (stage === "check") {
   await step("rules_lint", "node", ["tools/rules_lint.mjs"], /^✘|✔ rules_lint/);
   await step("element_usage", "node", ["tools/element_usage.mjs", "check"], /^✘|✔ element_usage/);   // the user's «متى تستخدمه» texts are synced and binding (2026-11-02)
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("brand_audit", "node", ["tools/brand_audit.mjs", "--strict", path.join("data", "specs", `${p}.json`)], /outside the identity|brand OK/);
-  await step("mg_usage_audit", "node", ["tools/mg_usage_audit.mjs", file, "--minutes", minutes], /PASS|FAIL|kinds|نوع/i);
+  await step("mg_usage_audit", "node", ["tools/mg_usage_audit.mjs", fs.existsSync(path.join("data", "specs", `${p}.json`)) && !file.endsWith(".json") ? path.join("data", "specs", `${p}.json`) : file, "--minutes", minutes], /PASS|FAIL|kinds|نوع/i);
   // complete, not just valid (user 2026-10-28): every named thing has its picture, no long empty stretch, the moves are in the spec
   // every element time comes from cut_words.json: prove it matches the REAL cut audio first (user 2026-11-09, a stale file made all elements 2.7 s late and every other check passed)
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("words_drift", "node", ["tools/words_drift_check.mjs", p], /words_drift/);

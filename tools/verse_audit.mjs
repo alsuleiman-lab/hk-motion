@@ -27,10 +27,11 @@ for (const it of spec.items.filter((i) => i.t === "verse")) {
   for (let i = 1; i <= m; i++) D[i][0] = i * 1, P[i][0] = 1;
   for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) {
     const c = sub(V[i - 1].n, S[j - 1].n), opts = [[D[i - 1][j - 1] + (c >= 2 ? INF : c), 3], [D[i - 1][j] + 1, 1], [D[i][j - 1] + (i === m ? 0 : 1), 2]];   // spoken words AFTER the last verse word are free
+    if (j >= 2) { const c2 = sub(V[i - 1].n, S[j - 2].n + S[j - 1].n); if (c2 < 0.5) opts.unshift([D[i - 1][j - 2] + c2, 4]); }   // one Mushaf word written as two spoken words (يَٰٓأُو۟لِى = «يا» + «أولي»): a clean join beats a skip + insertion (2026-11-14: «فاعتبروا» was reported missing)
     const b = opts.reduce((x, y) => (y[0] < x[0] ? y : x)); D[i][j] = b[0]; P[i][j] = b[1];
   }
   let i = m, j = n; const ops = [];
-  while (i > 0 || j > 0) { const p = P[i][j]; if (i > 0 && j > 0 && p === 3) { ops.push({ k: "m", v: V[i - 1], s: S[j - 1] }); i--; j--; } else if (i > 0 && (p === 1 || j === 0)) { ops.push({ k: "del", v: V[i - 1] }); i--; } else { ops.push({ k: "ins", s: S[j - 1] }); j--; } }
+  while (i > 0 || j > 0) { const p = P[i][j]; if (i > 0 && j > 1 && p === 4) { ops.push({ k: "m", v: V[i - 1], s: { ...S[j - 2], n: S[j - 2].n + S[j - 1].n, w: S[j - 2].w + " " + S[j - 1].w } }); i--; j -= 2; } else if (i > 0 && j > 0 && p === 3) { ops.push({ k: "m", v: V[i - 1], s: S[j - 1] }); i--; j--; } else if (i > 0 && (p === 1 || j === 0)) { ops.push({ k: "del", v: V[i - 1] }); i--; } else { ops.push({ k: "ins", s: S[j - 1] }); j--; } }
   ops.reverse();
   // trim insertions before the first / after the last matched verse word (not part of the recitation)
   const firstM = ops.findIndex((o) => o.k === "m"), lastM = ops.map((o) => o.k).lastIndexOf("m");

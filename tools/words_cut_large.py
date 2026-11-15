@@ -1,5 +1,8 @@
 """Word timeline of the CUT audio with Whisper large-v3 → .tmp/<p>/cut_words_large.json ([{w,s,e}], cut seconds) + cut_text_large.txt (segments). usage: python tools/words_cut_large.py <p>"""
-import sys, json, subprocess
+import os, sys, json, subprocess
+torch_lib = "S:/AI_Tools/ComfyUI_windows_portable/python_embeded/Lib/site-packages/torch/lib"  # cublas DLL for faster-whisper on the GPU (python -I ignores PATH)
+if os.path.exists(torch_lib):
+    os.add_dll_directory(torch_lib); os.environ["PATH"] = torch_lib + os.pathsep + os.environ.get("PATH", "")
 from faster_whisper import WhisperModel
 p = sys.argv[1]; T = f".tmp/{p}"
 subprocess.run(["ffmpeg","-v","error","-y","-i",f"public/{p}_cut.mp4","-vn","-ac","1","-ar","16000",f"{T}/cut16k.wav"],check=True)

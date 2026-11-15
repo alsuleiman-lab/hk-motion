@@ -11,5 +11,5 @@ const isVideo = /\.(mp4|mov|mkv|webm)$/i.test(inp);
 const af = `arnndn=m='${model}'`;
 const args = ["-v", "error", "-y", "-i", inp, "-af", af, "-threads", "4",
   ...(isVideo ? ["-map", "0:v?", "-map", "0:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart"] : []), out];
-execFileSync("ffmpeg", args, { stdio: "inherit", windowsHide: true });
+for (let i = 1; ; i++) { try { execFileSync("ffmpeg", args, { stdio: "inherit", windowsHide: true }); break; } catch (e) { if (i >= 4) throw e; console.error(`⚠ arnndn crashed (${e.status}) — retry ${i}/3`); } }   // the filter sometimes dies with 0xC0000005 on a run that passes on the next (nvidia_crash 2026-11-14)
 console.log(`✔ voice cleaned → ${out}`);

@@ -29,7 +29,7 @@ export const InkQuote: React.FC<Base & { w?: number; size?: number; lines: { tex
     <div style={abs({ left: x, top: y, width: w })}>
       <div style={abs({ right: -10, top: -size * 1.35, fontFamily: naskhF, fontSize: size * 2.2, lineHeight: 1, color: BRAND.accent, ...pop(k(at, 0.4, until), 0.3) })}>❝</div>
       {lines.map((l, i) => { const u = Math.min(clamp((t - l.at) / Math.max(0.5, l.text.length * 0.06)), clamp((until - t) / 0.35));
-        return <div key={i} style={abs({ left: 0, width: w, top: i * lh, textAlign: "center", fontFamily: naskhF, fontSize: size, lineHeight: 1.3, color: i === lines.length - 1 && lines.length > 1 ? BRAND.accent : BRAND.card, ...wipe(ease(u)) })}>{l.text}</div>; })}
+        return <div key={i} style={abs({ left: 0, width: w, top: i * lh, textAlign: "center", fontFamily: kufiF, fontWeight: 800, fontSize: size * 0.82, lineHeight: 1.45, color: i === lines.length - 1 && lines.length > 1 ? BRAND.accent : BRAND.card, textShadow: "0 4px 18px rgba(0,0,0,.55)", ...wipe(ease(u)) })}>{l.text}</div>; })}   /* user 2026-11-14 (frame 9200): bolder Kufi so the quote reads at a glance */
       {cur && t < until ? <div style={abs({ width: 28, height: 28, background: BRAND.accent, transform: "rotate(45deg)", boxShadow: `0 0 22px ${BRAND.accent}`, top: cur[1] * lh + size * 0.6, left: w * (0.9 - 0.8 * cur[0]) })} /> : null}
       {source ? <div style={abs({ left: 0, width: w, top: lines.length * lh + 10, textAlign: "center", fontFamily: kufiF, fontSize: size * 0.36, color: BRAND.light, ...wipe(ease(k(lines[lines.length - 1].at + 0.8, 0.4, until))) })}>{source}</div> : null}
     </div>

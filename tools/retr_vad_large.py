@@ -1,6 +1,9 @@
 """Re-transcribe every VAD segment of a project with Whisper large-v3 (per-segment slice, word times) and rewrite tr_vad.json.
 usage: python tools/retr_vad_large.py <project> [--pad 0.4] — keeps a backup tr_vad.small.json (when the first pass hallucinates on short/dialect segments)."""
-import sys, json, shutil, wave
+import os, sys, json, shutil, wave
+torch_lib = "S:/AI_Tools/ComfyUI_windows_portable/python_embeded/Lib/site-packages/torch/lib"  # cublas DLL for faster-whisper on the GPU (python -I ignores PATH)
+if os.path.exists(torch_lib):
+    os.add_dll_directory(torch_lib); os.environ["PATH"] = torch_lib + os.pathsep + os.environ.get("PATH", "")
 import numpy as np
 from faster_whisper import WhisperModel
 p = sys.argv[1]; pad = float(sys.argv[sys.argv.index("--pad")+1]) if "--pad" in sys.argv else 0.4

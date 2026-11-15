@@ -179,6 +179,16 @@ export const FillGlasses: React.FC<Base & { items: { label: string; value: numbe
   );
 };
 
+/** a dark left-to-right gradient behind an element that is NOT a split screen (user 2026-11-14, frames 10458/11903): he stays in the middle; the shade wipes in (no opacity fade) */
+export const LeftShade: React.FC<{ at: number; until: number }> = ({ at, until }) => {
+  const t = useT(0), c = (x: number) => Math.max(0, Math.min(1, x)), e = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2), k = e(Math.min(c((t - at) / 0.5), c((until - t) / 0.4)));
+  return <div style={{ position: "absolute", left: 0, top: 0, width: 1250, height: 1080, pointerEvents: "none", visibility: k > 0 ? "visible" : "hidden", clipPath: `inset(0 ${(1 - k) * 100}% 0 0)`, background: "linear-gradient(90deg, rgba(0,0,0,.82) 0%, rgba(0,0,0,.62) 45%, rgba(0,0,0,0) 100%)" }} />;
+};
+/** portrait twin of LeftShade: a dark gradient under the lower-half element (wipes in from the bottom, never an opacity fade) so white text reads over his robe */
+export const BottomShade: React.FC<{ at: number; until: number }> = ({ at, until }) => {
+  const t = useT(0), c = (x: number) => Math.max(0, Math.min(1, x)), e = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2), k = e(Math.min(c((t - at) / 0.5), c((until - t) / 0.4)));
+  return <div style={{ position: "absolute", left: 0, top: 900, width: 1080, height: 1020, pointerEvents: "none", visibility: k > 0 ? "visible" : "hidden", clipPath: `inset(${(1 - k) * 100}% 0 0 0)`, background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.6) 35%, rgba(0,0,0,.82) 100%)" }} />;
+};
 export const PICK_KIT2 = { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, Battery, FillGlasses } as const;
 /** every picked element (PickKit + PickKit2) by spec name */
 export const PICK_ALL = { ...PICK_KIT, ...PICK_KIT2 } as const;

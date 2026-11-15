@@ -113,16 +113,17 @@ export type FilmProps = {
   lines: {words: CapWord[]}[];
   audio: string;                       // file under public/
   bg?: string;
+  timeMap?: (t: number) => number;       // film time → source-timeline time (a film with deleted ranges: audio is the trimmed file, shots stay on the original timeline)
 };
 
 /** captions: pages ≤4 words, each word at its own onset; the page object list is built once per film */
 export const useFilmPages = (lines: {words: CapWord[]}[]): CapPage[] => React.useMemo(() => capPages(lines), [lines]);
 
-export const Film: React.FC<FilmProps> = ({shots, lines, audio, bg = '#1a1410'}) => {
+export const Film: React.FC<FilmProps> = ({shots, lines, audio, bg = '#1a1410', timeMap}) => {
   const name = audio;
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const t = frame / fps;
+  const t = timeMap ? timeMap(frame / fps) : frame / fps;
   const pages = useFilmPages(lines);
   React.useEffect(() => { const w = sizeAudit(shots); if (w.length) console.warn('SIZE-AUDIT-WARN ' + name + ' ' + w.slice(0, 3).join(' | ')); else console.log('SIZE-AUDIT-OK ' + name); }, [shots]);
   const shot = shots.find((s) => t >= s.from && t < s.to) ?? shots[shots.length - 1];

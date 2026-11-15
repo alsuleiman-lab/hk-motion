@@ -1,6 +1,7 @@
 import React from 'react';
 import {Pa, Re, El} from './EnvsOffice';
 import type {CapWord} from './Overlays';
+import {staticFile} from 'remotion';
 
 /** Mosque settings and effects for the Abu Khatt «آداب المسجد» film (flat colour, thick ink). World = 1080×1920 screen, extended sideways. */
 const CARPET = '#1f5a43', GOLD = '#d8b04a', WHITE = '#f6f4ee';
@@ -56,7 +57,7 @@ export const RobesRear: React.FC<{t: number; stink?: boolean; shuffle?: number}>
     {[170, 520, 880].map((x, i) => (
       <g key={x} transform={`translate(${x + (i === 1 ? shuffle : 0)} 0)`}>
         <Pa d="M-210 -200 L-150 1520 L150 1520 L210 -200Z" f={WHITE} w={7} /><Pa d="M-60 200 L-40 1500 M40 200 L30 1500 M0 600 L0 1500" w={4} s="#c9c4b4" />
-        <El x={-60} y={1540} rx={48} ry={24} f="#e0b890" w={6} /><El x={64} y={1540} rx={48} ry={24} f="#e0b890" w={6} />
+        <El x={-60} y={1540} rx={48} ry={24} f={i === 1 ? "#cfd6dd" : "#e0b890"} w={6} /><El x={64} y={1540} rx={48} ry={24} f={i === 1 ? "#cfd6dd" : "#e0b890"} w={6} />{i === 1 && <Pa d="M-100 1530 L-20 1530 M-104 1546 L-16 1546 M20 1530 L108 1530 M16 1546 L112 1546" w={7} s="#d0382d" />}
         <Pa d="M-102 1560 Q-60 1580 -18 1560 M16 1560 Q64 1580 112 1560" w={6} />
       </g>
     ))}
@@ -137,16 +138,18 @@ export const Scroll: React.FC<{t: number; titleAt: number; lines: {words: CapWor
   const jag = (y0: number, up: boolean) => [...Array(34)].map((_, i) => `L${60 + i * 28} ${y0 + (i % 2 ? (up ? -10 : 10) : 0)}`).join(' ');
   return (
     <g>
-      <Re x={-900} y={-800} w={2880} h={3600} f="#17120f" sw={0} />
+      <Re x={-900} y={-800} w={2880} h={3600} f="#3a2616" sw={0} />
+      {[...Array(30)].map((_, i) => <g key={i}><Re x={-900} y={-800 + i * 130} w={2880} h={130} f={i % 2 ? '#3f2a19' : '#342213'} sw={0} /><Pa d={`M-900 ${-800 + i * 130} L1980 ${-800 + i * 130}`} w={4} s="#1d130b" /><Pa d={`M${-300 + (i * 211) % 900} ${-800 + i * 130 + 40} q60 -14 120 0 M${200 + (i * 137) % 700} ${-800 + i * 130 + 90} q50 12 100 0`} w={3} s="#2a1a0f" /></g>)}
       <g transform="rotate(-1.2 540 960)">
         <Pa d={`M60 330 ${jag(330, true)} L1020 330 L1030 1560 ${jag(1560, false).split(' ').reverse().join(' ')} L50 1560Z`} f="#d9b86e" w={0} />
         <Re x={64} y={338} w={950} h={1216} f="#e0c07c" sw={0} />
+        {[...Array(26)].map((_, i) => <Pa key={'fb' + i} d={`M${70 + (i * 97) % 880} ${350 + (i * 53) % 1180} q18 -9 40 0 q22 9 44 0`} w={2.5} s="#c9a45e" />)}
         <Pa d="M70 350 L1010 350 M70 1540 L1010 1540" w={6} s="#b8924a" />
         <text x={540} y={560} fontSize={118} fontWeight={800} fill="#2f7d3a" textAnchor="middle" fontFamily='"Noto Kufi Arabic", sans-serif'>{t >= titleAt ? 'آداب المسجد' : ''}</text>
         <Pa d="M260 610 Q540 640 820 610" w={6} s="#2f7d3a" o={t >= titleAt ? 1 : 0} />
         {lines.map((l, i) => {
           const shown = l.words.filter((w) => t >= w.at - 0.001);
-          return <text key={i} x={540} y={800 + i * 150} fontSize={64} fontWeight={800} fill="#fffaf0" stroke="#3a2a14" strokeWidth={9} paintOrder="stroke" direction="rtl" textAnchor="middle" fontFamily='"Noto Kufi Arabic", sans-serif' style={{unicodeBidi: 'isolate'}}>{shown.map((w) => w.t).join(' ')}</text>;
+          return <text key={i} x={540} y={790 + i * 118} fontSize={60} fontWeight={800} fill="#fffaf0" stroke="#3a2a14" strokeWidth={9} paintOrder="stroke" direction="rtl" textAnchor="middle" fontFamily='"Noto Kufi Arabic", sans-serif' style={{unicodeBidi: 'isolate'}}>{shown.map((w) => w.t).join(' ')}</text>;
         })}
       </g>
     </g>
@@ -178,3 +181,55 @@ export const Crawler: React.FC<{x: number; y: number; t: number; s?: number}> = 
     </g>
   );
 };
+
+/** a locally generated flat-vector picture filling the 9:16 frame (faceless men, no text) */
+export const Plate: React.FC<{src: string}> = ({src}) => (
+  <g><Re x={-900} y={-800} w={2880} h={3600} f="#2f7a55" sw={0} /><image href={staticFile(src)} x={-3} y={0} width={1086} height={1920} preserveAspectRatio="xMidYMid slice" /></g>
+);
+
+/** low rear view of three men standing in a row: the middle man (blue jacket) edges his foot toward his right neighbour, who pulls away — twice */
+export const FeetNudge: React.FC<{t: number}> = ({t}) => {
+  const pulse = (a: number, b: number) => (t < a || t > b ? 0 : Math.sin(Math.PI * (t - a) / (b - a)) ** 1.5);
+  const k = Math.max(pulse(36.0, 37.5), pulse(38.0, 39.5)), away = 120 * k, reach = 110 * k;
+  const foot = (x: number, y: number, key: string) => <El key={key} x={x} y={y} rx={46} ry={22} f="#e0b890" w={6} />;
+  return (
+    <g>
+      <Re x={-900} y={-800} w={2880} h={2400} f="#e9e5d9" sw={0} />
+      <Re x={-900} y={900} w={2880} h={1500} f={CARPET} sw={8} /><Re x={-900} y={900} w={2880} h={1500} f="url(#mh-dia)" sw={0} />
+      <Pa d="M-900 1330 L1980 1330 M-900 1620 L1980 1620" w={10} s={GOLD} />
+      {/* left man */}
+      <Pa d="M-60 -200 L-10 1500 L330 1500 L380 -200Z" f={WHITE} w={7} /><Pa d="M80 200 L100 1480 M240 200 L230 1480" w={4} s="#c9c4b4" />
+      {foot(110, 1530, 'l1')}{foot(240, 1530, 'l2')}
+      {/* right man (pulls away) */}
+      <g transform={`translate(${away} 0)`}>
+        <Pa d="M700 -200 L750 1500 L1090 1500 L1140 -200Z" f={WHITE} w={7} /><Pa d="M840 200 L860 1480 M1000 200 L990 1480" w={4} s="#c9c4b4" />
+        {foot(770, 1530 - 26 * k, 'r1')}{foot(1000, 1530, 'r2')}
+      </g>
+      {/* narrator: jacket hem, trousers, bare feet */}
+      <Pa d="M390 -200 L400 1000 L690 1000 L700 -200Z" f="#3f6fd1" w={7} /><Pa d="M470 1000 L470 1500 M620 1000 L620 1500" w={0} />
+      <Pa d="M410 1000 L430 1500 L520 1500 L540 1000Z" f="#f4f1ea" w={7} /><Pa d={`M${545 + reach} 1000 L${540 + reach} 1500 L${650 + reach} 1500 L${670 + reach * .4} 1000Z`} f="#f4f1ea" w={7} />
+      {foot(470, 1535, 'n1')}{foot(600 + reach, 1535 - 18 * k, 'n2')}
+    </g>
+  );
+};
+
+/** a proper onion: papery bulb with layer lines, a dry sprout at the top and a tuft of roots below */
+export const Onion: React.FC<{x?: number; y?: number; s?: number; rot?: number}> = ({x = 0, y = 0, s = 1, rot = 0}) => (
+  <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`}>
+    <Pa d="M-12 46 L-16 66 M-4 50 L-5 70 M5 50 L8 70 M13 46 L19 64" w={3} s="#8a7a5a" />
+    <Pa d="M0 -66 Q-6 -44 -32 -28 Q-58 -6 -50 22 Q-42 52 0 54 Q42 52 50 22 Q58 -6 32 -28 Q6 -44 0 -66Z" f="#d9a441" w={5} />
+    <Pa d="M0 -60 Q-34 -12 -22 50 M0 -60 Q34 -12 22 50 M0 -60 Q-12 0 -3 54 M0 -60 Q12 0 4 54" w={2.4} s="#a8742a" />
+    <Pa d="M-2 -66 Q0 -80 5 -88" w={5} s="#c9a56a" />
+    <El x={-22} y={-4} rx={8} ry={18} f="#f0cf84" w={0} />
+  </g>
+);
+
+/** a bucket of onion water: onions floating in blue water */
+export const OnionBucket: React.FC<{x: number; y: number; t: number; s?: number}> = ({x, y, t, s = 1}) => (
+  <g transform={`translate(${x} ${y}) scale(${s})`}>
+    <Pa d="M-90 -110 L-70 0 L70 0 L90 -110Z" f="#4f86c6" w={6} />
+    <El x={0} y={-110} rx={90} ry={22} f="#9fd0f0" w={6} />
+    {[-44, 4, 48].map((ox, i) => <Onion key={i} x={ox} y={-122 + 3 * Math.sin(t * 2.4 + i * 2)} s={.42} rot={i * 24 - 20} />)}
+    <Pa d="M-90 -110 Q0 -150 90 -110" w={5} />
+  </g>
+);

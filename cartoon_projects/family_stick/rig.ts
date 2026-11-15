@@ -110,12 +110,12 @@ function face(expression:Expression,niqab=false,mouthOpen?:number,look?:V){
  }else mouth=expression==='smirk'?path('M-17 -272 Q4 -263 22 -281','none',3.4):expression==='sad'?path('M-17 -267 Q0 -277 17 -267','none',3):expression==='angry'?path('M-19 -263 Q0 -279 19 -263','none',3.2):expression==='happy'?path('M-23 -280 Q0 -270 23 -280 Q19 -254 0 -254 Q-19 -254 -23 -280Z',palette.ink,2.1)+path('M-12 -260 Q0 -266 12 -260 Q0 -253 -12 -260Z',palette.coral,0):expression==='surprised'?ellipse(0,-271,7,10,palette.ink,1):expression==='neutral'?path('M-17 -264 L17 -264','none',2.8):path('M-23 -277 Q0 -251 23 -277','none',3.4);
  return gaze(eyes+lids+brows+`<g data-mouth="" data-mouth-open="${f(mouthOpen??-1)}">${mouth}</g>`);
 }
-export function characterMarkup(c:Actor&{trousers?:string;trousersLong?:boolean;ihram?:boolean;grandRobe?:boolean;turban?:boolean},t:number,m:Motion='wave',o:{flip?:boolean;bones?:boolean;expression?:Expression;mouthOpen?:number;speech?:readonly SpeechInterval[];pose?:ReturnType<typeof poseAt>;hands?:readonly ('rest'|'open'|'point')[];look?:V;nodY?:number}={}){
+export function characterMarkup(c:Actor&{trousers?:string;trousersLong?:boolean;ihram?:boolean;grandRobe?:boolean;turban?:boolean},t:number,m:Motion='wave',o:{flip?:boolean;bones?:boolean;expression?:Expression;mouthOpen?:number;speech?:readonly SpeechInterval[];pose?:ReturnType<typeof poseAt>;hands?:readonly ('rest'|'open'|'point')[];look?:V;nodY?:number;part?:'legs'|'upper'}={}){
  const p=o.pose??poseAt(t,m,o.speech),mom=c.id==='mother',girl=c.id==='girl',child=c.kind==='boy'||girl,cy=-290,skin=palette.skin;
  const expression=o.expression??(m==='angry'?'angry':c.expression),mouthOpen=o.mouthOpen??(m==='talk'?speechAt(t,o.speech).mouthOpen:undefined);
- let s='';
- if(m==='sit'||m==='sitTalk')s+=path(`M-47 -57 L59 -57 L59 -49 L-47 -49Z`,'#b89979')+path('M-37 -49 L-37 0 M49 -49 L49 0');
- for(let j=0;j<2;j++)s+=(c.trousers?limb(p.hips[j],p.knees[j],p.ankles[j],19)+limb(p.hips[j],p.knees[j],p.ankles[j],13,c.trousers):limb(p.hips[j],p.knees[j],p.ankles[j]))+`<g transform="translate(${f(p.ankles[j].x)} ${f(p.ankles[j].y)})">${ellipse(j?8:-8,3,21,8,palette.ink,0)}</g>`+(c.trousers&&c.trousersLong?(()=>{const ax=p.ankles[j].x,ay=p.ankles[j].y;return path(`M${f(ax-10)} ${f(ay-44)} L${f(ax-13)} ${f(ay+6)} Q${f(ax-16)} ${f(ay+13)} ${f(ax-7)} ${f(ay+13)} L${f(ax+7)} ${f(ay+13)} Q${f(ax+16)} ${f(ay+13)} ${f(ax+13)} ${f(ay+6)} L${f(ax+10)} ${f(ay-44)}Z`,c.trousers,3.4)+path(`M${f(ax-6)} ${f(ay-10)} Q${f(ax)} ${f(ay-2)} ${f(ax+6)} ${f(ay-10)} M${f(ax-7)} ${f(ay-24)} Q${f(ax)} ${f(ay-17)} ${f(ax+7)} ${f(ay-24)}`,'none',2,'#00000055')+path(`M${f(ax-9)} ${f(ay-40)} L${f(ax-10)} ${f(ay+4)}`,'none',2,'#ffffff44');})():'');
+ let s='',sL='';
+ if(m==='sit'||m==='sitTalk')sL+=path(`M-47 -57 L59 -57 L59 -49 L-47 -49Z`,'#b89979')+path('M-37 -49 L-37 0 M49 -49 L49 0');
+ for(let j=0;j<2;j++)sL+=(c.trousers?limb(p.hips[j],p.knees[j],p.ankles[j],19)+limb(p.hips[j],p.knees[j],p.ankles[j],13,c.trousers):limb(p.hips[j],p.knees[j],p.ankles[j]))+`<g transform="translate(${f(p.ankles[j].x)} ${f(p.ankles[j].y)})">${ellipse(j?8:-8,3,21,8,palette.ink,0)}</g>`+(c.trousers&&c.trousersLong?(()=>{const ax=p.ankles[j].x,ay=p.ankles[j].y;return path(`M${f(ax-10)} ${f(ay-44)} L${f(ax-13)} ${f(ay+6)} Q${f(ax-16)} ${f(ay+13)} ${f(ax-7)} ${f(ay+13)} L${f(ax+7)} ${f(ay+13)} Q${f(ax+16)} ${f(ay+13)} ${f(ax+13)} ${f(ay+6)} L${f(ax+10)} ${f(ay-44)}Z`,c.trousers,3.4)+path(`M${f(ax-6)} ${f(ay-10)} Q${f(ax)} ${f(ay-2)} ${f(ax+6)} ${f(ay-10)} M${f(ax-7)} ${f(ay-24)} Q${f(ax)} ${f(ay-17)} ${f(ax+7)} ${f(ay-24)}`,'none',2,'#00000055')+path(`M${f(ax-9)} ${f(ay-40)} L${f(ax-10)} ${f(ay+4)}`,'none',2,'#ffffff44');})():'');
  for(let j=0;j<2;j++)s+=limb(p.shoulders[j],p.elbows[j],p.wrists[j],mom?12:3.5);
  if(mom)s+=path(`M-26 ${-228+p.dy} Q0 ${-244+p.dy} 26 ${-228+p.dy} L53 ${-29+p.dy*.2} Q0 ${-16+p.dy*.2} -53 ${-29+p.dy*.2}Z`,c.cloth)+path(`M-21 ${-158+p.dy} Q-27 -94 -30 -44 M24 ${-136+p.dy} L32 -43`,'none',2,'#adc4cc');
  else if(girl)s+=path(`M-23 ${-229+p.dy} Q0 ${-241+p.dy} 23 ${-229+p.dy} L46 ${-109+p.dy} Q0 ${-91+p.dy} -46 ${-109+p.dy}Z`,c.cloth);
@@ -157,7 +157,7 @@ export function characterMarkup(c:Actor&{trousers?:string;trousersLong?:boolean;
  }
  s+=`<g transform="translate(0 ${f(p.dy+(o.nodY??0))}) rotate(${f(p.angle)} 0 -239)">${h}</g>`;
  if(o.bones)for(let j=0;j<2;j++)for(const v of [p.shoulders[j],p.elbows[j],p.wrists[j],p.hips[j],p.knees[j],p.ankles[j]])s+=ellipse(v.x,v.y,4,4,'#ffffff',1.5);
- return `<g transform="scale(${(o.flip?-1:1)*c.height} ${c.height}) translate(${f(p.rootX)} 0)">${s}</g>`;
+ return `<g transform="scale(${(o.flip?-1:1)*c.height} ${c.height}) translate(${f(p.rootX)} 0)">${o.part==='legs'?sL:o.part==='upper'?s:sL+s}</g>`;
 }
 export function characterSvg(c:Actor,t=2,m:Motion='wave',o:Parameters<typeof characterMarkup>[3]={}){return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-220 -390 440 440" role="img" aria-label="${c.name}">${characterMarkup(c,t,m,o)}</svg>`;}
 export function lineupSvg(t=2,animated=true){

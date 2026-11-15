@@ -28,6 +28,7 @@ import { TRANSITIONS, TransitionScene } from "./TransitionsLab";
 import { Keycaps, Burst } from "./KhaamKit";
 import { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle, Footnote, ClaimWall, NoProof, BrokenIsnad, GradeLadder, YearsGap, Lifespans, Crossroads, AlertFrame, NeverMeet, RisingTimeline, MinuteTeaser, PipSource, PIP, pipK } from "./PickKit";
 import { VerseNoor, VerseBigWord, HalfScene, BlendPanel, halfK } from "./VerseKit";
+import { PillCaptions } from "./Captions";
 import { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, Battery, FillGlasses, LeftShade, BottomShade, PICK_NOSPLIT } from "./PickKit2";
 import { HadithQuote, HadithBooks, HadithIsnad } from "./HadithKit";
 
@@ -180,7 +181,9 @@ const PickScene: React.FC<{ o: Orient; children: React.ReactNode }> = ({ o, chil
   : <><PortRec /><div style={{ position: "absolute", left: 0, top: 860, width: 1920, height: 1080, transform: "scale(0.9)", transformOrigin: "0 0" }}>{children}</div><BottomShade at={0.1} until={2.95} /></>;
 /** RingStat / MythFact: NOT a split screen (user 2026-11-14, frames 13009 and 14105): he stays in the middle, the element sits in the left third of the elements area */
 const PickSceneStill: React.FC<{ o: Orient; children: React.ReactNode }> = ({ o, children }) => o === "land" ? <><Rec /><LeftShade at={0.1} until={2.95} />{children}</> : <PickScene o={o}>{children}</PickScene>;
+const CAP_SAMPLE: [string, number, number][] = (() => { const W = "إنّ الحقّ لا يُعرَف بالرجال، اعرف الحقّ تعرف أهله".split(" "); let t = 0.15; return W.map((w) => { const s = t; t += 0.18 + w.length * 0.035 + (/،$/.test(w) ? 0.25 : 0); return [w, +s.toFixed(2), +(t - 0.05).toFixed(2)] as [string, number, number]; }); })();
 const VERSE_SCENES: Record<string, (o: Orient) => React.ReactNode> = {
+  PillCaptions: (o) => <>{o === "land" ? <Rec /> : <PortRec />}{o === "port" ? <PillCaptions cap={{ words: CAP_SAMPLE }} /> : <div style={{ position: "absolute", left: 490, top: 760, width: 940, transform: "scale(.8)", transformOrigin: "50% 0" }}><PillCaptions cap={{ words: CAP_SAMPLE, x: 0, y: 0 }} /></div>}</>,
   QACard: (o) => <PickScene o={o}><QACard at={0.1} until={2.95} x={160} y={300} q="هل يجوز تأخير قضاء رمضان؟" a="الجواب المختصر هنا (مثال)" flipAt={1.4} /></PickScene>,
   ThoughtBubble: (o) => <PickScene o={o}><ThoughtBubble at={0.1} until={2.95} x={90} y={170} name="المخالف (مثال)" say="نحن نحترم الجميع" sayAt={0.5} think="إلا أهل السنة" thinkAt={1.5} /></PickScene>,
   WordCloud: (o) => <PickScene o={o}><WordCloud at={0.1} until={2.95} x={560} y={480} words={[["التسامح", 5], ["الحرية", 3], ["الآخر", 3], ["الحوار", 4], ["التنوير", 2], ["التعايش", 2], ["الإنسانية", 1], ["العقل", 2], ["التطور", 1]].map(([text, weight], i) => ({ text: text as string, weight: weight as number, at: 0.2 + i * 0.15 }))} title="أكثر الكلمات في خطابهم (مثال)" /></PickScene>,

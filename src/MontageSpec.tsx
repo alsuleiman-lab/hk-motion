@@ -23,6 +23,8 @@ import type { ThumbProps } from "./ThumbPro";
 import { TornNote, NewsClip, TornPhoto, WordScraps, DateCalendar } from "./PaperKit";
 import { BRAND, applyBrand } from "./brand";
 import { PIP, pipK } from "./PickKit";
+import { PillCaptions } from "./Captions";
+import type { CaptionsSpec } from "./Captions";
 import { PICK_ALL as PICK_KIT, PICK_ALL_FULL_FRAME as PICK_FULL_FRAME, LeftShade, BottomShade, PICK_XY, PICK_NOSPLIT } from "./PickKit2";
 import type { PickAllName as PickName } from "./PickKit2";
 import type { BrandName } from "./brand";
@@ -139,6 +141,8 @@ export type MontageSpec = {
   id: string; title: string; frames: number; fps?: number;
   cut?: string;                       // public/<cut>.mp4 — his video (also the audio)
   bar?: BarTheme;                     // title-bar / key-chip colours (default BAR_WARM)
+  /** the word-by-word caption of the portrait/reel (user 2026-11-15, style «الحبة المتحركة», src/Captions.tsx); filled by tools/captions_fill.mjs */
+  captions?: CaptionsSpec;
   showTitleBar?: boolean;             // whether to render TitleBar (in lessons and streams: NO title bar, user 2026-11-05)
   cams?: { from: number; to: number; cx: number }[];
   zooms?: { from: number; to: number; amt?: number }[];
@@ -736,6 +740,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => 
       <Gfx>
         {spec.items.map((it, i) => renderItem(it, i, o, bar))}
         {spec.showTitleBar ? <TitleBar title={spec.title} theme={bar} bottomHalf={o === "port"} /> : null}
+        {o === "port" && spec.captions?.words?.length ? <PillCaptions cap={spec.captions} hideAlso={spec.items.filter((x) => x.t === "verse" || x.t === "hadith").map((x) => { const v = x as { times: number[]; until?: number }; return { from: v.times[0] - 0.3, to: v.until ?? v.times[v.times.length - 1] + 1.2 }; })} /> : null}   {/* full-screen verses/hadiths stand alone */}
       </Gfx>
       {/* the ONLY transition of the user-ordered layers is the gallery Curtain (user 2026-11-09: no opacity transitions, nothing outside the gallery): where a clip hands over to the next clip of its group, and where a background clip / isolation ends */}
       {o === "land" ? [...new Set([...hclips.flatMap((x) => hclips.filter((y) => y !== x && y.from - x.to > -0.01 && y.from - x.to < 1).map((y) => (x.to + y.from) / 2)), /* no curtain when a background clip ends or an isolation window (moved or not) starts/ends: the isolation just goes away (user 2026-11-11) */].map((v) => +v.toFixed(2)))].map((t) => <Curtain key={"gc" + t} at={t} />) : null}

@@ -77,5 +77,10 @@ for (const [i, it] of items.entries()) {
 const METAPHORS = ["RootsTree", "Battery", "FillGlasses", "Iceberg", "ViciousCycle", "Crossroads", "ClaimWall", "NeverMeet", "MindMap", "DecisionFlow", "StickyNotes", "WordCloud"];
 const mins = (spec.frames ?? 0) / (spec.fps ?? 30) / 60, needM = Math.max(1, Math.ceil(mins / 2)), gotM = items.filter((it) => it.t === "pick" && METAPHORS.includes(it.el)).length;
 if (mins > 0.5) { if (gotM >= needM) console.log(`✔ المعاني المجسّدة: ${gotM} (المطلوب ${needM})`); else if (spec.skipMetaphors) console.log(`– المعاني المجسّدة: ${gotM} من ${needM}، معفى: ${spec.skipMetaphors}`); else { fails++; console.log(`✘ المعاني المجسّدة: ${gotM} من ${needM} — عبّر عن معاني كلامه برسوم مجسّدة (جذور، بطارية، كأس، جبل جليدي، دائرة، مفترق…)`); } }
+
+// portrait captions (user 2026-11-15): a reel always has the word-by-word caption; a full spec needs it when its portrait version is made
+if (spec.kind === "reel" && !spec.captions?.words?.length) { fails++; console.log("✘ الكابشن: الريلز بلا كابشن — شغّل tools/captions_fill.mjs على المواصفة بعد تصحيح التفريغ"); }
+else if (spec.captions?.words?.length) console.log(`✔ الكابشن: ${spec.captions.words.length} كلمة`);
+else console.log("– الكابشن: غير موجود (يلزم إن صُنعت نسخة طولية من هذا الفيديو)");
 console.log(fails ? `pick_triggers FAILED: ${fails} عنصراً مستحقاً لم يُستعمل` : "pick_triggers PASSED");
 process.exit(fails ? 1 : 0);

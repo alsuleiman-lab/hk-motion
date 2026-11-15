@@ -112,7 +112,7 @@ const doFrame = async (st, f) => {
   let tries = 0;
   const kick = () => {   /* a paint normally arrives within one frame interval; nudge the compositor if it does not */
     if (st.waiter?.f !== f) return;
-    if (++tries > 40) { rejectWait(new Error(`no painted frame with marker ${f} (window ${st.k})`)); return; }
+    if (++tries > 240) { rejectWait(new Error(`no painted frame with marker ${f} (window ${st.k})`)); return; }
     st.win.webContents.invalidate();
     st.kickTimer = setTimeout(kick, 250);
   };

@@ -37,6 +37,9 @@ for (let round = 0; round < 6; round++) {
   sh(`node tools/writing_sync.mjs ${f} --fix`);   // writing never before its words (moves or drops the item; the gap step below refills)
   let ch = 0; const s = read(), dur = s.frames / 30;
   const n0 = s.items.length;
+  // 1b) a verse is placed right from the start (user 2026-11-15: «الآية توضع موضعاً صحيحاً، لا تُرفض بعد أن تُعمل خطأ»): it stays at least a second after its last word, and the writing that follows waits for it
+  for (const v of s.items) if (v.t === "verse" && v.times?.length) { const want = +(v.times[v.times.length - 1] + 1.7).toFixed(2); if ((v.until ?? 0) < want) { v.until = want; ch++; } }
+  for (const v of s.items) if (v.t === "verse" && v.until != null) for (const j of s.items) { if (j === v || ["cover", "nameTag", "subscribe", "bgclip", "credit", "blur", "verse"].includes(j.t)) continue; const a0 = j.at ?? j.from; if (a0 != null && a0 > v.times[0] + 0.3 && a0 < v.until + 0.2) { if (j.at != null) j.at = +(v.until + 0.2).toFixed(2); else j.from = +(v.until + 0.2).toFixed(2); ch++; } }
   // 1+2) scraps not in the speech, degenerate items
   s.items = s.items.filter((it) => { if (it.t === "cover") return true; const sp = span(it); if (sp && it.until != null && sp[1] <= sp[0] + 0.05 && it.t !== "pic") return false; if (it.t !== "scraps") return true; const tm = align(it.text, it.at, it.until, words); return tm.filter((x) => x == null).length <= it.text.split(" ").length / 2; });
   if (s.items.length !== n0) ch++;

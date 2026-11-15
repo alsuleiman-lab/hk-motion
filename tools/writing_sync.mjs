@@ -41,11 +41,6 @@ for (const [i, it] of spec.items.entries()) {
   if (it.t === "torn" || it.t === "scraps") { const r = check(`${it.t}#${i}`, it.text, it.at, it.until, (v) => { it.at = v; }, it.only); if (r === "drop") drop.add(i); }
   else if (it.t === "rewrite") check(`rewrite#${i}`, it.oldText, it.oldAt - 0.4, it.until, (v) => { it.oldAt = Math.max(it.oldAt, +(v + 0.4).toFixed(2)); }, it.only);
   else if (it.t === "rows") for (const [n, r] of it.rows.entries()) check(`rows#${i}.${n}`, r.label, r.at, it.to, (v) => { r.at = v; }, it.only);
-  else if (it.t === "verse" && it.times?.length && it.until != null) {
-    /* user 2026-11-14 («دائماً عند عرض القرآن أو الحديث تتركه على الأقل ثانية بعد أن تتم الكتابة»): a verse card stays at least a second after its last word */
-    const last = it.times[it.times.length - 1];
-    if (it.until - last < 1.2) { bad++; console.log(`  ✘ verse#${i} ${mm(it.times[0])} — تزول بعد ${(it.until - last).toFixed(1)}ث فقط من آخر كلمة (المطلوب ثانية على الأقل بعد تمام الكتابة)`); }
-  }
   else if (it.t === "note") {
     check(`note#${i}`, it.title, it.at, it.until, (v) => { it.at = v; }, it.only);
     /* أمر المستخدم 2026-11-13: بطاقة الحديث تبقى ثانية على الأقل بعد انتهاء كتابتها (بدء الكتابة at+0.25، كل حرف بما فيه «» يُحسب) */

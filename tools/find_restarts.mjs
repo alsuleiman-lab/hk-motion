@@ -9,7 +9,7 @@ const [file, ...rest] = process.argv.slice(2);
 const W = parseFloat(rest[rest.indexOf("--window") + 1] ?? "20");
 const w = JSON.parse(fs.readFileSync(file, "utf8"));
 const t = w.map((x) => x.w.replace(/[^\u0600-\u06FF]/g, ""));
-const CUES = /(عفو|اعيد|أعيد|اعد|أعد|عذر|معذر|آسف|اسف|لحظة|غلط|خطأ)/;
+const CUES = /(عفو|أفو|افو|اعيد|أعيد|اعد|أعد|عذر|معذر|آسف|اسف|لحظة|غلط|خطأ)/;
 const cues = w.filter((x, i) => CUES.test(t[i])).map((x) => `${x.w}@${x.s}`);
 console.log("cue words:", cues.join(" ") || "none (Whisper usually drops them)");
 const seen = new Set();

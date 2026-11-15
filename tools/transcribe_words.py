@@ -29,5 +29,5 @@ segs, _ = m.transcribe(audio, language="ar", vad_filter=False, beam_size=8, word
                        hotwords=CUES, initial_prompt="تسجيل بصوت المتحدث، قد يقول: أعيد، أو عفواً، ثم يعيد الجملة. " )
 words = [{"s": round(w.start+st, 2), "e": round(w.end+st, 2), "w": w.word.strip(), "p": round(w.probability, 2)} for sg in segs for w in sg.words]
 json.dump(words, open(out, "w", encoding="utf-8"), ensure_ascii=False)
-cue = re.compile(r"(عفو|أعيد|اعيد|أعد|اعد|لحظ|آسف|اسف|غلط|مرة)")
+cue = re.compile(r"(عفو|أفو|افو|أعيد|اعيد|أعد|اعد|لحظ|آسف|اسف|غلط|مرة)")
 print(len(words), "words; cue hits:", [f'{x["w"]}@{x["s"]}' for x in words if cue.search(x["w"])])

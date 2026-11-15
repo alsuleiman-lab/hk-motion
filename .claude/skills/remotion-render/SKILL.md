@@ -73,7 +73,7 @@ version: 4.0.535
    - `chromeVideo` يجب أن يكون **فارغاً**. إن لم يكن، ففيه أسماء الفيديوهات التي فكّها Chromium بالمعالج (ببطء)، والمكوّن الذي يعرضها يجب نقله إلى `VSlot` (انظر «حين تعمل مونتاج»). أخبر المستخدم بها صراحة.
    - إذا ظهر في السجل `WARNING: the compositing functions … differ from tools/hybrid_generic.py` فالهجين تغيّر: انقل التغيير إلى `gpu_compositor.py` قبل الوثوق بالشكل.
    - المقاييس: `fpsGraphicsPlusComposite`، و`cpuDuringRender`، و`graphics.stale`.
-6. **فحص الارتجاف** بأوامر `render_job.sh` نفسها:
+6. **فحص الارتجاف** (أمر 2026-11-15: يُقاس في لحظات حرة لا يُزاح فيها وجهه، `tools/free_windows.mjs`، بالحدّ نفسه 96%؛ فإن لم توجد رجع إلى النوافذ الآتية) بأوامر `render_job.sh` نفسها:
    - 10 نوافذ ← 14 نافذة ← `--at <نافذة حرة> --len 90`؛
    - على الملف قبل الفاصل (`.tmp/bumper_orig/<الاسم>.mp4`)؛
    - و`ffprobe`: الإطارات والمدة والصوت، والمعدل ≥ 14 Mbps.

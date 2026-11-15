@@ -26,12 +26,21 @@ for o in ${GR_ONLY:-L R}; do
   node -e "const j=require('./$rep');console.log('   ',JSON.stringify({frames:j.frames,totalMin:j.totalMinutes,fps:j.fpsGraphicsPlusComposite,fpsE2E:j.fpsEndToEnd,cpu:j.cpuDuringRender&&j.cpuDuringRender.mean,sizeMB:j.sizeMB,video:j.probe[0],audio:j.probe[1]&&j.probe[1].duration}))"
   chk=.tmp/bumper_orig/$comp.mp4; [ -f "$chk" ] || chk="$out/$comp.mp4"
   if [ $o = R ]; then sx=$((cx - 163)); crop="--crop 250,300,580,700 --src-crop $sx,169,326,394"; else crop="--crop 700,150,520,520"; fi
-  g1=$(node tools/judder_check.mjs "$chk" --src "$cutsrc" --offset 0 --name $p ${avoid:+--avoid "$avoid"} $crop --windows 10 2>&1 | grep -a "judder:")
-  echo "   judder 10 windows: $g1"
+  # judder is measured where his face is NOT moved aside by a half-screen element (tools/free_windows.mjs, user 2026-11-15); every window must pass at the same 96 % threshold.
+  # No free window (a video of half-screen elements from start to end) → the old evenly spaced windows.
+  fw=$(node tools/free_windows.mjs $p 2>/dev/null)
+  if [ -n "$fw" ]; then
+    ok=1
+    for at in $fw; do r=$(node tools/judder_check.mjs "$chk" --src "$cutsrc" --offset 0 --name $p --at $at --len 90 $crop 2>&1 | grep -a "judder:"); echo "   judder @${at}s: $r"; echo "$r" | grep -q PASSED || ok=0; done
+    if [ $ok = 1 ]; then g1="judder: all free windows PASSED"; else g1="judder: FAILED in a free window"; fi
+  else
+    g1=$(node tools/judder_check.mjs "$chk" --src "$cutsrc" --offset 0 --name $p ${avoid:+--avoid "$avoid"} $crop --windows 10 2>&1 | grep -a "judder:")
+  fi
+  echo "   judder result: $g1"
   if ! echo "$g1" | grep -q PASSED; then
     echo "   judder 14 windows: $(node tools/judder_check.mjs "$chk" --src "$cutsrc" --offset 0 --name $p ${avoid:+--avoid "$avoid"} $crop --windows 14 2>&1 | grep -a 'judder:')"
     echo "   judder free span:  $(node tools/judder_check.mjs "$chk" --src "$cutsrc" --offset 0 --name $p --at $freeat --len 90 $crop 2>&1 | grep -a 'judder:')"
   fi
-  rm -f "$chk.tmp" 2>/dev/null; [ "$chk" != "$out/$comp.mp4" ] && rm -f "$chk"   # the pre-bumper copy (ours) is no longer needed
+  rm -f "$chk.tmp" 2>/dev/null; [ "$chk" != "$out/$comp.mp4" ] && cp -f "$chk" "$out/${comp}_prebumper.mp4" && rm -f "$chk"   # kept in the output folder: the final review maps the final file to this pre-bumper original (the gate is per project); cleaned at approval
 done
 echo "ALL DONE $(date +%T)"

@@ -108,6 +108,12 @@ version: 4.0.535
 > **Where the time goes (measured 2026-11-12, SaintRambal-L, 25 127 frames, i9-10900K 10 cores/20 threads):** the graphics layer is CPU-bound — 3×3 tabs drive the CPU to 70–99 % and stop at ~17–20 fps whatever the browser count, GL backend (angle/swangle/vulkan) or process count (3 separate processes = 22 fps together); chrome-for-testing is slower (5–6 fps); PNG vs JPEG is the same; Remotion already uses `optimizeForSpeed` screenshots. Per frame: React/seek ≈ 20 ms, screenshot pipeline ≈ 90 ms. Each block start costs ≈ 5 s (incl. a 2 s `gallery gx measure` wait in `GxLayer` when an item is not drawn at the block's first frame). Isolation spans: 6.4 fps (Chrome draws the cut-out canvas every frame).
 > **Repeated frames:** 92–97 % of calm-span graphics frames repeat, but the user REJECTED frame skip/reuse (2026-11-12) — do not propose or build it.
 
+## أخطاء 2026-11-15 («إدلب»، تُتَّبع في كل رندر)
+- **قبل الرندر الكامل:** رندر إطار من داخل أول تقسيم شاشة وإطار من منتصف الفيديو (`--start N --end N+3 --no-bumper`) وأنظر إليهما؛ الإطار الأسود يعني خلفية معتمة في غلاف الجذر (`backgroundColor` يجب أن يكون `undefined` في أوضاع `top` و`below` و`under`)، وهو يسوّد الفيديو كله أو مقاطع التقسيم وحدها (طبقات `below`) رغم أن مواضع الفيديو في السجل سليمة.
+- **بعد الرندر:** أمسح الناتج كله بحثاً عن مقاطع سوداء، وأعاين إطارات من كل نوع مشهد، ثم أقول «رُندر».
+- **رندر واحد فعلاً:** قفل الرندر لا يكفي؛ أتأكد أنه لا `gpu_render.mjs` آخر يعمل (ذاكرة الكرت 24 GB تمتلئ فيظهر `Decode Error occurred for picture` و«no painted frame with marker» وينهار الرندر)؛ `render_project.sh` ينتظر خلو الكرت مرتين متتاليتين قبل كل اتجاه، ومهلة انتظار الرسم في `electron_worker.cjs` صارت دقيقة.
+- **الأوامر الطويلة:** `run_in_background` على الأمر نفسه؛ `nohup … &` داخل أداة الأوامر يموت بإنهاء الصدفة فيبدو الرندر «اكتمل» وهو لم يبدأ.
+
 ## General rendering strategy
 
 Render a video using:

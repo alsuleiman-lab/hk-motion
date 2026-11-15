@@ -42,6 +42,8 @@ const track = read(trackF, { fps: 2, boxes: [] });
 const medCx = (a, b) => { const xs = track.boxes.filter((x) => x[1] != null && x[0] >= a && x[0] < b).map((x) => x[1] + x[3] / 2).sort((u, v) => u - v); return xs.length ? Math.round(xs[xs.length >> 1]) : 990; };
 const edges = [0, ...splits.flatMap((s) => [s.from, s.to]), dur].sort((a, b) => a - b).filter((v, i, a) => i === 0 || v - a[i - 1] > 0.05);
 const cams = edges.slice(0, -1).map((a, i) => ({ from: r2(a), to: i === edges.length - 2 ? 9999 : r2(edges[i + 1]), cx: medCx(a, edges[i + 1]) }));
+/* (user 2026-11-15, frame 28) inside a baked split window the portrait camera centres on HIS slice, never on the face the tracker finds first (the clip's) */
+for (const c of cams) { const sp = splits.find((x) => c.from >= x.from - 0.01 && Math.min(c.to, dur) <= x.to + 0.01); if (sp) c.cx = Math.round(sp.sheikh.x + sp.sheikh.w * 0.5); }
 
 const items = [];
 for (let t = 15; t < dur - 10; t += 180) items.push({ t: "nameTag", at: pauseAfter(t), x: 540, y: 1360, dur: 2.4 });

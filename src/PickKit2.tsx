@@ -83,18 +83,18 @@ export const CopiedMessages: React.FC<Base & { text: string; tag?: string; count
 };
 
 /** 30 · الجبل الجليدي (user note: words in front of the ice): the small tip above the water with its word(s), then the water clears and the huge hidden part shows its words */
-export const Iceberg: React.FC<Base & { top: string[]; hidden: string[]; revealAt: number; topLabel?: string; hiddenLabel?: string }> = ({ at, until, x, y, top, hidden, revealAt, topLabel = "ما يظهر", hiddenLabel = "ما يخفونه" }) => {
+export const Iceberg: React.FC<Base & { top: string[]; hidden: string[]; revealAt: number; topLabel?: string; hiddenLabel?: string; s?: number }> = ({ at, until, x, y, top, hidden, revealAt, topLabel = "ما يظهر", hiddenLabel = "ما يخفونه", s = 1 }) => {
   const { t, k } = useK(); const u = ease(clamp((t - revealAt) / 1)), kk = k(at, 0.4, until);
   return (
-    <div style={abs({ left: x, top: y, width: 900, height: 840, visibility: kk > 0 ? "visible" : "hidden" })}>
+    <div style={{ ...abs({ left: x, top: y, width: 900, height: 840, visibility: kk > 0 ? "visible" : "hidden" }), transform: s !== 1 ? `scale(${s})` : undefined, transformOrigin: "0 0" }}>
       <svg width={900} height={840} style={{ position: "absolute", inset: 0 }}>
         <path d="M450 20 L540 150 L600 170 L660 240 L340 240 L370 150Z" fill="#eef6fb" />
-        <path d="M340 240 L660 240 L800 380 L850 600 L740 800 L450 840 L160 770 L80 570 L170 380Z" fill="#a9cde2" opacity={0.25 + 0.6 * u} />
+        <path d="M340 240 L660 240 L800 380 L850 600 L740 800 L450 840 L160 770 L80 570 L170 380Z" fill="#41687f" opacity={0.3 + 0.5 * u} />
       </svg>
-      <div style={abs({ left: 0, top: 240, width: 900, height: 600, background: `linear-gradient(rgba(30,90,140,${0.75 - 0.5 * u}), rgba(10,40,70,${0.97 - 0.7 * u}))`, borderTop: "4px solid #bfe3f5" })} />
-      <div style={abs({ left: 300, top: 90, width: 300, textAlign: "center", fontFamily: kufiF, fontSize: 38, color: BRAND.ink, lineHeight: 1.3, ...pop(k(at + 0.5, 0.35, until), 0.4) })}>{top.join("، ")}</div>
-      <div style={abs({ left: 690, top: 40, fontFamily: kufiF, fontSize: 32, color: BRAND.light, whiteSpace: "nowrap", ...wipe(ease(k(at + 0.7, 0.4, until))) })}>← {topLabel}</div>
-      {hidden.map((w, i) => <div key={i} style={abs({ left: 450 - 170 + (i % 2 ? 120 : -120), top: 330 + i * 90, width: 340, textAlign: "center", fontFamily: kufiF, fontSize: 40, color: BRAND.navyDeep, ...pop(k(revealAt + 0.5 + i * 0.25, 0.3, until), 0.3) })}>{w}</div>)}
+      <div style={abs({ left: 0, top: 240, width: 900, height: 600, background: "linear-gradient(rgba(0,0,0,.30), rgba(0,0,0,.52))", borderTop: "3px solid #bfe3f5" })} />
+      <div style={abs({ left: 580, top: 78, width: 300, textAlign: "center", fontFamily: kufiF, fontSize: 38, color: "#fff", lineHeight: 1.3, background: "rgba(0,0,0,.6)", borderRadius: 18, padding: "10px 14px", boxSizing: "border-box", textShadow: "0 2px 6px rgba(0,0,0,.8)", ...pop(k(at + 0.5, 0.35, until), 0.4) })}>{top.join("، ")}</div>
+      <div style={abs({ left: 580, top: 24, fontFamily: kufiF, fontSize: 32, color: "#fff", textShadow: "0 2px 6px rgba(0,0,0,.8)", whiteSpace: "nowrap", ...wipe(ease(k(at + 0.7, 0.4, until))) })}>← {topLabel}</div>
+      {hidden.map((w, i) => <div key={i} style={abs({ left: 450 - 170 + (i % 2 ? 120 : -120), top: 330 + i * 90, width: 340, textAlign: "center", fontFamily: kufiF, fontSize: 40, color: "#fff", textShadow: "0 2px 7px rgba(0,0,0,.85)", ...pop(k(revealAt + 0.5 + i * 0.25, 0.3, until), 0.3) })}>{w}</div>)}
       <div style={abs({ left: 0, top: 780, fontFamily: kufiF, fontSize: 38, color: BRAND.card, whiteSpace: "nowrap", ...wipe(ease(k(revealAt + 0.3, 0.4, until))) })}>{hiddenLabel} ←</div>
     </div>
   );
@@ -148,11 +148,11 @@ export const RootsTree: React.FC<Base & { roots: { text: string; at: number }[];
 };
 
 /** 34 · البطارية (metaphor) — a big battery whose charge changes step by step (0–5 cells), each step with its label: faith rises with obedience and falls with sins */
-export const Battery: React.FC<Base & { title?: string; steps: { level: number; at: number; label: string }[] }> = ({ at, until, x, y, title, steps }) => {
+export const Battery: React.FC<Base & { title?: string; s?: number; steps: { level: number; at: number; label: string }[] }> = ({ at, until, x, y, title, steps, s = 1 }) => {
   const { t, k } = useK(); const cur = steps.reduce((c, s) => (t >= s.at ? s : c), steps[0]); const lv = t >= steps[0].at ? cur.level : 5;
   const col = lv <= 1 ? BRAND.mark : lv <= 2 ? BRAND.accent : BRAND.green;
   return (
-    <div style={abs({ left: x, top: y, width: 900 })}>
+    <div style={{ ...abs({ left: x, top: y, width: 900 }), transform: s !== 1 ? `scale(${s})` : undefined, transformOrigin: "0 0" }}>
       {title ? <div style={abs({ left: 0, width: 900, top: 0, textAlign: "center", fontFamily: kufiF, fontSize: 46, color: BRAND.light, ...wipe(ease(k(at, 0.4, until))) })}>{title}</div> : null}
       <div style={abs({ left: 150, top: 100, width: 560, height: 260, border: `14px solid ${BRAND.card}`, borderRadius: 30, ...pop(k(at, 0.4, until), 0.7) })}>
         {[0, 1, 2, 3, 4].map((i) => <div key={i} style={abs({ left: 20 + i * 104, top: 20, width: 92, height: 192, borderRadius: 10, background: i < lv ? col : "rgba(255,255,255,.08)" })} />)}
@@ -195,7 +195,7 @@ export const PICK_KIT2 = { QACard, ThoughtBubble, WordCloud, CopiedMessages, Ice
 /** the gallery's own x,y of every picked element (src/ElementsLab.tsx): used when a spec item gives none, so a spec never invents a place (user 2026-11-14: «لابد أن تنتبه إلى أماكن العناصر»). StickyNotes carry their own per-note x,y. */
 export const PICK_XY: Record<string, [number, number]> = { MinuteTeaser: [150, 150], Battery: [110, 250], NoProof: [100, 200], FlapBoard: [80, 260], BigQuestion: [90, 150], NeverMeet: [110, 260], ThoughtBubble: [90, 170], RootsTree: [110, 120], Iceberg: [110, 130], Crossroads: [110, 150], MythFact: [90, 300], InkQuote: [90, 380], ChatThread: [110, 250], MindMap: [560, 560], RingStat: [560, 470], QACard: [160, 300], ViciousCycle: [560, 520], FillGlasses: [110, 220], DecisionFlow: [80, 150], Footnote: [90, 230], ClaimWall: [110, 300], CopiedMessages: [110, 150], WordCloud: [560, 480], CommentsFlood: [110, 150] };
 /** NOT a split screen (user 2026-11-14, frames 8341/10458/11903/13009/14105): he stays centred, the element sits small in the left third over a dark gradient (LeftShade); these are its LANDSCAPE props. The engine and the gallery both read this table. */
-export const PICK_NOSPLIT: Record<string, Record<string, number>> = { RingStat: { x: 330, y: 470 }, MythFact: { x: 40, y: 300, w: 760, size: 40 }, ChatThread: { x: 40, y: 250, w: 580 }, FlapBoard: { x: 40, y: 260, w: 600, size: 44 } };
+export const PICK_NOSPLIT: Record<string, Record<string, number>> = { RingStat: { x: 330, y: 470 }, MythFact: { x: 40, y: 300, w: 760, size: 40 }, ChatThread: { x: 40, y: 250, w: 580 }, FlapBoard: { x: 40, y: 260, w: 600, size: 44 }, Battery: { x: 108, y: 737, s: 0.7 } };   /* the user's red box, lower left (2026-11-15) */
 export const PICK_ALL = { ...PICK_KIT, ...PICK_KIT2 } as const;
 export type PickAllName = keyof typeof PICK_ALL;
 export const PICK_ALL_FULL_FRAME = new Set<string>([...PICK_FULL_FRAME, "BrushWipe"]);

@@ -148,19 +148,22 @@ export const StatRow: React.FC<{ at: number; x: number; y: number; w: number; h?
   const t = useT(at);
   const u = clamp(t / 0.33);
   const tc = useT(countAt ?? at + 0.1); // the unit waits for its number, like Count
+  /* the text shrinks to fit its card (user 2026-11-13, portrait two-column rows): 40px when it fits, else the largest size whose wrapped lines stay inside the card; the icon shrinks in a narrow card */
+  const icoBox = w < 600 ? 64 : 96, avail = w - 56 - (noIcon ? 0 : (photo ? 110 : icoBox) + 22) - (flag ? 118 : 0) - (to !== undefined ? 220 : 0);
+  let fs = 40; while (fs > 20 && (Math.ceil((label.length * 1.08) / Math.max(4, avail / (fs * 0.6))) * fs * 1.25 + (sub ? 4 + Math.ceil((sub.length * 1.08) / Math.max(4, avail / (fs * 0.38))) * fs * 0.8 : 0)) > h - 22) fs -= 2;
   return (
     <div style={{ position: "absolute", left: x + (1 - u) * 120, top: y, width: w, height: h, opacity: u, transform: `rotate(${rot + (1 - u) * 3}deg) scale(${0.94 + 0.06 * s})`, background: T.card, borderRadius: 14, boxShadow: "0 18px 34px rgba(0,0,0,.26), 0 2px 0 rgba(0,0,0,.08)", direction: "rtl", display: "flex", alignItems: "center", gap: 22, padding: "0 28px" }}>
       <ClipPin left={w - 110} />
       {noIcon ? null : photo ? (
         <Pic src={photo} style={{ width: 110, height: 110, borderRadius: 24, objectFit: "cover", objectPosition: "50% 15%", flexShrink: 0, border: `4px solid ${T.accent}` }} />
       ) : (
-        <div style={{ width: 96, height: 96, borderRadius: 22, background: T.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <DrawIcon name={icon} p={clamp(t / 0.7)} size={60} color={T.onAccent} sw={1.8} />
+        <div style={{ width: icoBox, height: icoBox, borderRadius: 22, background: T.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <DrawIcon name={icon} p={clamp(t / 0.7)} size={Math.round(icoBox * 0.62)} color={T.onAccent} sw={1.8} />
         </div>
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: TITLE, fontWeight: 800, fontSize: 40, color: T.ink, lineHeight: 1.25 }}>{label}</div>
-        {sub ? <div style={{ fontFamily: TEXT, fontWeight: 700, fontSize: 27, color: T.gray, marginTop: 4, lineHeight: 1.3, visibility: subAt !== undefined && t < subAt - at ? "hidden" : "visible" }}>{sub}</div> : null}
+        <div style={{ fontFamily: TITLE, fontWeight: 800, fontSize: fs, color: T.ink, lineHeight: 1.25 }}>{label}</div>
+        {sub ? <div style={{ fontFamily: TEXT, fontWeight: 700, fontSize: Math.round(fs * 0.675), color: T.gray, marginTop: 4, lineHeight: 1.3, visibility: subAt !== undefined && t < subAt - at ? "hidden" : "visible" }}>{sub}</div> : null}
       </div>
       {to !== undefined ? (
         <div style={{ textAlign: "center", flexShrink: 0 }}>

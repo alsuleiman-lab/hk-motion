@@ -36,10 +36,10 @@ const src = path.join("public", spec.cut);
 const ff = (args) => { const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", ...args], { encoding: "utf8" }); if (r.status !== 0) { console.error(r.stderr); process.exit(1); } };
 /* the next number is above every version ever used (a deleted b1 must not be reused: Studio caches by name) */
 let n = 1 + Math.max(0, ...fs.readdirSync("public").map((f) => Number(f.match(new RegExp(`^${p}_cut_s_b(\d+)`))?.[1] ?? 0)), Number(fs.existsSync(path.join(T, "cut_block_n.txt")) ? fs.readFileSync(path.join(T, "cut_block_n.txt"), "utf8") : 0)); fs.writeFileSync(path.join(T, "cut_block_n.txt"), String(n));
-const outName = `${p}_cut_s_b${n}.mp4`, out = path.join("public", outName);
+const outName = process.env.CUT_BLOCK_OUT || `${p}_cut_s_b${n}.mp4`, out = path.join("public", outName);
 console.log(`cut_block: ${SA != null ? "استبدال" : "حذف"} ${A.toFixed(3)}–${B.toFixed(3)}ث (الإطار ${fA}–${fB})${SA != null ? ` بالأصل ${SA.toFixed(2)}–${SB.toFixed(2)}ث` : ""}، إزاحة ما بعده ${D.toFixed(3)}ث → ${outName}`);
 const ORIG = path.join("public", JSON.parse(fs.readFileSync(path.join(T, "prep_config.json"), "utf8")).source.replace(/^public[\/]/, ""));
-ff(["-hwaccel", "cuda", "-i", src, ...(SA != null ? ["-ss", String(SA), "-t", String(L + 0.2), "-i", ORIG] : []), "-filter_complex",
+if (!process.env.CUT_BLOCK_JSON_ONLY) ff(["-hwaccel", "cuda", "-i", src, ...(SA != null ? ["-ss", String(SA), "-t", String(L + 0.2), "-i", ORIG] : []), "-filter_complex",
   `[0:v]trim=end_frame=${fA},setpts=PTS-STARTPTS[v0];[0:v]trim=start_frame=${fB},setpts=PTS-STARTPTS[v1];` +
   `[0:a]atrim=end=${A},asetpts=PTS-STARTPTS,afade=t=out:st=${Math.max(0, A - 0.012)}:d=0.012[a0];[0:a]atrim=start=${B},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.012[a1];` +
   (SA != null
@@ -47,9 +47,9 @@ ff(["-hwaccel", "cuda", "-i", src, ...(SA != null ? ["-ss", String(SA), "-t", St
     : `[v0][v1]concat=n=2:v=1:a=0[v];[a0][a1]concat=n=2:v=0:a=1[a]`),
   "-map", "[v]", "-map", "[a]", "-c:v", "h264_nvenc", "-preset", "p5", "-rc", "vbr", "-cq", "16", "-b:v", "0", "-c:a", "aac", "-b:a", "256k", out]);
 // older versions (each ~1.7 GB; they filled the disk on 2026-11-11): keep only the new one and the one before it (Studio may still hold that)
-for (let k = 1; k < n - 1; k++) { for (const f of fs.readdirSync("public").filter((x) => x.startsWith(`${p}_cut_s_b${k}.`) || x.startsWith(`${p}_cut_s_b${k}_prev_`))) { try { fs.rmSync(path.join("public", f)); } catch { /* still open in Studio: next time */ } } }
-ff(["-i", out, "-vn", "-ac", "1", "-ar", "48000", path.join(T, "cut.wav")]);
-ff(["-i", path.join(T, "cut.wav"), "-ar", "16000", "-ac", "1", path.join(T, "cut16k.wav")]);
+if (!process.env.CUT_BLOCK_JSON_ONLY) for (let k = 1; k < n - 1; k++) { for (const f of fs.readdirSync("public").filter((x) => x.startsWith(`${p}_cut_s_b${k}.`) || x.startsWith(`${p}_cut_s_b${k}_prev_`))) { try { fs.rmSync(path.join("public", f)); } catch { /* still open in Studio: next time */ } } }
+if (!process.env.CUT_BLOCK_JSON_ONLY) ff(["-i", out, "-vn", "-ac", "1", "-ar", "48000", path.join(T, "cut.wav")]);   /* CUT_BLOCK_JSON_ONLY=1: several spans in ONE encode (tools/cut_blocks.mjs): only the data is updated here */
+if (!process.env.CUT_BLOCK_JSON_ONLY) ff(["-i", path.join(T, "cut.wav"), "-ar", "16000", "-ac", "1", path.join(T, "cut16k.wav")]);
 
 // timeline transform: before A unchanged, after B −D, inside → gone (an item straddling the cut is clipped to the side it starts on)
 const mv = (t) => (t == null ? t : t <= A ? t : t >= B ? +(t - D).toFixed(3) : A);

@@ -1,5 +1,5 @@
 {
-  "characters": 6,
+  "characters": 7,
   "motions": 10,
   "poses": 7210,
   "maxBoneError": 4.263256414560601e-14,
@@ -49,6 +49,18 @@
     {
       "fill": "veil",
       "ratio": 5.795904726738685
+    },
+    {
+      "fill": "sage",
+      "ratio": 9.808787419298888
+    },
+    {
+      "fill": "cap",
+      "ratio": 4.398646139602775
+    },
+    {
+      "fill": "chain",
+      "ratio": 9.924420033323175
     }
   ]
 }

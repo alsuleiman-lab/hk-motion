@@ -158,7 +158,8 @@ if (stage === "cut") {
     segments = rest;
     say(`move ${mv.a}–${mv.b} → before source ${mv.t} (${moved.length} segment(s))`);
   }
-  const renumber = () => { let n = 0; for (const g of segments) { g.n = +n.toFixed(3); n += g.b - g.a; } return n; };
+  const renumber = () => { for (let i = segments.length - 1; i > 0; i--) if (Math.abs(segments[i].a - segments[i - 1].b) < 0.01) { segments[i - 1].b = segments[i].b; segments.splice(i, 1); }   /* contiguous pieces are one segment: no phantom join for the gate */
+    let n = 0; for (const g of segments) { g.n = +n.toFixed(3); n += g.b - g.a; } return n; };
   const writeMap = () => { const n = renumber(); fs.writeFileSync(mapF, JSON.stringify({ segments, duration: +n.toFixed(3) }, null, 1)); return n; };
   writeMap();
   // pauses > 0.40 s: trim them at the nearest join (65% from the end of the left segment, 35% from the start of the right one), then re-check

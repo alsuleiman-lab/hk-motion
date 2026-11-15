@@ -23,6 +23,7 @@ import type { ThumbProps } from "./ThumbPro";
 import { TornNote, NewsClip, TornPhoto, WordScraps, DateCalendar } from "./PaperKit";
 import { BRAND, applyBrand } from "./brand";
 import { PIP, pipK } from "./PickKit";
+import { ShoePrint } from "./ShoePrint";
 import { PillCaptions } from "./Captions";
 import type { CaptionsSpec } from "./Captions";
 import { PICK_ALL as PICK_KIT, PICK_ALL_FULL_FRAME as PICK_FULL_FRAME, LeftShade, BottomShade, PICK_XY, PICK_NOSPLIT } from "./PickKit2";
@@ -105,7 +106,7 @@ export type SpecItem = Common & (
   /** the stronger family tree, NO frame (user 2026-10-29): drawn on the decorated base; put a `behind` window with his matte on the same span so he stands in front of it (landscape: `dx` moves him right) */
   | { t: "treefx"; skin?: "parchment"; from: number; to: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number; nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number; titleSize?: number; land?: { x: number; y: number; w: number; h: number; titleSize?: number; nodeW?: number; nodeH?: number; font?: number } }
   /** the photo of a person he names, in a torn white border with tape (PaperKit TornPhoto; PREFERENCES «متى يُستعمل كل عنصر»: mandatory for every named person) */
-  | { t: "tphoto"; src: string; name?: string; at: number; until?: number; x?: number; y?: number; w?: number; h?: number; pos?: string; also?: { src: string; name?: string; at: number }[] }
+  | { t: "tphoto"; shoe?: boolean; src: string; name?: string; at: number; until?: number; x?: number; y?: number; w?: number; h?: number; pos?: string; also?: { src: string; name?: string; at: number }[] }
   /** an important line of his speech on torn paper scraps, one word per scrap, centred in the writing area (PaperKit WordScraps) */
   | { t: "scraps"; text: string; at: number; until: number; y?: number; size?: number; times?: number[] /* the second each word is spoken: node tools/scraps_times.mjs */ }
   /** a clock whenever he speaks of time or a duration (MG Clock) */
@@ -360,7 +361,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
       // several photos named in one breath (the books of one sentence) stand SIDE BY SIDE, each popping up at its word, all leaving together (user 2026-10-31)
       const w = (L ? ov.w : it.w) ?? 300, h = (L ? ov.h : it.h) ?? 370, x0 = L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 40, y0 = L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1360;
       const all = [{ src: it.src, name: it.name, at: it.at }, ...(it.also ?? [])], n = all.length;
-      return <React.Fragment key={i}>{all.map((p, j) => <TornPhoto key={j} at={p.at} until={it.until ?? it.at + 6} x={x0 + (n - 1 - j) * (w + 24)} y={y0} w={w} h={h} src={p.src} name={p.name} pos={it.pos} />)}</React.Fragment>;
+      return <React.Fragment key={i}>{all.map((p, j) => <TornPhoto key={j} at={p.at} until={it.until ?? it.at + 6} x={x0 + (n - 1 - j) * (w + 24)} y={y0} w={w} h={h} src={p.src} name={p.name} pos={it.pos} />)}{it.shoe ? <ShoePrint at={it.at + 0.9} until={it.until ?? it.at + 6} x={x0} y={y0} w={w} h={h} /> : null}</React.Fragment>;
     }
     case "scraps": return <WordScraps key={i} at={it.at} until={it.until} y={L ? ov.y ?? 845 : it.y ?? 1330} text={it.text} times={it.times} size={L ? ov.size ?? 50 : it.size ?? 36} />;   {/* 60 % of the former 84 / 60 (user 2026-10-31) */}
     case "clock": { const size = L ? ov.size ?? 360 : it.size ?? 300; return <Only key={i} from={it.at} to={it.until}><div style={{ position: "absolute", left: L ? ov.x ?? 140 : it.x ?? 60, top: L ? ov.y ?? 300 : it.y ?? 1330 }}><Clock at={it.at} size={size} /></div></Only>; }
@@ -496,13 +497,13 @@ export const TailVoice: React.FC<{ tl: NonNullable<MontageSpec["tail"]> }> = ({ 
 };
 
 /** landscape footage: his whole 1920×1080 frame with the occasional push-in on his face (same easing as SheikhLayers) */
-export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: number; amt?: number }[]; splits?: Split[]; shifts?: { from: number; to: number; dx: number; feather?: number }[]; pips?: { at: number; until: number }[] }> = ({ cut, zooms = [], splits = [], shifts = [], pips = [] }) => {
+export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: number; amt?: number }[]; splits?: Split[]; shifts?: { from: number; to: number; dx: number; feather?: number }[]; pips?: { at: number; until: number }[]; behind?: React.ReactNode; gaps?: { from: number; to: number }[] }> = ({ cut, zooms = [], splits = [], shifts = [], pips = [], behind, gaps }) => {
   const t = useT(0);
   const sh = shifts.find((s) => t >= s.from && t <= s.to + 0.4);
   const dx = sh ? sh.dx * Math.min(clamp((t - sh.from) / 0.4), clamp((sh.to + 0.4 - t) / 0.4)) : 0;
   const fth = sh?.feather ? sh.feather * Math.min(clamp((t - sh.from) / 0.4), clamp((sh.to + 0.4 - t) / 0.4)) : 0;
   const sp = splits.find((x) => t >= x.from && t < x.to);
-  if (sp) { const L = DEBATE_LAYOUTS[sp.layout ?? "dossier"]; return <L at={sp.from} main={{ src: cut, x: sp.sheikh.x, w: sp.sheikh.w }} guest={{ src: cut, x: sp.clip.x, w: sp.clip.w, y: sp.clip.y, h: sp.clip.h, blur: sp.blur }} guestName={sp.clipName} url={sp.clipUrl} />; }
+  if (sp) { const L = DEBATE_LAYOUTS[sp.layout ?? "dossier"]; return <L at={sp.from} main={{ src: cut, x: sp.sheikh.x, w: sp.sheikh.w }} guest={{ src: cut, x: sp.clip.x, w: sp.clip.w, y: sp.clip.y, h: sp.clip.h, blur: sp.blur }} guestName={sp.clipName} url={sp.clipUrl} behind={behind} gaps={gaps} />; }
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 1.2);
   const pp = pips.find((q) => t >= q.at && t <= q.until), pu = pp ? pipK(t, pp.at, pp.until) : 0;   // PipSource (user 2026-11-14): he shrinks into the top-right corner window
   const z = zz ? 1 + (zz.amt ?? 0.08) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1;
@@ -624,7 +625,7 @@ const draw = (key: string, n: number) => { let h = 2166136261; for (const c of k
 const ayaOf = (it: { aya?: number; refText: string }) => it.aya ?? Number((it.refText.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).match(/\d+/) ?? ["0"])[0]);
 /** HOLD AFTER COMPLETION (user 2026-11-15: «العناصر تختفي بمجرد أن تتم … لازم تبقى ثانية أو ثانيتين بحيث أن الناس تستوعب»): a picked element never leaves before
  *  its LAST part has appeared (every `at`/`…At` inside it, typed text ends, the entrance animation ≈0.8 s) + PICK_HOLD seconds — whatever `until` the spec says. */
-export const PICK_HOLD = 1.5;
+export const PICK_HOLD = 2;   /* user 2026-11-15 (frame 17337): after the writing ends the element stays AT LEAST 2 s */
 type PickItem = Extract<SpecItem, { t: "pick" }>;
 export const pickLastEvent = (it: PickItem): number => {
   let m = it.at; const walk = (v: unknown, key: string) => { if (typeof v === "number" && (key === "at" || /At$/.test(key))) m = Math.max(m, v); else if (Array.isArray(v)) v.forEach((x) => walk(x, key)); else if (v && typeof v === "object") Object.entries(v).forEach(([k, x]) => walk(x, k)); };
@@ -709,8 +710,14 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => 
   const bgclips = mine("bgclip"), hclips = mine("hclip"), pulses = mine("zoomblend"), horrors = mine("horror");
   const hasFx = pulses.length > 0 || horrors.length > 0;
   const wrapStage = (kids: React.ReactNode) => hasFx ? <FxStage pulses={pulses} horrors={horrors}>{kids}</FxStage> : <>{kids}</>;   // an element, not a component type: the videos inside never remount
+  /* (user 2026-11-15) inside a split window the pictures go in the MIDDLE between the two screens, behind both frames, while he slides aside (DebateDossier behind/gaps) */
+  const SPLIT_BEHIND = new Set(["tphoto", "pic", "scholar", "news", "date", "flag", "clock", "brushx"]);
+  const inSplitWin = (it: SpecItem) => { const a = (it as { at?: number }).at; return a != null && (spec.splits ?? []).some((s) => a >= s.from - 0.05 && a < s.to); };
+  const behindIt = (it: SpecItem) => o === "land" && !!spec.cut && SPLIT_BEHIND.has(it.t) && it.only !== "port" && inSplitWin(it);
+  const behindGaps = spec.items.filter(behindIt).map((it) => { const a = (it as { at: number }).at, sp = (spec.splits ?? []).find((s) => a >= s.from - 0.05 && a < s.to)!; return { from: a - 0.05, to: Math.min((it as { until?: number }).until ?? a + 6, sp.to) }; });
+  const behindNodes = spec.items.map((it, i) => (behindIt(it) ? renderItem(it, i, o, bar) : null));
   const body = o === "land"
-    ? (spec.cut ? <LandFootage cut={spec.cut} zooms={spec.zooms} splits={spec.splits} shifts={spec.shifts} pips={spec.items.filter((x) => x.t === "pick" && x.el === "PipSource" && x.only !== "port").map((x) => ({ at: (x as { at: number }).at, until: pickUntil(x as PickItem) }))} /> : null)
+    ? (spec.cut ? <LandFootage cut={spec.cut} zooms={spec.zooms} splits={spec.splits} shifts={spec.shifts} behind={behindGaps.length ? behindNodes : undefined} gaps={behindGaps} pips={spec.items.filter((x) => x.t === "pick" && x.el === "PipSource" && x.only !== "port").map((x) => ({ at: (x as { at: number }).at, until: pickUntil(x as PickItem) }))} /> : null)
     : (spec.cut ? <SheikhLayers cut={spec.cut} cams={spec.cams ?? [{ from: 0, to: 9999, cx: 990 }]} zooms={spec.zooms} /> : null);
   return (
     <HybridHost>
@@ -751,7 +758,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => 
       {spec.cut ? (spec.behind ?? []).map((w, i) => { const mt = w.matte ?? spec.matte; return mt && (!w.only || w.only === o) && (o === "land" || w.dx === undefined) ? <Sequence key={i} from={Math.round(w.from * 30)} durationInFrames={Math.round((w.to - w.from) * 30)}><TailFade dur={w.to - w.from} fade={w.fade}><MaskedSheikh cut={spec.cut!} matte={mt} o={o} cams={spec.cams} zooms={spec.zooms} dx={o === "land" ? w.dx : 0} from={w.from} gpu pscale={o === "port" && bgUnder(w) ? portIso?.scale : undefined} pdx={o === "port" && bgUnder(w) ? portIso?.dx : undefined} pdy={o === "port" && bgUnder(w) ? portIso?.dy : undefined} /></TailFade></Sequence> : null; }) : null}
       </>)}
       <Gfx>
-        {spec.items.map((it, i) => renderItem(it, i, o, bar))}
+        {spec.items.map((it, i) => (behindIt(it) ? null : renderItem(it, i, o, bar)))}
         {spec.showTitleBar ? <TitleBar title={spec.title} theme={bar} bottomHalf={o === "port"} /> : null}
         {o === "port" && spec.captions?.words?.length ? <PillCaptions cap={spec.captions} hideAlso={spec.items.filter((x) => x.t === "verse" || x.t === "hadith").map((x) => { const v = x as { times: number[]; until?: number }; return { from: v.times[0] - 0.3, to: v.until ?? v.times[v.times.length - 1] + 1.2 }; })} /> : null}   {/* full-screen verses/hadiths stand alone */}
       </Gfx>

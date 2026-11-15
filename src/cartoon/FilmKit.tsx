@@ -32,6 +32,7 @@ export type ActorSpec = {
   poseFn?: (t: number, shotT: number) => ReturnType<typeof stick.poseAt>;   // fully custom pose (falls, laughing, pills…)
   rot?: (t: number, shotT: number) => number;                               // body rotation in degrees about the feet (negative = head to the left)
   mood?: WomanMood;
+  path?: (t: number, shotT: number) => {x: number; y: number};   // moving feet position (walking in/out): replaces x/y while the shot plays
   seat?: boolean;                     // draw the library's small stool under a seated actor
   /** extra layer drawn in the actor's local space (props held in hand, aura …) */
   extra?: (t: number, shotT: number) => React.ReactNode;
@@ -96,8 +97,9 @@ export const Actor: React.FC<{a: ActorSpec; t: number; shotT: number}> = ({a, t,
   };
   const html = (lib.characterMarkup as unknown as (c: unknown, t: number, m: string, o: unknown) => string)(c, t, mode === 'sit' ? 'sit' : 'idle', opts);
   const s = a.s ?? 1;
+  const at = a.path ? a.path(t, shotT) : {x: a.x, y: a.y};
   return (
-    <g transform={`translate(${a.x} ${a.y}) scale(${s})`}>
+    <g transform={`translate(${at.x} ${at.y}) scale(${s})`}>
       <g transform={a.rot ? `rotate(${a.rot(t, shotT)})` : undefined}>
         <g dangerouslySetInnerHTML={{__html: html}} />
         {a.extra ? a.extra(t, shotT) : null}

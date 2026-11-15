@@ -11,6 +11,9 @@ const p = process.argv[2];
 if (!p) { console.error("usage: node tools/words_drift_check.mjs <project> [--fresh]"); process.exit(2); }
 const T = path.join(".tmp", p), PY = process.env.PY ?? "S:/AI_Tools/ComfyUI_windows_portable/python_embeded/python.exe";
 const wordsF = path.join(T, "cut_words.json"), cutWav = path.join(T, "cut.wav"), w16 = path.join(T, "cut16k.wav"), freshF = path.join(T, "drift_fresh.json");
+/* (2026-11-13) the fresh pass must run on the audio of the file the video really uses (spec.cut), not on an intermediate cut.wav: a fragment muted/edited in one copy only slipped through */
+let audioSrc = cutWav;
+try { const sp = JSON.parse(fs.readFileSync(path.join("data", "specs", `${p}.json`), "utf8")); const cf = path.join("public", sp.cut); if (sp.cut && fs.existsSync(cf)) audioSrc = cf; } catch { /* no spec yet */ }
 if (!fs.existsSync(wordsF) || !fs.existsSync(cutWav)) { console.log(`words_drift: ✘ ${!fs.existsSync(wordsF) ? "cut_words.json" : "cut.wav"} missing in ${T}`); process.exit(1); }
 const m = (f) => fs.statSync(f).mtimeMs;
 const words = JSON.parse(fs.readFileSync(wordsF, "utf8"));
@@ -19,7 +22,7 @@ const dur = Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format
 const lastEnd = Math.max(...words.map((w) => w.e ?? w.s));
 if (lastEnd > dur + 0.5) { console.log(`words_drift: ✘ the last word ends at ${lastEnd.toFixed(1)} s but the cut audio is ${dur.toFixed(1)} s (${(lastEnd - dur).toFixed(1)} s too long → the words file is from an older cut)`); bad++; }
 if (m(wordsF) < m(cutWav) - 1000) { console.log("words_drift: ⚠ cut_words.json is older than cut.wav (the cut was redone after the words were made)"); }
-if (!fs.existsSync(w16) || m(w16) < m(cutWav)) spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", cutWav, "-ar", "16000", "-ac", "1", w16], { stdio: "inherit" });
+if (!fs.existsSync(w16) || m(w16) < m(audioSrc)) spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", audioSrc, "-vn", "-ar", "16000", "-ac", "1", w16], { stdio: "inherit" });
 if (process.argv.includes("--fresh") || !fs.existsSync(freshF) || m(freshF) < m(w16)) {
   console.log("words_drift: fresh Whisper pass over the cut audio …");
   const r = spawnSync(PY, ["tools/words_drift.py", w16, freshF], { stdio: "inherit", env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
@@ -44,11 +47,11 @@ else console.log(`words_drift: ✔ cut_words.json matches the cut audio (${rows.
 // The fresh pass is the cut audio itself; words inside a replied-to clip window (spec splits) belong to the other speaker and are not his corrections.
 {
   let splits = [], keep = [];
-  /* spec.keepMarks [{t, w, why}]: a word decided to be PART of his speech (e.g. a rhetorical «عفواً، لا لا»), told to the user with its link (2026-11-12) */
+  /* spec.keepMarks [{t, w, why, userConfirmed:true}]: a word that IS part of his speech (a rhetorical «عفواً، لا لا»): honoured ONLY with the user's own confirmation (2026-11-13: I overrode this gate with a wrong measurement and a real «عفواً» fragment stayed in the video; no self-made exemption any more) */
   try { for (const f of fs.readdirSync("data/specs")) { const s = JSON.parse(fs.readFileSync(path.join("data/specs", f), "utf8")); if (s.id === p || f === `${p}.json`) { splits = s.splits ?? []; keep = s.keepMarks ?? []; } } } catch { /* no spec yet */ }
-  const MARK = /^(عفو|عفوا|عفواً|عفوني|اعيد|أعيد|اعيدها|معليش|أفوان|أفون|مونتاج|موتاج|منتاج)$/;
+  const MARK = /^(عفو|عفوا|عفواً|عفوني|اعيد|أعيد|اعيدها|معليش|أفوان|أفون|فون|فوان|مونتاج|موتاج|منتاج)$/;
   const raw = JSON.parse(fs.readFileSync(freshF, "utf8"));
-  const hits = raw.filter((x) => MARK.test(String(x.w).replace(/[.،؟?!]/g, "").trim()) && !splits.some((sp) => x.s >= sp.from && x.s <= sp.to) && !keep.some((k) => Math.abs(k.t - x.s) < 0.6 && k.why));
+  const hits = raw.filter((x) => MARK.test(String(x.w).replace(/[.،؟?!]/g, "").trim()) && !splits.some((sp) => x.s >= sp.from && x.s <= sp.to) && !keep.some((k) => Math.abs(k.t - x.s) < 0.6 && k.why && k.userConfirmed === true));
   if (hits.length) { bad++; console.log(`words_drift: ✘ correction/instruction words still audible in the cut (${hits.length}): ` + hits.map((x) => `${x.s.toFixed(1)}s «${x.w}»`).join("، ") + " — cut them at the real silence (large-model word times), re-cut, re-run"); }
   else console.log("words_drift: ✔ no «عفواً/أعيد/مونتاج» left in the cut audio");
 }

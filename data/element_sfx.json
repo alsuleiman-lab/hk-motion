@@ -1,0 +1,10 @@
+{
+ "_": "Sound bound to each element by the user (2026-11-06). `types` = the MontageSpec item types that carry it; applied by node tools/sfx_bind.mjs data/specs/<p>.json (fills spec.sfx; user volume order wins over the 6-per-minute rule).",
+ "bindings": [
+  { "src": "sfx/el_chime_bell.wav", "elements": ["TypeBox (MG)", "NoteCard (MG)"], "types": ["note"], "when": "item start", "vol": 0.05 },
+  { "src": "sfx/el_tick.wav", "elements": ["WordScraps (PaperKit)"], "types": ["scraps"], "when": "every word (its spoken time)", "vol": 0.04 },
+  { "src": "sfx/el_paper_tear.wav", "elements": ["transition into half-screen mode"], "types": ["splits"], "when": "split start", "vol": 0.06 },
+  { "src": "sfx/el_typing.wav", "elements": ["GlowCounter (MG)", "Clock (MG)"], "types": ["clock"], "when": "item start", "vol": 0.05 },
+  { "src": "sfx/el_ding.wav", "elements": ["StatRow (EuKit)"], "types": ["rows"], "when": "each row", "vol": 0.05 }
+ ]
+}

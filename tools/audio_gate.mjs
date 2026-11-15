@@ -22,6 +22,12 @@ fs.mkdirSync(".tmp/gates", { recursive: true });
 const nsOut = `.tmp/gates/${name}.noise.json`;
 const ns = run(["tools/noise_scan.py", src16, tr, nsOut, "--map", map]);
 let nsj = { cut: [], review: [] }; try { nsj = JSON.parse(fs.readFileSync(nsOut, "utf8")); } catch { /* keep empty */ }
+{ /* a stock-phrase hit INSIDE a range the user ordered kept whole (the shown clip's own continuous sound, --keep) is the clip's breath/pause misheard by Whisper: it stays, printed never silent */
+  const kr = (arg("keep", "") || "").split(",").filter(Boolean).map((r) => r.split("-").map(Number));
+  const inK = (r) => kr.some(([x, y]) => r[0] >= x - 0.05 && r[1] <= y + 0.05);
+  const ex = nsj.cut.filter(inK);
+  if (ex.length) { console.log(`ℹ أصوات داخل مقطع معروض أُبقي كاملاً بأمر المستخدم (لا تُحذف): ${ex.map((r) => `[${r[0]}-${r[1]} «${r[2]}»]`).join(" ")}`); nsj.cut = nsj.cut.filter((r) => !inK(r)); }
+}
 rep(ns.status === 0 && nsj.cut.length === 0, `أصوات غير كلامية للحذف: ${nsj.cut.length} ${nsj.cut.map((r) => `[${r[0]}-${r[1]} «${r[2]}»]`).join(" ")}`);
 /* (2026-11-12) a «review» sound used to print a warning and PASS — a 1.4 s «اووووو» stayed in «سانت رامبال». Now every review item blocks until it is decided in
    .tmp/<project>/noise_ok.json {"<source start>": "keep: why (it is speech: «قال» misheard)"}; the rest are cut with --rem at the measured silence. */
@@ -36,6 +42,8 @@ const bad = (jc.stdout.match(/flagged clicks: (\d+)/) ?? [])[1];
 rep(jc.status === 0 && Number(bad) === 0, `نقرات عند وصلات القص: ${bad ?? "?"} ${jc.stdout.split("\n")[1] ?? ""}`);
 /* (2026-11-12) a join must sit in a pause: voiced sound on both sides = a word cut mid-way («بنا… بنارس») */
 { const jw = run(["-I", "tools/join_word_scan.py", audio, map]); rep(jw.status === 0, (jw.stdout || "").trim().split("\n").slice(0, 4).join(" | ") || "join_word_scan لم يعمل"); }
+/* (2026-11-13) every map edge must sit in real silence of the SOURCE (a leftover onset of a deleted word / a clipped word = ✘); join_polish moves the edges there first */
+{ const je = run(["-I", "tools/join_edge_scan.py", src16, map]); rep(je.status === 0, (je.stdout || "").trim().split(String.fromCharCode(10)).slice(0, 6).join(" | ") || "join_edge_scan لم يعمل"); }
 // ONE fixed rule for everything, NO exceptions (user 2026-10-22): no silence > 0.40 s anywhere — also inside other people's clip windows. Every pause is checked by time and length.
 const pc = run(["tools/pause_check.py", audio, "0.40"]);
 let pauses = null; try { pauses = JSON.parse((pc.stdout.split(String.fromCharCode(10))[1] ?? "[]").trim()); } catch { /* unparsable -> fail below */ }
@@ -50,7 +58,10 @@ if (keepArg && Array.isArray(pauses)) {
     const q = segs.find((x) => x.a >= s); return q ? q.n : null;
   };
   const spans = keepArg.split(",").filter(Boolean).map((r) => r.split("-").map(Number)).map(([a, b]) => [toCut(a, "a"), toCut(b, "b")]).filter(([a, b]) => a !== null && b !== null);
-  const exempt = pauses.filter(([s]) => spans.some(([a, b]) => s >= a - 0.05 && s <= b));
+  /* (user order 2026-11-15, «إدلب»: سكتات كثيرة بتشويش لم تُقطع) a kept clip may keep its own SOUND (a nasheed, an adhan, applause), never a pause that holds only background noise:
+     a pause is exempt only if its mean level is above −36 dB; noise-floor pauses inside a kept clip count like any other pause and are cut (cut_block) */
+  const meanDb = (() => { try { const b = fs.readFileSync(audio); let o = 12, ch = 1, sr = 16000; while (o < b.length - 8) { const id = b.toString("ascii", o, o + 4), sz = b.readUInt32LE(o + 4); if (id === "fmt ") { ch = b.readUInt16LE(o + 10); sr = b.readUInt32LE(o + 12); } if (id === "data") { const d0 = o + 8; return (t0, t1) => { let e = 0, k = 0; for (let i = d0 + Math.floor(t0 * sr) * ch * 2, end = Math.min(b.length - 1, d0 + Math.floor(t1 * sr) * ch * 2); i < end; i += ch * 2 * 8) { const v = b.readInt16LE(i); e += v * v; k++; } return k ? 10 * Math.log10(e / k + 1e-9) - 90.3 : -99; }; } o += 8 + sz + (sz & 1); } } catch { /* fall through */ } return () => 0; })();
+  const exempt = pauses.filter(([s, d]) => spans.some(([a, b]) => s >= a - 0.05 && s <= b) && meanDb(s, s + d) > -36);
   if (exempt.length) console.log(`ℹ سكتات مستثناة بأمر المستخدم (إبقاء كامل ${keepArg}ث مصدر): ${exempt.map(([s, d]) => `[${s}ث ×${d}]`).join(" ")}`);
   pauses = pauses.filter((p) => !exempt.includes(p));
 }

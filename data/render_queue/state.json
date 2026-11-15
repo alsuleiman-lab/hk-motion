@@ -1,27 +1,3 @@
 {
- "jobs": [
-  {
-   "spec": "saint_rambal",
-   "comp": "SaintRambal-L",
-   "orient": "L",
-   "dest": "C:\\Users\\mshms\\Videos\\جاهز",
-   "title": "",
-   "bumper": "start",
-   "state": "done",
-   "at": "2026-11-12T13:34:56.934Z",
-   "to": "C:\\Users\\mshms\\Videos\\جاهز\\سانت رامبال كيف تحوّل مهندس هندي إلى إله يُقبَّل قدمه #محمد_بن_شمس_الدين-.mp4",
-   "file": "render_work\\export\\L\\سانت رامبال كيف تحوّل مهندس هندي إلى إله يُقبَّل قدمه #محمد_بن_شمس_الدين-.mp4"
-  },
-  {
-   "spec": "saint_rambal",
-   "comp": "SaintRambal",
-   "orient": "R",
-   "dest": "C:\\Users\\mshms\\Videos\\جاهز",
-   "title": "",
-   "bumper": "start",
-   "state": "held",
-   "at": "2026-11-12T13:35:47.369Z",
-   "why": "held for gpu-render tests (user choice 2026-11-12: Hold portrait); restore: state=queued, then node tools/render_queue.mjs run"
-  }
- ]
+  "jobs": []
 }

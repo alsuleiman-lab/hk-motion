@@ -22,18 +22,21 @@ const FIX = Object.fromEntries(Object.entries(W.fix ?? {}).map(([k, v]) => [norm
 const N = fresh.map((w) => { const n = norm(w.w); return FIX[n] ?? n; });
 const cwRaw = fs.existsSync(path.join(T, "cut_words.json")) ? JSON.parse(fs.readFileSync(path.join(T, "cut_words.json"), "utf8")) : [];
 const CW = (cwRaw.words ?? cwRaw).map((w) => ({ s: +(w.s ?? w.start), n: norm(w.w ?? w.word) }));
+/* (2026-11-13) the fresh pass can hallucinate a stretch (a repeated loop over a clip) or spell a word otherwise; the merged large-model words of the cut are a second accurate reading: a phrase is accepted when it is consecutive words in EITHER */
+const CWl = CW.map((w) => ({ s: w.s, w: w.n })), CWn = CW.map((w) => FIX[w.n] ?? w.n);
 const DANGLE = new Set(["و", "مع", "ان", "انه", "انها", "له", "لها", "علي", "في", "من", "الي", "عن", "الذي", "التي", "اللي", "بين", "او", "ثم", "لكن", "ولكن", "قد", "هو", "هي", "يعني", "بس", "ف"].map(norm));
 const bad = [], out = [];
 for (const it of W.items) {
   const q = it.text.split(/\s+/).map(norm).filter(Boolean);
-  let hit = -1;
-  for (let i = 0; i < N.length; i++) { if (fresh[i].s < (it.from ?? 0) - 15) continue; /* later cut blocks move the words earlier */ if (q.every((x, j) => N[i + j] === x)) { hit = i; break; } }
+  let hit = -1, L = fresh, NN = N;
+  for (let i = 0; i < NN.length; i++) { if (L[i].s < (it.from ?? 0) - 15) continue; /* later cut blocks move the words earlier */ if (q.every((x, j) => NN[i + j] === x)) { hit = i; break; } }
+  if (hit < 0) { L = CWl; NN = CWn; for (let i = 0; i < NN.length; i++) { if (L[i].s < (it.from ?? 0) - 15) continue; if (q.every((x, j) => NN[i + j] === x)) { hit = i; break; } } }
   if (hit < 0) { bad.push(`«${it.text}» ليست كلماته متتابعة كما نطقها (من ${it.from}ث)`); continue; }
   if (it.t === "scraps" && q.length > 7) bad.push(`«${it.text}» قصاصات أطول من 7 كلمات`);
   if (DANGLE.has(q[q.length - 1])) bad.push(`«${it.text}» تنتهي بكلمة معلّقة «${it.text.split(/\s+/).pop()}»`);
   if (DANGLE.has(q[0]) && !["و", "ولكن", "لكن", "هو", "هي"].includes(it.text.split(/\s+/)[0].replace(/[إأآ]/g, "ا"))) bad.push(`«${it.text}» تبدأ بكلمة معلّقة`);
   /* two transcripts disagree on word starts by up to 0.7 s: a word shows at the LATER of the two, so writing is never ahead of his voice */
-  const times = q.map((x, j) => { const s0 = fresh[hit + j].s, c = CW.find((w) => Math.abs(w.s - s0) < 0.8 && (w.n === x || w.n.endsWith(x))); return +Math.max(s0, c?.s ?? 0).toFixed(2); }), lastEnd = fresh[hit + q.length]?.s ?? times[times.length - 1] + 0.6;
+  const times = q.map((x, j) => { const s0 = L[hit + j].s, c = CW.find((w) => Math.abs(w.s - s0) < 0.8 && (w.n === x || w.n.endsWith(x))); return +Math.max(s0, c?.s ?? 0).toFixed(2); }), lastEnd = L[hit + q.length]?.s ?? times[times.length - 1] + 0.6;
   out.push({ ...it, times, at: times[0], lastEnd });
 }
 /* (user 2026-11-12) «القصاصات والملاحظة الممزقة: كل واحدة منهما مرة واحدة في الدقيقة، ولا يجوز تكرارها»: per minute of the video at most ONE scraps and ONE torn */
@@ -44,7 +47,7 @@ for (const it of W.items) {
 }
 /* (user 2026-11-12) «الكتابة لازم توافق قولي كلمة بكلمة»: a list card (rows) — its title, every label and every small line — is his spoken words, consecutive */
 if (fs.existsSync(specF)) {
-  const has = (txt) => { const q = String(txt).split(/\s+/).map(norm).filter(Boolean); return !q.length || N.some((_, i) => q.every((x, j) => N[i + j] === x)); };
+  const has = (txt) => { const q = String(txt).split(/\s+/).map(norm).filter(Boolean); return !q.length || N.some((_, i) => q.every((x, j) => N[i + j] === x)) || CWn.some((_, i) => q.every((x, j) => CWn[i + j] === x)); };
   for (const r of JSON.parse(fs.readFileSync(specF, "utf8")).items.filter((x) => x.t === "rows")) {
     for (const txt of [r.title?.text, ...(r.rows ?? []).flatMap((x) => [x.label, x.sub])].filter(Boolean)) if (!has(txt)) bad.push(`بطاقة البنود عند ${r.from}ث: «${txt}» ليست كلماته متتابعة كما نطقها`);
   }

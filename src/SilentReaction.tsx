@@ -52,7 +52,7 @@ export type SilentConfigBase = {
   /** our own generated B-roll stills (faceless): cover the source card for `dur` seconds with a slow push-in while its audio keeps playing */
   broll?: (T & { src: string })[];
   /** the empty band under the two cards: our own stills + stock clips + a paper tag, each at its word's onset (user 2026-11-03) */
-  under?: { at: number; dur: number; src: string; kind: "img" | "video"; startSec?: number; label?: string }[];
+  under?: { at: number; dur: number; src: string; kind: "img" | "video"; startSec?: number; label?: string; pos?: string }[];
   facts: (T & { label: string; value: string })[];
   highlights: (T & { box: { x: number; y: number; w: number; h: number } })[];
   punches: (T & { scale: number; cx: number; cy: number })[];
@@ -88,7 +88,7 @@ const UnderBand: React.FC<{ it: NonNullable<SilentConfigBase["under"]>[number]; 
   const inU = Math.min(1, t / 0.35), outU = Math.min(1, Math.max(0, (it.dur - t) / 0.2));
   const e = 1 - Math.pow(1 - inU, 3);
   const push = 1 + 0.1 * Math.min(1, t / it.dur);
-  const media: React.CSSProperties = { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", transform: `scale(${push})` };
+  const media: React.CSSProperties = { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: it.pos ?? "50% 50%", transform: `scale(${push})` };
   return (
     <Gfx>
       <div style={{ position: "absolute", left: 60, width: 960, top, height, overflow: "hidden", borderRadius: 30, border: "6px solid #f3e3c0", boxShadow: "0 16px 40px rgba(20,12,4,.5)", transform: `translateY(${(1 - e) * 420}px)`, opacity: outU }}>

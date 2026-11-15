@@ -15,7 +15,7 @@ import { HYL, HyLayer, VSlot } from "./hybrid/Slot";
  */
 export type DebateSrc = { src: string; x?: number; w?: number; y?: number; h?: number; aspect?: number; blur?: number };
 export type DebateLayoutName = "dossier" | "blocks";
-type Props = { main: DebateSrc; guest: DebateSrc; guestName?: string; title?: string; url?: string; at?: number };
+type Props = { main: DebateSrc; guest: DebateSrc; guestName?: string; title?: string; url?: string; at?: number; behind?: React.ReactNode; gaps?: { from: number; to: number }[] };
 
 const W = LANDSCAPE.W, H = LANDSCAPE.H;
 const K = W / 1450;   // the original's px are drawn on a 1450-wide stage (its enlarged view)
@@ -156,8 +156,13 @@ const TornWindow: React.FC<{ w: Win; s: DebateSrc; seed: string; transform: (b: 
     </div>
   );
 };
-export const DebateDossier: React.FC<Props> = ({ main, guest, title = "مصدر", url, at = 0 }) => {
+/** (user order 2026-11-15, «انقسام الشاشة دائماً») the area for added elements is the MIDDLE between the two screens: while an element is up his mount slides aside
+ *  (right) and shrinks a little, so the middle widens; the element sits in it BEHIND both frames; when it goes he returns to his place. */
+const GAP_DX = 130, GAP_S = 0.9;
+export const DebateDossier: React.FC<Props> = ({ main, guest, title = "مصدر", url, at = 0, behind, gaps = [] }) => {
   const t = useCurrentFrame() / 30 - at, mi = useIn(at), gi = useIn(at, 0.3);
+  const tt = t + at, cl = (v: number) => Math.max(0, Math.min(1, v)), sm = (v: number) => v * v * (3 - 2 * v);
+  const gk = gaps.reduce((m, g) => Math.max(m, sm(Math.min(cl((tt - g.from) / 0.4), cl((g.to + 0.4 - tt) / 0.4)))), 0);
   const sp = Math.min(1, Math.max(0, (t - 0.9) / 0.15)), st = 2.2 - 1.2 * sp;
   return (
     <AbsoluteFill>
@@ -168,10 +173,12 @@ export const DebateDossier: React.FC<Props> = ({ main, guest, title = "مصدر"
           backgroundImage: `repeating-linear-gradient(0deg, transparent 0 ${22 * K}px, ${alpha(BRAND.ink, 0.08)} ${22 * K}px ${22 * K + 1}px)` }} />
       </div>
       </HyLayer>
+      {behind ? <HyLayer z={0}><AbsoluteFill>{behind}</AbsoluteFill></HyLayer> : null}
       <TornWindow w={{ left: 0.35, top: 0.05, width: 0.64 }} s={main} seed="dossier-main" z={0}
         transform={(b) => {
           const s0 = Math.min(W / b.w, H / b.h);
-          return `translate(${(1 - mi) * (W / 2 - (b.x + b.w / 2))}px, ${(1 - mi) * (H / 2 - (b.y + b.h / 2))}px) rotate(${1.5 * mi}deg) scale(${1 + (s0 - 1) * (1 - mi)})`;
+          const pw = b.w + 2 * PAD, sg = 1 - (1 - GAP_S) * gk, gx = gk * GAP_DX + (pw * (1 - sg)) / 2;
+          return `translate(${(1 - mi) * (W / 2 - (b.x + b.w / 2))}px, ${(1 - mi) * (H / 2 - (b.y + b.h / 2))}px) rotate(${1.5 * mi}deg) scale(${1 + (s0 - 1) * (1 - mi)}) translateX(${gx}px) scale(${sg})`;
         }} />
       <TornWindow w={{ left: 0.02, top: 0.27, width: 0.31 }} s={guest} seed="dossier-guest" tape z={1}
         transform={(b) => `translateX(${-(1 - gi) * (b.x + b.w + 120)}px) rotate(${-5 * gi}deg)`} />

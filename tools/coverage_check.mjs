@@ -65,7 +65,9 @@ const span = (it) => {
 };
 const items = (spec.items ?? []).filter((i) => i.t !== "cover");
 const VISUAL = new Set(["bgclip", "peek", "pmap", "pic", "full", "flash", "crop", "scholar", "tphoto", "arc", "flag", "person", "phone", "scene"]);
-const visual = items.filter((i) => VISUAL.has(i.t)).map(span).filter(Boolean);
+const visual = [...items.filter((i) => VISUAL.has(i.t)).map(span).filter(Boolean),
+  /* (2026-11-12) a listing card item WITH a photo shows that person at its word */
+  ...items.filter((i) => i.t === "rows").flatMap((i) => (i.rows ?? []).filter((r) => r.photo).map((r) => [r.at, (i.to ?? r.at + 3)]))];
 
 // 1) mentions
 const lex = read(path.join("data", "mention_lexicon.json"), {});

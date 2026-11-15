@@ -1,5 +1,9 @@
 import { getRemotionEnvironment } from "remotion";
+import { saveDefaultProps } from "@remotion/studio";
 import { COMPOSITION_TITLES } from "./compositionTitles";
+
+type FilterSettings = { brightness: number; contrast: number; saturation: number; sepia: number; temperature: number; tint: number; shadowLift: number; highlightRollOff: number; warmth: number; vignette: number; glow: number };
+type SavedFilter = { name: string; settings: FilterSettings };
 
 /**
  * Studio-only helper (user request 2026-10-20, corrected 2026-10-21): a COPY of the current-frame counter sits in the preview toolbar, just LEFT of the transport buttons
@@ -443,6 +447,185 @@ const installDeepLink = () => {
     if (++tries > 120) window.clearInterval(timer);
   }, 500);
 };
+
+/** A Studio-only grading panel for the current montage, with named presets saved in this browser. */
+const installFilterPanel = () => {
+  const w = window as unknown as {
+    __filterPanel?: { timer?: number; root?: HTMLElement; autoSelected?: boolean };
+    __remotionFilterCurrent?: FilterSettings;
+  };
+  if (w.__filterPanel?.timer) window.clearInterval(w.__filterPanel.timer);
+  w.__filterPanel?.root?.remove();
+  w.__filterPanel = {};
+
+  const key = "remotion.filter-presets.v1";
+  const neutral: FilterSettings = { brightness: 100, contrast: 100, saturation: 100, sepia: 0, temperature: 0, tint: 0, shadowLift: 0, highlightRollOff: 0, warmth: 0, vignette: 0, glow: 0 };
+  const cinematic: FilterSettings = { brightness: 82, contrast: 123, saturation: 78, sepia: 10, temperature: 45, tint: 2, shadowLift: 3, highlightRollOff: 68, warmth: 10, vignette: 42, glow: 0 };
+  const getComposition = () => decodeURIComponent(location.pathname.split("/").filter(Boolean)[0] ?? "");
+  const isTarget = () => ["Idlib-Imam", "Idlib-Imam-L"].includes(getComposition());
+  const getSaved = (): SavedFilter[] => {
+    try { return JSON.parse(localStorage.getItem(key) ?? "[]") as SavedFilter[]; } catch { return []; }
+  };
+  const normalize = (settings?: Partial<FilterSettings>): FilterSettings => ({ ...neutral, ...(settings ?? {}) });
+  let values = normalize(w.__remotionFilterCurrent);
+
+  const root = document.createElement("section");
+  root.id = "__remotion_filter_panel";
+  root.dir = "rtl";
+  root.setAttribute("aria-label", "لوحة Filter");
+  root.style.cssText = "width:100%;min-height:100%;box-sizing:border-box;padding:14px;overflow:auto;background:#191d24;color:#f4f7fb;font:14px/1.45 Tahoma,Arial,sans-serif;color-scheme:dark";
+  root.innerHTML = `
+    <div role="tablist" aria-label="أقسام الفلتر" style="display:flex;gap:6px;margin-bottom:10px">
+      <button type="button" role="tab" data-tab="ready" aria-selected="true" style="flex:1;padding:8px;border:1px solid #68aaff;border-radius:6px;background:#155b99;color:#fff;font-weight:600;cursor:pointer">فلاتر جاهزة</button>
+      <button type="button" role="tab" data-tab="adjust" aria-selected="false" style="flex:1;padding:8px;border:1px solid #667181;border-radius:6px;background:#252b34;color:#f4f7fb;cursor:pointer">الضبط</button>
+    </div>
+    <div data-view="ready" role="tabpanel">
+      <button type="button" data-cinematic style="width:100%;padding:10px;border:1px solid #a96c3d;border-radius:7px;background:linear-gradient(110deg,#68452f,#28221e);color:#fff;text-align:right;font-weight:600;cursor:pointer">مقابلة دافئة: ظلال أعمق وإضاءات محفوظة</button>
+      <div style="margin:6px 2px 12px;color:#cbd5e1;font-size:12px">دفء لوني مضبوط مع الحفاظ على تفاصيل الوجه والإضاءات. لا يضيف مصدر ضوء غير موجود في اللقطة.</div>
+      <div data-saved-list style="display:grid;gap:7px"></div>
+      <button type="button" data-save style="width:100%;margin-top:10px;padding:8px;border:1px solid #3779bd;border-radius:6px;background:#155b99;color:#fff;font-weight:600;cursor:pointer">حفظ الإعداد الحالي كفلتر جاهز</button>
+    </div>
+    <div data-view="adjust" role="tabpanel" hidden><div data-controls></div>
+      <button type="button" data-save style="width:100%;margin-top:8px;padding:8px;border:1px solid #3779bd;border-radius:6px;background:#155b99;color:#fff;font-weight:600;cursor:pointer">حفظ الإعداد الحالي كفلتر جاهز</button>
+      <button type="button" data-reset style="width:100%;margin-top:8px;padding:7px;border:1px solid #667181;border-radius:6px;background:#252b34;color:#f4f7fb;cursor:pointer">إعادة للوضع الطبيعي</button>
+    </div>
+    <div data-status role="status" aria-live="polite" style="min-height:20px;margin-top:8px;color:#cbd5e1;font-size:12px"></div>
+  `;
+  w.__filterPanel.root = root;
+
+  const sliders: { key: keyof FilterSettings; label: string; min: number; max: number }[] = [
+    { key: "brightness", label: "السطوع", min: 0, max: 200 },
+    { key: "contrast", label: "التباين", min: 0, max: 200 },
+    { key: "saturation", label: "تشبع الألوان", min: 0, max: 200 },
+    { key: "sepia", label: "الدفء البني (Sepia)", min: 0, max: 100 },
+    { key: "temperature", label: "حرارة اللون (بارد ← دافئ)", min: -100, max: 100 },
+    { key: "tint", label: "الصبغة (أخضر ← أرجواني)", min: -100, max: 100 },
+    { key: "shadowLift", label: "رفع تفاصيل الظلال", min: 0, max: 100 },
+    { key: "highlightRollOff", label: "حماية الإضاءات الساطعة", min: 0, max: 100 },
+    { key: "warmth", label: "دفء الإضاءة", min: 0, max: 100 },
+    { key: "vignette", label: "تظليل الأطراف", min: 0, max: 100 },
+    { key: "glow", label: "وهج الإضاءة", min: 0, max: 100 },
+  ];
+  const controls = root.querySelector<HTMLElement>("[data-controls]")!;
+  for (const slider of sliders) {
+    const row = document.createElement("label");
+    row.style.cssText = "display:block;margin:12px 0 14px;color:#f4f7fb";
+    row.innerHTML = `<span style="display:flex;justify-content:space-between;gap:8px;margin-bottom:5px"><span>${slider.label}</span><output data-value="${slider.key}"></output></span><input data-slider="${slider.key}" type="range" min="${slider.min}" max="${slider.max}" step="1" style="display:block;width:100%;height:24px;accent-color:#68aaff;cursor:pointer">`;
+    controls.appendChild(row);
+  }
+  const status = root.querySelector<HTMLElement>("[data-status]")!;
+  const savedList = root.querySelector<HTMLElement>("[data-saved-list]")!;
+  const refreshSavedFilters = () => {
+    const saved = getSaved();
+    savedList.replaceChildren();
+    if (!saved.length) {
+      const empty = document.createElement("div"); empty.textContent = "فلاترك المحفوظة ستظهر هنا.";
+      empty.style.cssText = "padding:10px;border:1px dashed #667181;border-radius:7px;color:#cbd5e1;font-size:12px";
+      savedList.appendChild(empty);
+    }
+    for (const preset of saved) {
+      const card = document.createElement("div");
+      card.style.cssText = "display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:6px;padding:7px;border:1px solid #596575;border-radius:7px;background:#202630;color:#f4f7fb";
+      const name = document.createElement("span"); name.textContent = preset.name; name.title = preset.name;
+      const apply = document.createElement("button"); apply.type = "button"; apply.textContent = "تطبيق";
+      apply.style.cssText = "padding:6px 8px;border:1px solid #3779bd;border-radius:5px;background:#155b99;color:#fff;cursor:pointer";
+      apply.addEventListener("click", () => { void applyToStudio(normalize(preset.settings)); });
+      const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "حذف";
+      remove.setAttribute("aria-label", `حذف الفلتر ${preset.name}`);
+      remove.style.cssText = "padding:6px 8px;border:1px solid #667181;border-radius:5px;background:#252b34;color:#f4f7fb;cursor:pointer";
+      remove.addEventListener("click", () => {
+        const fresh = getSaved().filter((item) => item.name !== preset.name);
+        localStorage.setItem(key, JSON.stringify(fresh)); refreshSavedFilters(); status.textContent = `حُذف الفلتر «${preset.name}».`;
+      });
+      card.append(name, apply, remove); savedList.appendChild(card);
+    }
+  };
+  const paint = (next: Partial<FilterSettings>) => {
+    values = normalize(next);
+    w.__remotionFilterCurrent = values;
+    for (const slider of sliders) {
+      const input = root.querySelector<HTMLInputElement>(`[data-slider="${slider.key}"]`)!;
+      const output = root.querySelector<HTMLOutputElement>(`[data-value="${slider.key}"]`)!;
+      input.value = String(values[slider.key]);
+      output.value = `${values[slider.key]}%`;
+      output.textContent = `${values[slider.key]}%`;
+    }
+  };
+  const applyToStudio = async (next: FilterSettings) => {
+    paint(next);
+    status.textContent = "جارٍ تحديث المعاينة…";
+    try {
+      for (const compositionId of ["Idlib-Imam-L", "Idlib-Imam"]) {
+        await saveDefaultProps({
+          compositionId,
+          defaultProps: ({ savedDefaultProps }) => ({ ...savedDefaultProps, Filter: { ...neutral, ...(savedDefaultProps.Filter as Partial<FilterSettings>), ...next } }),
+        });
+      }
+      status.textContent = "حُدّثت المعاينة وحُفظت القيم في التركيبة.";
+    } catch {
+      status.textContent = "تعذّر حفظ القيم. تأكد أن Studio يعمل بوضع التحرير.";
+    }
+  };
+
+  refreshSavedFilters();
+  paint(values);
+  for (const slider of sliders) {
+    const input = root.querySelector<HTMLInputElement>(`[data-slider="${slider.key}"]`)!;
+    input.addEventListener("input", () => {
+      values = { ...values, [slider.key]: Number(input.value) };
+      w.__remotionFilterCurrent = values;
+      const output = root.querySelector<HTMLOutputElement>(`[data-value="${slider.key}"]`)!;
+      output.value = `${input.value}%`; output.textContent = `${input.value}%`;
+    });
+    input.addEventListener("change", () => { void applyToStudio(values); });
+  }
+  for (const saveButton of root.querySelectorAll<HTMLButtonElement>("[data-save]")) {
+    saveButton.addEventListener("click", () => {
+      const name = window.prompt("اكتب اسمًا لهذا الفلتر:")?.trim();
+      if (!name) return;
+      const saved = getSaved();
+      const existing = saved.findIndex((preset) => preset.name === name);
+      const entry = { name, settings: { ...values } };
+      if (existing >= 0) saved[existing] = entry; else saved.push(entry);
+      localStorage.setItem(key, JSON.stringify(saved)); refreshSavedFilters();
+      status.textContent = `حُفظ الفلتر «${name}» على هذا الجهاز.`;
+    });
+  }
+  root.querySelector<HTMLButtonElement>("[data-cinematic]")!.addEventListener("click", () => { void applyToStudio(cinematic); });
+  root.querySelector<HTMLButtonElement>("[data-reset]")!.addEventListener("click", () => { void applyToStudio(neutral); });
+  for (const tabButton of root.querySelectorAll<HTMLButtonElement>("[data-tab]")) {
+    tabButton.addEventListener("click", () => {
+      const selected = tabButton.dataset.tab;
+      for (const candidate of root.querySelectorAll<HTMLButtonElement>("[data-tab]")) {
+        const active = candidate === tabButton;
+        candidate.setAttribute("aria-selected", String(active));
+        candidate.style.background = active ? "#155b99" : "#252b34";
+        candidate.style.borderColor = active ? "#68aaff" : "#667181";
+      }
+      for (const view of root.querySelectorAll<HTMLElement>("[data-view]")) view.hidden = view.dataset.view !== selected;
+    });
+  }
+  const tick = () => {
+    try {
+      const visible = isTarget();
+      const nativeTab = Array.from(document.querySelectorAll<HTMLElement>("[role=button]")).find((element) => element.textContent?.trim() === "Filter");
+      const nativePanel = document.getElementById("remotion-native-filter-panel");
+      if (nativeTab) nativeTab.style.display = visible ? "flex" : "none";
+      if (nativePanel && root.parentElement !== nativePanel) nativePanel.appendChild(root);
+      if (!visible) root.remove();
+      if (visible && w.__filterPanel && !w.__filterPanel.autoSelected && nativeTab) {
+        w.__filterPanel.autoSelected = true;
+        nativeTab.click();
+      }
+      const current = w.__remotionFilterCurrent;
+      if (visible && current && sliders.every(({ key: field }) => Number(root.querySelector<HTMLInputElement>(`[data-slider="${field}"]`)?.value) === current[field])) return;
+      if (visible && current) paint(current);
+    } catch { /* never break the Studio */ }
+  };
+  w.__filterPanel.timer = window.setInterval(tick, 400);
+  tick();
+};
+
 try {
-  if (typeof window !== "undefined" && typeof document !== "undefined" && getRemotionEnvironment().isStudio) { install(); installTitles(); installMobile(); installMarks(); installDeepLink(); }
+  if (typeof window !== "undefined" && typeof document !== "undefined" && getRemotionEnvironment().isStudio) { install(); installTitles(); installMobile(); installMarks(); installDeepLink(); installFilterPanel(); }
 } catch { /* ignore */ }

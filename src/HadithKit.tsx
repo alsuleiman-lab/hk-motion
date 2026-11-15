@@ -41,16 +41,16 @@ export const HadithQuotePanel: React.FC<HadithHalf> = ({ lead, phrases, src, unt
   FONT_NASKH(); FONT_TEXT();
   const t = useT();
   const t0 = phrases[0].at, last = phrases[phrases.length - 1], k = halfK(t, t0 - HALF_LEAD, until);
-  const s = size ?? fitN(pchars(phrases), 720, 500, 1.7, 84, 44);
+  const s = size ?? fitN(pchars(phrases), 590, 500, 1.7, 84, 44);
   return (
     <BlendPanel k={k} t={t} id="hq">
-      <div style={{ position: "absolute", left: 640, top: 100, fontFamily: N, fontSize: 260, lineHeight: 1, color: "rgba(231,184,74,.35)" }}>«</div>
+      <div style={{ position: "absolute", left: 470, top: 100, fontFamily: N, fontSize: 260, lineHeight: 1, color: "rgba(231,184,74,.35)" }}>«</div>
       <div style={{ position: "absolute", left: 40, bottom: 110, fontFamily: N, fontSize: 260, lineHeight: 1, color: "rgba(231,184,74,.35)" }}>»</div>
-      {lead ? <div style={{ position: "absolute", left: 60, width: 680, top: 250, textAlign: "center", direction: "rtl", fontFamily: N, fontWeight: 700, fontSize: 42, color: "#e7b84a", opacity: clamp((t - t0 + 0.4) / 0.3) }}>{lead}</div> : null}
-      <div style={{ position: "absolute", left: 40, width: 720, top: 330, textAlign: "center", direction: "rtl", lineHeight: 1.7 }}>
+      {lead ? <div style={{ position: "absolute", left: 40, width: 560, top: 250, textAlign: "center", direction: "rtl", fontFamily: N, fontWeight: 700, fontSize: 42, color: "#e7b84a", opacity: clamp((t - t0 + 0.4) / 0.3) }}>{lead}</div> : null}
+      <div style={{ position: "absolute", left: 30, width: 590, top: 330, textAlign: "center", direction: "rtl", lineHeight: 1.7 }}>
         {phrases.map((p, i) => <div key={i}><Phrase p={p} t={t} size={s} color={BRAND.card} /></div>)}
       </div>
-      <div style={{ position: "absolute", left: 80, width: 640, bottom: 90, borderTop: `2px solid ${alpha("#e7b84a", 0.5)}`, paddingTop: 14, textAlign: "center", direction: "rtl", fontFamily: TEXT, fontWeight: 700, fontSize: 28, color: BRAND.light, opacity: clamp((t - last.at - 0.5) / 0.3) }}>{src}</div>
+      <div style={{ position: "absolute", left: 40, width: 560, bottom: 90, borderTop: `2px solid ${alpha("#e7b84a", 0.5)}`, paddingTop: 14, textAlign: "center", direction: "rtl", fontFamily: TEXT, fontWeight: 700, fontSize: 28, color: BRAND.light, opacity: clamp((t - last.at - 0.5) / 0.3) }}>{src}</div>
     </BlendPanel>
   );
 };
@@ -61,21 +61,21 @@ export const HadithBooksPanel: React.FC<HadithHalf & { narrator?: string; books?
   const t = useT();
   const t0 = phrases[0].at, last = phrases[phrases.length - 1], k = halfK(t, t0 - HALF_LEAD, until);
   const bs = books?.length ? books.slice(0, 3) : [{ book: src, n: "" }];
-  const s = size ?? fitN(pchars(phrases), 720, 400 - (bs.length - 1) * 60, 1.6, 80, 42);
+  const s = size ?? fitN(pchars(phrases), 590, 400 - (bs.length - 1) * 60, 1.6, 80, 42);
   const bookAt = last.at + 0.6, top0 = 1000 - bs.length * 84;
   const AR = "٠١٢٣٤٥٦٧٨٩", ar = (n: number | string) => String(n).replace(/[0-9]/g, (d) => AR[+d]);
   return (
     <BlendPanel k={k} t={t} id="hb">
-      {narrator ? <div style={{ position: "absolute", left: 150, width: 520, top: 150, padding: "10px 0", textAlign: "center", direction: "rtl", background: BRAND.navy, border: `2px solid ${alpha(BRAND.light, 0.5)}`, borderRadius: 40,
+      {narrator ? <div style={{ position: "absolute", left: 50, width: 520, top: 150, padding: "10px 0", textAlign: "center", direction: "rtl", background: BRAND.navy, border: `2px solid ${alpha(BRAND.light, 0.5)}`, borderRadius: 40,
         fontFamily: N, fontSize: 32, color: BRAND.light, opacity: clamp((t - t0 + 0.4) / 0.3), transform: `scaleX(${ease((t - t0 + 0.4) / 0.4)})` }}>{narrator}</div> : null}
-      {lead ? <div style={{ position: "absolute", left: 40, width: 740, top: 245, textAlign: "center", direction: "rtl", fontFamily: N, fontWeight: 700, fontSize: 40, color: BRAND.light, opacity: clamp((t - t0 + 0.3) / 0.3) }}>{lead}:</div> : null}
-      <div style={{ position: "absolute", left: 40, width: 740, top: 315, textAlign: "center", direction: "rtl", lineHeight: 1.6 }}>
+      {lead ? <div style={{ position: "absolute", left: 30, width: 590, top: 245, textAlign: "center", direction: "rtl", fontFamily: N, fontWeight: 700, fontSize: 40, color: BRAND.light, opacity: clamp((t - t0 + 0.3) / 0.3) }}>{lead}:</div> : null}
+      <div style={{ position: "absolute", left: 30, width: 590, top: 315, textAlign: "center", direction: "rtl", lineHeight: 1.6 }}>
         {phrases.map((p, i) => <div key={i}><Phrase p={p} t={t} size={s} color={BRAND.card} dur={0.9} /></div>)}
       </div>
       {bs.map((b, i) => {
-        const u = ease((t - bookAt - i * 0.35) / 0.4), w = 600 + i * 40;
+        const u = ease((t - bookAt - i * 0.35) / 0.4), w = 520 + i * 30;
         return u <= 0 ? null : (
-          <div key={i} style={{ position: "absolute", left: 410 - w / 2 + (i % 2 ? 12 : -10), top: top0 + i * 84, width: w, height: 74, borderRadius: "6px 14px 14px 6px", direction: "rtl",
+          <div key={i} style={{ position: "absolute", left: 320 - w / 2 + (i % 2 ? 12 : -10), top: top0 + i * 84, width: w, height: 74, borderRadius: "6px 14px 14px 6px", direction: "rtl",
             background: `linear-gradient(180deg, ${i % 2 ? BRAND.navyDeep : BRAND.navy}, ${BRAND.base3})`, borderTop: `4px solid ${BRAND.light}`, borderBottom: `4px solid ${BRAND.light}`, boxShadow: "0 10px 18px rgba(0,0,0,.45)",
             display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 26px", boxSizing: "border-box", fontFamily: N, fontWeight: 700, fontSize: 36, color: BRAND.card,
             transform: `translateX(${-(1 - u) * 900}px) rotate(${(i % 2 ? 1 : -1) * 1.2}deg)` }}>

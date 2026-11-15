@@ -26,16 +26,23 @@ const wf = {
   10: { class_type: "SaveImage", inputs: { images: ["9", 0], filename_prefix: "collage_still" } },
 };
 const keep = process.argv.includes("--keep");
+if (process.argv.includes("--stop")) { try { const pid = fs.readFileSync(".tmp/comfy_resident.pid", "utf8").trim(); spawnSync("taskkill", ["/PID", pid, "/T", "/F"], { windowsHide: true }); console.log("ComfyUI stopped", pid); } catch { console.log("no resident ComfyUI"); } process.exit(0); }
 const comfyUp = async () => { try { return (await fetch(H + "/system_stats", { signal: AbortSignal.timeout(2500) })).ok; } catch { return false; } };
 let child = null;
 if (!(await comfyUp())) {
   fs.mkdirSync(".tmp", { recursive: true });
   const root = "S:/AI_Tools/ComfyUI_windows_portable";
+  if (keep) {   /* resident server: detached through PowerShell so it outlives this shell */
+    const r = spawnSync("powershell", ["-NoProfile", "-Command", `$p = Start-Process -FilePath '${root}/python_embeded/python.exe' -ArgumentList '-s','ComfyUI/main.py','--windows-standalone-build','--highvram','--listen','127.0.0.1','--port','8188','--disable-auto-launch' -WorkingDirectory '${root}' -WindowStyle Hidden -PassThru; $p.PriorityClass = 'BelowNormal'; $p.Id`], { encoding: "utf8", windowsHide: true });
+    fs.mkdirSync(".tmp", { recursive: true }); fs.writeFileSync(".tmp/comfy_resident.pid", String(r.stdout).trim());
+    for (let i = 0; i < 160 && !(await comfyUp()); i++) await new Promise((s2) => setTimeout(s2, 2000));
+  } else {
   child = spawn(path.join(root, "python_embeded", "python.exe"), ["-s", "ComfyUI/main.py", "--windows-standalone-build", "--highvram", "--listen", "127.0.0.1", "--port", "8188", "--disable-auto-launch"], { cwd: root, windowsHide: true, stdio: ["ignore", fs.openSync(".tmp/comfy.log", "a"), fs.openSync(".tmp/comfy.log", "a")] });
   child.unref();
   try { os.setPriority(child.pid, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch { /* ignore */ }
   fs.mkdirSync(".tmp", { recursive: true }); fs.writeFileSync(".tmp/comfy.pid", String(child.pid));
   for (let i = 0; i < 160 && !(await comfyUp()); i++) await new Promise((s) => setTimeout(s, 2000));
+  }
   if (!(await comfyUp())) { console.error("تعذّر تشغيل ComfyUI في الخلفية"); try { spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"]); } catch { /* ignore */ } process.exit(1); }
 }
 process.on("exit", () => { if (child && !keep) { try { const k = spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], { windowsHide: true, encoding: "utf8" }); fs.writeFileSync(".tmp/comfy_exit.log", `pid ${child.pid} status ${k.status} ${k.stdout} ${k.stderr} ${k.error ?? ""}`); } catch (e) { fs.writeFileSync(".tmp/comfy_exit.log", String(e)); } } });

@@ -789,13 +789,7 @@ export const CollageAssemble: React.FC<{
   const f = useCurrentFrame() - Math.round(at * FPS);
   const grain = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='.5'/></svg>\")";
   return (
-    <AbsoluteFill
-      style={{
-        background: bg,
-        overflow: "hidden",
-        translate: "0px 331.2px"
-      }}
-    >
+    <AbsoluteFill style={{ background: bg, overflow: "hidden" }}>
       {pieces.map((p, i) => {
         const g = f - Math.round(p.at * FPS);
         if (g < 0) return null;

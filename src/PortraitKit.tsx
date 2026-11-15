@@ -426,12 +426,7 @@ export const FullImage: React.FC<{ src: string; from: number; to: number; origin
       <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
         <div style={{ width: "100%", height: "100%", transform: `scale(${k})`, transformOrigin: origin }}>
           {/\.mp4$/i.test(src)
-            ? <Sequence
-              from={Math.round(from * PK_FPS)}
-              style={{
-                translate: "2471px 1072.2px"
-              }}
-            >{getRemotionEnvironment().isRendering ? <OffthreadVideo src={staticFile(src)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <SafeVideo src={staticFile(src)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</Sequence>
+            ? <Sequence from={Math.round(from * PK_FPS)}>{getRemotionEnvironment().isRendering ? <OffthreadVideo src={staticFile(src)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <SafeVideo src={staticFile(src)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</Sequence>
             : <Pic src={src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
         </div>
       </div>

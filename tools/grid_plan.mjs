@@ -131,8 +131,8 @@ function snap(it, o, r, box) {
     let s = B; for (; s >= 24; s--) { const f1 = s * 1.12, per = Math.max(1, Math.floor((W0 - 72) / (5 * f1 * 0.52 + 14))), ln = Math.max(1, Math.ceil(it.words.length / per)); if (22 + 34 + 14 + ln * f1 * 1.9 + 30 <= bh) break; }
     tgt.x = Math.round(box[0] + (bw - W0) / 2); tgt.y = ny; tgt.w = W0; tgt.size = s; return;
   }
-  if (it.t === "nameTag") { tgt.x = Math.round(box[0] + (box[2] - box[0]) / 2); tgt.y = ny - 40; return; }
-  tgt.x = nx; tgt.y = ny;
+  if (it.t === "nameTag") { tgt.x = Math.round(box[0] + (box[2] - box[0]) / 2); if (o === "land") tgt.x = Math.min(tgt.x, TITLE_BAR[0] - 16 - 300); tgt.y = ny - 40; return; }   /* a long title = a wide title bar: the card stays left of it (2026-11-15) */
+  tgt.x = nx; tgt.y = ny; if (o === "land" && it.t === "subscribe") tgt.x = Math.min(nx, TITLE_BAR[0] - 16 - 560);
   if (k < 1 && it.t === "clock") tgt.size = Math.round((it.t === "clock" && (o === "land" ? it.land?.size : it.size) ? (o === "land" ? it.land.size : it.size) : o === "land" ? 360 : 300) * k);
   else if (k < 1 && it.t === "flag") it.w = Math.round((it.w ?? 220) * k);
   else if (k < 1 && it.t === "date") { tgt.w = Math.round(((o === "land" ? it.land?.w : undefined) ?? it.w ?? 340) * k); }
@@ -161,7 +161,8 @@ for (const o of orients) {
       rows.push(`| ${mm(a)}–${mm(b)} | ${mode} | كامل المحتوى | ${x.it.t}#${x.i} |`);
       if (x.k === "solo") {   // name card / subscribe: the whole content is theirs in time, their place is the grid's «solo» slot
         const r = rectOf(x.it, o), z = zoneOver(o, a, b), sl = Object.values(grid[mode]?.slots ?? {}).find((s) => s.kinds.includes("solo"));
-        if (r && sl && write) { const box = trim(sl.rect, z); if (r[0] < box[0] - 4 || r[1] < box[1] - 4 || r[2] > box[2] + 4 || r[3] > box[3] + 4) { snap(x.it, o, r, box); moved++; } }
+        if (r && sl && write) { const box = trim(sl.rect, z); if (o === "land" && box[2] > TITLE_BAR[0] - 12 && box[3] > TITLE_BAR[1] - 8) box[3] = Math.min(box[3], TITLE_BAR[1] - 8);   /* (2026-11-15) a long title makes the title bar wide: the name/subscribe card keeps ABOVE it instead of under it */
+        if (r[0] < box[0] - 4 || r[1] < box[1] - 4 || r[2] > box[2] + 4 || r[3] > box[3] + 4) { snap(x.it, o, r, box); moved++; } }
         const r2 = rectOf(x.it, o);
         if (r2 && inter(r2, z) > FACE_TOL * area(r2)) fails.push(`${label}: فوق الوجه`);
       }

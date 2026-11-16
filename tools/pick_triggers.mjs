@@ -78,6 +78,7 @@ const METAPHORS = ["RootsTree", "Battery", "FillGlasses", "Iceberg", "ViciousCyc
 const mins = (spec.frames ?? 0) / (spec.fps ?? 30) / 60, needM = Math.max(1, Math.ceil(mins / 2)), gotM = items.filter((it) => it.t === "pick" && METAPHORS.includes(it.el)).length;
 if (mins > 0.5) { if (gotM >= needM) console.log(`✔ المعاني المجسّدة: ${gotM} (المطلوب ${needM})`); else if (spec.skipMetaphors) console.log(`– المعاني المجسّدة: ${gotM} من ${needM}، معفى: ${spec.skipMetaphors}`); else { fails++; console.log(`✘ المعاني المجسّدة: ${gotM} من ${needM} — عبّر عن معاني كلامه برسوم مجسّدة (جذور، بطارية، كأس، جبل جليدي، دائرة، مفترق…)`); } }
 
-else console.log("– الكابشن: غير موجود (يلزم إن صُنعت نسخة طولية من هذا الفيديو)");
+// counter bar (user 2026-11-16): on in every episode, dated by the recording (tools/episode_date.mjs <p> --write)
+if ((spec.showTitleBar ?? spec.kind !== "reel") && !spec.date) { fails++; console.log("✘ العداد: لا تاريخ للتسجيل في المواصفة — node tools/episode_date.mjs <p> --write"); } else if (spec.showTitleBar ?? spec.kind !== "reel") console.log(`✔ العداد: ${spec.date}`);
 console.log(fails ? `pick_triggers FAILED: ${fails} عنصراً مستحقاً لم يُستعمل` : "pick_triggers PASSED");
 process.exit(fails ? 1 : 0);

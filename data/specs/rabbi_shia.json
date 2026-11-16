@@ -1,184 +1,185 @@
 {
- "id": "rabbi_shia",
- "title": "حاخام يقول لواحد من 12: أنتم مثلنا!",
- "cut": "rabbi_shia_cutb.mp4",
- "duration": 82,
- "frames": 2455,
- "fps": 30,
- "kind": "reel",
- "showTitleBar": true,
- "cams": [
-  {
-   "from": 0,
-   "to": 82,
-   "cx": 960
-  }
- ],
- "zooms": [
-  {
-   "from": 19.4,
-   "to": 21.2,
-   "amt": 0.08
-  },
-  {
-   "from": 37.7,
-   "to": 39.4,
-   "amt": 0.08
-  },
-  {
-   "from": 61.8,
-   "to": 63.7,
-   "amt": 0.08
-  }
- ],
- "shake": [
-  {
-   "from": 64.6,
-   "to": 67.8
-  }
- ],
- "items": [
-  {
-   "t": "scraps",
-   "text": "القبعة التي تضعها على رأسك الآن",
-   "at": 0.2,
-   "until": 6.1,
-   "times": [
-    0.47,
-    0.94,
-    1.12,
-    1.56,
-    1.74,
-    2.12
-   ],
-   "y": 1560
-  },
-  {
-   "t": "pick",
-   "el": "StickyNotes",
-   "at": 6.3,
-   "until": 39.5,
-   "noShift": true,
-   "size": 300,
-   "notes": [
+  "id": "rabbi_shia",
+  "title": "حاخام يقول لواحد من 12: أنتم مثلنا!",
+  "cut": "rabbi_shia_cutb.mp4",
+  "duration": 82,
+  "frames": 2455,
+  "fps": 30,
+  "kind": "reel",
+  "showTitleBar": true,
+  "cams": [
     {
-     "text": "القبعة: يهودية",
-     "at": 6.3,
-     "x": 40,
-     "y": 280
-    },
-    {
-     "text": "الدقن: شعيرة يهودية",
-     "at": 11.2,
-     "x": 440,
-     "y": 280,
-     "tint": "paper"
-    },
-    {
-     "text": "الشال: هيئة يهودية",
-     "at": 24.05,
-     "x": 840,
-     "y": 280,
-     "tint": "accent"
-    },
-    {
-     "text": "ثلاث صلوات باليوم",
-     "at": 29.1,
-     "x": 240,
-     "y": 640
-    },
-    {
-     "text": "الإفطار عند رؤية النجوم",
-     "at": 36.8,
-     "x": 640,
-     "y": 640,
-     "tint": "paper"
+      "from": 0,
+      "to": 82,
+      "cx": 960
     }
-   ]
-  },
-  {
-   "t": "pick",
-   "el": "ThoughtBubble",
-   "at": 39.7,
-   "until": 49.8,
-   "say": "نحن أيضاً نفعل هذا",
-   "sayAt": 39.8,
-   "think": "أنتم مثلنا!",
-   "thinkAt": 40.8,
-   "img": "rabbi_shia/speaker.jpg",
-   "name": "المتحدث"
-  },
-  {
-   "t": "pick",
-   "el": "BigQuestion",
-   "at": 50,
-   "until": 56.8,
-   "text": "لماذا اثنا عشر إماماً؟",
-   "textAt": 52
-  },
-  {
-   "t": "rows",
-   "from": 57,
-   "to": 62.4,
-   "rows": [
+  ],
+  "zooms": [
     {
-     "at": 57.1,
-     "label": "الأسباط اتناشر"
+      "from": 19.4,
+      "to": 21.2,
+      "amt": 0.08
     },
     {
-     "at": 58.72,
-     "label": "ولاد أبونا يعقوب اتناشر"
+      "from": 37.7,
+      "to": 39.4,
+      "amt": 0.08
+    },
+    {
+      "from": 61.8,
+      "to": 63.7,
+      "amt": 0.08
     }
-   ]
+  ],
+  "shake": [
+    {
+      "from": 64.6,
+      "to": 67.8
+    }
+  ],
+  "items": [
+    {
+      "t": "scraps",
+      "text": "القبعة التي تضعها على رأسك الآن",
+      "at": 0.2,
+      "until": 6.1,
+      "times": [
+        0.47,
+        0.94,
+        1.12,
+        1.56,
+        1.74,
+        2.12
+      ],
+      "y": 1560
+    },
+    {
+      "t": "pick",
+      "el": "StickyNotes",
+      "at": 6.3,
+      "until": 39.5,
+      "noShift": true,
+      "size": 300,
+      "notes": [
+        {
+          "text": "القبعة: يهودية",
+          "at": 6.3,
+          "x": 40,
+          "y": 280
+        },
+        {
+          "text": "الدقن: شعيرة يهودية",
+          "at": 11.2,
+          "x": 440,
+          "y": 280,
+          "tint": "paper"
+        },
+        {
+          "text": "الشال: هيئة يهودية",
+          "at": 24.05,
+          "x": 840,
+          "y": 280,
+          "tint": "accent"
+        },
+        {
+          "text": "ثلاث صلوات باليوم",
+          "at": 29.1,
+          "x": 240,
+          "y": 640
+        },
+        {
+          "text": "الإفطار عند رؤية النجوم",
+          "at": 36.8,
+          "x": 640,
+          "y": 640,
+          "tint": "paper"
+        }
+      ]
+    },
+    {
+      "t": "pick",
+      "el": "ThoughtBubble",
+      "at": 39.7,
+      "until": 49.8,
+      "say": "نحن أيضاً نفعل هذا",
+      "sayAt": 39.8,
+      "think": "أنتم مثلنا!",
+      "thinkAt": 40.8,
+      "img": "rabbi_shia/speaker.jpg",
+      "name": "المتحدث"
+    },
+    {
+      "t": "pick",
+      "el": "BigQuestion",
+      "at": 50,
+      "until": 56.8,
+      "text": "لماذا اثنا عشر إماماً؟",
+      "textAt": 52
+    },
+    {
+      "t": "rows",
+      "from": 57,
+      "to": 62.4,
+      "rows": [
+        {
+          "at": 57.1,
+          "label": "الأسباط اتناشر"
+        },
+        {
+          "at": 58.72,
+          "label": "ولاد أبونا يعقوب اتناشر"
+        }
+      ]
+    },
+    {
+      "t": "torn",
+      "text": "أسماء الأنبياء كلها عبرية",
+      "at": 62.65,
+      "until": 64.8,
+      "size": 46
+    },
+    {
+      "t": "pick",
+      "el": "AlertFrame",
+      "at": 65,
+      "until": 71.7,
+      "text": "منطقة الخطورة",
+      "W": 1080,
+      "H": 1920
+    },
+    {
+      "t": "tphoto",
+      "src": "rabbi_shia/haidar.jpg",
+      "name": "السيد حيدر",
+      "at": 75.77,
+      "until": 81.8,
+      "x": 410,
+      "w": 260,
+      "h": 240,
+      "land": {
+        "w": 300,
+        "h": 280
+      }
+    },
+    {
+      "t": "credit",
+      "text": "youtube.com/watch?v=FlDf4d9x3Ys",
+      "from": 72,
+      "to": 75.5
+    }
+  ],
+  "sfx": [],
+  "bumper": {
+    "id": "wall",
+    "at": 0
   },
-  {
-   "t": "torn",
-   "text": "أسماء الأنبياء كلها عبرية",
-   "at": 62.65,
-   "until": 64.8,
-   "size": 46
-  },
-  {
-   "t": "pick",
-   "el": "AlertFrame",
-   "at": 65,
-   "until": 71.7,
-   "text": "منطقة الخطورة",
-   "W": 1080,
-   "H": 1920
-  },
-  {
-   "t": "tphoto",
-   "src": "rabbi_shia/haidar.jpg",
-   "name": "السيد حيدر",
-   "at": 75.77,
-   "until": 81.8,
-   "x": 410,
-   "w": 260,
-   "h": 240,
-   "land": {
-    "w": 300,
-    "h": 280
-   }
-  },
-  {
-   "t": "credit",
-   "text": "youtube.com/watch?v=FlDf4d9x3Ys",
-   "from": 72,
-   "to": 75.5
-  }
- ],
- "sfx": [],
- "bumper": {
-  "id": "wall",
-  "at": 0
- },
- "skipRequired": [
-  "الشيعة@28",
-  "محمد خال@16"
- ],
- "skipMentions": [
-  "اليهودية",
-  "الشيعة"
- ]
+  "skipRequired": [
+    "الشيعة@28",
+    "محمد خال@16"
+  ],
+  "skipMentions": [
+    "اليهودية",
+    "الشيعة"
+  ],
+  "date": "2026-11-15"
 }

@@ -12,6 +12,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { recordingDate } from "./episode_date.mjs";
 
 const argv = process.argv.slice(2);
 const p = argv[0];
@@ -82,7 +83,7 @@ items.sort((a, b) => (a.at ?? a.from) - (b.at ?? b.from));
 // the planned camera moves (tools/moves_plan.mjs, run by stage cut): push-ins + shake, reviewed in the plan
 const moves = read(path.join(T, "moves.json"), { zooms: [], shake: [] });
 const zooms = moves.zooms.map(({ from, to }) => ({ from, to })), shake = moves.shake.map(({ from, to }) => ({ from, to }));
-const spec = { id: p, title, ...(kind === "reel" ? { kind: "reel" } : {}), frames: Math.round(dur * FPS), cut: `${p}_cut_s.mp4`, cams, zooms, shake, ...(splits.length ? { splits } : {}), items };
+const spec = { id: p, title, ...(kind === "reel" ? { kind: "reel" } : { showTitleBar: true }), ...(recordingDate(p) ? { date: recordingDate(p) } : {}), frames: Math.round(dur * FPS), cut: `${p}_cut_s.mp4`, cams, zooms, shake, ...(splits.length ? { splits } : {}), items };
 let out = opt("out", path.join("data", "specs", `${p}.json`));
 if (!opt("out", null) && fs.existsSync(out)) out = path.join(T, "spec_draft.json");
 fs.mkdirSync(path.dirname(out), { recursive: true });

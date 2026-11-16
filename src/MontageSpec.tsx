@@ -143,6 +143,7 @@ export type MontageSpec = {
   id: string; title: string; frames: number; fps?: number;
   cut?: string;                       // public/<cut>.mp4 — his video (also the audio)
   bar?: BarTheme;                     // title-bar / key-chip colours (default BAR_WARM)
+  date?: string;                     // yyyy-mm-dd of the RECORDING, shown in the counter bar (tools/episode_date.mjs; user 2026-11-16)
   showTitleBar?: boolean;             // whether to render TitleBar (in lessons and streams: NO title bar, user 2026-11-05)
   cams?: { from: number; to: number; cx: number }[];
   zooms?: { from: number; to: number; amt?: number }[];
@@ -422,7 +423,7 @@ type Split = NonNullable<MontageSpec["splits"]>[number];
 const CARD_H = 800;
 /** the answered clip in portrait (user 2026-11-16: «بلا اسم المقطع، إطار ورقة مقصوصة الأطراف بلزقة كالعرضي، وكبّره قليلاً»): the source-pixel column [x, x+w) of the cut inside a hand-torn paper mount with a piece of tape, like the landscape mount (DebateLayouts TornWindow); no caption under it */
 const CARD_PAD = 18;
-const CropPolaroid: React.FC<{ cut: string; x: number; w: number; y?: number; h?: number; name?: string; left: number; top: number; rot: number; innerH?: number; blur?: number; aspect?: number }> = ({ cut, x, w, left, top, rot, innerH = CARD_H, blur, y = 0, h = 1080, aspect }) => {
+const CropPolaroid: React.FC<{ cut: string; x: number; w: number; y?: number; h?: number; name?: string; left: number; top: number; rot: number; innerH?: number; blur?: number; aspect?: number; t0?: number }> = ({ cut, x, w, left, top, rot, innerH = CARD_H, blur, y = 0, h = 1080, aspect, t0 }) => {
   const k = innerH / h, iw = aspect ? Math.round(innerH * aspect) : Math.round(w * k), pw = iw + CARD_PAD * 2, ph = innerH + CARD_PAD * 2;
   const hole = `linear-gradient(#000 0 0) 0 0/100% 100% no-repeat, linear-gradient(#000 0 0) ${CARD_PAD}px ${CARD_PAD}px/${iw}px ${innerH}px no-repeat`;
   return (
@@ -430,7 +431,7 @@ const CropPolaroid: React.FC<{ cut: string; x: number; w: number; y?: number; h?
       {/* hybrid: the video is composited under the graphics, so the paper is a ring with a window cut out of it; otherwise the video is drawn on the paper */}
       <div style={{ position: "absolute", inset: 0, background: BRAND.card, clipPath: tornClip(pw, ph, "port-clip", 7, 22), ...(HY ? { WebkitMask: hole, WebkitMaskComposite: "xor", mask: hole, maskComposite: "exclude" } : {}) }} />
       <div style={{ position: "absolute", left: CARD_PAD, top: CARD_PAD, width: iw, height: innerH, overflow: "hidden", background: hyBg("#000") }}>
-        {HY ? <VSlot src={cut} w={iw} h={innerH} vx={aspect ? 0 : -x * k} vy={aspect ? 0 : -y * k} vw={aspect ? iw : 1920 * k} vh={aspect ? innerH : 1080 * k} /> : <RV src={staticFile(cut)} style={{ position: "absolute", left: aspect ? 0 : -x * k, top: aspect ? 0 : -y * k, width: aspect ? iw : 1920 * k, height: aspect ? innerH : 1080 * k, ...(blur ? { filter: `blur(${blur}px)` } : {}) }} />}
+        {HY ? <VSlot src={cut} startFrom={t0 != null ? -Math.round(t0 * 30) : 0} w={iw} h={innerH} vx={aspect ? 0 : -x * k} vy={aspect ? 0 : -y * k} vw={aspect ? iw : 1920 * k} vh={aspect ? innerH : 1080 * k} /> : (t0 != null ? <Sequence from={Math.round(t0 * 30)} layout="none"><RV src={staticFile(cut)} style={{ position: "absolute", left: aspect ? 0 : -x * k, top: aspect ? 0 : -y * k, width: aspect ? iw : 1920 * k, height: aspect ? innerH : 1080 * k, ...(blur ? { filter: `blur(${blur}px)` } : {}) }} /></Sequence> : <RV src={staticFile(cut)} style={{ position: "absolute", left: aspect ? 0 : -x * k, top: aspect ? 0 : -y * k, width: aspect ? iw : 1920 * k, height: aspect ? innerH : 1080 * k, ...(blur ? { filter: `blur(${blur}px)` } : {}) }} />)}
       </div>
       <Tape x={pw * 0.34} y={-16} w={Math.max(110, pw * 0.34)} rot={-12} />
     </div>
@@ -503,14 +504,14 @@ const PortraitClipCard: React.FC<{ cut: string; sp: Split }> = ({ cut, sp }) => 
     const ih = sp.card?.innerH ?? 300, a2 = sp.mainAspect ?? 16 / 9, pw2 = Math.round(ih * a2) + CARD_PAD * 2;
     return (
       <Only from={sp.from} to={sp.to}>
-        <CropPolaroid cut={sp.clipSrc ?? cut} aspect={sp.clipSrc ? sp.clipAspect ?? 16 / 9 : undefined} x={sp.clip.x} w={sp.clip.w} y={sp.clip.y} h={sp.clip.h} left={14} top={sp.card?.top ?? 1180} rot={-2} innerH={ih} />
-        <CropPolaroid cut={sp.mainSrc} aspect={a2} x={0} w={1920} left={1080 - 14 - pw2} top={sp.card?.top ?? 1180} rot={2} innerH={ih} />
+        <CropPolaroid cut={sp.clipSrc ?? cut} aspect={sp.clipSrc ? sp.clipAspect ?? 16 / 9 : undefined} x={sp.clip.x} w={sp.clip.w} y={sp.clip.y} h={sp.clip.h} left={14} top={sp.card?.top ?? 1180} rot={-2} innerH={ih} t0={sp.clipSrc ? sp.from : undefined} />
+        <CropPolaroid cut={sp.mainSrc} aspect={a2} x={0} w={1920} left={1080 - 14 - pw2} top={sp.card?.top ?? 1180} rot={2} innerH={ih} t0={sp.from} />
       </Only>
     );
   }
     return (
     <Only from={sp.from} to={sp.to}>
-      <CropPolaroid aspect={sp.clipSrc ? sp.clipAspect ?? 16 / 9 : undefined} cut={sp.clipSrc ?? cut} x={sp.clip.x} w={sp.clip.w} y={sp.clip.y} h={sp.clip.h} name={sp.clipName ?? "المقطع المردود عليه"} left={sp.card?.left ?? 30} top={sp.card?.top ?? 1320} rot={sp.card?.rot ?? -2} innerH={sp.card?.innerH ?? 450} blur={sp.blur} />
+      <CropPolaroid aspect={sp.clipSrc ? sp.clipAspect ?? 16 / 9 : undefined} cut={sp.clipSrc ?? cut} x={sp.clip.x} w={sp.clip.w} y={sp.clip.y} h={sp.clip.h} name={sp.clipName ?? "المقطع المردود عليه"} left={sp.card?.left ?? 30} top={sp.card?.top ?? 1320} rot={sp.card?.rot ?? -2} innerH={sp.card?.innerH ?? 450} blur={sp.blur} t0={sp.clipSrc ? sp.from : undefined} />
     </Only>
   );
 };
@@ -546,7 +547,7 @@ export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: nu
   const dx = sh ? sh.dx * Math.min(clamp((t - sh.from) / 0.4), clamp((sh.to + 0.4 - t) / 0.4)) : 0;
   const fth = sh?.feather ? sh.feather * Math.min(clamp((t - sh.from) / 0.4), clamp((sh.to + 0.4 - t) / 0.4)) : 0;
   const sp = splits.find((x) => t >= x.from && t < x.to);
-  if (sp) { const L = DEBATE_LAYOUTS[sp.layout ?? "dossier"]; return <L at={sp.from} main={sp.mainSrc ? { src: sp.mainSrc, aspect: sp.mainAspect ?? 16 / 9 } : { src: cut, x: sp.sheikh.x, w: sp.sheikh.w }} guest={sp.clipSrc ? { src: sp.clipSrc, aspect: sp.clipAspect ?? 16 / 9, blur: sp.blur } : { src: cut, x: sp.clip.x, w: sp.clip.w, y: sp.clip.y, h: sp.clip.h, blur: sp.blur }} guestName={sp.clipName} url={sp.clipUrl} behind={behind} gaps={gaps} />; }
+  if (sp) { const L = DEBATE_LAYOUTS[sp.layout ?? "dossier"]; return <L at={sp.from} main={sp.mainSrc ? { src: sp.mainSrc, aspect: sp.mainAspect ?? 16 / 9, t0: sp.from } : { src: cut, x: sp.sheikh.x, w: sp.sheikh.w }} guest={sp.clipSrc ? { src: sp.clipSrc, aspect: sp.clipAspect ?? 16 / 9, blur: sp.blur, t0: sp.from } : { src: cut, x: sp.clip.x, w: sp.clip.w, y: sp.clip.y, h: sp.clip.h, blur: sp.blur }} guestName={sp.clipName} url={sp.clipUrl} behind={behind} gaps={gaps} />; }
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 1.2);
   const pp = pips.find((q) => t >= q.at && t <= q.until), pu = pp ? pipK(t, pp.at, pp.until) : 0;   // PipSource (user 2026-11-14): he shrinks into the top-right corner window
   const z = zz ? 1 + (zz.amt ?? 0.08) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1;
@@ -825,7 +826,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutA
       </>)}
       <Gfx>
         {spec.items.map((it, i) => (behindIt(it) ? null : renderItem(it, i, o, bar)))}
-        {spec.showTitleBar ? <TitleBar title={spec.title} theme={bar} bottomHalf={o === "port"} /> : null}
+        {(spec.showTitleBar ?? spec.kind !== "reel") ? <TitleBar title={spec.title} theme={bar} date={spec.date} bottomHalf={o === "port"} /> : null}   {/* the counter bar is on in every episode by default (user 2026-11-16); lessons/streams set it false */}
       </Gfx>
       {/* the ONLY transition of the user-ordered layers is the gallery Curtain (user 2026-11-09: no opacity transitions, nothing outside the gallery): where a clip hands over to the next clip of its group, and where a background clip / isolation ends */}
       {o === "land" ? [...new Set([...hclips.flatMap((x) => hclips.filter((y) => y !== x && y.from - x.to > -0.01 && y.from - x.to < 1).map((y) => (x.to + y.from) / 2)), /* no curtain when a background clip ends or an isolation window (moved or not) starts/ends: the isolation just goes away (user 2026-11-11) */].map((v) => +v.toFixed(2)))].map((t) => <Curtain key={"gc" + t} at={t} />) : null}

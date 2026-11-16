@@ -347,7 +347,8 @@ if (stage === "check") {
   const specKind = (() => { try { return JSON.parse(fs.readFileSync(path.join("data", "specs", `${p}.json`), "utf8")).kind ?? "full"; } catch { return "full"; } })();
   const isReel = specKind === "reel" || /-R$/.test(comp);
   const baseId = isReel ? comp : comp.replace(/-(?:L|Both)$/, "");
-  const orients = isReel ? ["port"] : comp.endsWith("-L") ? ["land", "port"] : ["port", "land"];   // the named composition's form first
+  const only = opt("only", null);   // --only port|land: just one orientation was asked for («لا أريد» the other)
+  const orients = isReel ? ["port"] : only === "port" || only === "land" ? [only] : comp.endsWith("-L") ? ["land", "port"] : ["port", "land"];   // the named composition's form first
   const compOf = (o) => (isReel ? comp : o === "land" ? `${baseId}-L` : baseId);
   await run("node", ["tools/make_preview_proxy.mjs", "--auto", p]);   // light Studio copies of every heavy video (no stutter in the preview; renders use the full files)
   const step = async (label, cmd, args, pick) => {
@@ -363,7 +364,7 @@ if (stage === "check") {
     const sf = path.join("data", "specs", `${p}.json`), norm = process.argv.includes("--normalize");
     // the montage's forms (user 2026-11-16: «نبني طولي وعرضي، ويبنيهما بنفس الوقت»): a full montage is built AND checked as portrait + landscape, a reel as portrait only;
     // the three Studio compositions (طولي، عرضي، الاثنان معاً) are registered from the same spec first (idempotent)
-    if (fs.existsSync(sf)) await step("spec_register", "node", ["tools/spec_register.mjs", p, "--id", baseId, ...(isReel ? ["--kind", "reel"] : [])], /spec_register|✘/);
+    if (fs.existsSync(sf)) await step("spec_register", "node", ["tools/spec_register.mjs", p, "--id", baseId, ...(isReel ? ["--kind", "reel"] : []), ...(only === "port" || only === "land" ? ["--forms", only] : [])], /spec_register|✘/);
     if (fs.existsSync(sf) && fs.existsSync(path.join(T, "cut_words.json")))
       for (const o of orients) await step(`${norm ? "spec_normalize" : "spec_normalize --dry"} (${o === "land" ? "عرضي" : "طولي"})`, "node", ["tools/spec_normalize.mjs", sf, "--o", o, ...(norm ? [] : ["--dry"])], /spec_normalize|✘/);
   }

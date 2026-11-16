@@ -8,7 +8,7 @@
 // BOTH ORIENTATIONS FROM THE START (user 2026-11-16: «نبني طولي وعرضي… ينسخه مع المعلومات اللازمة للحالين»): every item carries its portrait numbers AND its landscape numbers (`land`:
 // the name tag / subscribe at the grid's landscape slots, the picture cards at the gallery sample's size via tools/gallery_geometry.mjs --write), and the new spec is registered
 // at once as its three Studio compositions — طولي, عرضي and «الاثنان معاً» (tools/spec_register.mjs). `--kind reel` = portrait only (no name tag / subscribe, one composition).
-//   extra options: [--kind full|reel] [--id Comp-Id] [--folder "مونتاج الجلسة"]  (the registration runs only when the spec is written to its own data/specs/<p>.json)
+//   extra options: [--kind full|reel] [--id Comp-Id] [--folder "مونتاج الجلسة"] [--forms port|land|port,land,both]  (only one orientation asked for: --forms port or land)  (the registration runs only when the spec is written to its own data/specs/<p>.json)
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -90,5 +90,5 @@ fs.writeFileSync(out, JSON.stringify(spec, null, 1));
 console.log(`draft → ${out}: ${(dur / 60).toFixed(1)} min · ${splits.length} split(s) · ${cams.length} cam stretch(es) · ${items.filter((i) => i.t === "nameTag").length} name tags · ${items.filter((i) => i.t === "subscribe").length} subscribe · ${items.filter((i) => i.t === "pic").length} pictures · ${zooms.length} push-ins · ${shake.length} shakes`);
 // both orientations: the picture cards get the gallery sample's portrait AND landscape geometry, then the three compositions are registered (only for the spec's own file, never a side draft)
 if (items.some((i) => ["pic"].includes(i.t))) { const g = spawnSync(process.execPath, ["tools/gallery_geometry.mjs", out, "--write"], { encoding: "utf8", windowsHide: true }); console.log((g.stdout || g.stderr || "").trim().split(String.fromCharCode(10)).slice(-1)[0]); }
-if (out === path.join("data", "specs", `${p}.json`)) { const r = spawnSync(process.execPath, ["tools/spec_register.mjs", p, "--kind", kind, ...(opt("id", null) ? ["--id", opt("id", "")] : []), ...(opt("folder", null) ? ["--folder", opt("folder", "")] : []), "--title", title], { encoding: "utf8", windowsHide: true }); console.log((r.stdout || r.stderr || "").trim()); }
+if (out === path.join("data", "specs", `${p}.json`)) { const r = spawnSync(process.execPath, ["tools/spec_register.mjs", p, "--kind", kind, ...(opt("id", null) ? ["--id", opt("id", "")] : []), ...(opt("folder", null) ? ["--folder", opt("folder", "")] : []), ...(opt("forms", null) ? ["--forms", opt("forms", "")] : []), "--title", title], { encoding: "utf8", windowsHide: true }); console.log((r.stdout || r.stderr || "").trim()); }
 if (missing.length) console.log(`not mentioned in the cut (no pic placed): ${missing.join("، ")}`);

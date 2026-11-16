@@ -31,6 +31,8 @@ const list = (n) => all(n).flatMap((s) => String(s).split("|").map((x) => x.trim
 const readJson = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return d; } };
 
 /** the ordered stages the router (skill video-montage) walks; `skills` = the skills allowed to own that stage */
+// skills merged on 2026-11-16: reports written before then still name the old skill
+const MERGED = { hook: "gallery-placement", comparisons: "gallery-placement", "enumeration-and-flow": "gallery-placement", "timeline-and-numbers": "gallery-placement", "book-source-display": "source-display", "website-source-display": "source-display", "video-source-display": "source-display", "source-motions": "source-display", "collage-selection": "collage-broll-local" };
 const STAGES = [
   { id: "questions", skills: ["video-montage"], label: "الأسئلة بالنقر" },
   { id: "cut", skills: ["video-cutting"], label: "التفريغ وتقطيع السكتات (+ بوابة الصوت)" },
@@ -138,7 +140,7 @@ if (cmd === "stage") {
     const r = readJson(path.join(sdir, `${id}.json`), null);
     if (!r) { console.log(`✘ ${st.label}: لا تقرير`); bad++; continue; }
     const problems = [];
-    if (!st.skills.includes(r.skill)) problems.push(`المهارة المعلنة «${r.skill}» ليست من ${st.skills.join("/")}`);
+    if (!st.skills.includes(MERGED[r.skill] ?? r.skill)) problems.push(`المهارة المعلنة «${r.skill}» ليست من ${st.skills.join("/")}`);
     if (r.notDone.length) problems.push(`لم يُنجز: ${r.notDone.join("؛ ")}`);
     for (const a of r.artifacts) if (!fs.existsSync(a)) problems.push(`ناتج مفقود: ${a}`);
     for (const g of r.gates) if (!g.ok) problems.push(`فحص فاشل: ${g.name}`);
@@ -158,7 +160,7 @@ if (cmd === "stage") {
     const r = readJson(f, null);
     if (!r) { bad++; out.push(`✘ ${st.label}: لا تقرير`); continue; }
     const problems = [];
-    if (!st.skills.includes(r.skill)) problems.push(`المهارة المعلنة «${r.skill}» ليست من ${st.skills.join("/")}`);
+    if (!st.skills.includes(MERGED[r.skill] ?? r.skill)) problems.push(`المهارة المعلنة «${r.skill}» ليست من ${st.skills.join("/")}`);
     if (r.notDone.length) problems.push(`لم يُنجز: ${r.notDone.join("؛ ")}`);
     for (const a of r.artifacts) if (!fs.existsSync(a)) problems.push(`ناتج مفقود: ${a}`);
     for (const g of r.gates) if (!g.ok) problems.push(`فحص فاشل: ${g.name}`);

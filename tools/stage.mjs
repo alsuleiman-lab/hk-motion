@@ -133,6 +133,8 @@ if (stage === "prep") {
     say(`speakers: ${Object.values(speakers).map((v) => `${v.name} ${v.talk_s}s`).join(", ")}${Object.values(speakers).some((v) => v.name === "sheikh") ? "" : " (⚠ sheikh not matched)"} · ${others.length} other-speaker turn(s) → ${path.join(T, "speakers.txt")}`);
   }
   } else say("speaker roles: review the narrator and story dialogue from the audio/transcript");
+  // «عفواً/أعيد» and stumbles (rules §5, skill montage-orders): the spots are listed now; I judge each from its context and pass the wrong attempts as --rem to stage cut
+  { const rs = await run("node", ["tools/redo_scan.mjs", p]); fs.writeFileSync(path.join(T, "redo.txt"), rs.out); say(`retakes: ${(rs.out.match(/اقتراح --rem/g) ?? []).length} spot(s) → ${path.join(T, "redo.txt")} (judge each from its context → --rem for stage cut)`); }
   say(`read: ${path.join(T, "transcript.txt")}${audioOnly ? " (audio-only source)" : `  (contact sheet: ${path.join(T, "sheet.jpg")})`}`);
   finish(0);
 }
@@ -399,6 +401,7 @@ if (stage === "check") {
   // after the review link the spec is frozen: a change outside a block applied with spec_block.mjs apply = a whole-video rebuild the user forbade (2026-11-11)
   if (fs.existsSync(path.join(T, "spec_frozen.json"))) await step("spec_block", "node", ["tools/spec_block.mjs", "diff", p], /spec_block|^\s+\S/);
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("requirements", "node", ["tools/requirements.mjs", p, "--check"], /requirements|^\s+\S/);
+  await step("tasks", "node", ["tools/tasks.mjs", p], /^✘ مفتوح|^✔ كل المهام/);   // the one task list of the video (rules §6): requirements + orders + stages
   if (fs.existsSync(path.join(T, "montage_notes.json"))) await step("montage_notes", "node", ["tools/montage_notes.mjs", "check", p], /✘|✔/);
   /* (user 2026-11-13: «أنت ما وضعت الفاصل… كل مرة عم تخطئ فيه» + «وجود امرأة يعني تغبيش»): the bumper position is written by the check itself and must exist (reels excepted),
      and no face may stay visible in a clip window / B-roll without an explicit decision (tools/clip_people_gate.py) */

@@ -20,7 +20,9 @@ const probe = JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_entries"
 const v = probe.streams.find((s) => s.codec_type === "video"), hasA = probe.streams.some((s) => s.codec_type === "audio");
 const size = fs.statSync(file).size;
 if (!v || !hasA) { console.error("[bumper] الملف بلا فيديو أو صوت: تُرك كما هو"); process.exit(0); }
-const END = process.argv.includes("--end") || process.env.BUMPER_POSITION === "end";   // البثوث والدروس (أمر 2026-11-11): الفاصل خاتمةً في آخر الفيديو لا قبل بسم الله
+/** الريلز والتعليق الصامت (الطولي القصير): الفاصل في آخر المقطع لا في أوله (أمر 2026-11-15، يخرب الهوك)؛ الطولي الكامل (نسخة حلقة كاملة) والعرضي في أولهما */
+const isShortPortrait = () => { try { if (JSON.parse(fs.readFileSync(path.join(root, "data", "specs", `${name}.json`), "utf8")).kind === "reel") return true; } catch { /* no spec */ } return fs.existsSync(path.join(root, "public", "silent", name, "config.json")); };
+const END = process.argv.includes("--end") || process.env.BUMPER_POSITION === "end" || (AT <= 0 && !process.argv.includes("--start")) || (v.height > v.width && !process.argv.includes("--start") && isShortPortrait());   // البثوث والدروس (أمر 2026-11-11): الفاصل خاتمةً في آخر الفيديو لا قبل بسم الله
 const mainDur = Number(JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "json", file]).toString()).format.duration);
 const portrait = v.height > v.width;   // الفواصل لها نسختان: عرضية (file) وطولية 1080×1920 (fileP)
 try { const g = JSON.parse(fs.readFileSync(gate, "utf8")); if (g.size === size && !process.argv.includes("--force")) { console.log("[bumper] مُضاف مسبقاً: تُرك كما هو"); process.exit(0); } } catch { /* none */ }
@@ -56,8 +58,10 @@ const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", bumpe
   "-c:v", "h264_nvenc", "-preset", "p7", "-rc", "vbr", "-cq", "15", "-b:v", "0", "-maxrate", "26M", "-bufsize", "52M", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", tmp], { stdio: "inherit" });
 if (r.status !== 0 || !fs.existsSync(tmp)) { try { fs.rmSync(tmp, { force: true }); } catch { /* ignore */ } console.error("[bumper] فشل الدمج: الملف الأصلي كما هو"); process.exit(1); }
 const keep = path.join(root, ".tmp", "bumper_orig"); fs.mkdirSync(keep, { recursive: true });
-fs.renameSync(file, path.join(keep, path.basename(file)));
-fs.renameSync(tmp, file);
+/** نقل ملف عبر قرصين مختلفين (C ↔ S): rename يفشل بـEXDEV فنُسخ ثم نحذف الأصل */
+const moveFile = (from, to) => { try { fs.renameSync(from, to); } catch (e) { if (e.code !== "EXDEV") throw e; fs.copyFileSync(from, to); fs.rmSync(from, { force: true }); } };
+moveFile(file, path.join(keep, path.basename(file)));
+moveFile(tmp, file);
 data.last = pick.id; fs.writeFileSync(mf, JSON.stringify(data, null, 2) + "\n");
 fs.mkdirSync(path.dirname(gate), { recursive: true });
 fs.writeFileSync(gate, JSON.stringify({ id: pick.id, title: pick.title, seconds: SEC, originalSize: size, size: fs.statSync(file).size, at: END ? +mainDur.toFixed(3) : AT, position: END ? "end" : "start", date: new Date().toISOString() }));

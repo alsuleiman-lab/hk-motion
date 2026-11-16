@@ -31,4 +31,4 @@ for s, e in sp:
     prev = e
 if total - prev > 0.01: gaps.append([round(prev, 3), round(total - prev, 3)])
 json.dump({"speech": sp, "gaps": gaps}, open(out, "w"))
-print(len(sp), "speech segments;", len([g for g in gaps if g[1] > 0.3]), "gaps >0.3s; longest gap", max(g[1] for g in gaps))
+print(len(sp), "speech segments;", len([g for g in gaps if g[1] > 0.3]), "gaps >0.3s; longest gap", max((g[1] for g in gaps), default=0))

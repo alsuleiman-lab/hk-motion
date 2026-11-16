@@ -53,7 +53,7 @@ try {
     await buildAudio(out, ["-c:a", "pcm_s16le", "-ar", "48000"]);
     console.log(`audio-only cut: ${segs.length} segments -> ${out} in ${secs().toFixed(1)} s`);
   } else if (cmd === "build") {
-    const mode = opt("mode", "batch"), workers = Number(opt("workers", "2")), batch = Number(opt("batch", "12"));
+    const mode = opt("mode", "batch"), workers = Number(opt("workers", "4"))   /* 2026-11-16 (two-hour budget): the 62-minute stream cut took 12 min with 2 workers while the encoder sat at 57 %; four keep it busy */, batch = Number(opt("batch", "12"));
     const aac = path.join(tmp, "audio.m4a");
     const audioJob = opt("audio-from", "") ? Promise.resolve() : buildAudio(aac, ["-c:a", "aac", "-b:a", "192k"]);
     const vOnly = path.join(tmp, "video.mp4");

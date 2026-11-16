@@ -46,6 +46,9 @@ def pick(t, prefer, ok):
 explicit = []
 try: explicit = [tuple(r) for r in json.load(open(os.path.join(T, "explicit_rem.json"), encoding="utf-8"))]
 except Exception: pass
+# (user 2026-11-16, «كلام للشيخ حُذف خطأً»: «ما يكون»، «هكذا»، «الحب الحقيقي»…) a pause removed by a measured silence run is NOT a removed block: only the ranges listed in .tmp/<p>/explicit_only.json (his instructions / corrections) make a short neighbouring word «stray»
+try: explicit = [tuple(r) for r in json.load(open(os.path.join(T, "explicit_only.json"), encoding="utf-8"))]
+except Exception: pass
 def runs(a, b, thr=-34.0):
     """voiced runs (> thr, 10 ms frames) inside [a,b] → [(start,end)]"""
     i, out = int(a / 0.01), []
@@ -87,6 +90,8 @@ moved, stuck, maxshift = 0, [], 0.0
 # the VAD's own edges (0.18 s after the last voice, 0.10 s before the next) inside the clip's background noise, where no real silence exists — accepted where they are
 noise_edges = []
 try: noise_edges = [v for g in json.load(open(os.path.join(T, "noise_gaps.json"), encoding="utf-8")) for v in g]
+except Exception: pass
+try: noise_edges += [float(v) for v in json.load(open(os.path.join(T, "noise_edges_extra.json"), encoding="utf-8"))]   # edges I judged by hand to sit in a clip's constant noise floor (no silence anywhere near; the speech itself ended earlier) — survives re-cuts
 except Exception: pass
 at_noise = lambda t: any(abs(t - v) < 0.15 for v in noise_edges)   # 0.15: stage.mjs's pause trimming shaves up to 0.12 s off an edge
 okj = {}   # edges that sit in a breath/noise tail with no silence: cut 0.10 s after the last word / before the first word (recorded so the gate does not re-flag them)

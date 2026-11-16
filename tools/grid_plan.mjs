@@ -147,7 +147,7 @@ const md = [`# الشبكة — ${spec.id}`, ""];
 let bad = 0, moved = 0;
 for (const o of orients) {
   const grid = G[o], res = {}, fails = [], offGrid = [], rows = [];
-  const items = spec.items.map((it, i) => ({ it, i, s: spanOf(it), k: it.t === "verse" && it.full ? "exclusive" : kindOf[it.t] ?? "photo" }))
+  const items = spec.items.map((it, i) => ({ it, i, s: spanOf(it), k: it.t === "verse" && it.full ? "exclusive" : o === "port" && it.t === "scraps" && spec.captions?.words?.length ? "ignore" : kindOf[it.t] ?? "photo" }))
     .filter((x) => x.s && x.k !== "ignore" && !(x.it.t === "rows" && x.it.pin && o === "port") && !(x.it.only && x.it.only !== o) && !(o === "land" && x.it.land?.skip) && !(o === "land" && x.it.t === "phone"))
     .sort((a, b) => a.s[0] - b.s[0]);
   const big = items.filter((x) => x.k === "exclusive" || x.k === "solo");

@@ -5,7 +5,7 @@ cd /s/AI_Tools/Remotion_Workspace; source tools/env.sh >/dev/null 2>&1
 p=$1; L=$2; R=$3; out=$4; mkdir -p "$out"
 spec=data/specs/$p.json
 # the opening bumper goes right before his first greeting with the bumper chosen in the spec (user 2026-11-14, repeated): never at second 0, never random
-export BUMPER_AT=$(node tools/bumper_at.mjs $p 2>/dev/null | tail -1); export BUMPER_ID=$(node -e 'try{console.log(JSON.parse(require("fs").readFileSync("'$spec'","utf8")).bumper?.id??"")}catch{console.log("")}')
+export BUMPER_AT=$(node tools/bumper_at.mjs $p 2>/dev/null | tail -1); export BUMPER_ID=$(node -e 'try{console.log(JSON.parse(require("fs").readFileSync("'$spec'","utf8")).bumper?.id??"")}catch{console.log("")}'); if node -e 'try{process.exit(JSON.parse(require("fs").readFileSync("'$spec'","utf8")).bumper?.end?0:1)}catch{process.exit(1)}'; then export BUMPER_POSITION=end; export BUMPER_AT=0; fi
 cutsrc="public/$(node -e 'console.log(JSON.parse(require("fs").readFileSync("'$spec'","utf8")).cut)')"
 read -r cx avoid <<<"$(node -e '
 const s=JSON.parse(require("fs").readFileSync("'$spec'","utf8"));
@@ -13,7 +13,7 @@ console.log((s.cams?.[0]?.cx??940)+" "+(s.zooms||[]).map(z=>(z.from-0.5).toFixed
 freeat=$(node -e 'const s=JSON.parse(require("fs").readFileSync("'$spec'","utf8"));const d=s.frames/30;const b=[...(s.zooms||[]),...(s.shake||[])].map(z=>[z.from-0.5,z.to+1.6]).sort((x,y)=>x[0]-y[0]);let best=[0,0],t=0;for(const [a,c] of [...b,[d,d]]){if(a-t>best[1]-best[0])best=[t,a];t=Math.max(t,c)}console.log((best[0]+0.6).toFixed(2))')
 while [ -f .tmp/render.lock ] && node -e 'const o=JSON.parse(require("fs").readFileSync(".tmp/render.lock","utf8"));try{process.kill(o.pid,0);process.exit(0)}catch{process.exit(1)}' 2>/dev/null; do sleep 15; done
 # (2026-11-15) the lock alone is not enough (another session's render can start between two of mine and fill the card's memory: decode errors, «no painted frame»): before EACH orientation wait until no other gpu_render.mjs runs (twice in a row, 40 s apart)
-wait_gpu_free() { local q=0; while [ $q -lt 2 ]; do if powershell -NoProfile -Command "if (Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'gpu_render.mjs' -and $_.CommandLine -notmatch '--no-bumper' }) { exit 1 } else { exit 0 }"; then q=$((q+1)); sleep 40; else q=0; sleep 30; fi; done; }
+wait_gpu_free() { local q=0; while [ $q -lt 2 ]; do if powershell -NoProfile -Command "if (Get-CimInstance Win32_Process | Where-Object { \$_.CommandLine -match 'gpu_render.mjs' -and \$_.CommandLine -notmatch '--no-bumper' }) { exit 1 } else { exit 0 }"; then q=$((q+1)); sleep 40; else q=0; sleep 30; fi; done; }
 for o in ${GR_ONLY:-L R}; do
   comp=$L; [ $o = R ] && comp=$R
   wait_gpu_free

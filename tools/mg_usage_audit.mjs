@@ -28,6 +28,8 @@ const KIT = {
   "ساعة": ["Clock"],
   "بطاقة آية": ["VerseWords"],
   "قصاصة خبر": ["NewsClip"],
+  "عنصر منتقى (المعرض)": ["PickEl"],   // (2026-11-16) the gallery's picked elements are a variety of their own: a reel with captions has no scraps, its variety is the picks and the hadith card
+  "بطاقة حديث": ["HadithCard"],
 };
 const file = process.argv[2];
 if (!file) { console.error("usage: node tools/mg_usage_audit.mjs src/<File>.tsx [--minutes 8]"); process.exit(2); }
@@ -46,7 +48,7 @@ const walk = (f) => {
   }
 };
 // a data-driven montage (data/specs/<id>.json, src/MontageSpec.tsx): count each item as the kit component the renderer draws for it (2026-10-27)
-const SPEC_KIT = { blur: "BlurRise", pic: "SourceWalk", rewrite: "RewriteWindow", flash: "FlashCut", phone: "PhoneChips", word: "KeyChip", torn: "TornNote", rows: "StatRow", subscribe: "Subscribe", nameTag: "NameTag", tphoto: "TornPhoto", scraps: "WordScraps", clock: "Clock", verse: "VerseWords", news: "NewsClip", brushx: "BrushX" };   // brushx = the red strike over a picture («شطب»)
+const SPEC_KIT = { blur: "BlurRise", pic: "SourceWalk", rewrite: "RewriteWindow", flash: "FlashCut", phone: "PhoneChips", word: "KeyChip", torn: "TornNote", rows: "StatRow", subscribe: "Subscribe", nameTag: "NameTag", tphoto: "TornPhoto", scraps: "WordScraps", clock: "Clock", verse: "VerseWords", news: "NewsClip", brushx: "BrushX", pick: "PickEl", hadith: "HadithCard", note: "HadithCard" };   // brushx = the red strike over a picture («شطب»)
 if (file.endsWith(".json")) {
   const spec = JSON.parse(fs.readFileSync(file, "utf8"));
   // one use = one item: a land-only copy and a port-only copy of the same element (same type, same start) are ONE use in the video
@@ -59,7 +61,7 @@ for (const [kind, names] of Object.entries(KIT)) counts[kind] = names.reduce((n,
 const used = Object.entries(counts).filter(([, n]) => n > 0), need = Math.min(9, Math.max(4, Math.ceil(minutes * 0.8)));
 console.log(`ملفات مفحوصة: ${seen.size} | المدة المفترضة: ${minutes} د | المطلوب: ${need} أنواع مختلفة على الأقل من القطع\n`);
 for (const [k, n] of Object.entries(counts)) console.log(`${n > 0 ? "✔" : "·"} ${k}: ${n}`);
-const EXEMPT = new Set(["عبارة مفتاحية", "ملاحظة ممزقة", "اشتراك", "بطاقة اسم", "صورة ممزقة", "كابشن قصاصات", "بطاقات بنود", "مشي المصدر", "بطاقة آية"]);   /* (2026-11-12) pictures («صور أولاً») and a card for every recited verse are ordered by the rules: no cap */   // «صورة ممزقة» = صورة كل شخص مذكور (إلزامي)؛ وأشكال الكتابة الثلاثة (ممزقة/قصاصات/بنود) لا تُحَدّ بـ3 بل يُحَدّ نصيب الملاحظة الممزقة منها (أدناه)   // content/periodic obligations, not decoration (user 2026-10-29: «أنت لا تكتب الكلمات المهمة»): no cap
+const EXEMPT = new Set(["عنصر منتقى (المعرض)", "بطاقة حديث", "عبارة مفتاحية", "ملاحظة ممزقة", "اشتراك", "بطاقة اسم", "صورة ممزقة", "كابشن قصاصات", "بطاقات بنود", "مشي المصدر", "بطاقة آية"]);   /* (2026-11-12) pictures («صور أولاً») and a card for every recited verse are ordered by the rules: no cap */   // «صورة ممزقة» = صورة كل شخص مذكور (إلزامي)؛ وأشكال الكتابة الثلاثة (ممزقة/قصاصات/بنود) لا تُحَدّ بـ3 بل يُحَدّ نصيب الملاحظة الممزقة منها (أدناه)   // content/periodic obligations, not decoration (user 2026-10-29: «أنت لا تكتب الكلمات المهمة»): no cap
 // the torn note may be at most 50 % of the writing items (torn + scraps + list cards) — user 2026-11-06: «ممنوع التكرار الكثير لهذا العنصر»
 let tornShare = 0;
 if (file.endsWith(".json")) { const sp = JSON.parse(fs.readFileSync(file, "utf8")); const L = sp.items.filter((i) => i.only !== "land" || true).filter((i) => i.only !== "port"); const nT = L.filter((i) => i.t === "torn").length, nS = L.filter((i) => i.t === "scraps").length, nR = L.filter((i) => i.t === "rows").reduce((n, i) => n + i.rows.length, 0); tornShare = nT / Math.max(1, nT + nS + nR); console.log(`حصة الملاحظة الممزقة من الكتابة: ${Math.round(tornShare * 100)}% (ممزقة ${nT} · قصاصات ${nS} · بطاقات بنود ${nR})`); }

@@ -18,7 +18,7 @@ segs = []
 for s, e in sp:
     if segs and s - segs[-1][1] < MERGE: segs[-1][1] = e
     else: segs.append([s, e])
-m = WhisperModel("large-v3", device=DEVICE, compute_type="int8" if DEVICE == "cpu" else "int8_float16", cpu_threads=THREADS, num_workers=1)
+m = WhisperModel("large-v3", device=DEVICE, compute_type="int8" if DEVICE == "cpu" else "float16", cpu_threads=THREADS, num_workers=1)
 res = []
 for i, (s, e) in enumerate(segs):
     s0, e0 = max(0, s - 0.15), min(len(audio)/16000, e + 0.15)

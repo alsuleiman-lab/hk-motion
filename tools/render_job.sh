@@ -1,7 +1,7 @@
 #!/bin/bash
 # usage: render_job.sh <p> <CompId> <R|L> "<title>"  -> renders into render_work/export (S:), moved later
 cd /s/AI_Tools/Remotion_Workspace; source tools/env.sh >/dev/null 2>&1
-p=$1; id=$2; o=$3; title=$4; export BUMPER_POSITION=${5:-start}
+p=$1; id=$2; o=$3; title=$4; export BUMPER_POSITION=${5:-$([ "$o" = R ] && node -e 'try{process.stdout.write(JSON.parse(require("fs").readFileSync("data/specs/'$p'.json","utf8")).kind==="reel"?"end":"start")}catch{process.stdout.write("start")}' || echo start)}   # الريلز فاصله في آخره، والطولي الكامل والعرضي في أولهما (أمر 2026-11-15)
 # the opening bumper goes right before his first «بسم الله / السلام عليكم» (with «طيب»), not at second 0 when the video opens with a clip or a hook (2026-11-12)
 [ "$BUMPER_POSITION" = start ] && export BUMPER_AT=$(node tools/bumper_at.mjs $p) && export BUMPER_ID=$(node tools/bumper_at.mjs $p --id)
 spec=data/specs/$p.json
@@ -10,8 +10,8 @@ cutsrc="public/$(node -e 'console.log(JSON.parse(require("fs").readFileSync("'$s
 # avoid: zooms, shakes, full-screen verses (he is hidden, 2026-11-12) AND isolation windows shifted aside (dx) — the face crop sees the shifted figure there (false judder, 2026-11-12)
 read -r cx avoid <<<"$(node -e '
 const s=JSON.parse(require("fs").readFileSync("'$spec'","utf8"));
-const cm=(s.cams||[]).map(c=>({cx:c.cx,d:Math.min(c.to,s.frames/30)-c.from})).sort((a,b)=>b.d-a.d)[0];console.log((cm?.cx??940)+" "+(s.zooms||[]).map(z=>(z.from-0.5).toFixed(2)+"-"+(z.to+1.6).toFixed(2)).concat((s.shake||[]).map(z=>z.from+"-"+z.to)).concat((s.behind||[]).filter(w=>w.dx).map(w=>(w.from-0.3).toFixed(2)+"-"+(w.to+0.3).toFixed(2))).concat((s.items||[]).filter(i=>i.t==="verse"&&i.full).map(i=>((i.at??i.times[0])-0.4).toFixed(2)+"-"+((i.until??i.times[i.times.length-1]+2)+0.6).toFixed(2))).join(","));')"
-freeat=$(node -e 'const s=JSON.parse(require("fs").readFileSync("'$spec'","utf8"));const d=s.frames/30;const b=[...(s.zooms||[]),...(s.shake||[])].map(z=>[z.from-0.5,z.to+1.6]).concat((s.items||[]).filter(i=>i.t==="verse"&&i.full).map(i=>[(i.at??i.times[0])-0.4,(i.until??i.times[i.times.length-1]+2)+0.6])).sort((x,y)=>x[0]-y[0]);let best=[0,0],t=0;for(const [a,c] of [...b,[d,d]]){if(a-t>best[1]-best[0])best=[t,a];t=Math.max(t,c)}console.log((best[0]+0.6).toFixed(2))')
+const cm=(s.cams||[]).map(c=>({cx:c.cx,d:Math.min(c.to,s.frames/30)-c.from})).sort((a,b)=>b.d-a.d)[0];console.log((cm?.cx??940)+" "+(s.zooms||[]).map(z=>(z.from-0.5).toFixed(2)+"-"+(z.to+1.6).toFixed(2)).concat((s.shake||[]).map(z=>z.from+"-"+z.to)).concat((s.behind||[]).filter(w=>w.dx).map(w=>(w.from-0.3).toFixed(2)+"-"+(w.to+0.3).toFixed(2))).concat((s.items||[]).filter(i=>i.t==="pick"||(i.t==="note"&&i.phrases&&i.phrases.length)).map(i=>{const a=i.at??i.phrases[0].at;return (a-0.8).toFixed(2)+"-"+((i.until??a+6)+2.0).toFixed(2)})).concat((s.items||[]).filter(i=>i.t==="verse"&&i.full).map(i=>((i.at??i.times[0])-0.4).toFixed(2)+"-"+((i.until??i.times[i.times.length-1]+2)+0.6).toFixed(2))).join(","));')"
+freeat=$(node -e 'const s=JSON.parse(require("fs").readFileSync("'$spec'","utf8"));const d=s.frames/30;const b=[...(s.zooms||[]),...(s.shake||[])].map(z=>[z.from-0.5,z.to+1.6]).concat((s.items||[]).filter(i=>i.t==="pick"||(i.t==="note"&&i.phrases&&i.phrases.length)).map(i=>{const a=i.at??i.phrases[0].at;return [a-0.8,(i.until??a+6)+2.0]})).concat((s.items||[]).filter(i=>i.t==="verse"&&i.full).map(i=>[(i.at??i.times[0])-0.4,(i.until??i.times[i.times.length-1]+2)+0.6])).sort((x,y)=>x[0]-y[0]);let best=[0,0],t=0;for(const [a,c] of [...b,[d,d]]){if(a-t>best[1]-best[0])best=[t,a];t=Math.max(t,c)}console.log((best[0]+0.6).toFixed(2))')
 safe=$(node -e 'console.log(process.argv[1].replace(/[:?؟«»"]/g,""))' "$title")
 if [ "$o" = R ]; then
   sx=$(node -e "console.log(Math.round($cx-163))"); crop="--crop 250,300,580,700 --src-crop $sx,169,326,394"; name="$safe #محمد_بن_شمس_الدين.mp4"

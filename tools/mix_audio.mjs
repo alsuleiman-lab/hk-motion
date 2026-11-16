@@ -3,14 +3,14 @@ import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 const [spec, p] = process.argv.slice(2);
 const s = JSON.parse(fs.readFileSync(`data/specs/${spec}.json`, "utf8"));
-const wav = `.tmp/${p}/cut.wav`;
+const wav = fs.existsSync(`.tmp/${p}/cut_final.wav`) ? `.tmp/${p}/cut_final.wav` : fs.existsSync(`.tmp/${p}/cut_lvl.wav`) ? `.tmp/${p}/cut_lvl.wav` : `.tmp/${p}/cut.wav`;   // a leveled cut (clip windows lifted to the sheikh) wins
 const sfx = (s.sfx ?? []).filter((x) => x.src && x.at != null);
 const uniq = [...new Set(sfx.map((x) => x.src))];
 const args = ["-y", "-v", "error", "-i", wav];
 uniq.forEach((u) => args.push("-i", `public/${u}`));
 let fc = `[0:a]volume=0.8[m]`;
 const labels = ["[m]"];
-sfx.forEach((x, i) => { const k = uniq.indexOf(x.src) + 1; const ms = Math.round(x.at * 1000); fc += `;[${k}:a]atrim=0:1.5,volume=${x.vol ?? 0.04},adelay=${ms}|${ms}[s${i}]`; labels.push(`[s${i}]`); });
+sfx.forEach((x, i) => { const k = uniq.indexOf(x.src) + 1; const ms = Math.round(x.at * 1000); fc += `;[${k}:a]atrim=0:${x.dur ?? 1.5},volume=${x.vol ?? 0.04},adelay=${ms}|${ms}[s${i}]`; labels.push(`[s${i}]`); });
 fc += `;${labels.join("")}amix=inputs=${labels.length}:normalize=0:duration=first[out]`;
 fs.writeFileSync(`.tmp/${p}/mix_fc.txt`, fc);
 args.push("-/filter_complex", `.tmp/${p}/mix_fc.txt`, "-map", "[out]", "-ac", "2", "-ar", "48000", `public/${p}_audio.wav`);

@@ -35,7 +35,8 @@ if (hit > 0) {
     else console.error(`bumper_at: لا سكتة حقيقية قبل «${W[hit].w}» — الموضع من التفريغ ${at.toFixed(2)}ث`);
   } catch (e) { console.error("bumper_at: تعذّر قياس الصوت", e.message); }
 }
-const AT = at2 < 1 ? 0 : +at2.toFixed(2);
+/* (user 2026-11-16, «يممممنع وضع الفاصل في أول الفيديو يا غبي») NEVER at second 0: with no opening greeting after the video's start the bumper goes at the END (end:true → BUMPER_POSITION=end) */
+const END_AT = at2 < 1, AT = END_AT ? +(spec.frames / 30).toFixed(2) : +at2.toFixed(2);
 /* --write: spec.bumper = { id (random among public/fawasel, kept once chosen), at } — Studio shows it there and the render inserts the SAME one (2026-11-12) */
 if (process.argv.includes("--write") || process.argv.includes("--id")) {
   const f = `data/specs/${p}.json`, sp2 = JSON.parse(fs.readFileSync(f, "utf8")), ids = Object.keys(JSON.parse(fs.readFileSync("public/fawasel/manifest.json", "utf8")).items ?? {}).length ? Object.keys(JSON.parse(fs.readFileSync("public/fawasel/manifest.json", "utf8")).items) : ["press", "shelf", "wall", "notebook", "tear"];
@@ -43,7 +44,7 @@ if (process.argv.includes("--write") || process.argv.includes("--id")) {
   const keep = `.tmp/${p}/bumper.json`, kept = fs.existsSync(keep) ? JSON.parse(fs.readFileSync(keep, "utf8")).id : null;
   const id = sp2.bumper?.id && ids.includes(sp2.bumper.id) ? sp2.bumper.id : kept && ids.includes(kept) ? kept : ids[Math.floor(Math.random() * ids.length)];
   fs.writeFileSync(keep, JSON.stringify({ id }));
-  if (process.argv.includes("--write")) { sp2.bumper = { id, at: AT }; fs.writeFileSync(f, JSON.stringify(sp2, null, 1)); console.log(`bumper: «${id}» عند ${AT}ث`); process.exit(0); }
+  if (process.argv.includes("--write")) { sp2.bumper = { id, at: AT, ...(END_AT ? { end: true } : {}) }; fs.writeFileSync(f, JSON.stringify(sp2, null, 1)); console.log(`bumper: «${id}» عند ${AT}ث${END_AT ? " (في الآخر: لا فاصل في أول الفيديو)" : ""}`); process.exit(0); }
   console.log(id); process.exit(0);
 }
 console.log(String(AT));

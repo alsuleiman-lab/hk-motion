@@ -14,10 +14,11 @@ const POSES = {
 const sh = (c) => { const r = spawnSync("bash", ["-c", `cd /s/AI_Tools/Remotion_Workspace; source tools/env.sh >/dev/null 2>&1; unset LESSON; ${c}`], { encoding: "utf8", maxBuffer: 1 << 26 }); return (r.stdout || "") + (r.stderr || ""); };
 const t = (s) => s.trim().split("\n").slice(-2).join(" | ").slice(0, 260);
 const f = `data/specs/${id}.json`, rd = () => JSON.parse(fs.readFileSync(f, "utf8")), wr = (s) => fs.writeFileSync(f, JSON.stringify(s, null, 1));
+const O = P.orient === "land" ? "land" : "port";   // الاتجاه: طولي افتراضياً، عرضي للمقطع الذي يزيد على دقيقتين
 const d = JSON.parse(fs.readFileSync(`public/${id}_map.json`, "utf8")).duration;
 console.log(id, "dur", d.toFixed(1));
 if (fs.existsSync(f)) fs.rmSync(f);
-console.log(t(sh(`node tools/spec_draft.mjs ${id} --title "${P.title}"`)));
+console.log(t(sh(`node tools/spec_draft.mjs ${id} --title "${P.title}" --folder "البثوث" --kind ${P.orient === "land" ? "full" : "reel"}`)));
 { const s = rd();
   s.title = P.title; s.showTitleBar = false; s.brand = P.brand ?? "steel";
   s.items = s.items.filter((i) => !["pic", "credit", "torn", "scraps", "cover", "nameTag", "subscribe"].includes(i.t));   // only what I chose below
@@ -26,16 +27,17 @@ console.log(t(sh(`node tools/spec_draft.mjs ${id} --title "${P.title}"`)));
   s.items.sort((a, b) => (a.at ?? a.from ?? 0) - (b.at ?? b.from ?? 0));
   if (P.skipMentions) s.skipMentions = P.skipMentions;
   if (P.skipRequired) s.skipRequired = P.skipRequired;
+  if (P.skipMetaphors) s.skipMetaphors = P.skipMetaphors;   // ما لا يُرسم له استعارة بقرار مكتوب (قالب البث السريع)
   if (P.zooms) s.zooms = P.zooms;   // zoom only at the key words I chose (lesson correction 2026-11-12), not the draft's
   if (P.shake) s.shake = P.shake;
   wr(s); }
-fs.writeFileSync(`.tmp/${id}/writing.json`, JSON.stringify({ fix: P.fix ?? {}, items: P.writing }, null, 1));
+fs.writeFileSync(`.tmp/${id}/writing.json`, JSON.stringify({ fix: P.fix ?? {}, items: P.writing ?? [] }, null, 1));
 { const wo = sh(`node tools/writing_place.mjs ${id} --write`); console.log(t(wo)); if (/✘ writing_place/.test(wo)) { console.error("✘ البناء توقف: عبارة مرفوضة — صحّحها في الخطة (أو fix) ثم أعد"); process.exit(1); } }
-sh(`bash tools/stream/b2_fix.sh ${id} port`);
+sh(`bash tools/stream/b2_fix.sh ${id} ${O}`);
 sh(`node tools/stream/b2_land_extra.mjs ${id} '${JSON.stringify(P.extra ?? { name: [Math.min(12, d / 4)], sub: [Math.max(5, Math.min(40, d - 6))] })}'`);
 console.log(t(sh(`node tools/scraps_times.mjs ${f}; node tools/writing_sync.mjs ${f} --fix; node tools/writing_place.mjs ${id} --hold; node tools/sfx_bind.mjs ${f}`)));
 console.log(t(sh(`node tools/gallery_geometry.mjs ${f} --write`)));
 fs.copyFileSync(f, `.tmp/${id}/pre_norm.json`);
-console.log(t(sh(`node tools/spec_normalize.mjs ${f} --o port`)));
+console.log(t(sh(`node tools/spec_normalize.mjs ${f} --o ${O}`)));
 const s = rd();
 console.log(id, "items", s.items.length, "types", [...new Set(s.items.map((i) => i.t))].join(","), "frames", s.frames);

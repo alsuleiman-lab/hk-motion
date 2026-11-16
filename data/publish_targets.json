@@ -3,7 +3,9 @@
  "drive": {
   "insta_face": {
    "name": "طولي/انستا وفيس",
-   "id": "1tjE5DVDGULTwc0US-6lXWid0PdDpv_-b"
+   "id": "1tjE5DVDGULTwc0US-6lXWid0PdDpv_-b",
+   "url": "https://drive.google.com/drive/u/2/folders/1tjE5DVDGULTwc0US-6lXWid0PdDpv_-b",
+   "_note": "the user's folder for his Instagram/Facebook publishing automation: full portrait videos go here directly (no sub-folder). Chrome account u/2. Checked in the browser 2026-11-17."
   },
   "all": {
    "name": "طولي/الكل",
@@ -24,11 +26,6 @@
   "streams_land": {
    "name": "عرضي/بثوث",
    "id": "17zZ4ESICHP0_n_yvoMbwhj7BCoBQaFbM"
-  },
-  "portrait_full": {
-   "name": "طولي/انستا وفيس/جاهز طويل انستا وفيس",
-   "id": null,
-   "_note": "the user's own folder for full portrait videos (his publishing automation depends on it); not visible to the connected Drive account — get its link from him; NEVER create a folder"
   }
  },
  "youtube": {

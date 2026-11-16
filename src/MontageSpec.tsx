@@ -26,7 +26,7 @@ import { PIP, pipK } from "./PickKit";
 import { ShoePrint } from "./ShoePrint";
 import { PillCaptions } from "./Captions";
 import type { CaptionsSpec } from "./Captions";
-import { PICK_ALL as PICK_KIT, PICK_ALL_FULL_FRAME as PICK_FULL_FRAME, LeftShade, BottomShade, PICK_XY, PICK_NOSPLIT } from "./PickKit2";
+import { PICK_ALL as PICK_KIT, PICK_ALL_FULL_FRAME as PICK_FULL_FRAME, LeftShade, BottomShade, PICK_XY, PICK_NOSPLIT, pickPortBoard } from "./PickKit2";
 import type { PickAllName as PickName } from "./PickKit2";
 import type { BrandName } from "./brand";
 import { MaskedVideo } from "./MaskedVideo";
@@ -54,6 +54,10 @@ export type Land = { x?: number; y?: number; w?: number; h?: number; photoH?: nu
 /** every item, whatever its type, carries the same placement data in each orientation (user 2026-11-09: «لازم كل العناصر يكون لها بيانات كاملة»):
  *  dx / dy = move in px, k = scale about the centre of what the item draws; portrait on the item, landscape in `land` */
 type Common = { only?: "port" | "land"; land?: Land; dx?: number; dy?: number; k?: number };
+/** portrait layout bands (user 2026-11-16, two marked screenshots: «اجعل الكابشن عند إشارتي الزرقاء، والعناصر عند المستطيل الأحمر دائماً»):
+ *  the caption ends at PORT_CAPTION_BOTTOM (src/Captions.tsx), every element is drawn inside PORT_ZONE under it */
+export const PORT_ZONE = { top: 1400, bottom: 1880, left: 30, right: 1050 };
+export const PORT_CAPTION_BOTTOM = 1372;
 export type SpecItem = Common & (
   | { t: "word"; text: string; at: number; until: number; x: number; y: number; size?: number; tone?: "gold" | "cream"; flag?: string }
   | { t: "blur"; text: string; at: number; until: number; y: number; size?: number; accentWords?: number[]; x?: number; w?: number }   // x/w (portrait): a narrow left column under the opponent's card, text left-aligned (gallery note on BlurRise)
@@ -229,7 +233,39 @@ const placed = (it: SpecItem, i: number, o: Orient, n: React.ReactNode): React.R
   const c = k !== 1 ? boxCentre(it, o) : null;
   return n && (dx || dy || k !== 1) ? <GxLayer key={"place" + i} gx={{ dx, dy, k, ...(c ? { ox: c[0], oy: c[1] } : {}) }}>{n}</GxLayer> : n;
 };
-const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.ReactNode => placed(it, i, o, renderItemRaw(it, i, o, bar));
+/** the box an item draws in portrait, ESTIMATED from its own numbers (no measuring, user 2026-11-16: «قدّر المقاس والمكان»): [x0, y0, x1, y1] before its dx/dy/k;
+ *  null = not a lower-band element (full screen, base layer, its own fixed place) */
+const portBox = (it: SpecItem): [number, number, number, number] | null => {
+  const q = it as unknown as { t: string; x?: number; y?: number; w?: number; h?: number; size?: number; text?: string; also?: unknown[]; full?: boolean };
+  const lines = (txt: string, size: number, w: number) => Math.max(1, Math.ceil((txt.length * size * 0.55) / w));
+  switch (q.t) {
+    case "tphoto": { const w = q.w ?? 300, h = q.h ?? 370, x = q.x ?? 40, y = q.y ?? 1360, n = 1 + (q.also?.length ?? 0); return [x - 20, y - 30, x + n * w + (n - 1) * 24 + 20, y + h + 200]; }
+    case "scholar": { const w = q.w ?? 300, h = q.h ?? 370, x = q.x ?? 40, y = q.y ?? 1360; return [x - 20, y - 30, x + w + 20, y + h + 90]; }
+    case "pic": case "news": case "flash": { if (!q.w || !q.h) return null; const x = q.x ?? 40, y = q.y ?? 1360; return [x - 20, y - 60, x + q.w + 20, y + q.h + 30]; }
+    case "date": { const w = q.w ?? 340, x = q.x ?? 300, y = q.y ?? 1330; return [x, y - 15, x + w, y + w * 1.38]; }
+    case "nameTag": { const y = q.y ?? 1360; return [60, y - 28, 1020, y + 112]; }
+    case "subscribe": { const y = q.y ?? 1384; return [60, y - 42, 1020, y + 120]; }
+    case "scraps": { const size = q.size ?? 36, y = q.y ?? 1330; return [40, y - 30, 1040, y + 60 + 125 * lines(q.text ?? "", size * 1.6, 980)]; }
+    case "blur": { const y = q.y ?? 1400; return [40, y, 1040, y + 230]; }
+    case "flag": { const w = q.w ?? 220, x = q.x ?? 60, y = q.y ?? 1360; return [x, y, x + w, y + w * 0.67]; }
+    case "clock": { const z = q.size ?? 300, x = q.x ?? 60, y = q.y ?? 1330; return [x, y, x + z, y + z]; }
+    case "word": { const y = q.y ?? 1400; return [40, y - 20, 1040, y + (q.size ?? 60) * 1.6]; }
+    default: return null;   // pick (its own portrait board, PickKit2 pickPortBoard), torn/stamp/rows (already placed in the band), verse/hadith/cover/full (full screen or base)
+  }
+};
+/** every lower-band element is moved (and shrunk only if it is taller than the band) into PORT_ZONE: a static transform, nothing jumps while it animates */
+const zoned = (it: SpecItem, i: number, o: Orient, n: React.ReactNode): React.ReactNode => {
+  if (o !== "port" || !n) return n;
+  const b = portBox(it); if (!b) return n;
+  const k0 = it.k ?? 1, cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2;
+  const x0 = cx + (b[0] - cx) * k0 + (it.dx ?? 0), x1 = cx + (b[2] - cx) * k0 + (it.dx ?? 0), y0 = cy + (b[1] - cy) * k0 + (it.dy ?? 0), y1 = cy + (b[3] - cy) * k0 + (it.dy ?? 0);
+  const Z = PORT_ZONE, w = x1 - x0, h = y1 - y0, k = Math.min(1, (Z.bottom - Z.top) / h, (Z.right - Z.left) / w);
+  const top = y0 < Z.top ? Z.top : y0 + h * k > Z.bottom ? Z.bottom - h * k : y0, ox = (x0 + x1) / 2;
+  const dx = ox - (w * k) / 2 < Z.left ? Z.left - (ox - (w * k) / 2) : ox + (w * k) / 2 > Z.right ? Z.right - (ox + (w * k) / 2) : 0, dy = top - y0;
+  if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && k > 0.999) return n;
+  return <div key={"pz" + i} style={{ position: "absolute", inset: 0, transform: `translate(${dx}px, ${dy}px) scale(${k})`, transformOrigin: `${ox}px ${y0}px` }}>{n}</div>;
+};
+const renderItem = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.ReactNode => zoned(it, i, o, placed(it, i, o, renderItemRaw(it, i, o, bar)));
 const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React.ReactNode => {
   if (it.only && it.only !== o) return null;
   const L = o === "land", ov: Land = it.land ?? {}, G = LANDSCAPE.left;
@@ -246,8 +282,8 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
     case "note": {
       if (L && it.phrases?.length && it.way && it.way !== "card") {
         if (it.way === "isnad" && it.chain?.length) return <HadithIsnad key={i} chain={it.chain} lead={it.lead} phrases={it.phrases} src={it.tag} cardAt={it.cardAt ?? it.phrases[0].at - 0.4} until={it.until} />;
-        if (it.way === "books") return <HadithBooksPanel key={i} lead={it.lead} narrator={it.narrator} phrases={it.phrases} src={it.tag} books={it.books} until={it.until} />;
-        return <HadithQuotePanel key={i} lead={it.lead} phrases={it.phrases} src={it.tag} until={it.until} />;
+        if (it.way === "books") return <HadithBooksPanel key={i} lead={it.lead} narrator={it.narrator} phrases={it.phrases} src={it.tag} books={it.books} until={it.until} size={it.size} />;
+        return <HadithQuotePanel key={i} lead={it.lead} phrases={it.phrases} src={it.tag} until={it.until} size={it.size} />;
       }
       const w = L ? ov.w ?? it.w ?? 600 : it.w ?? 820, size = it.size ?? 38;
       const lines = Math.max(1, Math.ceil([...it.title].length / Math.max(1, Math.floor((w - 70) / (size * 0.5))))), h = ov.h ?? it.h ?? Math.round(130 + lines * size * 1.6);
@@ -304,7 +340,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
         </Only>
       );
     }
-    case "pick": { const ip = { ...it, until: pickUntil(it) }; const C = PICK_KIT[ip.el] as React.FC<Record<string, unknown>>; const { t: _t, el: _e, land, noShift: _ns, ...rest0 } = ip as { t: string; el: string; land?: Record<string, unknown>; noShift?: boolean } & Record<string, unknown>; const ns = ip.noShift ?? !!PICK_NOSPLIT[ip.el], xy = PICK_XY[ip.el], rest = { ...(rest0.x == null && xy ? { x: xy[0], y: xy[1] } : {}), ...rest0 }, lp = { ...(ns ? PICK_NOSPLIT[ip.el] ?? {} : {}), ...(land ?? {}) }; return C ? <Only key={i} from={ip.at - HALF_LEAD} to={ip.until}>{L && !ns && !PICK_FULL_FRAME.has(ip.el) ? <PickPanel at={ip.at} until={ip.until} /> : null}{L && ns && !PICK_FULL_FRAME.has(ip.el) ? <LeftShade at={ip.at} until={ip.until} /> : null}{!L && !PICK_FULL_FRAME.has(ip.el) ? <BottomShade at={ip.at} until={ip.until} /> : null}{L || PICK_FULL_FRAME.has(ip.el) ? <C {...rest} {...(L ? lp : {})} /> : <div style={{ position: "absolute", left: 0, top: 860, width: 1920, height: 1080, transform: "scale(0.9)", transformOrigin: "0 0" }}><C {...rest} /></div>}</Only> : null; }   // the gallery decides place and look: its own x,y (PICK_XY), no split screen for PICK_NOSPLIT, portrait = the gallery's lower-half board
+    case "pick": { const ip = { ...it, until: pickUntil(it) }; const C = PICK_KIT[ip.el] as React.FC<Record<string, unknown>>; const { t: _t, el: _e, land, noShift: _ns, ...rest0 } = ip as { t: string; el: string; land?: Record<string, unknown>; noShift?: boolean } & Record<string, unknown>; const ns = ip.noShift ?? !!PICK_NOSPLIT[ip.el], xy = PICK_XY[ip.el], rest = { ...(rest0.x == null && xy ? { x: xy[0], y: xy[1] } : {}), ...rest0 }, lp = { ...(ns ? PICK_NOSPLIT[ip.el] ?? {} : {}), ...(land ?? {}) }; return C ? <Only key={i} from={ip.at - HALF_LEAD} to={ip.until}>{L && !ns && !PICK_FULL_FRAME.has(ip.el) ? <PickPanel at={ip.at} until={ip.until} /> : null}{L && ns && !PICK_FULL_FRAME.has(ip.el) ? <LeftShade at={ip.at} until={ip.until} /> : null}{!L && !PICK_FULL_FRAME.has(ip.el) ? <BottomShade at={ip.at} until={ip.until} /> : null}{L || PICK_FULL_FRAME.has(ip.el) ? <C {...rest} {...(L ? lp : {})} /> : <div style={pickPortBoard(ip.el)}><C {...rest} /></div>}</Only> : null; }   // the gallery decides place and look: its own x,y (PICK_XY), no split screen for PICK_NOSPLIT, portrait = the gallery's lower-half board
     case "subscribe": return <Subscribe key={i} at={it.at} x={L ? ov.x ?? 1300 : it.x} y={L ? ov.y ?? 790 : it.y} dur={it.dur} />;
     case "verse": {
       // a verse he recites INSIDE his talk = the known verse card (VerseWords) in the writing area / the empty side, his picture visible (user 2026-11-01); full screen (full:true) only for a lone recitation

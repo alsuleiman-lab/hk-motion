@@ -9,11 +9,11 @@ import { BRAND } from "./brand";
  *  - pages of ≤ 4 words, split at a comma/full stop or a pause > 0.6 s, balanced (5 words → 3 + 2, never a lone word when avoidable);
  *  - Almarai ExtraBold, white with a black stroke drawn under the fill (readable over any shot); the font is shrunk to fit the band, never wrapped past 2 lines;
  *  - it hides inside `skip` windows (a full-screen verse/hadith, a card the user wants alone).
- * Spec: "captions": { "words": [[word, startSec, endSec], …], "y"?: 1380, "x"?: 70, "w"?: 940, "size"?: 84, "skip"?: [{ from, to }] }
+ * Spec: "captions": { "words": [[word, startSec, endSec], …], "bottom"?: 1372 (or "y" = top), "x"?: 70, "w"?: 940, "size"?: 84, "skip"?: [{ from, to }] }
  * Words come from tools/captions_fill.mjs (the corrected cut_words of the video).
  */
 export type CapWord = [string, number, number];
-export type CaptionsSpec = { words: CapWord[]; y?: number; x?: number; w?: number; size?: number; skip?: { from: number; to: number }[] };
+export type CaptionsSpec = { words: CapWord[]; y?: number; bottom?: number; x?: number; w?: number; size?: number; skip?: { from: number; to: number }[] };
 
 const PILL_PAD_X = 16, PILL_PAD_Y = 10, PILL_MOVE = 5;   // frames the pill takes to slide to the next word
 
@@ -53,9 +53,10 @@ export const PillCaptions: React.FC<{ cap: CaptionsSpec; hideAlso?: { from: numb
   const k = pages.findIndex((p, n) => t >= cap.words[p[0]][1] && (n === pages.length - 1 ? t <= cap.words[p[p.length - 1]][2] + 0.6 : t < cap.words[pages[n + 1][0]][1]));
   if (k < 0) return null;
   if ([...(cap.skip ?? []), ...hideAlso].some((w) => t >= w.from && t < w.to)) return null;
-  const x = cap.x ?? 70, w = cap.w ?? 940, y = cap.y ?? 1380;
+  /* (user 2026-11-16, marked screenshot) the caption sits in the band just ABOVE the elements' zone: its last line ends at `bottom` (1372), a second line grows upward */
+  const x = cap.x ?? 70, w = cap.w ?? 940;
   return (
-    <div style={{ position: "absolute", left: x, top: y, width: w }}>
+    <div style={{ position: "absolute", left: x, width: w, ...(cap.y != null ? { top: cap.y } : { bottom: 1920 - (cap.bottom ?? 1372) }) }}>
       <Page key={k} words={cap.words} idx={pages[k]} t={t} fps={fps} size={cap.size ?? 84} w={w} />
     </div>
   );

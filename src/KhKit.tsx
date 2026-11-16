@@ -60,7 +60,7 @@ export const KhBg: React.FC<{ a?: string; b?: string; c?: string; star?: number;
   /* (2026-11-12) GPU renderer: the static background (<HybridBg>) is rendered once, which froze the drifting stars. tools/gpu_render.mjs renders its
      three parts apart (inputProps hyBgPart = "base" | "stars" | "vignette", the stars at position 0 0) and the compositor drifts the stars per frame
      with the same 0.25 / 0.15 px per frame (KHBG_DRIFT). Without that prop: as always. */
-  const part = (getInputProps() as { hyBgPart?: string }).hyBgPart;
+  const part = (getRemotionEnvironment().isPlayer ? {} : getInputProps() as { hyBgPart?: string }).hyBgPart;   // a <Player> (the side-by-side preview) may not call getInputProps
   return (
     <AbsoluteFill>
       {!part || part === "base" ? <AbsoluteFill style={{ background: `linear-gradient(135deg, ${a}, ${b} 52%, ${c})` }} /> : null}

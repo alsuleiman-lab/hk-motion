@@ -207,3 +207,6 @@ export const sizeAudit = (shots: Shot[]): string[] => {
   });
   return out;
 };
+
+/** shots follow each other with no gap: each shot lasts until the next one starts (a gap used to fall back to the LAST shot of the film for a few frames), the first starts at 0 */
+export const contiguous = (shots: Shot[], end?: number): Shot[] => shots.map((sh, i) => ({...sh, from: i === 0 ? 0 : sh.from, to: i < shots.length - 1 ? shots[i + 1].from : end ?? sh.to}));

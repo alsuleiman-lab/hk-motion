@@ -28,6 +28,8 @@ import type { MontageSpec } from "./MontageSpec";
 import streamArshFakhSpec from "../data/specs/stream_arsh_fakh_reel.json";
 import streamMayyitIlmSpec from "../data/specs/stream_mayyit_ilm_reel.json";
 import rabbiShiaSpec from "../data/specs/rabbi_shia.json";
+import individualReligiositySpec from "../data/specs/individual-religiosity.json";
+const IndividualReligiosityLComp: React.FC = () => <MontageFromSpec spec={individualReligiositySpec as unknown as MontageSpec} />;
 
 
 
@@ -44,21 +46,16 @@ import { FeastNews, NEWS_FRAMES } from "./FeastNews";
 import { Tk10Montage, TK10_FRAMES } from "./Tk10Montage";
 
 
-import { AreefiFilm, AREEFI_SECONDS } from "./AreefiFilm";
 
-import { KamaliFilm, KAMALI_SECONDS } from "./KamaliFilm";
 
 export const RemotionRoot: React.FC = () => {
   return (
     <ByRecency>
 
       <Folder name="مونتاج الجلسة">
+        <Composition id="Individual-Religiosity-L" component={IndividualReligiosityLComp} durationInFrames={specFrames(individualReligiositySpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
       <Composition id="FeastNews" component={FeastNews} durationInFrames={NEWS_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Tk10Montage" component={Tk10Montage} durationInFrames={TK10_FRAMES} fps={30} width={1080} height={1920} />
-      </Folder>
-      <Folder name="كرتون الجلسة">
-        <Composition id="Stick-Kamali" component={KamaliFilm} durationInFrames={Math.round(KAMALI_SECONDS * 30)} fps={30} width={1080} height={1920} />
-        <Composition id="Stick-Areefi" component={AreefiFilm} durationInFrames={Math.round(AREEFI_SECONDS * 30)} fps={30} width={1080} height={1920} />
       </Folder>
       <Folder name="البثوث">
         {/* بث للحوار مع المخالفين (1) */}

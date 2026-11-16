@@ -414,7 +414,12 @@ const installMarks = () => {
       const ar = area.getBoundingClientRect();
       if (ar.width < 140) { if (box.style.display !== "none") box.style.display = "none"; return; }
       render();
-      const l = Math.round(ar.left + 8), t = Math.round(ar.top + 8);
+      /* the two-screens preview (src/MontageBoth.tsx) draws a black column for this box: sit on it, as wide as it is */
+      const col = document.getElementById("__both_col")?.getBoundingClientRect();
+      const onCol = !!col && col.width > 40;
+      const l = onCol ? Math.round(col!.left + 4) : Math.round(ar.left + 8), t = onCol ? Math.round(col!.top + 4) : Math.round(ar.top + 8);
+      const bw = onCol ? `${Math.min(150, Math.round(col!.width - 8))}px` : "100px";
+      if (box.style.width !== bw) box.style.width = bw;
       if (box.style.display !== "flex") box.style.display = "flex";
       if (box.style.left !== `${l}px`) box.style.left = `${l}px`;
       if (box.style.top !== `${t}px`) box.style.top = `${t}px`;

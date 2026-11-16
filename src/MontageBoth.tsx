@@ -9,11 +9,12 @@ import type { MontageSpec } from "./MontageSpec";
  * one clock, so play / pause / seek move both. Each screen runs the real montage code at its real size: <Sequence width height layout="none"> overrides what
  * useVideoConfig() returns inside it and MontageFromSpec picks its orientation from that size (width > height = landscape); the landscape one is then scaled up
  * (CSS transform, like a player does) to the portrait's height. Nothing in the gallery elements changes. Only the landscape screen has the sound.
- * The Studio's «تحديد» button and its list of saved frames (src/studioTools.ts) stand in the empty strip LEFT of the viewer: when the viewer is so narrow that this
- * composition reaches under them, the two screens shrink together and move right just enough to leave that strip free (measured live; nothing changes when there is room).
+ * Three separate black panels on the Studio's own background (no black sheet behind them; user 2026-11-16: «لكل واحدة شاشة سوداء، وأريد عمود للتحديد»): a COLUMN on the
+ * left for the Studio's «تحديد» button and its list of saved frames (src/studioTools.ts moves them onto it), then the portrait screen, then the landscape one. The column is
+ * about 116 screen px wide whatever the viewer's size (measured live), the two screens take the rest.
  * Final renders never use this composition: it refuses to run while rendering (render the landscape and the portrait compositions one after the other).
  */
-const PW = 1080, PH = 1920, LW = Math.round((1920 * PH) / 1080), M = 20, GAP = 30;   // portrait 1080×1920; landscape 1920×1080 scaled ×1.78 → 3413×1920
+const PW = 1080, PH = 1920, LW = Math.round((1920 * PH) / 1080), M = 20, GAP = 70;   // portrait 1080×1920; landscape 1920×1080 scaled ×1.78 → 3413×1920
 export const BOTH = { W: M + PW + GAP + LW + M, H: M + PH + M };
 
 const screen = (left: number): React.CSSProperties => ({ position: "absolute", left, top: M, width: left === M ? PW : LW, height: PH, overflow: "hidden", background: "#000", boxShadow: "0 0 0 3px rgba(255,255,255,.35)" });
@@ -21,20 +22,20 @@ const screen = (left: number): React.CSSProperties => ({ position: "absolute", l
 export const MontageBoth: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
   if (getRemotionEnvironment().isRendering) throw new Error("تركيبة «الاثنان معاً» للمعاينة فقط: لا تُرندر. ارندر العرضي ثم الطولي كلاً على حدة بتركيبتيهما.");
   const hostRef = React.useRef<HTMLDivElement>(null);
-  const [res, setRes] = React.useState(0);   // canvas px kept free on the left for the «تحديد» strip
+  const [res, setRes] = React.useState(0);   // canvas px of the column on the left (≈ 116 screen px) for the «تحديد» button and list
   React.useEffect(() => {
     const t = window.setInterval(() => {
-      const host = hostRef.current?.getBoundingClientRect(), box = document.getElementById("__frame_marks_box")?.getBoundingClientRect();
-      if (!host || !box || !host.width || box.width === 0) { setRes((o) => (o === 0 ? o : 0)); return; }
-      const need = Math.max(0, box.right + 10 - host.left) / (host.width / BOTH.W);   // screen px → canvas px
-      const r = Math.min(BOTH.W * 0.6, Math.round(need / 4) * 4);
+      const host = hostRef.current?.getBoundingClientRect();
+      if (!host || !host.width) return;
+      const r = Math.min(BOTH.W * 0.4, Math.round(116 / (host.width / BOTH.W) / 4) * 4);   // 116 screen px → canvas px
       setRes((o) => (Math.abs(o - r) < 8 ? o : r));
     }, 400);
     return () => window.clearInterval(t);
   }, []);
   const c = (BOTH.W - res) / BOTH.W;   // the two screens as one block, scaled into what is left
   return (
-    <AbsoluteFill ref={hostRef} style={{ background: "#0b0d12" }}>
+    <AbsoluteFill ref={hostRef}>
+      <div id="__both_col" style={{ position: "absolute", left: 0, top: (BOTH.H - BOTH.H * c) / 2 + M * c, width: Math.max(0, res - GAP * c), height: PH * c, background: "#000", boxShadow: "0 0 0 3px rgba(255,255,255,.35)" }} />
       <div style={{ position: "absolute", left: res, top: (BOTH.H - BOTH.H * c) / 2, width: BOTH.W, height: BOTH.H, transform: `scale(${c})`, transformOrigin: "0 0" }}>
       <div style={screen(M)}>
         <Sequence layout="none" width={PW} height={PH} showInTimeline={false}><MontageFromSpec spec={spec} muted /></Sequence>

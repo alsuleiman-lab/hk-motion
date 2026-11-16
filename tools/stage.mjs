@@ -321,6 +321,8 @@ if (stage === "cut") {
   if (process.env.STREAM_WHOLE === "1") { say("بث كامل: بلا آيات ولا بحث ولا حركات ولا متطلبات على القص كله؛ يُجرى كل منها على كل شريحة في clip_slice.mjs (ميزانية الساعتين)"); finish(0); }
   const vs = await run("node", ["tools/verse_scan.mjs", p]);   // every recited verse becomes a verse item at the second it is said (user 2026-10-28)
   say(`verse_scan: ${(vs.out.match(/✔ /g) ?? []).length} تلاوة في القص → .tmp/${p}/verses.json (كل تلاوة تُكتب في الخطة)`);
+  const hs = await run("node", ["tools/hadith_scan.mjs", p]);   // every narration → verify in Shamela, then a note card from its first word (rules §8.3)
+  say(hs.out.trim().split(/\r?\n/)[0] || "hadith_scan: —");
   // research (verse slips, hadith, people, countries/places, numbers) and the camera-move plan run AT THE SAME TIME (user 2026-11-10); findings that need the user go to the questions page
   // the camera moves are PLANNED here, before the build (user 2026-10-28): push-ins + shake with their sentences → moves.md, copied into the spec by spec_draft
   // the REQUIREMENTS LEDGER (user 2026-11-11 «اشتغل صح من البداية»): every place → map, person → his picture, date → date element, described thing → picture,

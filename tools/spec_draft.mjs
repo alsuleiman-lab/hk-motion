@@ -81,6 +81,15 @@ for (const im of images) {
 }
 items.sort((a, b) => (a.at ?? a.from) - (b.at ?? b.from));
 
+// every verse he recites (tools/verse_scan.mjs, run by stage cut) → a verse item at its words' seconds (rules §8.2): portrait card in the zone, landscape way left to
+// the engine (random approved way), reels full screen; the card stays 1.5 s after the last word. verse_audit in stage check reports any misrecitation to the user.
+for (const v of read(path.join(T, "verses.json"), [])) {
+  if (!v.inCut || !v.cut?.length) continue;
+  const last = v.cut.at(-1);
+  items.push({ t: "verse", words: v.words, times: v.cut.map(r2), title: v.name, refText: v.ref, at: r2(v.cut[0] - 0.05), x: 40, y: 1400, w: 1000, size: 44, until: r2(last + 1.5), aya: v.aya, ...(kind === "reel" ? { full: true } : {}), land: { x: 40, y: 858, w: 600, size: 24 } });
+}
+items.sort((a, b) => (a.at ?? a.from) - (b.at ?? b.from));
+
 // the planned camera moves (tools/moves_plan.mjs, run by stage cut): push-ins + shake, reviewed in the plan
 const moves = read(path.join(T, "moves.json"), { zooms: [], shake: [] });
 const zooms = moves.zooms.map(({ from, to }) => ({ from, to })), shake = moves.shake.map(({ from, to }) => ({ from, to }));
@@ -91,6 +100,8 @@ fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, JSON.stringify(spec, null, 1));
 console.log(`draft → ${out}: ${(dur / 60).toFixed(1)} min · ${splits.length} split(s) · ${cams.length} cam stretch(es) · ${items.filter((i) => i.t === "nameTag").length} name tags · ${items.filter((i) => i.t === "subscribe").length} subscribe · ${items.filter((i) => i.t === "pic").length} pictures · ${zooms.length} push-ins · ${shake.length} shakes`);
 // both orientations: the picture cards get the gallery sample's portrait AND landscape geometry, then the three compositions are registered (only for the spec's own file, never a side draft)
+// places he names → a paper map at that second (rules §8.1, tools/names_scan.mjs); only for the spec's own file
+if (out === path.join("data", "specs", `${p}.json`)) { const n = spawnSync(process.execPath, ["tools/names_scan.mjs", p, "--write"], { encoding: "utf8", windowsHide: true }); console.log((n.stdout || n.stderr || "").trim()); }
 if (items.some((i) => ["pic"].includes(i.t))) { const g = spawnSync(process.execPath, ["tools/gallery_geometry.mjs", out, "--write"], { encoding: "utf8", windowsHide: true }); console.log((g.stdout || g.stderr || "").trim().split(String.fromCharCode(10)).slice(-1)[0]); }
 if (out === path.join("data", "specs", `${p}.json`)) { const r = spawnSync(process.execPath, ["tools/spec_register.mjs", p, "--kind", kind, ...(opt("id", null) ? ["--id", opt("id", "")] : []), ...(opt("folder", null) ? ["--folder", opt("folder", "")] : []), ...(opt("forms", null) ? ["--forms", opt("forms", "")] : []), "--title", title], { encoding: "utf8", windowsHide: true }); console.log((r.stdout || r.stderr || "").trim()); }
 if (missing.length) console.log(`not mentioned in the cut (no pic placed): ${missing.join("، ")}`);

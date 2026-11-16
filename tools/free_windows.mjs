@@ -14,4 +14,5 @@ busy.sort((a, b) => a[0] - b[0]);
 const dur = s.frames / 30, free = []; let e = 3;
 for (const [a, b] of busy) { if (a - e >= 4.5) free.push([e, a]); e = Math.max(e, b); }
 if (dur - 3 - e >= 4.5) free.push([e, dur - 3]);
-console.log(free.map((f) => (f[0] + 0.5).toFixed(1)).join(" "));
+// --spans: the clear stretches themselves ("a-b …", seconds) for the random 10-second judder probe (tools/judder_probe.mjs --random)
+console.log(process.argv.includes("--spans") ? free.map((f) => `${f[0].toFixed(2)}-${f[1].toFixed(2)}`).join(" ") : free.map((f) => (f[0] + 0.5).toFixed(1)).join(" "));

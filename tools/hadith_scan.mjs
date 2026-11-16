@@ -1,6 +1,7 @@
 // Every hadith he narrates → a note card from its first word (rules §8.3; user 2026-11-16 «أداة الحديث»).
 //   node tools/hadith_scan.mjs <p>            find the narrations in .tmp/<p>/cut_words.json → .tmp/<p>/hadith.json (verified:false) + a list to verify
 //   node tools/hadith_scan.mjs <p> --write    add a `note` for every entry I verified (verified:true + text + book + n), from its first spoken word
+// The cue is often the END of a narration («فقال رسول الله…» after «جاء رجل…»): while verifying I set `at` to its first spoken word and `until` to its last.
 // Verification is mine, in the Shamela connector (shamela_search_hadith / shamela_verify_quote), never from memory: I fill text (the wording of the book),
 // book, n (its number) and narrator, set verified:true, then --write. An entry that is not a hadith (he only mentions the Prophet ﷺ) → skip:true.
 import fs from "node:fs";
@@ -18,7 +19,7 @@ if (!rest.includes("--write")) {
   const norm = (s) => String(s).replace(/[ً-ْـ]/g, "").replace(/[إأآا]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/[^\p{L} ]/gu, "").trim();
   const nw = words.map((w) => norm(w.w));
   // cues that open a narration
-  const CUES = [["قال", "رسول", "الله"], ["قال", "النبي"], ["يقول", "رسول", "الله"], ["يقول", "النبي"], ["عن", "النبي"], ["عن", "رسول", "الله"], ["ان", "النبي"], ["ان", "رسول", "الله"], ["في", "الحديث"], ["في", "الصحيح"], ["ثبت", "عن", "النبي"], ["قال", "عليه", "الصلاه"]];
+  const CUES = [["قال", "رسول", "الله"], ["قال", "النبي"], ["يقول", "رسول", "الله"], ["يقول", "النبي"], ["عن", "النبي"], ["عن", "رسول", "الله"], ["ان", "النبي"], ["ان", "رسول", "الله"], ["في", "الحديث"], ["في", "الصحيح"], ["ثبت", "عن", "النبي"], ["قال", "عليه", "الصلاه"], ["جاء", "رجل"], ["اتى", "رجل"], ["سال", "رجل"], ["جاء", "اعرابي"], ["عن", "ابي", "هريره"], ["عن", "ابن", "عمر"], ["عن", "ابن", "عباس"], ["عن", "عايشه"], ["عن", "انس"], ["روى", "البخاري"], ["روى", "مسلم"]];
   const strip = (w) => w.replace(/^(و|ف)/, "");
   const old = read(F, []), found = [];
   for (let i = 0; i < nw.length; i++) {

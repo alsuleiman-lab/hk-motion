@@ -18,4 +18,4 @@ for (let k = 0; k < wr.length - 1; k++) {
   const lost = W.filter((w) => w.s > last + 0.03 && w.s < N.at - 0.05 && !covered(w.s)).filter((w, q, a) => !(q > 0 && a[q - 1].w === w.w && Math.abs(a[q - 1].s - w.s) < 0.3));
   if (lost.length && N.at - last < 9) { n++; console.log(`⚠ ${Math.floor(P.at / 60)}:${String(Math.floor(P.at % 60)).padStart(2, "0")} → ${N.at.toFixed(1)}ث (${lost.length}): ${lost.map((w) => w.w).join(" ")}`); }
 }
-console.log(n ? `⚠ ${n} فجوة: كلمات منطوقة بلا كتابة داخل سياق واحد — أكملها (تقطيع الكابشن من التفريغ) أو برّرها` : "✔ لا كلمات ضائعة في الكتابة المتدفقة");
+console.log(n ? `⚠ ${n} فجوة: كلمات منطوقة بلا كتابة داخل سياق واحد — أكملها بالقصاصات من نص كلامه أو برّرها` : "✔ لا كلمات ضائعة في الكتابة المتدفقة");

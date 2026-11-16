@@ -1,52 +1,33 @@
 import React from "react";
-// @ts-expect-error react-dom ships no types in this project (no @types/react-dom); only createPortal is used
-import { createPortal } from "react-dom";
-import { AbsoluteFill, getRemotionEnvironment } from "remotion";
+import { AbsoluteFill, Sequence, getRemotionEnvironment } from "remotion";
+import { MontageFromSpec } from "./MontageSpec";
 import type { MontageSpec } from "./MontageSpec";
 
 /**
- * PREVIEW ONLY: the «<Id>-Both» composition shows the SAME spec on TWO SEPARATE SCREENS, a portrait screen and a landscape screen, inside the Studio window
- * (user 2026-11-16: «الطولي شاشة والعرضي شاشة داخل الواجهة»; the first version drew both on one canvas: refused). The two real players live in their own page
- * (src/dual/DualApp.tsx, served by tools/dual_serve.mjs on port 3101) because a <Player> cannot live in the Studio's own page; this composition lays that page
- * over the Studio's canvas area as an iframe (the sidebar, menus and timeline stay). Play / pause / seek / space bar there move both screens together.
+ * PREVIEW ONLY: the SAME spec as TWO SCREENS side by side in the Studio's own viewer, a portrait screen (left) and a landscape screen (right) of the SAME HEIGHT
+ * (user 2026-11-16, with his screenshot: «شاشة طولي وشاشة عرضي متجاورتان»), played by the Studio's own transport and timeline, no control of ours. One composition =
+ * one clock, so play / pause / seek move both. Each screen runs the real montage code at its real size: <Sequence width height layout="none"> overrides what
+ * useVideoConfig() returns inside it and MontageFromSpec picks its orientation from that size (width > height = landscape); the landscape one is then scaled up
+ * (CSS transform, like a player does) to the portrait's height. Nothing in the gallery elements changes. Only the landscape screen has the sound.
  * Final renders never use this composition: it refuses to run while rendering (render the landscape and the portrait compositions one after the other).
  */
-export const BOTH = { W: 1920, H: 1080 };   // the registered composition itself is only a placeholder under the iframe
-export const DUAL_PORT = 3101;
+const PW = 1080, PH = 1920, LW = Math.round((1920 * PH) / 1080), M = 20, GAP = 30;   // portrait 1080×1920; landscape 1920×1080 scaled ×1.78 → 3413×1920
+export const BOTH = { W: M + PW + GAP + LW + M, H: M + PH + M };
 
-/** the Studio's canvas area: the biggest ancestor of the placeholder that is not the whole window (falls back to the window) */
-const canvasPanel = (el: HTMLElement | null): DOMRect => {
-  let best: DOMRect | null = null;
-  for (let n = el?.parentElement ?? null; n && n !== document.body; n = n.parentElement) {
-    const r = n.getBoundingClientRect();
-    if (r.width < window.innerWidth - 8 && r.height < window.innerHeight - 8 && r.width > 300 && r.height > 200 && r.top >= 20) best = r;
-  }
-  return best ?? new DOMRect(0, 0, window.innerWidth, window.innerHeight);
-};
+const screen = (left: number): React.CSSProperties => ({ position: "absolute", left, top: M, width: left === M ? PW : LW, height: PH, overflow: "hidden", background: "#000", boxShadow: "0 0 0 3px rgba(255,255,255,.35)" });
 
 export const MontageBoth: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
   if (getRemotionEnvironment().isRendering) throw new Error("تركيبة «الاثنان معاً» للمعاينة فقط: لا تُرندر. ارندر العرضي ثم الطولي كلاً على حدة بتركيبتيهما.");
-  const hostRef = React.useRef<HTMLDivElement>(null);
-  const [rect, setRect] = React.useState<DOMRect | null>(null);
-  const [up, setUp] = React.useState<boolean | null>(null);
-  const src = `http://localhost:${DUAL_PORT}/?spec=${encodeURIComponent(spec.id)}`;
-  React.useEffect(() => {
-    const upd = () => { const r = canvasPanel(hostRef.current); setRect((o) => (o && o.left === r.left && o.top === r.top && o.width === r.width && o.height === r.height ? o : r)); };
-    upd(); const t = window.setInterval(upd, 500); window.addEventListener("resize", upd);
-    return () => { window.clearInterval(t); window.removeEventListener("resize", upd); };
-  }, []);
-  React.useEffect(() => {
-    let live = true;
-    const ping = () => fetch(`http://localhost:${DUAL_PORT}/spec/${encodeURIComponent(spec.id)}.json`, { mode: "no-cors", cache: "no-store" }).then(() => live && setUp(true), () => live && setUp(false));
-    ping(); const t = window.setInterval(() => { if (!up) ping(); }, 3000);
-    return () => { live = false; window.clearInterval(t); };
-  }, [spec.id, up]);
-  const panel = rect ? (
-    <div style={{ position: "fixed", left: rect.left, top: rect.top, width: rect.width, height: rect.height, zIndex: 100000, background: "#0b0d12" }}>
-      {up === false
-        ? <div style={{ color: "#fff", padding: 40, direction: "rtl", fontFamily: "Noto Kufi Arabic, sans-serif", fontSize: 22, lineHeight: 1.9 }}>خادم الشاشتين متوقف. شغّله بالأمر: node tools/dual_serve.mjs ثم أعد فتح هذه التركيبة.</div>
-        : <iframe title="الطولي والعرضي" src={src} allow="autoplay; fullscreen" style={{ width: "100%", height: "100%", border: 0, background: "#0b0d12" }} />}
-    </div>
-  ) : null;
-  return <AbsoluteFill ref={hostRef} style={{ background: "#0b0d12" }}>{panel ? createPortal(panel, document.body) : null}</AbsoluteFill>;
+  return (
+    <AbsoluteFill style={{ background: "#0b0d12" }}>
+      <div style={screen(M)}>
+        <Sequence layout="none" width={PW} height={PH} showInTimeline={false}><MontageFromSpec spec={spec} muted /></Sequence>
+      </div>
+      <div style={screen(M + PW + GAP)}>
+        <div style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080, transform: `scale(${PH / 1080})`, transformOrigin: "0 0" }}>
+          <Sequence layout="none" width={1920} height={1080} showInTimeline={false}><MontageFromSpec spec={spec} /></Sequence>
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
 };

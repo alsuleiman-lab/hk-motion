@@ -33,7 +33,6 @@
   },
   "scripts": {
     "predev": "npm run typecheck",
-    "dual": "node tools/dual_serve.mjs 3101",
     "dev": "remotion studio",
     "prebuild": "npm run typecheck",
     "build": "remotion bundle",

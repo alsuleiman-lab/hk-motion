@@ -667,15 +667,16 @@ const withHalfWays = (s: MontageSpec): MontageSpec => {
 const FAWASEL: Record<string, { file: string; fileP: string }> = { press: { file: "fawasel/fasel_press.mp4", fileP: "fawasel/fasel_press_p.mp4" }, shelf: { file: "fawasel/fasel_shelf.mp4", fileP: "fawasel/fasel_shelf_p.mp4" }, wall: { file: "fawasel/fasel_wall.mp4", fileP: "fawasel/fasel_wall_p.mp4" }, notebook: { file: "fawasel/fasel_notebook.mp4", fileP: "fawasel/fasel_notebook_p.mp4" }, tear: { file: "fawasel/fasel_tear.mp4", fileP: "fawasel/fasel_tear_p.mp4" } };
 const studioBumper = (s: MontageSpec) => { const b = (s as { bumper?: { id: string; at: number } }).bumper; return getRemotionEnvironment().isStudio && b && FAWASEL[b.id] && (s as { kind?: string }).kind !== "reel" ? b : null; };
 export const specFrames = (s: MontageSpec) => s.frames + (studioBumper(s) ? 150 : 0);
-export const MontageFromSpec: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
+/** `muted`: no sound from this copy (the side-by-side preview, src/MontageBoth.tsx, plays the sound from one side only) */
+export const MontageFromSpec: React.FC<{ spec: MontageSpec; muted?: boolean }> = ({ spec, muted }) => {
   const b = studioBumper(spec), { width, height } = useVideoConfig();
-  if (!b) return <MontageFromSpecBody spec={spec} />;
+  if (!b) return <MontageFromSpecBody spec={spec} muted={muted} />;
   const G = Math.round(b.at * 30), f = FAWASEL[b.id];
   return (
     <>
-      {G > 0 ? <Sequence durationInFrames={G}><MontageFromSpecBody spec={spec} /></Sequence> : null}
-      <Sequence from={G} durationInFrames={150}><AbsoluteFill style={{ background: "#000" }}><Video src={staticFile(width > height ? f.file : f.fileP)} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></AbsoluteFill></Sequence>
-      <Sequence from={G + 150}><Sequence from={-G}><MontageFromSpecBody spec={spec} /></Sequence></Sequence>
+      {G > 0 ? <Sequence durationInFrames={G}><MontageFromSpecBody spec={spec} muted={muted} /></Sequence> : null}
+      <Sequence from={G} durationInFrames={150}><AbsoluteFill style={{ background: "#000" }}><Video muted={muted} src={staticFile(width > height ? f.file : f.fileP)} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></AbsoluteFill></Sequence>
+      <Sequence from={G + 150}><Sequence from={-G}><MontageFromSpecBody spec={spec} muted={muted} /></Sequence></Sequence>
     </>
   );
 };
@@ -687,7 +688,7 @@ const withSpecTest = (s: MontageSpec): MontageSpec => {
   if (!x) return s;
   return { ...s, ...(x.dropCut ? { cut: undefined } : {}), items: [...s.items, ...(x.items ?? [])], psplits: [...(s.psplits ?? []), ...(x.psplits ?? [])], behind: (s.behind ?? []).filter((_, i) => !(x.dropBehind ?? []).includes(i)) };
 };
-const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => {
+const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean }> = ({ spec: raw, muted }) => {
   const spec = withGallery(withHalfWays(withSpecTest(raw)));
   for (const it of spec.items) if (!APPROVED_TYPES.has(it.t)) throw new Error(`عنصر غير معتمد في المعرض: «${it.t}» في ${spec.id} — المعتمد: ${[...APPROVED_TYPES].join("، ")}`);
   const f = useCurrentFrame();
@@ -722,8 +723,8 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => 
   return (
     <HybridHost>
     <AbsoluteFill style={{ background: hyBg(BRAND.base) }}>
-      {spec.cut ? <Audio src={staticFile(spec.cut)} volume={0.8} /> : null}
-      {(spec.sfx ?? []).filter((x) => !x.only || x.only === o).map((x, i) => <Sequence key={"sfx" + i} from={Math.max(0, Math.round(x.at * 30))} durationInFrames={x.dur ? Math.round(x.dur * 30) : 45}><Audio src={staticFile(x.src)} volume={x.vol} /></Sequence>)}
+      {spec.cut ? <Audio src={staticFile(spec.cut)} volume={0.8} muted={muted} /> : null}
+      {(spec.sfx ?? []).filter((x) => !x.only || x.only === o).map((x, i) => <Sequence key={"sfx" + i} from={Math.max(0, Math.round(x.at * 30))} durationInFrames={x.dur ? Math.round(x.dur * 30) : 45}><Audio src={staticFile(x.src)} volume={x.vol} muted={muted} /></Sequence>)}
       {o === "port" || !spec.cut ? (HY ? <HybridBg><WarmBase /></HybridBg> : <WarmBase />) : null}
       {/* the base's stars drift with the frame (KhBg): the GPU renderer renders this background's parts apart and its compositor drifts the stars (2026-11-12) */}
       {wrapStage(<>
@@ -734,7 +735,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec }> = ({ spec: raw }) => 
       {o === "land" ? [...new Set((spec.splits ?? []).flatMap((sp) => [sp.from, sp.to]).filter((t) => t > 0.5))].map((t) => <Curtain key={"cs" + t} at={t} />) : null}
       {o === "land" && spec.cut ? (spec.solos ?? []).map((sp, i) => <SoloLand key={"so" + i} cut={spec.cut!} sp={sp} zooms={spec.zooms} />) : null}
       {o === "land" ? (spec.solos ?? []).flatMap((sp, i) => [<Curtain key={"ca" + i} at={sp.from} />, <Curtain key={"cb" + i} at={sp.to} />, ...(sp.center ?? []).flatMap((c, j) => [<Curtain key={"cc" + i + j} at={c.from} />, <Curtain key={"cd" + i + j} at={c.to} />])]) : null}
-      {spec.tail ? <Sequence from={Math.round(spec.tail.from * 30)}><Audio src={staticFile(spec.tail.src)} volume={0.95} /></Sequence> : null}
+      {spec.tail ? <Sequence from={Math.round(spec.tail.from * 30)}><Audio src={staticFile(spec.tail.src)} volume={0.95} muted={muted} /></Sequence> : null}
       {spec.tail ? <TailVoice tl={spec.tail} /> : null}
       {fulls.map((x, i) => {
         const fp = { src: x.src, from: x.from, to: x.to, origin: o === "land" ? x.land?.origin ?? x.origin : x.origin, marker: o === "land" ? x.land?.marker : x.marker, box: o === "land" ? undefined : x.box };

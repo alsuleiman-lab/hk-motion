@@ -14,6 +14,8 @@
 //                                                     → public/<p>_cut.mp4 and the cut transcript .tmp/<p>/cut_transcript.txt (for timing elements).
 //   node tools/stage.mjs check <p> <CompId> --file src/<X>.tsx --minutes <m> [--skip 0-12,40-55]
 //                                                     typecheck → rules_lint → element_usage → brand_audit (spec) → mg_usage_audit → writing_sync (spec: no writing before its words) → coverage_check (spec) → pick_triggers (spec: the picked elements where due) → grid_plan + grid_sheet (spec montage; else face_check) → frame_audit (old TSX only), one after another (never two renders at once).
+//        BOTH ORIENTATIONS AT ONCE (user 2026-11-16): for a data-spec montage the check runs for the portrait AND the landscape form whichever composition is named
+//        (spec_register: the three Studio compositions exist · spec_normalize/grid_plan for both · a grid sheet for both); a reel (kind reel or an id ending -R) is portrait only.
 // Exit code 1 when any step fails; the summary names the step and the log line to read.
 import fs from "node:fs";
 import os from "node:os";
@@ -341,6 +343,12 @@ if (stage === "check") {
   }
   if (!fs.existsSync(path.join("public", `${p}_cut_s.mp4`)) && fs.existsSync(path.join("public", `${p}_cut.mp4`))) { say(`✘ no smoothed video public/${p}_cut_s.mp4 after the smoothing — log ${path.join(T, "smooth.log")}`); finish(1); }
   let failed = 0;
+  /* both orientations (2026-11-16): a spec montage is checked in portrait AND landscape whichever composition was named; a reel (kind reel, or an id ending -R) in portrait only */
+  const specKind = (() => { try { return JSON.parse(fs.readFileSync(path.join("data", "specs", `${p}.json`), "utf8")).kind ?? "full"; } catch { return "full"; } })();
+  const isReel = specKind === "reel" || /-R$/.test(comp);
+  const baseId = isReel ? comp : comp.replace(/-(?:L|Both)$/, "");
+  const orients = isReel ? ["port"] : comp.endsWith("-L") ? ["land", "port"] : ["port", "land"];   // the named composition's form first
+  const compOf = (o) => (isReel ? comp : o === "land" ? `${baseId}-L` : baseId);
   await run("node", ["tools/make_preview_proxy.mjs", "--auto", p]);   // light Studio copies of every heavy video (no stutter in the preview; renders use the full files)
   const step = async (label, cmd, args, pick) => {
     const ts = Date.now();
@@ -353,8 +361,11 @@ if (stage === "check") {
   // any other spec gets a dry report of what is still incomplete (fix it in the plan, then check)
   {
     const sf = path.join("data", "specs", `${p}.json`), norm = process.argv.includes("--normalize");
+    // the montage's forms (user 2026-11-16: «نبني طولي وعرضي، ويبنيهما بنفس الوقت»): a full montage is built AND checked as portrait + landscape, a reel as portrait only;
+    // the three Studio compositions (طولي، عرضي، الاثنان معاً) are registered from the same spec first (idempotent)
+    if (fs.existsSync(sf)) await step("spec_register", "node", ["tools/spec_register.mjs", p, "--id", baseId, ...(isReel ? ["--kind", "reel"] : [])], /spec_register|✘/);
     if (fs.existsSync(sf) && fs.existsSync(path.join(T, "cut_words.json")))
-      await step(norm ? "spec_normalize" : "spec_normalize --dry", "node", ["tools/spec_normalize.mjs", sf, "--o", comp.endsWith("-L") ? "land" : "port", ...(norm ? [] : ["--dry"])], /spec_normalize|✘/);
+      for (const o of orients) await step(`${norm ? "spec_normalize" : "spec_normalize --dry"} (${o === "land" ? "عرضي" : "طولي"})`, "node", ["tools/spec_normalize.mjs", sf, "--o", o, ...(norm ? [] : ["--dry"])], /spec_normalize|✘/);
   }
   await step("studio_drag_lint", "node", ["tools/studio_drag_lint.mjs"], /studio_drag_lint|^s+src/);
   await step("typecheck", "node", ["node_modules/typescript/bin/tsc", "-p", "."], /error TS/);
@@ -415,8 +426,9 @@ if (stage === "check") {
   // data-spec montage: the layout grid (data/layout_grids.json) reserves a place and a time for every element and keeps the face zone (from the face track) free
   // — computed in a second, no render (user 2026-10-29); then ONE sheet of 3 rendered frames per minute to look at. face_fast stays available by hand.
   if (fs.existsSync(specF)) {
-    await step("grid_plan", "node", ["tools/grid_plan.mjs", specF, "--o", comp.endsWith("-L") ? "land" : "port"], /^\[|PASSED|FAILED/);
-    await step("grid_sheet", "node", ["tools/grid_sheet.mjs", comp, specF], /→/);
+    for (const o of orients) await step(`grid_plan (${o === "land" ? "عرضي" : "طولي"})`, "node", ["tools/grid_plan.mjs", specF, "--o", o], /^\[|PASSED|FAILED/);
+    // one sheet per form, one render after the other (never two at once)
+    for (const o of orients) await step(`grid_sheet ${compOf(o)}`, "node", ["tools/grid_sheet.mjs", compOf(o), specF], /→/);
   }
   else await step("face_check", "node", ["tools/face_check.mjs", comp, ...(faceFrames.length ? ["--frames", faceFrames.join(",")] : ["--step", "90"]), "--out", path.join(T, "fc")], /FAIL overlap|PASSED|FAILED|UNVERIFIED/);
   // data-spec montage: coverage_check already proves from the spec that nothing is empty > 5 s and the first minute never (seconds, not the 30+ min

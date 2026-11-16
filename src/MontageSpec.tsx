@@ -705,14 +705,19 @@ const studioBumper = (s: MontageSpec) => { const b = (s as { bumper?: { id: stri
 export const specFrames = (s: MontageSpec) => s.frames + (studioBumper(s) ? 150 : 0);
 /** `muted`: no sound from this copy (the side-by-side preview, src/MontageBoth.tsx, plays the sound from one side only) */
 export const MontageFromSpec: React.FC<{ spec: MontageSpec; muted?: boolean }> = ({ spec, muted }) => {
-  const b = studioBumper(spec), { width, height } = useVideoConfig();
+  const b = studioBumper(spec), { width, height } = useVideoConfig(), frame = useCurrentFrame();
   if (!b) return <MontageFromSpecBody spec={spec} muted={muted} />;
-  const G = Math.round(b.at * 30), f = FAWASEL[b.id];
+  const G = Math.round(b.at * 30), f = FAWASEL[b.id], fr = frame;   // the Studio keeps an ended Sequence's audio tag playing: each voice piece is MUTED outside its own span
   return (
     <>
-      {G > 0 ? <Sequence durationInFrames={G}><MontageFromSpecBody spec={spec} muted={muted} /></Sequence> : null}
+      {/* (user 2026-11-16: «أسمع اختلاط صوت الفاصل مع صوت الفيديو الذي بعده») the Studio kept the first part's voice playing on through the bumper and after it
+          (an unmounted Sequence did not stop its shared audio tag). His voice is therefore NOT in the two copies of the body: it is two bounded audio pieces here,
+          the first cut off at the bumper (endAt), the second starting at the same second after it */}
+      {G > 0 ? <Sequence durationInFrames={G}><MontageFromSpecBody spec={spec} muted={muted} noCutAudio /></Sequence> : null}
+      {G > 0 && spec.cut ? <Audio key="voiceA" src={staticFile(spec.cut)} volume={(v) => (v < G ? 0.8 : 0)} muted={muted || fr >= G} /> : null}   {/* no endAt either (it wraps the tag in a Sequence that ends): it stays mounted, so the Studio keeps steering (and silencing) it */}
       <Sequence from={G} durationInFrames={150}><AbsoluteFill style={{ background: "#000" }}><Video muted={muted} src={staticFile(width > height ? f.file : f.fileP)} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></AbsoluteFill></Sequence>
-      <Sequence from={G + 150}><Sequence from={-G}><MontageFromSpecBody spec={spec} muted={muted} /></Sequence></Sequence>
+      <Sequence from={G + 150}><Sequence from={-G}><MontageFromSpecBody spec={spec} muted={muted} noCutAudio /></Sequence></Sequence>
+      {spec.cut ? <Sequence key="voiceB" from={G + 150}><Audio src={staticFile(spec.cut)} startFrom={G} volume={0.8} muted={muted || fr < G + 150} /></Sequence> : null}
     </>
   );
 };
@@ -724,7 +729,7 @@ const withSpecTest = (s: MontageSpec): MontageSpec => {
   if (!x) return s;
   return { ...s, ...(x.dropCut ? { cut: undefined } : {}), items: [...s.items, ...(x.items ?? [])], psplits: [...(s.psplits ?? []), ...(x.psplits ?? [])], behind: (s.behind ?? []).filter((_, i) => !(x.dropBehind ?? []).includes(i)) };
 };
-const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean }> = ({ spec: raw, muted }) => {
+const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutAudio?: boolean }> = ({ spec: raw, muted, noCutAudio }) => {
   const spec = withGallery(withHalfWays(withSpecTest(raw)));
   for (const it of spec.items) if (!APPROVED_TYPES.has(it.t)) throw new Error(`عنصر غير معتمد في المعرض: «${it.t}» في ${spec.id} — المعتمد: ${[...APPROVED_TYPES].join("، ")}`);
   const f = useCurrentFrame();
@@ -759,7 +764,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean }> = ({
   return (
     <HybridHost>
     <AbsoluteFill style={{ background: hyBg(BRAND.base) }}>
-      {spec.cut ? <Audio src={staticFile(spec.cut)} volume={0.8} muted={muted} /> : null}
+      {spec.cut && !noCutAudio ? <Audio src={staticFile(spec.cut)} volume={0.8} muted={muted} /> : null}
       {(spec.sfx ?? []).filter((x) => !x.only || x.only === o).map((x, i) => <Sequence key={"sfx" + i} from={Math.max(0, Math.round(x.at * 30))} durationInFrames={x.dur ? Math.round(x.dur * 30) : 45}><Audio src={staticFile(x.src)} volume={x.vol} muted={muted} /></Sequence>)}
       {o === "port" || !spec.cut ? (HY ? <HybridBg><WarmBase /></HybridBg> : <WarmBase />) : null}
       {/* the base's stars drift with the frame (KhBg): the GPU renderer renders this background's parts apart and its compositor drifts the stars (2026-11-12) */}

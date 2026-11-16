@@ -202,7 +202,7 @@ a newspaper clipping of a real news screenshot: torn edges, the headline above i
 a torn note for the key phrase: cream paper strip with ragged ends, the phrase in Zain, one word underlined by hand in BRAND.mark
 `props:` at: number; until?: number; x: number; y: number; w: number; text: string; size?: number; underline?: number; rot?: number
 
-### `WordScraps` (العرضي؛ في الطولي والريلز نادراً، الكابشن مكانه)
+### `WordScraps` (العرضي؛ وفي الطولي والريلز نادراً)
 a title made of torn paper scraps, one word per scrap (Arabic letters keep their joins), each arriving in stop-motion with its own tilt and stock
 `props:` at: number; until?: number; x?: number; y?: number; text: string; size?: number; gap?: number; times?: number[]
 

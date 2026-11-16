@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Audio, CalculateMetadataFunction, Img, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, Video, getRemotionEnvironment, random } from "remotion";
+import { AbsoluteFill, Audio, CalculateMetadataFunction, Img, interpolate, Sequence, spring, staticFile, useCurrentFrame, random } from "remotion";
 import { loadFont as loadKufi } from "@remotion/google-fonts/NotoKufiArabic";
 import { loadFont as loadAlmarai } from "@remotion/google-fonts/Almarai";
 import { loadFont as loadAmiriQuran } from "@remotion/google-fonts/AmiriQuran";
@@ -10,6 +10,7 @@ import { CoverKit, CoverProps } from "./CoverKit";
 import { PALETTES } from "./CoverTry4";
 import type { BarTheme } from "./TitleBar";
 import { STAR } from "./SplitScene";
+import { HybridHost, HyLayer, VSlot } from "./hybrid/Slot";
 
 /**
  * «التعليق الصامت» (silent reaction) — the Sheikh's silent recording of himself watching + the source video, re-edited together.
@@ -77,9 +78,10 @@ export const calculateSilentMetadata: CalculateMetadataFunction<SilentProps> = a
   return { durationInFrames: Math.round((config.segments ? config.segments.reduce((a, x) => a + x.durationSec, 0) : config.durationSec + (config.voiceover?.durationSec ?? 0)) * config.fps), fps: config.fps, width: props.orient === "portrait" ? 1080 : 1920, height: props.orient === "portrait" ? 1920 : 1080, props: { ...props, config } };
 };
 
-const IS_RENDER = getRemotionEnvironment().isRendering;
-const Vid: React.FC<{ src: string; startFrom: number; muted?: boolean; style: React.CSSProperties }> = ({ src, startFrom, muted, style }) =>
-  IS_RENDER ? <OffthreadVideo src={staticFile(src)} startFrom={startFrom} muted={muted} style={style} /> : <Video src={staticFile(src)} startFrom={startFrom} muted={muted} style={style} />;
+/** a video drawn by the GPU compositor (VSlot): `w`×`h` is the clipped box, the whole frame sits at vx,vy with size vw×vh (R-RENDER-GPU.1) */
+const CardVid: React.FC<{ src: string; proxy?: string; z?: number; startFrom: number; muted?: boolean; w: number; h: number; radius: number; vx: number; vy: number; vw: number; vh: number }> = ({ src, proxy, z, startFrom, muted, w, h, radius, vx, vy, vw, vh }) => (
+  <VSlot src={src} studioSrc={proxy} z={z} startFrom={startFrom} muted={muted ?? false} w={w} h={h} radius={radius} vx={vx} vy={vy} vw={vw} vh={vh} />
+);
 
 /** the band under the two cards: a picture / stock clip with a slow push, sliding up at `at`, a torn paper tag on it */
 const UnderBand: React.FC<{ it: NonNullable<SilentConfigBase["under"]>[number]; fps: number; top: number; height: number; accent: string }> = ({ it, fps, top, height, accent }) => {
@@ -92,7 +94,7 @@ const UnderBand: React.FC<{ it: NonNullable<SilentConfigBase["under"]>[number]; 
   return (
     <Gfx>
       <div style={{ position: "absolute", left: 60, width: 960, top, height, overflow: "hidden", borderRadius: 30, border: "6px solid #f3e3c0", boxShadow: "0 16px 40px rgba(20,12,4,.5)", transform: `translateY(${(1 - e) * 420}px)`, opacity: outU }}>
-        {it.kind === "video" ? <Vid src={it.src} startFrom={Math.round((it.startSec ?? 0) * fps)} muted style={media} /> : <Img src={staticFile(it.src)} style={media} />}
+        {it.kind === "video" ? <VSlot src={it.src} startFrom={Math.round((it.startSec ?? 0) * fps)} muted w={960} h={height} radius={24} fit="cover" fitPos={[0.5, 0.5]} fitZoom={[push, 480, height / 2]} /> : <Img src={staticFile(it.src)} style={media} />}
         {it.label ? (
           <div style={{ position: "absolute", right: 22, bottom: 18, padding: "8px 30px", background: "#f6efe0", border: "3px solid #3a2414", borderRadius: 6, borderRight: `14px solid ${accent}`, fontFamily: kufi, fontWeight: 800, fontSize: 44, color: "#3a2414", transform: "rotate(-2deg)", boxShadow: "0 6px 16px rgba(20,12,4,.5)" }}>{it.label}</div>
         ) : null}
@@ -302,7 +304,6 @@ const SilentMain: React.FC<{ orient: "portrait" | "landscape"; c: SilentConfigVO
   // ---- reaction card: cover-fit his crop ----
   const rc = c.reaction.crop[orient];
   const rs = Math.max(RR.w / rc.w, RR.h / rc.h);
-  const rk = 1;
 
   const cap = active(c.captions, f, fps), kw = active(c.keywords, f, fps), fact = active(c.facts, f, fps), hl = active(c.highlights, f, fps), ph = active(c.photos ?? [], f, fps), bl = active(c.broll ?? [], f, fps);
   const capP = cap ? spring({ frame: f - Math.round(cap.at * fps), fps, config: { damping: 14, stiffness: 150 } }) : 0;
@@ -314,31 +315,34 @@ const SilentMain: React.FC<{ orient: "portrait" | "landscape"; c: SilentConfigVO
   const card: React.CSSProperties = { position: "absolute", overflow: "hidden", borderRadius: 30, border: "6px solid #f3e3c0", boxShadow: "0 16px 40px rgba(20,12,4,.5)" };
 
   return (
-    <AbsoluteFill style={{ background: `linear-gradient(160deg, ${bgA}, ${bgB})`, direction: "rtl", fontFamily: almarai }}>
-      <AbsoluteFill style={{ backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(STAR)}")`, backgroundSize: "140px 140px", backgroundPosition: `${f * 0.25}px ${f * 0.15}px`, opacity: 0.2 }} />
+    <AbsoluteFill style={{ direction: "rtl", fontFamily: almarai }}>
+      <HyLayer z={0}>
+        <AbsoluteFill style={{ background: `linear-gradient(160deg, ${bgA}, ${bgB})` }} />
+        <AbsoluteFill style={{ backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(STAR)}")`, backgroundSize: "140px 140px", backgroundPosition: `${f * 0.25}px ${f * 0.15}px`, opacity: 0.2 }} />
+      </HyLayer>
 
       {c.audioSrc ? <Audio src={staticFile(c.audioSrc)} /> : null}
+      {/* the source video's own sound is the only sound: the compositor draws the picture, this tag carries the audio */}
+      {c.source.muted ? null : <Audio src={staticFile(c.source.src)} startFrom={Math.round(c.source.startSec * fps)} />}
       {/* the Sheikh watching (muted); several clips = Sequences, switched while the cards swap places */}
       <div style={{ ...card, left: RR.x, top: RR.y, width: RR.w, height: RR.h, zIndex: inSwap ? 2 : 1, transform: `scale(${bump}) rotate(${-tiltSw}deg)` }}>
-        <div style={{ position: "absolute", left: (RR.w - rc.w * rs) / 2, top: (RR.h - rc.h * rs) / 2, width: rc.w * rs, height: rc.h * rs, overflow: "hidden", transform: `scale(${rk})`, transformOrigin: "50% 38%" }}>
-          {clips.map((k, i) => {
-            const end = i + 1 < clips.length ? clips[i + 1].from : c.durationSec;
-            return (
-              <Sequence key={i} from={Math.round(k.from * fps)} durationInFrames={Math.max(1, Math.round((end - k.from) * fps))}>
-                <Vid src={IS_RENDER ? c.reaction.src : c.reaction.proxy} startFrom={Math.round(k.srcStart * fps)} muted style={{ position: "absolute", left: -rc.x * rs, top: -rc.y * rs, width: c.reaction.w * rs, height: c.reaction.h * rs, maxWidth: "none" }} />
-              </Sequence>
-            );
-          })}
-        </div>
+        {clips.map((k, i) => {
+          const end = i + 1 < clips.length ? clips[i + 1].from : c.durationSec;
+          return (
+            <Sequence key={i} from={Math.round(k.from * fps)} durationInFrames={Math.max(1, Math.round((end - k.from) * fps))}>
+              <CardVid src={c.reaction.src} proxy={c.reaction.proxy} startFrom={Math.round(k.srcStart * fps)} muted w={RR.w} h={RR.h} radius={24} vx={(RR.w - rc.w * rs) / 2 - rc.x * rs} vy={(RR.h - rc.h * rs) / 2 - rc.y * rs} vw={c.reaction.w * rs} vh={c.reaction.h * rs} />
+            </Sequence>
+          );
+        })}
       </div>
 
       {/* the source video: its audio is the only sound */}
       <div style={{ ...card, overflow: "visible", border: "none", borderRadius: 0, boxShadow: "none", filter: "drop-shadow(0 14px 26px rgba(20,12,4,.55))", left: SR.x, top: SR.y, width: SR.w, height: SR.h, zIndex: inSwap ? 3 : 1, ...(inSwap ? { transform: `scale(${bump}) rotate(${tiltSw}deg)` } : ambientStyle(f / fps, c.ambient?.every ?? 7, c.ambient?.amount ?? 1)) }}>
         {/* torn paper border (user 2026-11-06): the displayed source video sits on a hand-torn cream sheet with rounded, ragged edges */}
-        <div style={{ position: "absolute", inset: 0, background: "#f6efe0", clipPath: roughRound(SR.w, SR.h, 56, "src-card", 7, 15) }} />
+        <HyLayer z={1}><div style={{ position: "absolute", inset: 0, background: "#f6efe0", clipPath: roughRound(SR.w, SR.h, 56, "src-card", 7, 15) }} /></HyLayer>
         <div style={{ position: "absolute", inset: 16, overflow: "hidden", borderRadius: 34 }}>
+        {(() => { const W = SR.w - 32, H = SR.h - 32, ox = (pun?.cx ?? 0.5) * W, oy = (pun?.cy ?? 0.5) * H, vx0 = -sc.x * ss, vy0 = -sc.y * ss; return <CardVid z={1} src={c.source.src} proxy={c.source.proxy} startFrom={Math.round(c.source.startSec * fps)} muted w={W} h={H} radius={34} vx={ox - (ox - vx0) * pk} vy={oy - (oy - vy0) * pk} vw={c.source.w * ss * pk} vh={c.source.h * ss * pk} />; })()}
         <div style={{ position: "absolute", inset: 0, transform: `scale(${pk})`, transformOrigin: `${(pun?.cx ?? 0.5) * 100}% ${(pun?.cy ?? 0.5) * 100}%` }}>
-          <Vid src={IS_RENDER ? c.source.src : c.source.proxy} startFrom={Math.round(c.source.startSec * fps)} muted={c.source.muted} style={{ position: "absolute", left: -sc.x * ss, top: -sc.y * ss, width: c.source.w * ss, height: c.source.h * ss, maxWidth: "none" }} />
           {bl ? <Gfx><Img src={staticFile(bl.src)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: Math.min(1, env(f, fps, bl.at, bl.dur) * 3), transform: `scale(${1 + 0.12 * clamp01((f / fps - bl.at) / bl.dur)})` }} /></Gfx> : null}
           {hl ? (
             <div style={{ position: "absolute", left: `${hl.box.x * 100}%`, top: `${hl.box.y * 100}%`, width: `${hl.box.w * 100}%`, height: `${hl.box.h * 100}%`, border: `6px solid ${accent}`, borderRadius: 14, boxShadow: `0 0 0 ${4 + 6 * Math.abs(Math.sin(f / 7))}px ${accent}55`, opacity: env(f, fps, hl.at, hl.dur) }} />
@@ -434,15 +438,15 @@ export const SilentReaction: React.FC<SilentProps> = ({ orient, config: c }) => 
       return <Sequence key={i} from={from} durationInFrames={dur}><SilentMain orient={orient} c={d} /></Sequence>;
     });
     return (
-      <AbsoluteFill>
+      <HybridHost>
         {blocks}
         {c.coverKit ? <Sequence  durationInFrames={3} style={{ zIndex: 20 }}><KitCover orient={orient} ck={c.coverKit} /></Sequence> : null}
-      </AbsoluteFill>
+      </HybridHost>
     );
   }
   const mainFrames = Math.round(c.durationSec * c.fps);
   return (
-    <AbsoluteFill>
+    <HybridHost>
       <Sequence  durationInFrames={mainFrames}>
         <SilentMain orient={orient} c={c} />
       </Sequence>
@@ -451,6 +455,6 @@ export const SilentReaction: React.FC<SilentProps> = ({ orient, config: c }) => 
           <VoiceOutro c={c} orient={orient} />
         </Sequence>
       ) : null}
-    </AbsoluteFill>
+    </HybridHost>
   );
 };

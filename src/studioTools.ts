@@ -11,6 +11,13 @@ type SavedFilter = { name: string; settings: FilterSettings };
  * The ORIGINAL frame number under the timeline timecode is left untouched (it toggles frames/time ticks). Runs only inside Remotion Studio (never in renders) and is
  * wrapped in try/catch so it can never break the Studio.
  */
+// نسخ النص يعمل حتى عند فتح الاستوديو برقم الشبكة (http غير آمن لا يوفّر navigator.clipboard فيفشل نسخ الاستوديو نفسه «reading 'writeText'»)
+try {
+  if (typeof navigator !== "undefined" && !navigator.clipboard) {
+    const legacyCopy = (text: string) => { const ta = document.createElement("textarea"); ta.value = text; ta.style.cssText = "position:fixed;top:-1000px;opacity:0"; document.body.appendChild(ta); ta.select(); const ok = document.execCommand("copy"); ta.remove(); if (!ok) throw new Error("copy failed"); };
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (t: string) => legacyCopy(String(t)), write: async () => { throw new Error("clipboard.write غير متاح خارج الاتصال الآمن"); } } });
+  }
+} catch { /* لا يكسر الاستوديو */ }
 const MOBILE_MQ = "(max-width: 900px)";
 const install = () => {
   const w = window as unknown as { __frameCopy?: { timer?: number; badge?: HTMLElement | null; toast?: HTMLElement | null } };

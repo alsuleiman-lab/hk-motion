@@ -77,7 +77,7 @@ export const Header: React.FC<{ surah: string; size: number; k: number; font?: s
 
 /** the half-screen panel in the video's palette: base colours + star tiling + turning rosette (ornament in the palette's light tone);
  *  its right side melts into his video by transparency — no seam. `k` = 0..1 slide-in; opaque up to `solid` of `w`, then fades to nothing. */
-export const BlendPanel: React.FC<{ k: number; t: number; w?: number; solid?: number; id: string; children?: React.ReactNode }> = ({ k, t, w = 1380, solid = 0.72, id, children }) => {
+export const BlendPanel: React.FC<{ k: number; t: number; w?: number; solid?: number; id: string; children?: React.ReactNode }> = ({ k, t, w = 1560, solid = 0.58, id, children }) => {
   if (k <= 0) return null;
   const fade = `linear-gradient(90deg, #000 0%, #000 ${solid * 100}%, rgba(0,0,0,.55) ${(solid + (1 - solid) * 0.45) * 100}%, transparent 100%)`;
   return (
@@ -119,8 +119,8 @@ export const VerseNoorPanel: React.FC<VerseProps & { size?: number }> = ({ words
   const s = size ?? fitSize(chars(words), 590, 700, 1.75, 112, 52);
   return (
     <BlendPanel k={k} t={t} id="vn">
-      <div style={{ position: "absolute", left: 40, width: 560, top: 130, direction: "rtl" }}><Header surah={surah} size={44} k={(t - times[0] + 0.3) / 0.5} /></div>
-      <div style={{ position: "absolute", left: 30, width: 590, top: 240, bottom: 140, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", textAlign: "center", fontFamily: Q, fontSize: s, lineHeight: 1.75 }}>
+      <div style={{ position: "absolute", left: 100, width: 560, top: 130, direction: "rtl" }}><Header surah={surah} size={44} k={(t - times[0] + 0.3) / 0.5} /></div>
+      <div style={{ position: "absolute", left: 90, width: 590, top: 240, bottom: 140, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", textAlign: "center", fontFamily: Q, fontSize: s, lineHeight: 1.75 }}>
         <div>{words.map((w, i) => <GoldWord key={i} w={w} at={times[i]} t={t} size={s} />)}<AyahEnd n={aya} size={s * 0.62} k={(t - times[times.length - 1] - 0.35) / 0.3} /></div>
       </div>
     </BlendPanel>
@@ -138,14 +138,14 @@ export const VerseBigWordPanel: React.FC<VerseProps & { size?: number }> = ({ wo
   const w0 = cur >= 0 ? [...cleanQuran(words[cur])].length : 1, big = Math.min(200, Math.round(1050 / Math.max(3, w0)));
   return (
     <BlendPanel k={k} t={t} id="vb">
-      <div style={{ position: "absolute", left: 40, width: 560, top: 110, direction: "rtl" }}><Header surah={surah} size={42} k={(t - times[0] + 0.3) / 0.5} /></div>
+      <div style={{ position: "absolute", left: 100, width: 560, top: 110, direction: "rtl" }}><Header surah={surah} size={42} k={(t - times[0] + 0.3) / 0.5} /></div>
       {bigOn ? (
-        <div style={{ position: "absolute", left: 30, width: 590, top: 220, height: 380, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", fontFamily: Q, fontSize: big, opacity: 1 - d,
+        <div style={{ position: "absolute", left: 90, width: 590, top: 220, height: 380, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", fontFamily: Q, fontSize: big, opacity: 1 - d,
           transform: `translateY(${d * 330}px) scale(${(0.7 + 0.3 * u) * (1 - 0.65 * d)})`,
           backgroundImage: "linear-gradient(180deg, #fff3c4 0%, #f3c95a 42%, #c88e22 72%, #8a5a12 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
           filter: "drop-shadow(0 6px 0 rgba(70,40,5,.9)) drop-shadow(0 0 30px rgba(243,201,90,.4))" }}>{cleanQuran(words[cur])}</div>
       ) : null}
-      <div style={{ position: "absolute", left: 30, width: 590, top: 640, bottom: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", direction: "rtl", textAlign: "center", fontFamily: Q, fontSize: s, lineHeight: 1.6 }}>
+      <div style={{ position: "absolute", left: 90, width: 590, top: 640, bottom: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", direction: "rtl", textAlign: "center", fontFamily: Q, fontSize: s, lineHeight: 1.6 }}>
         <div>{words.map((w, i) => <GoldWord key={i} w={w} at={times[i] + land} t={t} size={s} />)}<AyahEnd n={aya} size={s * 0.66} k={(t - times[times.length - 1] - land - 0.3) / 0.3} /></div>
       </div>
     </BlendPanel>

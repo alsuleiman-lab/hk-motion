@@ -1,3 +1,0 @@
-export { SilentReaction as AshariSilent, calculateSilentMetadata as calculateAshariMetadata } from "./SilentReaction";
-/** literal asset paths so tools/lib/cached_bundle.mjs (face check, probes) links them: the config loads them dynamically */
-export const ASHARI_ASSETS = ["silent/ashari-takfir-25/config.json", "silent/ashari-takfir-25/reaction.mp4", "silent/ashari-takfir-25/reaction_proxy.mp4", "silent/ashari-takfir-25/source.mp4", "silent/ashari-takfir-25/source_proxy.mp4", "cov/ak_sheikh.png", "cov/ak_opp.png", "ashari-takfir-25/diriyah.jpg", "ashari-takfir-25/kaaba.jpg", "silent/ashari-takfir-25/under/sky.png", "silent/ashari-takfir-25/under/stars.png", "silent/ashari-takfir-25/under/creatures.png", "cov/ak_book.png"];

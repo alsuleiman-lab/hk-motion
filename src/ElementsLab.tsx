@@ -28,7 +28,6 @@ import { TRANSITIONS, TransitionScene } from "./TransitionsLab";
 import { Keycaps, Burst } from "./KhaamKit";
 import { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle, Footnote, ClaimWall, NoProof, BrokenIsnad, GradeLadder, YearsGap, Lifespans, Crossroads, AlertFrame, NeverMeet, RisingTimeline, MinuteTeaser, PipSource, PIP, pipK } from "./PickKit";
 import { VerseNoor, VerseBigWord, HalfScene, BlendPanel, halfK } from "./VerseKit";
-import { PillCaptions } from "./Captions";
 import { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, Battery, FillGlasses, LeftShade, BottomShade, PICK_NOSPLIT, pickPortBoard } from "./PickKit2";
 import { HadithQuote, HadithBooks, HadithIsnad } from "./HadithKit";
 
@@ -181,9 +180,7 @@ const PickScene: React.FC<{ o: Orient; el?: string; children: React.ReactNode }>
   : <><PortRec /><div style={pickPortBoard(el)}>{children}</div><BottomShade at={0.1} until={2.95} /></>;
 /** RingStat / MythFact: NOT a split screen (user 2026-11-14, frames 13009 and 14105): he stays in the middle, the element sits in the left third of the elements area */
 const PickSceneStill: React.FC<{ o: Orient; el?: string; children: React.ReactNode }> = ({ o, el, children }) => o === "land" ? <><Rec /><LeftShade at={0.1} until={2.95} />{children}</> : <PickScene o={o} el={el}>{children}</PickScene>;
-const CAP_SAMPLE: [string, number, number][] = (() => { const W = "إنّ الحقّ لا يُعرَف بالرجال، اعرف الحقّ تعرف أهله".split(" "); let t = 0.15; return W.map((w) => { const s = t; t += 0.18 + w.length * 0.035 + (/،$/.test(w) ? 0.25 : 0); return [w, +s.toFixed(2), +(t - 0.05).toFixed(2)] as [string, number, number]; }); })();
 const VERSE_SCENES: Record<string, (o: Orient) => React.ReactNode> = {
-  PillCaptions: (o) => <>{o === "land" ? <Rec /> : <PortRec />}{o === "port" ? <PillCaptions cap={{ words: CAP_SAMPLE }} /> : <div style={{ position: "absolute", left: 490, top: 760, width: 940, transform: "scale(.8)", transformOrigin: "50% 0" }}><PillCaptions cap={{ words: CAP_SAMPLE, x: 0, y: 0 }} /></div>}</>,
   QACard: (o) => <PickScene o={o} el="QACard"><QACard at={0.1} until={2.95} x={160} y={300} q="هل يجوز تأخير قضاء رمضان؟" a="الجواب المختصر هنا (مثال)" flipAt={1.4} /></PickScene>,
   ThoughtBubble: (o) => <PickScene o={o} el="ThoughtBubble"><ThoughtBubble at={0.1} until={2.95} x={90} y={170} name="المخالف (مثال)" say="نحن نحترم الجميع" sayAt={0.5} think="إلا أهل السنة" thinkAt={1.5} /></PickScene>,
   WordCloud: (o) => <PickScene o={o} el="WordCloud"><WordCloud at={0.1} until={2.95} x={560} y={480} words={[["التسامح", 5], ["الحرية", 3], ["الآخر", 3], ["الحوار", 4], ["التنوير", 2], ["التعايش", 2], ["الإنسانية", 1], ["العقل", 2], ["التطور", 1]].map(([text, weight], i) => ({ text: text as string, weight: weight as number, at: 0.2 + i * 0.15 }))} title="أكثر الكلمات في خطابهم (مثال)" /></PickScene>,
@@ -208,7 +205,7 @@ const VERSE_SCENES: Record<string, (o: Orient) => React.ReactNode> = {
   Crossroads: (o) => <PickScene o={o} el="Crossroads"><Crossroads at={0.1} until={2.95} x={110} y={150} right="طريق السنة" left="طريق البدعة" signsAt={0.8} goAt={1.3} /></PickScene>,
   AlertFrame: (o) => <>{o === "land" ? <Rec /> : <PortRec />}<AlertFrame at={0.1} until={2.95} W={o === "land" ? 1920 : 1080} H={o === "land" ? 1080 : 1920} /></>,
   InkQuote: (o) => <PickScene o={o} el="InkQuote"><InkQuote at={0.1} until={2.95} x={90} y={380} size={96} lines={[{ text: "الكلمةُ أمانة", at: 0.3 }, { text: "فاحفظها", at: 1.3 }]} source="مثال" /></PickScene>,
-  BigQuestion: (o) => <PickScene o={o} el="BigQuestion"><BigQuestion at={0.1} until={2.95} x={90} y={150} size={460} text="لماذا ينتشر؟" textAt={1.0} /></PickScene>,
+  BigQuestion: (o) => <PickScene o={o} el="BigQuestion"><BigQuestion at={0.1} until={2.95} x={90} y={150} size={460} {...(o === "land" ? PICK_NOSPLIT.BigQuestion : {})} text="لماذا ينتشر؟" textAt={1.0} /></PickScene>,
   ChatThread: (o) => <PickSceneStill o={o} el="ChatThread"><ChatThread at={0.1} until={2.95} x={110} y={250} w={900} {...(o === "land" ? PICK_NOSPLIT.ChatThread : {})} msgs={[{ text: "هل رأيت المقطع المنتشر؟", at: 0.3 }, { text: "نعم، لكنه محتوى هابط", at: 1.2, me: true }, { text: "فلماذا يشاهده الملايين؟", at: 2.0 }]} /></PickSceneStill>,
   StickyNotes: (o) => <PickScene o={o} el="StickyNotes"><StickyNotes until={2.95} size={300} notes={[{ text: "تفاهة", at: 0.3, x: 140, y: 200 }, { text: "إثارة", at: 0.9, x: 540, y: 280, tint: "paper" }, { text: "ربحٌ سريع", at: 1.5, x: 300, y: 600, tint: "accent" }]} /></PickScene>,
   FlapBoard: (o) => <PickSceneStill o={o} el="FlapBoard"><FlapBoard at={0.1} until={2.95} x={80} y={260} w={980} {...(o === "land" ? PICK_NOSPLIT.FlapBoard : {})} rows={[{ text: "الوجهة: الوعي", at: 0.9 }, { text: "الرحلة: التثبّت", at: 1.4 }, { text: "الحالة: في الموعد", at: 1.9 }]} /></PickSceneStill>,

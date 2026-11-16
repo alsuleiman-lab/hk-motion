@@ -6,7 +6,7 @@ import { PaperTear } from "./PaperTear";
 import { Gfx, BrushX, Stamp, NoteCard, HandheldShake, SourceWalk, BlurRise, RewriteWindow, FlashCut, PinnedPhoto, TimelineTravel, PanelToCanvas, Clock, DashArc, useT } from "./MG";
 import { KeyChip, ReelVerseFull, VerseWords } from "./MGExtras";
 import { VerseNoorPanel, VerseBigWordPanel, halfShift, HALF_LEAD, BlendPanel, halfK } from "./VerseKit";
-import { HadithQuotePanel, HadithBooksPanel, HadithIsnad } from "./HadithKit";
+import { HadithQuotePanel, HadithBooksPanel, HadithIsnad, HadithPortPanel } from "./HadithKit";
 import { TitleBar } from "./TitleBar";
 import type { BarTheme } from "./TitleBar";
 import { NameCard1, NameCard3 } from "./NameCards";
@@ -20,13 +20,11 @@ import { CoverKit, COVER_PALETTES, PaperCoverKit, PAPER_COVER_END } from "./Cove
 import type { CoverProps } from "./CoverKit";
 import { ThumbProOpen, THUMBPRO_END, THUMBPRO_TEAR_END } from "./ThumbPro";
 import type { ThumbProps } from "./ThumbPro";
-import { TornNote, NewsClip, TornPhoto, WordScraps, DateCalendar } from "./PaperKit";
+import { TornNote, NewsClip, TornPhoto, WordScraps, DateCalendar, Tape, tornClip } from "./PaperKit";
 import { BRAND, applyBrand } from "./brand";
 import { PIP, pipK } from "./PickKit";
 import { ShoePrint } from "./ShoePrint";
-import { PillCaptions } from "./Captions";
-import type { CaptionsSpec } from "./Captions";
-import { PICK_ALL as PICK_KIT, PICK_ALL_FULL_FRAME as PICK_FULL_FRAME, LeftShade, BottomShade, PICK_XY, PICK_NOSPLIT, pickPortBoard } from "./PickKit2";
+import { PICK_ALL as PICK_KIT, PICK_ALL_FULL_FRAME as PICK_FULL_FRAME, LeftShade, PICK_XY, PICK_NOSPLIT, pickPortBoard } from "./PickKit2";
 import type { PickAllName as PickName } from "./PickKit2";
 import type { BrandName } from "./brand";
 import { MaskedVideo } from "./MaskedVideo";
@@ -55,9 +53,8 @@ export type Land = { x?: number; y?: number; w?: number; h?: number; photoH?: nu
  *  dx / dy = move in px, k = scale about the centre of what the item draws; portrait on the item, landscape in `land` */
 type Common = { only?: "port" | "land"; land?: Land; dx?: number; dy?: number; k?: number };
 /** portrait layout bands (user 2026-11-16, two marked screenshots: «اجعل الكابشن عند إشارتي الزرقاء، والعناصر عند المستطيل الأحمر دائماً»):
- *  the caption ends at PORT_CAPTION_BOTTOM (src/Captions.tsx), every element is drawn inside PORT_ZONE under it */
+ *  every element is drawn inside PORT_ZONE under it */
 export const PORT_ZONE = { top: 1400, bottom: 1880, left: 30, right: 1050 };
-export const PORT_CAPTION_BOTTOM = 1372;
 export type SpecItem = Common & (
   | { t: "word"; text: string; at: number; until: number; x: number; y: number; size?: number; tone?: "gold" | "cream"; flag?: string }
   | { t: "blur"; text: string; at: number; until: number; y: number; size?: number; accentWords?: number[]; x?: number; w?: number }   // x/w (portrait): a narrow left column under the opponent's card, text left-aligned (gallery note on BlurRise)
@@ -146,8 +143,6 @@ export type MontageSpec = {
   id: string; title: string; frames: number; fps?: number;
   cut?: string;                       // public/<cut>.mp4 — his video (also the audio)
   bar?: BarTheme;                     // title-bar / key-chip colours (default BAR_WARM)
-  /** the word-by-word caption of the portrait/reel (user 2026-11-15, style «الحبة المتحركة», src/Captions.tsx); filled by tools/captions_fill.mjs */
-  captions?: CaptionsSpec;
   showTitleBar?: boolean;             // whether to render TitleBar (in lessons and streams: NO title bar, user 2026-11-05)
   cams?: { from: number; to: number; cx: number }[];
   zooms?: { from: number; to: number; amt?: number }[];
@@ -155,7 +150,7 @@ export type MontageSpec = {
   shake?: { from: number; to: number }[];
   /** windows where the source recording has a baked-in split (clip left | him right): landscape = the reply model `layout` behind a curtain (default "dossier" = الملف, user 2026-10-30;
    *  blocks | dossier, src/DebateLayouts.tsx;); portrait = his slice + the clip as a tilted card at his shoulder (x/w are source px) */
-  splits?: { from: number; to: number; clip: { x: number; w: number; y?: number; h?: number }; sheikh: { x: number; w: number }; clipName?: string; clipUrl?: string; faceX?: number; blur?: number; layout?: DebateLayoutName; card?: { left: number; top: number; rot: number; innerH: number } }[];
+  splits?: { from: number; to: number; clip: { x: number; w: number; y?: number; h?: number }; sheikh: { x: number; w: number }; clipName?: string; mainSrc?: string /* a whole added clip in HIS window (the pair: the recorded clip beside an added clip) */; mainAspect?: number; clipAspect?: number; clipSrc?: string /* a whole added clip (public/ path, 16:9, silent) shown in the answered-clip window instead of the recording column */; clipUrl?: string; faceX?: number; blur?: number; layout?: DebateLayoutName; card?: { left: number; top: number; rot: number; innerH: number } }[];
   /** an audio message added after his video: plays `src` from `from` s (+ voice card with a waveform and cycling photos) */
   tail?: { from: number; to: number; src: string; label: string; photos: string[] };
   /** light sound effects at transitions / element entries (user 2026-11-06: light, varied, not loud, not many): src under public/sfx, at = seconds on the cut timeline, vol relative to speech (≤ 0.06) */
@@ -170,7 +165,7 @@ export type MontageSpec = {
    *  graphics replace the clip; portrait = no entry needed (put his slice centre in `cams`) */
   solos?: { from: number; to: number; sheikh: { x: number; w: number }; scale?: number; align?: "right"; center?: { from: number; to: number }[] }[];
   /** portrait split screen (user 2026-10-29: «عند الشجرة والعناصر الكبيرة استخدم تقسيم الشاشة»): inside each window his video shrinks to the top (scale `s`, pinned at the top centre) and the lower part of the frame is a backdrop panel for the big element (`parchment` for the family tree) */
-  psplits?: { from: number; to: number; s?: number; panel?: "warm" | "parchment" }[];
+  psplits?: { from: number; to: number; s?: number; top?: number; panel?: "warm" | "parchment" }[];
   /** landscape split screen: his frame slides right by `dx` px between from and to (eased 0.4 s) so a left-hand panel (family tree) gets half the screen */
   shifts?: { from: number; to: number; dx: number; feather?: number }[];
   /** windows (cut seconds) where he is drawn over the full-screen pictures and the clip card (needs `matte`) */
@@ -221,13 +216,15 @@ const PeekSay: React.FC<{ text: string; t: number; out: number; corner: "br" | "
 const boxCentre = (it: SpecItem, o: Orient): [number, number] | null => {
   const L = o === "land", ov = ((it as { land?: Land }).land ?? {}) as Land & { w?: number; h?: number; x?: number; y?: number }, G = LANDSCAPE.left;
   const q = it as unknown as { t: string; x?: number; y?: number; w?: number; h?: number; also?: unknown[] };
-  if (q.t === "tphoto") { const w = (L ? ov.w : q.w) ?? 300, h = (L ? ov.h : q.h) ?? 370, x = L ? ov.x ?? G.x : q.x ?? 40, y = L ? ov.y ?? G.y : q.y ?? 1360, n = 1 + (q.also?.length ?? 0); return [x + (n * w + (n - 1) * 24) / 2, y + h / 2]; }
+  if (q.t === "tphoto") { const w = (L ? ov.w : q.w) ?? 300, h = (L ? ov.h : q.h) ?? 370, x = L ? ov.x ?? G.x : q.x ?? 40, y = L ? ov.y ?? G.y : q.y ?? 1360, n = 1 + (q.also?.length ?? 0); if (tphotoApart(q)) return [(L ? LANDSCAPE.W : 1080) / 2, y + h / 2]; return [x + (n * w + (n - 1) * 24) / 2, y + h / 2]; }
   if (q.t === "scholar") { const w = (L ? ov.w : undefined) ?? q.w ?? 300, h = (L ? ov.h : undefined) ?? q.h ?? 370, x = L ? ov.x ?? G.x : q.x ?? 40, y = L ? ov.y ?? G.y : q.y ?? 1360; return [x + w / 2, y + h / 2]; }
   if (q.t === "pic" && q.w && q.h) { const w = L ? ov.w ?? G.w : q.w, h = L ? ov.h ?? Math.round((q.h * w) / q.w) : q.h, x = L ? ov.x ?? G.x : q.x ?? 40, y = L ? ov.y ?? G.y : q.y ?? 1360; return [x + w / 2, y + h / 2]; }
   if (q.t === "news" && q.w && q.h) { const w = L ? ov.w ?? 600 : q.w, h = Math.round((q.h * w) / q.w), x = L ? ov.x ?? G.x : q.x ?? 40, y = L ? ov.y ?? G.y : q.y ?? 1360; return [x + w / 2, y + h / 2]; }
   if (q.t === "date") { const w = (L ? ov.w : undefined) ?? q.w ?? 340, x = L ? ov.x ?? G.x : q.x ?? 300, y = L ? ov.y ?? G.y : q.y ?? 1330; return [x + w / 2, y + w * 0.55]; }
   return null;
 };
+/** (user 2026-11-16: «عند ذكر شخصيتين إحداهما تتعلق بالأخرى فواحدة على اليمين وواحدة على اليسار») two named PEOPLE stand apart, the first named on the right edge and the second on the left; books named in one breath still stand side by side */
+const tphotoApart = (it: { name?: string; also?: unknown[] }) => (it.also?.length ?? 0) === 1 && ![it.name, (it.also![0] as { name?: string }).name].some((n) => /(كتاب|صحيح|سنن|مسند|تفسير|موطأ|مجموع|فتاوى)/.test(n ?? ""));
 const placed = (it: SpecItem, i: number, o: Orient, n: React.ReactNode): React.ReactNode => {
   const p = o === "land" ? it.land : it, dx = p?.dx ?? 0, dy = p?.dy ?? 0, k = p?.k ?? 1;
   const c = k !== 1 ? boxCentre(it, o) : null;
@@ -239,7 +236,7 @@ const portBox = (it: SpecItem): [number, number, number, number] | null => {
   const q = it as unknown as { t: string; x?: number; y?: number; w?: number; h?: number; size?: number; text?: string; also?: unknown[]; full?: boolean };
   const lines = (txt: string, size: number, w: number) => Math.max(1, Math.ceil((txt.length * size * 0.55) / w));
   switch (q.t) {
-    case "tphoto": { const w = q.w ?? 300, h = q.h ?? 370, x = q.x ?? 40, y = q.y ?? 1360, n = 1 + (q.also?.length ?? 0); return [x - 20, y - 30, x + n * w + (n - 1) * 24 + 20, y + h + 200]; }
+    case "tphoto": { const w = q.w ?? 300, h = q.h ?? 370, x = q.x ?? 40, y = q.y ?? 1360, n = 1 + (q.also?.length ?? 0); if (tphotoApart(q)) return [x - 20, y - 30, 1080 - x + 20, y + h + 200]; return [x - 20, y - 30, x + n * w + (n - 1) * 24 + 20, y + h + 200]; }
     case "scholar": { const w = q.w ?? 300, h = q.h ?? 370, x = q.x ?? 40, y = q.y ?? 1360; return [x - 20, y - 30, x + w + 20, y + h + 90]; }
     case "pic": case "news": case "flash": { if (!q.w || !q.h) return null; const x = q.x ?? 40, y = q.y ?? 1360; return [x - 20, y - 60, x + q.w + 20, y + q.h + 30]; }
     case "date": { const w = q.w ?? 340, x = q.x ?? 300, y = q.y ?? 1330; return [x, y - 15, x + w, y + w * 1.38]; }
@@ -285,6 +282,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
         if (it.way === "books") return <HadithBooksPanel key={i} lead={it.lead} narrator={it.narrator} phrases={it.phrases} src={it.tag} books={it.books} until={it.until} size={it.size} />;
         return <HadithQuotePanel key={i} lead={it.lead} phrases={it.phrases} src={it.tag} until={it.until} size={it.size} />;
       }
+      if (!L && it.phrases?.length) return <Only key={i} from={it.phrases[0].at - 0.35} to={it.until}><HadithPortPanel lead={it.lead} narrator={it.narrator} phrases={it.phrases} src={it.tag} books={it.books} until={it.until} size={it.size} /></Only>;   // (user 2026-11-16) portrait: the hadith written in the elements zone
       const w = L ? ov.w ?? it.w ?? 600 : it.w ?? 820, size = it.size ?? 38;
       const lines = Math.max(1, Math.ceil([...it.title].length / Math.max(1, Math.floor((w - 70) / (size * 0.5))))), h = ov.h ?? it.h ?? Math.round(130 + lines * size * 1.6);
       const x = L ? ov.x ?? 40 : it.x ?? Math.round((1080 - w) / 2);
@@ -340,7 +338,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
         </Only>
       );
     }
-    case "pick": { const ip = { ...it, until: pickUntil(it) }; const C = PICK_KIT[ip.el] as React.FC<Record<string, unknown>>; const { t: _t, el: _e, land, noShift: _ns, ...rest0 } = ip as { t: string; el: string; land?: Record<string, unknown>; noShift?: boolean } & Record<string, unknown>; const ns = ip.noShift ?? !!PICK_NOSPLIT[ip.el], xy = PICK_XY[ip.el], rest = { ...(rest0.x == null && xy ? { x: xy[0], y: xy[1] } : {}), ...rest0 }, lp = { ...(ns ? PICK_NOSPLIT[ip.el] ?? {} : {}), ...(land ?? {}) }; return C ? <Only key={i} from={ip.at - HALF_LEAD} to={ip.until}>{L && !ns && !PICK_FULL_FRAME.has(ip.el) ? <PickPanel at={ip.at} until={ip.until} /> : null}{L && ns && !PICK_FULL_FRAME.has(ip.el) ? <LeftShade at={ip.at} until={ip.until} /> : null}{!L && !PICK_FULL_FRAME.has(ip.el) ? <BottomShade at={ip.at} until={ip.until} /> : null}{L || PICK_FULL_FRAME.has(ip.el) ? <C {...rest} {...(L ? lp : {})} /> : <div style={pickPortBoard(ip.el)}><C {...rest} /></div>}</Only> : null; }   // the gallery decides place and look: its own x,y (PICK_XY), no split screen for PICK_NOSPLIT, portrait = the gallery's lower-half board
+    case "pick": { const ip = { ...it, until: pickUntil(it) }; const C = PICK_KIT[ip.el] as React.FC<Record<string, unknown>>; const { t: _t, el: _e, land, noShift: _ns, ...rest0 } = ip as { t: string; el: string; land?: Record<string, unknown>; noShift?: boolean } & Record<string, unknown>; const ns = ip.noShift ?? !!PICK_NOSPLIT[ip.el], xy = PICK_XY[ip.el], rest = { ...(rest0.x == null && xy ? { x: xy[0], y: xy[1] } : {}), ...rest0 }, lp = { ...(ns ? PICK_NOSPLIT[ip.el] ?? {} : {}), ...(land ?? {}) }; return C ? <Only key={i} from={ip.at - HALF_LEAD} to={ip.until}>{L && !ns && !PICK_FULL_FRAME.has(ip.el) ? <PickPanel at={ip.at} until={ip.until} /> : null}{L && ns && !PICK_FULL_FRAME.has(ip.el) ? <LeftShade at={ip.at} until={ip.until} /> : null}{L || PICK_FULL_FRAME.has(ip.el) ? <C {...rest} {...(L ? lp : {})} /> : <div style={pickPortBoard(ip.el)}><C {...rest} /></div>}</Only> : null; }   // the gallery decides place and look: its own x,y (PICK_XY), no split screen for PICK_NOSPLIT, portrait = the gallery's lower-half board
     case "subscribe": return <Subscribe key={i} at={it.at} x={L ? ov.x ?? 1300 : it.x} y={L ? ov.y ?? 790 : it.y} dur={it.dur} />;
     case "verse": {
       // a verse he recites INSIDE his talk = the known verse card (VerseWords) in the writing area / the empty side, his picture visible (user 2026-11-01); full screen (full:true) only for a lone recitation
@@ -397,7 +395,8 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
       // several photos named in one breath (the books of one sentence) stand SIDE BY SIDE, each popping up at its word, all leaving together (user 2026-10-31)
       const w = (L ? ov.w : it.w) ?? 300, h = (L ? ov.h : it.h) ?? 370, x0 = L ? ov.x ?? LANDSCAPE.left.x : it.x ?? 40, y0 = L ? ov.y ?? LANDSCAPE.left.y : it.y ?? 1360;
       const all = [{ src: it.src, name: it.name, at: it.at }, ...(it.also ?? [])], n = all.length;
-      return <React.Fragment key={i}>{all.map((p, j) => <TornPhoto key={j} at={p.at} until={it.until ?? it.at + 6} x={x0 + (n - 1 - j) * (w + 24)} y={y0} w={w} h={h} src={p.src} name={p.name} pos={it.pos} />)}{it.shoe ? <ShoePrint at={it.at + 0.9} until={it.until ?? it.at + 6} x={x0} y={y0} w={w} h={h} /> : null}</React.Fragment>;
+      const apart = tphotoApart(it), W0 = L ? LANDSCAPE.W : 1080, dxg = (L ? it.land?.dx : it.dx) ?? 0, kg = (L ? it.land?.k : it.k) ?? 1, cx0 = W0 / 2, EDGE = 40;   /* the gallery's offset moves the whole item: the right-hand photo is mirrored against it */
+      return <React.Fragment key={i}>{all.map((p, j) => <TornPhoto key={j} at={p.at} until={it.until ?? it.at + 6} x={apart ? (j === 0 ? cx0 + (W0 - EDGE - kg * w - dxg - cx0) / kg : cx0 + (EDGE - dxg - cx0) / kg) : x0 + (n - 1 - j) * (w + 24)} y={y0} w={w} h={h} src={p.src} name={p.name} pos={it.pos} />)}{it.shoe ? <ShoePrint at={it.at + 0.9} until={it.until ?? it.at + 6} x={x0} y={y0} w={w} h={h} /> : null}</React.Fragment>;
     }
     case "scraps": return <WordScraps key={i} at={it.at} until={it.until} y={L ? ov.y ?? 845 : it.y ?? 1330} text={it.text} times={it.times} size={L ? ov.size ?? 50 : it.size ?? 36} />;   {/* 60 % of the former 84 / 60 (user 2026-10-31) */}
     case "clock": { const size = L ? ov.size ?? 360 : it.size ?? 300; return <Only key={i} from={it.at} to={it.until}><div style={{ position: "absolute", left: L ? ov.x ?? 140 : it.x ?? 60, top: L ? ov.y ?? 300 : it.y ?? 1330 }}><Clock at={it.at} size={size} /></div></Only>; }
@@ -420,21 +419,20 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
 /** quintic smootherstep: zero velocity AND acceleration at both ends, so a push-in never jerks (user 2026-11-09: «فيه رجفة») */
 const smoother2 = (x: number) => x * x * x * (x * (x * 6 - 15) + 10);
 type Split = NonNullable<MontageSpec["splits"]>[number];
-const CARD_BORDER = 14, CARD_STRIP = 56, CARD_H = 800;
-/** one polaroid card showing the source-pixel column [x, x+w) of the cut at height CARD_H */
-const CropPolaroid: React.FC<{ cut: string; x: number; w: number; y?: number; h?: number; name: string; left: number; top: number; rot: number; innerH?: number; blur?: number }> = ({ cut, x, w, name, left, top, rot, innerH = CARD_H, blur, y = 0, h = 1080 }) => {
-  const k = innerH / h, iw = Math.round(w * k);
+const CARD_H = 800;
+/** the answered clip in portrait (user 2026-11-16: «بلا اسم المقطع، إطار ورقة مقصوصة الأطراف بلزقة كالعرضي، وكبّره قليلاً»): the source-pixel column [x, x+w) of the cut inside a hand-torn paper mount with a piece of tape, like the landscape mount (DebateLayouts TornWindow); no caption under it */
+const CARD_PAD = 18;
+const CropPolaroid: React.FC<{ cut: string; x: number; w: number; y?: number; h?: number; name?: string; left: number; top: number; rot: number; innerH?: number; blur?: number; aspect?: number }> = ({ cut, x, w, left, top, rot, innerH = CARD_H, blur, y = 0, h = 1080, aspect }) => {
+  const k = innerH / h, iw = aspect ? Math.round(innerH * aspect) : Math.round(w * k), pw = iw + CARD_PAD * 2, ph = innerH + CARD_PAD * 2;
+  const hole = `linear-gradient(#000 0 0) 0 0/100% 100% no-repeat, linear-gradient(#000 0 0) ${CARD_PAD}px ${CARD_PAD}px/${iw}px ${innerH}px no-repeat`;
   return (
-    <div style={{ position: "absolute", left, top, width: iw + CARD_BORDER * 2, height: innerH + CARD_BORDER * 2 + CARD_STRIP, background: hyBg(BRAND.card), borderRadius: 12, transform: `rotate(${rot}deg)`, boxShadow: "0 14px 34px rgba(0,0,0,.45)" }}>
-      {HY ? <>{/* hybrid: the video is composited under the graphics, so the card is drawn as a frame (an opaque card background would hide it) */}
-        <div style={{ position: "absolute", left: 0, top: 0, width: iw + CARD_BORDER * 2, height: CARD_BORDER, background: BRAND.card, borderRadius: "12px 12px 0 0" }} />
-        <div style={{ position: "absolute", left: 0, top: 0, width: CARD_BORDER, height: innerH + CARD_BORDER * 2 + CARD_STRIP, background: BRAND.card, borderRadius: "12px 0 0 12px" }} />
-        <div style={{ position: "absolute", right: 0, top: 0, width: CARD_BORDER, height: innerH + CARD_BORDER * 2 + CARD_STRIP, background: BRAND.card, borderRadius: "0 12px 12px 0" }} />
-        <div style={{ position: "absolute", left: 0, bottom: 0, width: iw + CARD_BORDER * 2, height: CARD_STRIP + CARD_BORDER, background: BRAND.card, borderRadius: "0 0 12px 12px" }} /></> : null}
-      <div style={{ position: "absolute", left: CARD_BORDER, top: CARD_BORDER, width: iw, height: innerH, overflow: "hidden", background: hyBg("#000") }}>
-        {HY ? <VSlot src={cut} w={iw} h={innerH} vx={-x * k} vy={-y * k} vw={1920 * k} vh={1080 * k} /> : <RV src={staticFile(cut)} style={{ position: "absolute", left: -x * k, top: -y * k, width: 1920 * k, height: 1080 * k, ...(blur ? { filter: `blur(${blur}px)` } : {}) }} />}
+    <div style={{ position: "absolute", left, top, width: pw, height: ph, transform: `rotate(${rot}deg)`, filter: "drop-shadow(0 14px 18px rgba(0,0,0,.5))" }}>
+      {/* hybrid: the video is composited under the graphics, so the paper is a ring with a window cut out of it; otherwise the video is drawn on the paper */}
+      <div style={{ position: "absolute", inset: 0, background: BRAND.card, clipPath: tornClip(pw, ph, "port-clip", 7, 22), ...(HY ? { WebkitMask: hole, WebkitMaskComposite: "xor", mask: hole, maskComposite: "exclude" } : {}) }} />
+      <div style={{ position: "absolute", left: CARD_PAD, top: CARD_PAD, width: iw, height: innerH, overflow: "hidden", background: hyBg("#000") }}>
+        {HY ? <VSlot src={cut} w={iw} h={innerH} vx={aspect ? 0 : -x * k} vy={aspect ? 0 : -y * k} vw={aspect ? iw : 1920 * k} vh={aspect ? innerH : 1080 * k} /> : <RV src={staticFile(cut)} style={{ position: "absolute", left: aspect ? 0 : -x * k, top: aspect ? 0 : -y * k, width: aspect ? iw : 1920 * k, height: aspect ? innerH : 1080 * k, ...(blur ? { filter: `blur(${blur}px)` } : {}) }} />}
       </div>
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: CARD_STRIP, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", fontFamily: "Noto Kufi Arabic", fontWeight: 800, fontSize: Math.min(28, Math.floor((iw + CARD_BORDER * 2 - 16) / (name.length * 0.62))), whiteSpace: "nowrap", color: BRAND.ink }}>{name}</div>
+      <Tape x={pw * 0.34} y={-16} w={Math.max(110, pw * 0.34)} rot={-12} />
     </div>
   );
 };
@@ -481,9 +479,9 @@ const PortPanel: React.FC<{ windows: NonNullable<MontageSpec["psplits"]>; top?: 
   if (!w) return null;
   const k = Math.min(clamp((t - w.from) / 0.4), clamp((w.to + 0.4 - t) / 0.4));
   return (
-    <div style={{ position: "absolute", left: 0, top: top + (1 - k) * (1920 - top), width: 1080, height: 1920 - top, overflow: "hidden", borderTop: `8px solid ${BRAND.accent}`, boxSizing: "border-box" }}>
+    <div style={{ position: "absolute", left: 0, top: (w.top ?? top) + (1 - k) * (1920 - (w.top ?? top)), width: 1080, height: 1920 - (w.top ?? top), overflow: "hidden", borderTop: `8px solid ${BRAND.accent}`, boxSizing: "border-box" }}>
       {/* hybrid: the ground would cover the clip (drawn under the graphics); GPU renderer (2026-11-12): in layer 1, above his footage, under the clip (level 1) */}
-      <div style={{ position: "absolute", left: 0, top: -top, width: 1080, height: 1920 }}>{HY && !HYL ? null : <HyLayer z={1}>{w.panel === "parchment" ? <Parchment /> : <WarmBase />}</HyLayer>}</div>
+      <div style={{ position: "absolute", left: 0, top: -(w.top ?? top), width: 1080, height: 1920 }}>{HY && !HYL ? null : <HyLayer z={1}>{w.panel === "parchment" ? <Parchment /> : <WarmBase />}</HyLayer>}</div>
     </div>
   );
 };
@@ -501,9 +499,18 @@ export const Curtain: React.FC<{ at: number }> = ({ at }) => {
 };
 /** portrait: the clip as a tilted card at his right shoulder (frame left), below the beard */
 const PortraitClipCard: React.FC<{ cut: string; sp: Split }> = ({ cut, sp }) => {
+  if (sp.mainSrc) {   /* the pair (user 2026-11-16): the recorded clip and the added clip side by side under his face, each in a torn paper mount */
+    const ih = sp.card?.innerH ?? 300, a2 = sp.mainAspect ?? 16 / 9, pw2 = Math.round(ih * a2) + CARD_PAD * 2;
+    return (
+      <Only from={sp.from} to={sp.to}>
+        <CropPolaroid cut={sp.clipSrc ?? cut} aspect={sp.clipSrc ? sp.clipAspect ?? 16 / 9 : undefined} x={sp.clip.x} w={sp.clip.w} y={sp.clip.y} h={sp.clip.h} left={14} top={sp.card?.top ?? 1180} rot={-2} innerH={ih} />
+        <CropPolaroid cut={sp.mainSrc} aspect={a2} x={0} w={1920} left={1080 - 14 - pw2} top={sp.card?.top ?? 1180} rot={2} innerH={ih} />
+      </Only>
+    );
+  }
     return (
     <Only from={sp.from} to={sp.to}>
-      <CropPolaroid cut={cut} x={sp.clip.x} w={sp.clip.w} y={sp.clip.y} h={sp.clip.h} name={sp.clipName ?? "المقطع المردود عليه"} left={sp.card?.left ?? 30} top={sp.card?.top ?? 1380} rot={sp.card?.rot ?? -2} innerH={sp.card?.innerH ?? 390} blur={sp.blur} />
+      <CropPolaroid aspect={sp.clipSrc ? sp.clipAspect ?? 16 / 9 : undefined} cut={sp.clipSrc ?? cut} x={sp.clip.x} w={sp.clip.w} y={sp.clip.y} h={sp.clip.h} name={sp.clipName ?? "المقطع المردود عليه"} left={sp.card?.left ?? 30} top={sp.card?.top ?? 1320} rot={sp.card?.rot ?? -2} innerH={sp.card?.innerH ?? 450} blur={sp.blur} />
     </Only>
   );
 };
@@ -539,7 +546,7 @@ export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: nu
   const dx = sh ? sh.dx * Math.min(clamp((t - sh.from) / 0.4), clamp((sh.to + 0.4 - t) / 0.4)) : 0;
   const fth = sh?.feather ? sh.feather * Math.min(clamp((t - sh.from) / 0.4), clamp((sh.to + 0.4 - t) / 0.4)) : 0;
   const sp = splits.find((x) => t >= x.from && t < x.to);
-  if (sp) { const L = DEBATE_LAYOUTS[sp.layout ?? "dossier"]; return <L at={sp.from} main={{ src: cut, x: sp.sheikh.x, w: sp.sheikh.w }} guest={{ src: cut, x: sp.clip.x, w: sp.clip.w, y: sp.clip.y, h: sp.clip.h, blur: sp.blur }} guestName={sp.clipName} url={sp.clipUrl} behind={behind} gaps={gaps} />; }
+  if (sp) { const L = DEBATE_LAYOUTS[sp.layout ?? "dossier"]; return <L at={sp.from} main={sp.mainSrc ? { src: sp.mainSrc, aspect: sp.mainAspect ?? 16 / 9 } : { src: cut, x: sp.sheikh.x, w: sp.sheikh.w }} guest={sp.clipSrc ? { src: sp.clipSrc, aspect: sp.clipAspect ?? 16 / 9, blur: sp.blur } : { src: cut, x: sp.clip.x, w: sp.clip.w, y: sp.clip.y, h: sp.clip.h, blur: sp.blur }} guestName={sp.clipName} url={sp.clipUrl} behind={behind} gaps={gaps} />; }
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 1.2);
   const pp = pips.find((q) => t >= q.at && t <= q.until), pu = pp ? pipK(t, pp.at, pp.until) : 0;   // PipSource (user 2026-11-14): he shrinks into the top-right corner window
   const z = zz ? 1 + (zz.amt ?? 0.08) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1;
@@ -701,7 +708,7 @@ const withHalfWays = (s: MontageSpec): MontageSpec => {
    تضع الفاصل، فاصل عشوائي… ما عدا الريلز»): spec.bumper = { id, at } (tools/bumper_at.mjs --write). The render inserts it into the final file (prepend_bumper --at --id);
    Studio shows the same thing: the talk stops at `at`, the bumper plays 5 s with its sound, then the talk goes on. Composition frames in Studio = spec.frames + 150. */
 const FAWASEL: Record<string, { file: string; fileP: string }> = { press: { file: "fawasel/fasel_press.mp4", fileP: "fawasel/fasel_press_p.mp4" }, shelf: { file: "fawasel/fasel_shelf.mp4", fileP: "fawasel/fasel_shelf_p.mp4" }, wall: { file: "fawasel/fasel_wall.mp4", fileP: "fawasel/fasel_wall_p.mp4" }, notebook: { file: "fawasel/fasel_notebook.mp4", fileP: "fawasel/fasel_notebook_p.mp4" }, tear: { file: "fawasel/fasel_tear.mp4", fileP: "fawasel/fasel_tear_p.mp4" } };
-const studioBumper = (s: MontageSpec) => { const b = (s as { bumper?: { id: string; at: number } }).bumper; return getRemotionEnvironment().isStudio && b && FAWASEL[b.id] && (s as { kind?: string }).kind !== "reel" ? b : null; };
+const studioBumper = (s: MontageSpec) => { const b = (s as { bumper?: { id: string; at: number; end?: boolean } }).bumper; return getRemotionEnvironment().isStudio && b && (b.at >= 1 || b.end) && FAWASEL[b.id] && (s as { kind?: string }).kind !== "reel" ? b : null; };
 export const specFrames = (s: MontageSpec) => s.frames + (studioBumper(s) ? 150 : 0);
 /** `muted`: no sound from this copy (the side-by-side preview, src/MontageBoth.tsx, plays the sound from one side only) */
 export const MontageFromSpec: React.FC<{ spec: MontageSpec; muted?: boolean }> = ({ spec, muted }) => {
@@ -729,12 +736,29 @@ const withSpecTest = (s: MontageSpec): MontageSpec => {
   if (!x) return s;
   return { ...s, ...(x.dropCut ? { cut: undefined } : {}), items: [...s.items, ...(x.items ?? [])], psplits: [...(s.psplits ?? []), ...(x.psplits ?? [])], behind: (s.behind ?? []).filter((_, i) => !(x.dropBehind ?? []).includes(i)) };
 };
+/** (user order 2026-11-16, every video, the gallery too) PORTRAIT THREE ZONES while a panel element is up: his video in the upper half (a split window, scale 0.5 from the top),
+ *  the caption just under it (y 985), the ELEMENT in the zone below (1100–1780): hadith panel, picked elements (their 1920×1080 board scaled into the zone) */
+const SPLITZ = { s: 0.5, top: 960 };
+const withPortZones = (spec0: MontageSpec): MontageSpec => {
+  const spec: MontageSpec = spec0;
+  const w: { from: number; to: number }[] = [];
+  for (const it of spec.items) {
+    if (it.only === "land") continue;
+    if (it.t === "note" && it.phrases?.length) w.push({ from: it.phrases[0].at - 0.35, to: it.until });
+    else if (it.t === "pick" && !PICK_FULL_FRAME.has(it.el)) w.push({ from: it.at - 0.35, to: pickUntil(it as PickItem) });
+  }
+  w.sort((a, b) => a.from - b.from);
+  const m: { from: number; to: number }[] = [];
+  for (const x of w) { const l = m[m.length - 1]; if (l && x.from <= l.to + 0.6) l.to = Math.max(l.to, x.to); else m.push({ ...x }); }
+  return m.length ? { ...spec, psplits: [...(spec.psplits ?? []), ...m.map((x) => ({ ...x, ...SPLITZ }))] } : spec;
+};
 const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutAudio?: boolean }> = ({ spec: raw, muted, noCutAudio }) => {
-  const spec = withGallery(withHalfWays(withSpecTest(raw)));
-  for (const it of spec.items) if (!APPROVED_TYPES.has(it.t)) throw new Error(`عنصر غير معتمد في المعرض: «${it.t}» في ${spec.id} — المعتمد: ${[...APPROVED_TYPES].join("، ")}`);
+  const spec0 = withGallery(withHalfWays(withSpecTest(raw)));
+  for (const it of spec0.items) if (!APPROVED_TYPES.has(it.t)) throw new Error(`عنصر غير معتمد في المعرض: «${it.t}» في ${spec0.id} — المعتمد: ${[...APPROVED_TYPES].join("، ")}`);
   const f = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const o: Orient = width > height ? "land" : "port";
+  const spec = o === "port" ? withPortZones(spec0) : spec0;
   /* (2026-11-12) the GPU renderer (HYL) draws every element: solos (SoloLand), phone (PhoneWin), mini (MiniMe), treefx, psplits. Only the hybrid
      fallback (hybrid_any, no extra layers) still refuses the ones it cannot draw */
   if (HY && !HYL && ((o === "port" && spec.items.some((x) => x.t === "phone")) || (o === "land" && spec.psplits?.length) || spec.solos?.length || spec.items.some((x) => x.t === "mini" || x.t === "treefx"))) throw new Error(`المسار الهجين لا يدعم هذا المونتاج (${spec.id}): طولي أو solos/psplits/mini/treefx — استعمل المحرّك الجديد tools/gpu_render.mjs`);
@@ -802,7 +826,6 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutA
       <Gfx>
         {spec.items.map((it, i) => (behindIt(it) ? null : renderItem(it, i, o, bar)))}
         {spec.showTitleBar ? <TitleBar title={spec.title} theme={bar} bottomHalf={o === "port"} /> : null}
-        {o === "port" && spec.captions?.words?.length ? <PillCaptions cap={spec.captions} hideAlso={spec.items.filter((x) => x.t === "verse" || x.t === "hadith").map((x) => { const v = x as { times: number[]; until?: number }; return { from: v.times[0] - 0.3, to: v.until ?? v.times[v.times.length - 1] + 1.2 }; })} /> : null}   {/* full-screen verses/hadiths stand alone */}
       </Gfx>
       {/* the ONLY transition of the user-ordered layers is the gallery Curtain (user 2026-11-09: no opacity transitions, nothing outside the gallery): where a clip hands over to the next clip of its group, and where a background clip / isolation ends */}
       {o === "land" ? [...new Set([...hclips.flatMap((x) => hclips.filter((y) => y !== x && y.from - x.to > -0.01 && y.from - x.to < 1).map((y) => (x.to + y.from) / 2)), /* no curtain when a background clip ends or an isolation window (moved or not) starts/ends: the isolation just goes away (user 2026-11-11) */].map((v) => +v.toFixed(2)))].map((t) => <Curtain key={"gc" + t} at={t} />) : null}

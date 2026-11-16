@@ -50,16 +50,19 @@ export const FitLabel: React.FC<{ text: string; cx: number; cy: number; fit: Fit
 
 
 /** 1 · اقتباس يُكتب بالحبر — the quote written line by line behind a gold nib, under a big quotation sign (user note: a quote sign, not «» brackets) */
-export const InkQuote: React.FC<Base & { w?: number; size?: number; lines: { text: string; at: number }[]; source?: string }> = ({ at, until, x, y, w = 960, size = 96, lines, source }) => {
-  const { t, k } = useK(); const lh = size * 1.55;
+export const InkQuote: React.FC<Base & { w?: number; size?: number; lines: { text: string; at: number }[]; source?: string; ink?: string; srcK?: number }> = ({ at, until, x, y, w = 960, size = 96, lines, source, ink, srcK }) => {
+  const { t, k } = useK();
+  const inkC = ink === "gold" ? "#e7b84a" : ink;   /* (user 2026-11-16 «استخدم الأصفر») the hadith key gold, named so the spec carries no raw colour */
+  /* (user 2026-11-16, «الكلام متداخل») a long line wraps inside its row: every row is as tall as its wrapped lines (estimated from the real font size), so rows never overlap */
+  const fs0 = size * 0.82, hs = lines.map((l) => Math.max(1, Math.ceil([...l.text].length * fs0 * 0.6 / (w - 30))) * fs0 * 1.45 + fs0 * 0.2), tops = hs.map((_, i) => hs.slice(0, i).reduce((a, b) => a + b, 0)), total = hs.reduce((a, b) => a + b, 0);
   const cur = lines.map((l, i) => clamp((t - l.at) / Math.max(0.5, l.text.length * 0.06))).map((u, i) => [u, i] as const).find(([u]) => u > 0 && u < 1);
   return (
     <div style={abs({ left: x, top: y, width: w })}>
       <div style={abs({ right: -10, top: -size * 1.35, fontFamily: naskhF, fontSize: size * 2.2, lineHeight: 1, color: BRAND.accent, ...pop(k(at, 0.4, until), 0.3) })}>❝</div>
       {lines.map((l, i) => { const u = Math.min(clamp((t - l.at) / Math.max(0.5, l.text.length * 0.06)), clamp((until - t) / 0.35));
-        return <div key={i} style={abs({ left: 0, width: w, top: i * lh, textAlign: "center", fontFamily: kufiF, fontWeight: 800, fontSize: size * 0.82, lineHeight: 1.45, color: i === lines.length - 1 && lines.length > 1 ? BRAND.accent : BRAND.card, textShadow: "0 4px 18px rgba(0,0,0,.55)", ...wipe(ease(u)) })}>{l.text}</div>; })}   /* user 2026-11-14 (frame 9200): bolder Kufi so the quote reads at a glance */
-      {cur && t < until ? <div style={abs({ width: 28, height: 28, background: BRAND.accent, transform: "rotate(45deg)", boxShadow: `0 0 22px ${BRAND.accent}`, top: cur[1] * lh + size * 0.6, left: w * (0.9 - 0.8 * cur[0]) })} /> : null}
-      {source ? <div style={abs({ left: 0, width: w, top: lines.length * lh + 10, textAlign: "center", fontFamily: kufiF, fontSize: size * 0.36, color: BRAND.light, ...wipe(ease(k(lines[lines.length - 1].at + 0.8, 0.4, until))) })}>{source}</div> : null}
+        return <div key={i} style={abs({ left: 0, width: w, top: tops[i], textAlign: "center", fontFamily: kufiF, fontWeight: 800, fontSize: fs0, lineHeight: 1.45, color: inkC ?? (i === lines.length - 1 && lines.length > 1 ? BRAND.accent : BRAND.card), textShadow: "0 4px 18px rgba(0,0,0,.55)", ...wipe(ease(u)) })}>{l.text}</div>; })}   {/* user 2026-11-14 (frame 9200): bolder Kufi so the quote reads at a glance */}
+      {cur && t < until ? <div style={abs({ width: 28, height: 28, background: BRAND.accent, transform: "rotate(45deg)", boxShadow: `0 0 22px ${BRAND.accent}`, top: tops[cur[1]] + size * 0.6, left: w * (0.9 - 0.8 * cur[0]) })} /> : null}
+      {source ? <div style={abs({ left: 0, width: w, top: total + 10, textAlign: "center", fontFamily: kufiF, fontSize: size * (srcK ?? 0.36), color: inkC ?? BRAND.light, ...wipe(ease(k(lines[lines.length - 1].at + 0.8, 0.4, until))) })}>{source}</div> : null}
     </div>
   );
 };

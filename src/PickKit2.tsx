@@ -149,7 +149,8 @@ export const RootsTree: React.FC<Base & { roots: { text: string; at: number }[];
 
 /** 34 · البطارية (metaphor) — a big battery whose charge changes step by step (0–5 cells), each step with its label: faith rises with obedience and falls with sins */
 export const Battery: React.FC<Base & { title?: string; s?: number; steps: { level: number; at: number; label: string }[] }> = ({ at, until, x, y, title, steps, s = 1 }) => {
-  const { t, k } = useK(); const cur = steps.reduce((c, s) => (t >= s.at ? s : c), steps[0]); const lv = t >= steps[0].at ? cur.level : 5;
+  const { t, k } = useK(); const cur = steps.reduce((c, s) => (t >= s.at ? s : c), steps[0]), sc = steps.every((q) => q.level <= 1) ? 5 : 1;   /* levels are cells 0–5; a spec that wrote 0–1 fractions (user 2026-11-16: the battery showed less when it meant more) is scaled */
+  const lv = t >= steps[0].at ? cur.level * sc : 5;
   const col = lv <= 1 ? BRAND.mark : lv <= 2 ? BRAND.accent : BRAND.green;
   return (
     <div style={{ ...abs({ left: x, top: y, width: 900 }), transform: s !== 1 ? `scale(${s})` : undefined, transformOrigin: "0 0" }}>
@@ -204,12 +205,12 @@ export const PICK_PORT_BOX: Record<string, [number, number]> = {
   Footnote: [230, 520], CopiedMessages: [150, 720], CommentsFlood: [150, 760],
 };
 export const pickPortBoard = (el: string): React.CSSProperties => {
-  const [bt, bh] = PICK_PORT_BOX[el] ?? [(PICK_XY[el]?.[1] ?? 150), 700], s = Math.min(0.95, 470 / bh, 1000 / 1000);
-  const top = 1400 + (480 - bh * s) / 2 - bt * s, left = 540 - 590 * s;
+  const [bt, bh] = PICK_PORT_BOX[el] ?? [(PICK_XY[el]?.[1] ?? 150), 700], s = Math.min(0.95, 610 / bh, 1000 / 1000);   /* (user 2026-11-16) the ELEMENTS zone: y 1100–1760, under the caption, his video in the upper half */
+  const top = 1135 + (630 - bh * s) / 2 - bt * s, left = 540 - 590 * s;
   return { position: "absolute", left, top, width: 1920, height: 1080, transform: `scale(${s})`, transformOrigin: "0 0" };
 };
 /** NOT a split screen (user 2026-11-14, frames 8341/10458/11903/13009/14105): he stays centred, the element sits small in the left third over a dark gradient (LeftShade); these are its LANDSCAPE props. The engine and the gallery both read this table. */
-export const PICK_NOSPLIT: Record<string, Record<string, number>> = { RingStat: { x: 330, y: 470 }, MythFact: { x: 40, y: 300, w: 760, size: 40 }, ChatThread: { x: 40, y: 250, w: 580 }, FlapBoard: { x: 40, y: 260, w: 600, size: 44 }, Battery: { x: 108, y: 737, s: 0.7 } };   /* the user's red box, lower left (2026-11-15) */
+export const PICK_NOSPLIT: Record<string, Record<string, number>> = { RingStat: { x: 330, y: 470 }, MythFact: { x: 40, y: 300, w: 760, size: 40 }, ChatThread: { x: 40, y: 250, w: 580 }, FlapBoard: { x: 40, y: 260, w: 600, size: 44 }, Battery: { x: 108, y: 737, s: 0.7 }, BigQuestion: { x: 40, y: 250, w: 600, size: 330 } };   /* BigQuestion beside him with no split (user 2026-11-16) */   /* the user's red box, lower left (2026-11-15) */
 export const PICK_ALL = { ...PICK_KIT, ...PICK_KIT2 } as const;
 export type PickAllName = keyof typeof PICK_ALL;
 export const PICK_ALL_FULL_FRAME = new Set<string>([...PICK_FULL_FRAME, "BrushWipe"]);

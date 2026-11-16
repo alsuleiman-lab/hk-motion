@@ -14,7 +14,7 @@ import { HYL, HyLayer, VSlot } from "./hybrid/Slot";
  * A source is either a whole video (`src`) or a source-pixel column of the baked split (`src` + `x`/`w`).
  */
 export type DebateSrc = { src: string; x?: number; w?: number; y?: number; h?: number; aspect?: number; blur?: number };
-export type DebateLayoutName = "dossier" | "blocks";
+export type DebateLayoutName = "dossier" | "dossierBig" | "dossierPair" | "blocks";
 type Props = { main: DebateSrc; guest: DebateSrc; guestName?: string; title?: string; url?: string; at?: number; behind?: React.ReactNode; gaps?: { from: number; to: number }[] };
 
 const W = LANDSCAPE.W, H = LANDSCAPE.H;
@@ -159,7 +159,8 @@ const TornWindow: React.FC<{ w: Win; s: DebateSrc; seed: string; transform: (b: 
 /** (user order 2026-11-15, «انقسام الشاشة دائماً») the area for added elements is the MIDDLE between the two screens: while an element is up his mount slides aside
  *  (right) and shrinks a little, so the middle widens; the element sits in it BEHIND both frames; when it goes he returns to his place. */
 const GAP_DX = 130, GAP_S = 0.9;
-export const DebateDossier: React.FC<Props> = ({ main, guest, title = "مصدر", url, at = 0, behind, gaps = [] }) => {
+export const DebateDossier: React.FC<Props & { big?: boolean | "pair" }> = ({ main, guest, title = "مصدر", url, at = 0, behind, gaps = [], big: bigP = false }) => {
+  const pair = bigP === "pair", big = bigP === true;
   const t = useCurrentFrame() / 30 - at, mi = useIn(at), gi = useIn(at, 0.3);
   const tt = t + at, cl = (v: number) => Math.max(0, Math.min(1, v)), sm = (v: number) => v * v * (3 - 2 * v);
   const gk = gaps.reduce((m, g) => Math.max(m, sm(Math.min(cl((tt - g.from) / 0.4), cl((g.to + 0.4 - tt) / 0.4)))), 0);
@@ -174,13 +175,13 @@ export const DebateDossier: React.FC<Props> = ({ main, guest, title = "مصدر"
       </div>
       </HyLayer>
       {behind ? <HyLayer z={0}><AbsoluteFill>{behind}</AbsoluteFill></HyLayer> : null}
-      <TornWindow w={{ left: 0.35, top: 0.05, width: 0.64 }} s={main} seed="dossier-main" z={0}
+      <TornWindow w={pair ? { left: 0.52, top: 0.2, mid: 0.5, width: 0.45 } : big ? { left: 0.68, top: 0.3, width: 0.3 } : { left: 0.35, top: 0.05, width: 0.64 }} s={main} seed="dossier-main" z={0}
         transform={(b) => {
           const s0 = Math.min(W / b.w, H / b.h);
           const pw = b.w + 2 * PAD, sg = 1 - (1 - GAP_S) * gk, gx = gk * GAP_DX + (pw * (1 - sg)) / 2;
           return `translate(${(1 - mi) * (W / 2 - (b.x + b.w / 2))}px, ${(1 - mi) * (H / 2 - (b.y + b.h / 2))}px) rotate(${1.5 * mi}deg) scale(${1 + (s0 - 1) * (1 - mi)}) translateX(${gx}px) scale(${sg})`;
         }} />
-      <TornWindow w={{ left: 0.02, top: 0.27, width: 0.31 }} s={guest} seed="dossier-guest" tape z={1}
+      <TornWindow w={pair ? { left: 0.03, top: 0.2, mid: 0.5, width: 0.45 } : big ? { left: 0.03, top: 0.1, width: 0.62 } : { left: 0.02, top: 0.27, width: 0.31 }} s={guest} seed="dossier-guest" tape z={1}
         transform={(b) => `translateX(${-(1 - gi) * (b.x + b.w + 120)}px) rotate(${-5 * gi}deg)`} />
       {url ? (
         <div style={{ position: "absolute", left: W * 0.06, bottom: H * 0.06, transform: `rotate(-4deg) scale(${st})`, opacity: sp * 0.95, border: `${4 * K}px solid ${BRAND.mark}`, color: BRAND.mark,
@@ -191,7 +192,10 @@ export const DebateDossier: React.FC<Props> = ({ main, guest, title = "مصدر"
   );
 };
 
-export const DEBATE_LAYOUTS: Record<DebateLayoutName, React.FC<Props>> = { dossier: DebateDossier, blocks: DebateBlocks };
+/** (user order 2026-11-16, «كبّر فيديو المردود عليه وصغّر بطاقة الشيخ»: a deliberate rule break) the shown clip large on the left, his mount small on the right */
+const DebateDossierBig: React.FC<Props> = (p) => <DebateDossier {...p} big />;
+const DebateDossierPair: React.FC<Props> = (p) => <DebateDossier {...p} big="pair" />;   /* two equal windows side by side: the recorded clip left, an added clip right */
+export const DEBATE_LAYOUTS: Record<DebateLayoutName, React.FC<Props>> = { dossier: DebateDossier, dossierBig: DebateDossierBig, dossierPair: DebateDossierPair, blocks: DebateBlocks };
 /** the pasted call shape: <SculptedBlocks07 mainSrc guestSrc title /> (paths relative to public/, or staticFile URLs) */
 export const SculptedBlocks07: React.FC<{ mainSrc: string; guestSrc: string; title?: string }> = ({ mainSrc, guestSrc, title }) => {
   const rel = (s: string) => s.replace(/^.*\/public\//, "").replace(/^\//, "");

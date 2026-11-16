@@ -44,13 +44,13 @@ export const HadithQuotePanel: React.FC<HadithHalf> = ({ lead, phrases, src, unt
   const s = size ?? fitN(pchars(phrases), 590, 500, 1.7, 84, 44);
   return (
     <BlendPanel k={k} t={t} id="hq">
-      <div style={{ position: "absolute", left: 470, top: 100, fontFamily: N, fontSize: 260, lineHeight: 1, color: "rgba(231,184,74,.35)" }}>«</div>
-      <div style={{ position: "absolute", left: 40, bottom: 110, fontFamily: N, fontSize: 260, lineHeight: 1, color: "rgba(231,184,74,.35)" }}>»</div>
-      {lead ? <div style={{ position: "absolute", left: 40, width: 560, top: 250, textAlign: "center", direction: "rtl", fontFamily: N, fontWeight: 700, fontSize: 42, color: "#e7b84a", opacity: clamp((t - t0 + 0.4) / 0.3) }}>{lead}</div> : null}
-      <div style={{ position: "absolute", left: 30, width: 590, top: 330, textAlign: "center", direction: "rtl", lineHeight: 1.7 }}>
+      <div style={{ position: "absolute", left: 530, top: 100, fontFamily: N, fontSize: 260, lineHeight: 1, color: "rgba(231,184,74,.35)" }}>«</div>
+      <div style={{ position: "absolute", left: 100, bottom: 110, fontFamily: N, fontSize: 260, lineHeight: 1, color: "rgba(231,184,74,.35)" }}>»</div>
+      {lead ? <div style={{ position: "absolute", left: 100, width: 560, top: 250, textAlign: "center", direction: "rtl", fontFamily: N, fontWeight: 700, fontSize: 42, color: "#e7b84a", opacity: clamp((t - t0 + 0.4) / 0.3) }}>{lead}</div> : null}
+      <div style={{ position: "absolute", left: 90, width: 590, top: 330, textAlign: "center", direction: "rtl", lineHeight: 1.7 }}>
         {phrases.map((p, i) => <div key={i}><Phrase p={p} t={t} size={s} color={BRAND.card} /></div>)}
       </div>
-      <div style={{ position: "absolute", left: 40, width: 560, bottom: 90, borderTop: `2px solid ${alpha("#e7b84a", 0.5)}`, paddingTop: 14, textAlign: "center", direction: "rtl", fontFamily: TEXT, fontWeight: 700, fontSize: 28, color: BRAND.light, opacity: clamp((t - last.at - 0.5) / 0.3) }}>{src}</div>
+      <div style={{ position: "absolute", left: 100, width: 560, bottom: 90, borderTop: `2px solid ${alpha("#e7b84a", 0.5)}`, paddingTop: 14, textAlign: "center", direction: "rtl", fontFamily: TEXT, fontWeight: 700, fontSize: 28, color: BRAND.light, opacity: clamp((t - last.at - 0.5) / 0.3) }}>{src}</div>
     </BlendPanel>
   );
 };
@@ -61,29 +61,53 @@ export const HadithBooksPanel: React.FC<HadithHalf & { narrator?: string; books?
   const t = useT();
   const t0 = phrases[0].at, last = phrases[phrases.length - 1], k = halfK(t, t0 - HALF_LEAD, until);
   const bs = books?.length ? books.slice(0, 3) : [{ book: src, n: "" }];
-  const s = size ?? fitN(pchars(phrases), 590, 400 - (bs.length - 1) * 60, 1.6, 80, 42);
-  const bookAt = last.at + 0.6, top0 = 1000 - bs.length * 84;
+  const topM = lead ? 232 : 192, s = size ?? fitN(pchars(phrases), 590, (930 - topM - 24) * 0.74, 1.6, 56, 38);   /* (user 2026-11-16) bigger text; the books are ONE line so the matn gets the room of the second card */
+  const bookAt = last.at + 0.6, top0 = 930;
   const AR = "٠١٢٣٤٥٦٧٨٩", ar = (n: number | string) => String(n).replace(/[0-9]/g, (d) => AR[+d]);
   return (
     <BlendPanel k={k} t={t} id="hb">
-      {narrator ? <div style={{ position: "absolute", left: 50, width: 520, top: 150, padding: "10px 0", textAlign: "center", direction: "rtl", background: BRAND.navy, border: `2px solid ${alpha(BRAND.light, 0.5)}`, borderRadius: 40,
+      {narrator ? <div style={{ position: "absolute", left: 110, width: 520, top: 104, padding: "10px 0", textAlign: "center", direction: "rtl", background: BRAND.navy, border: `2px solid ${alpha(BRAND.light, 0.5)}`, borderRadius: 40,
         fontFamily: N, fontSize: 32, color: BRAND.light, opacity: clamp((t - t0 + 0.4) / 0.3), transform: `scaleX(${ease((t - t0 + 0.4) / 0.4)})` }}>{narrator}</div> : null}
-      {lead ? <div style={{ position: "absolute", left: 30, width: 590, top: 245, textAlign: "center", direction: "rtl", fontFamily: N, fontWeight: 700, fontSize: 40, color: BRAND.light, opacity: clamp((t - t0 + 0.3) / 0.3) }}>{lead}:</div> : null}
-      <div style={{ position: "absolute", left: 30, width: 590, top: 315, textAlign: "center", direction: "rtl", lineHeight: 1.6 }}>
+      {lead ? <div style={{ position: "absolute", left: 90, width: 590, top: 172, textAlign: "center", direction: "rtl", fontFamily: N, fontWeight: 700, fontSize: 40, color: BRAND.light, opacity: clamp((t - t0 + 0.3) / 0.3) }}>{lead}:</div> : null}
+      <div style={{ position: "absolute", left: 90, width: 590, top: topM, textAlign: "center", direction: "rtl", lineHeight: 1.6 }}>
         {phrases.map((p, i) => <div key={i}><Phrase p={p} t={t} size={s} color={BRAND.card} dur={0.9} /></div>)}
       </div>
-      {bs.map((b, i) => {
-        const u = ease((t - bookAt - i * 0.35) / 0.4), w = 520 + i * 30;
+      {(() => {
+        const u = ease((t - bookAt) / 0.4);
         return u <= 0 ? null : (
-          <div key={i} style={{ position: "absolute", left: 320 - w / 2 + (i % 2 ? 12 : -10), top: top0 + i * 84, width: w, height: 74, borderRadius: "6px 14px 14px 6px", direction: "rtl",
-            background: `linear-gradient(180deg, ${i % 2 ? BRAND.navyDeep : BRAND.navy}, ${BRAND.base3})`, borderTop: `4px solid ${BRAND.light}`, borderBottom: `4px solid ${BRAND.light}`, boxShadow: "0 10px 18px rgba(0,0,0,.45)",
-            display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 26px", boxSizing: "border-box", fontFamily: N, fontWeight: 700, fontSize: 36, color: BRAND.card,
-            transform: `translateX(${-(1 - u) * 900}px) rotate(${(i % 2 ? 1 : -1) * 1.2}deg)` }}>
-            <span>{b.book}</span>{b.n !== "" ? <span style={{ fontFamily: TEXT, fontWeight: 800, fontSize: 30, background: BRAND.accent, color: BRAND.onAccent, borderRadius: 20, padding: "2px 16px" }}>{ar(b.n)}</span> : null}
+          <div style={{ position: "absolute", left: 380 - 300, top: top0, width: 600, height: 74, borderRadius: "6px 14px 14px 6px", direction: "rtl",
+            background: `linear-gradient(180deg, ${BRAND.navy}, ${BRAND.base3})`, borderTop: `4px solid ${BRAND.light}`, borderBottom: `4px solid ${BRAND.light}`, boxShadow: "0 10px 18px rgba(0,0,0,.45)",
+            display: "flex", alignItems: "center", justifyContent: "space-around", padding: "0 14px", boxSizing: "border-box", fontFamily: N, fontWeight: 700, fontSize: bs.length > 1 ? 30 : 36, color: BRAND.card,
+            transform: `translateX(${-(1 - u) * 900}px) rotate(-1deg)` }}>
+            {bs.map((b, i) => <span key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}><span>{b.book}</span>{b.n !== "" ? <span style={{ fontFamily: TEXT, fontWeight: 800, fontSize: 26, background: BRAND.accent, color: BRAND.onAccent, borderRadius: 20, padding: "2px 14px" }}>{ar(b.n)}</span> : null}</span>)}
           </div>
         );
-      })}
+      })()}
     </BlendPanel>
+  );
+};
+/** portrait (user 2026-11-16): the hadith in the ELEMENTS zone under the caption, his video in the upper half (the engine's auto split window): narrator ribbon, the matn large, ONE books card at the bottom */
+export const HadithPortPanel: React.FC<HadithHalf & { narrator?: string; books?: { book: string; n: number | string }[] }> = ({ lead, narrator, phrases, src, books, until, size }) => {
+  FONT_NASKH(); FONT_TEXT();
+  const t = useT();
+  const t0 = phrases[0].at, last = phrases[phrases.length - 1], k = clamp((t - (t0 - 0.35)) / 0.4);
+  const bs = books?.length ? books.slice(0, 3) : [{ book: src, n: "" }];
+  const Z0 = 1135, bookTop = 1722, topM = Z0 + (narrator ? 72 : 0) + (lead ? 60 : 0) + 8, s = size ?? Math.max(30, Math.min(fitN(pchars(phrases), 960, (bookTop - topM - 16) * 0.8, 1.6, 60, 30), Math.floor((bookTop - topM - 24) / (phrases.length * 1.72))));   /* a phrase per line: the height decides */
+  const bookAt = last.at + 0.6, AR = "٠١٢٣٤٥٦٧٨٩", ar = (n: number | string) => String(n).replace(/[0-9]/g, (d) => AR[+d]), u = ease((t - bookAt) / 0.4);
+  return (
+    <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, clipPath: `inset(${Z0}px 0 0 0)`, visibility: k > 0 ? "visible" : "hidden" }}>
+      {narrator ? <div style={{ position: "absolute", left: 190, width: 700, top: Z0, padding: "8px 0", textAlign: "center", direction: "rtl", background: BRAND.navy, border: `2px solid ${alpha(BRAND.light, 0.5)}`, borderRadius: 40, fontFamily: N, fontSize: 32, color: BRAND.light, transform: `scaleX(${ease((t - t0 + 0.4) / 0.4)})` }}>{narrator}</div> : null}
+      {lead ? <div style={{ position: "absolute", left: 60, width: 960, top: Z0 + (narrator ? 70 : 0), textAlign: "center", direction: "rtl", fontFamily: N, fontWeight: 700, fontSize: 38, color: BRAND.light, opacity: clamp((t - t0 + 0.3) / 0.3) }}>{lead}:</div> : null}
+      <div style={{ position: "absolute", left: 60, width: 960, top: topM, textAlign: "center", direction: "rtl", lineHeight: 1.6 }}>
+        {phrases.map((p, i) => <div key={i}><Phrase p={p} t={t} size={s} color={BRAND.card} dur={0.9} /></div>)}
+      </div>
+      {u > 0 ? (
+        <div style={{ position: "absolute", left: 240, top: bookTop, width: 600, height: 66, borderRadius: "6px 14px 14px 6px", direction: "rtl", background: `linear-gradient(180deg, ${BRAND.navy}, ${BRAND.base3})`, borderTop: `4px solid ${BRAND.light}`, borderBottom: `4px solid ${BRAND.light}`, boxShadow: "0 10px 18px rgba(0,0,0,.45)",
+          display: "flex", alignItems: "center", justifyContent: "space-around", padding: "0 14px", boxSizing: "border-box", fontFamily: N, fontWeight: 700, fontSize: bs.length > 1 ? 28 : 34, color: BRAND.card, transform: `translateX(${-(1 - u) * 1100}px) rotate(-1deg)` }}>
+          {bs.map((b, i) => <span key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}><span>{b.book}</span>{b.n !== "" ? <span style={{ fontFamily: TEXT, fontWeight: 800, fontSize: 24, background: BRAND.accent, color: BRAND.onAccent, borderRadius: 20, padding: "2px 14px" }}>{ar(b.n)}</span> : null}</span>)}
+        </div>
+      ) : null}
+    </div>
   );
 };
 /** gallery scenes */

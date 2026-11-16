@@ -18,7 +18,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 const [stage, p, ...rest] = process.argv.slice(2);
 /* (user 2026-11-12: «وين عم تروح تعليماتي؟») no montage stage while an order of the user is still an unmerged draft/proposal in rules_registry/ */
@@ -27,6 +27,13 @@ const opt = (n, d) => (rest.includes("--" + n) ? rest[rest.indexOf("--" + n) + 1
 if (!["prep", "cut", "check"].includes(stage) || !p) { console.error("usage: node tools/stage.mjs prep|cut|check <project> …  (see the header)"); process.exit(2); }
 const PY = process.env.PY ?? "S:/AI_Tools/ComfyUI_windows_portable/python_embeded/python.exe";   // has faster_whisper + torch (system python does not)
 const T = path.join(".tmp", p);
+// pids of THIS project's background smoothing (the node job, smooth_dups.py and its re-exec'd ComfyUI child), found by command line — never by a stored pid alone,
+// which Windows may have handed to another process since
+const smoothingPids = (proj) => {
+  const r = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*smooth_dups.py*' } | ForEach-Object { [string]$_.ProcessId + [char]9 + $_.CommandLine }"], { encoding: "utf8", windowsHide: true });
+  const re = new RegExp(`[\\\\/]${proj.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_cut\\.mp4`);
+  return (r.stdout || "").split(/\r?\n/).map((l) => l.split("\t")).filter(([id, cmd]) => id && cmd && re.test(cmd) && Number(id) !== process.pid).map(([id]) => Number(id));
+};
 fs.mkdirSync(T, { recursive: true });
 const logFile = path.join(T, `stage_${stage}.log`);
 fs.writeFileSync(logFile, `# stage ${stage} ${p} ${new Date().toISOString()}\n`);
@@ -278,16 +285,28 @@ if (stage === "cut") {
     finish(0);
   }
   const cut = path.join("public", `${p}_cut.mp4`);
+  const cutS = path.join("public", `${p}_cut_s.mp4`);
+  const running = path.join(T, "smooth.running");
+  // (user 2026-11-16 «عالج تصادم التنعيم») a re-cut while the previous cut's smoothing still runs: the old job read the cut video being rewritten, both wrote the
+  // same part file, and the old job's end renamed a stale video over <p>_cut_s.mp4 and removed the flag the new job set. Now the old job (its whole process tree,
+  // found by command line, so an orphan or a recycled pid is handled right) is stopped BEFORE the cut video is rebuilt, and its leftovers and the stale smoothed video go
+  const old = smoothingPids(p);
+  if (old.length) { for (const pid of old) spawnSync("taskkill", ["/T", "/F", "/PID", String(pid)], { windowsHide: true }); say(`stopped the previous cut's background smoothing (${old.length} process(es)) — it would have overwritten this cut`); }
+  fs.rmSync(running, { force: true });
+  for (const f of fs.readdirSync(T).filter((f) => /^cut_s_part.*\.mp4$/.test(f))) { try { fs.rmSync(path.join(T, f)); } catch { /* gone */ } }
+  try { fs.rmSync(cutS, { force: true }); } catch { say(`⚠ ${cutS} is held open (Studio?): the new smoothed video replaces it when free`); }
   await must("NVENC build", "node", ["tools/cut_edl.mjs", "build", src, mapF, cut, "--audio-from", wavClean]);
   // duplicated frames of the recording (frame-rate conversion) make the motion judder: ALWAYS smooth them right here (PREFERENCES §6 «تسجيلاته ترتجف»); the video is built on <p>_cut_s.mp4
   const srcWin = sources(src, ["--map", mapF]);
-  const cutS = path.join("public", `${p}_cut_s.mp4`);
   // smoothing (≈5 min for 8 min) runs in the BACKGROUND: <p>_cut_s.mp4 appears when it is done (part file renamed); `check` waits for it (user 2026-10-27: «تسريع المونتاج»)
-  const running = path.join(T, "smooth.running");
-  fs.writeFileSync(running, String(Date.now()));
-  const part = path.join(T, "cut_s_part.mp4");
-  const job = `const {spawnSync}=require("child_process"),fs=require("fs");const r=spawnSync(${JSON.stringify("C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe")},["tools/smooth_dups.py",${JSON.stringify(cut)},${JSON.stringify(part)}],{encoding:"utf8",windowsHide:true});fs.writeFileSync(${JSON.stringify(path.join(T, "smooth.log"))},(r.stdout||"")+(r.stderr||""));if(r.status===0){fs.renameSync(${JSON.stringify(part)},${JSON.stringify(cutS)})}fs.rmSync(${JSON.stringify(running)},{force:true});`;
-  spawn(process.execPath, ["-e", job], { detached: true, stdio: "ignore", windowsHide: true }).unref();
+  // each job has its own token and part file; it renames/clears only while the flag still carries ITS token (a newer cut owns the flag otherwise)
+  const token = `${Date.now()}_${process.pid}`;
+  fs.writeFileSync(running, JSON.stringify({ token, t: Date.now() }));
+  const part = path.join(T, `cut_s_part_${token}.mp4`);
+  const job = `const {spawnSync}=require("child_process"),fs=require("fs");const F=${JSON.stringify(running)},K=${JSON.stringify(token)},mine=()=>{try{return JSON.parse(fs.readFileSync(F,"utf8")).token===K}catch{return false}};const r=spawnSync(${JSON.stringify("C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe")},["tools/smooth_dups.py",${JSON.stringify(cut)},${JSON.stringify(part)}],{encoding:"utf8",windowsHide:true});if(!mine()){fs.rmSync(${JSON.stringify(part)},{force:true});process.exit(0)}fs.writeFileSync(${JSON.stringify(path.join(T, "smooth.log"))},(r.stdout||"")+(r.stderr||""));let ok=false;if(r.status===0){for(let i=0;i<60&&!ok;i++){try{fs.renameSync(${JSON.stringify(part)},${JSON.stringify(cutS)});ok=true}catch(e){fs.appendFileSync(${JSON.stringify(path.join(T, "smooth.log"))},"rename: "+e.code+"\\n");Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,5000)}}}fs.rmSync(F,{force:true});`;
+  const jp = spawn(process.execPath, ["-e", job], { detached: true, stdio: "ignore", windowsHide: true });
+  fs.writeFileSync(running, JSON.stringify({ token, t: Date.now(), pid: jp.pid }));
+  jp.unref();
   const cutWords = remapWords(JSON.parse(fs.readFileSync(path.join(T, "words_vad.json"), "utf8")), JSON.parse(fs.readFileSync(mapF, "utf8")).segments);
   for (const stale of ["cut_words.aligned.json", "cut_words_large.raw.json", "cut_words_large.json", "drift_fresh.json"]) { try { fs.rmSync(path.join(T, stale)); } catch { /* absent */ } }   // (2026-11-13) a stale alignment from the previous cut shifted every word 0.45 s
   fs.writeFileSync(path.join(T, "cut_words.json"), JSON.stringify(cutWords));
@@ -313,7 +332,14 @@ if (stage === "check") {
   const file = opt("file", ""), minutes = opt("minutes", "");
   if (!comp || !file || !minutes) { say("✘ usage: check <p> <CompId> --file src/X.tsx --minutes M [--skip a-b,…]"); finish(1); }
   const running = path.join(T, "smooth.running");
-  if (fs.existsSync(running)) { say("waiting for the background smoothing (<p>_cut_s.mp4)…"); while (fs.existsSync(running)) await new Promise((r) => setTimeout(r, 5000)); }
+  if (fs.existsSync(running)) {
+    say("waiting for the background smoothing (<p>_cut_s.mp4)…");
+    for (let k = 1; fs.existsSync(running); k++) {
+      await new Promise((r) => setTimeout(r, 5000));
+      if (k % 6 === 0 && fs.existsSync(running) && !smoothingPids(p).length) { fs.rmSync(running, { force: true }); say(`✘ the background smoothing died without finishing (reboot/killed?) — log ${path.join(T, "smooth.log")}; re-run the cut`); finish(1); }
+    }
+  }
+  if (!fs.existsSync(path.join("public", `${p}_cut_s.mp4`)) && fs.existsSync(path.join("public", `${p}_cut.mp4`))) { say(`✘ no smoothed video public/${p}_cut_s.mp4 after the smoothing — log ${path.join(T, "smooth.log")}`); finish(1); }
   let failed = 0;
   await run("node", ["tools/make_preview_proxy.mjs", "--auto", p]);   // light Studio copies of every heavy video (no stutter in the preview; renders use the full files)
   const step = async (label, cmd, args, pick) => {

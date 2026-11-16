@@ -132,16 +132,23 @@ def run_cpu():
             prev, gp = cur, gc
             cur, gc, ok2 = nxt, gn, ok3
             ok3, nxt = cap.read() if ok3 else (False, None)
-    ff.stdin.close(); ff.wait()
+    ff.stdin.close()
+    if ff.wait() != 0:
+        raise RuntimeError(f"ffmpeg encode failed ({ff.returncode})")
     return n, fixed
 
 
-if "--cpu" in a:
-    n, fixed = run_cpu()
-else:
+res = None
+if "--cpu" not in a:
     try:
-        n, fixed = run_gpu()
+        res = run_gpu()
     except Exception as e:
         print(f"WARNING: GPU path failed ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__}) — the OpenCV CPU path", flush=True)
-        n, fixed = run_cpu()
-finish(n, fixed)
+if res is None:
+    # (2026-11-16) the failed GPU path's muxer still had <tmp> open (its frame was alive in the exception's traceback, and the CPU path ran INSIDE the except block):
+    # the CPU encode then produced a file with no streams. Out of the except block + a collection frees it; the half-written file goes before the CPU path writes
+    import gc; gc.collect()
+    try: os.remove(tmp)
+    except FileNotFoundError: pass
+    res = run_cpu()
+finish(*res)

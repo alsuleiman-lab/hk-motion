@@ -21,7 +21,7 @@ Use [Claude Animation Base: local adaptation](references/claude-animation-base.m
 
 For code-drawn illustration detail, articulated characters, grounded walking, or reproducible frames, use [Hanif's animation skill: local adaptation](references/hanif-animation-detail.md). It complements the acting reference with material layers, rig review, and render-order checks.
 
-For the user's painted-film quality reference, use [Paint MV: visual direction](references/paint-mv-visual-direction.md): cohesive watercolor rendering, shared character/set design, and action-driven scene connections timed to speech. For cut-paper style or physical bone rigs, use [Papermotion integration](references/papermotion-integration.md) and the project-local `papermotion` skill. Its stateful simulation requires a different frame-export strategy from pure Remotion animation.
+For the user's painted-film quality reference, use [Paint MV: visual direction](references/paint-mv-visual-direction.md): cohesive watercolor rendering, shared character/set design, and action-driven scene connections timed to speech. For cut-paper style or physical bone rigs, use [Papermotion integration](references/papermotion-integration.md) and [Papermotion in this workspace](references/papermotion.md). Its stateful simulation requires a different frame-export strategy from pure Remotion animation.
 
 For plan columns (sound, link to next shot), the first-30-seconds hook, the 2.5-second inactivity check, force-transfer/rebound acting, posture-based tension, and the per-scene sound script (ambience, contact sounds, emotional beats, deliberate silence; no music), use [Stickman Video Director: local adaptation](references/stickman-director-adaptation.md).
 

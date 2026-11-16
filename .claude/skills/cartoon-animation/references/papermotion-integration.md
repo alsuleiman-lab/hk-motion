@@ -3,7 +3,7 @@
 المصدر: [francozanardi/papermotion](https://github.com/francozanardi/papermotion)، برخصةMIT.
 نسخة المصدر المحلية: `S:/AI_Tools/Papermotion`.
 الإصدار المقروء:0.1.0، والالتزام`edcf592906fa3ad93b11dedb6f6d618cd4bb8e9e`.
-المهارة المحلية المكيّفة: `S:/AI_Tools/Remotion_Workspace/.claude/skills/papermotion/SKILL.md`.
+المرجع المحلي المكيّف: [papermotion.md](papermotion.md).
 
 ## الاستفادة البصرية والحركية
 

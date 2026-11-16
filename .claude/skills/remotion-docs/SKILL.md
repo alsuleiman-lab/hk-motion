@@ -1,6 +1,6 @@
 ---
 name: remotion-docs
-description: Search Remotion documentation
+description: Official Remotion reference only (not for this project's montage, reel, lesson or render requests; start those with the router skill). Search Remotion documentation
 version: 4.0.538
 ---
 

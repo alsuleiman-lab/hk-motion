@@ -1,6 +1,6 @@
 ---
 name: remotion-render
-description: Export a Remotion video
+description: رندر وتصدير فيديوهات هذا المشروع على كرت الشاشة (القواعد §11)؛ tools/gpu_render.mjs وطابور الرندر، عرضي ثم طولي، رندر واحد في وقت واحد، بإذن صريح. (Export a Remotion video)
 version: 4.0.535
 ---
 
@@ -77,7 +77,7 @@ version: 4.0.535
    - 10 نوافذ ← 14 نافذة ← `--at <نافذة حرة> --len 90`؛
    - على الملف قبل الفاصل (`.tmp/bumper_orig/<الاسم>.mp4`)؛
    - و`ffprobe`: الإطارات والمدة والصوت، والمعدل ≥ 14 Mbps.
-7. **الوجهة** كما في القواعد القائمة: لا شيء في «جاهز» دون إذن، و«جاهز» للنسخة المعتمدة فقط.
+7. **الوجهة (أمر المستخدم 2026-11-16: «الاعتماد لا علاقة له بالنقل لجاهز»):** كل فيديو مرندر ينجح فحصه يُنسخ إلى «جاهز» فور انتهاء الرندر، بلا انتظار اعتماد ولا سؤال؛ والاعتماد وحده يحرّك الحذف والتنظيف.
 8. **إن فشل الرندر الجديد:** يُصلَح السبب ويُعاد. الهجين (`node tools/hybrid_any.mjs …` أو `RENDER_ENGINE=hybrid` في `render_job.sh` على الفرع) احتياط **بإذن المستخدم فقط**، وأخبره بسبب الرجوع.
 9. **التنظيف:** احذف ملفاتك المؤقتة الكبيرة بعد التحقق، وشغّل `node tools/clean_temp.mjs`.
 
@@ -164,7 +164,4 @@ Never run two renders at the same time (two videos, two orientations, or a video
 - **عدة لقطات بنداء واحد:** `npx remotion render <id> out/frames --frames=0,30,90 --image-format=png` (حزمة واحدة، وتوازٍ داخلي) — أسرع من تشغيل `still` لكل إطار.
 - لقطة واحدة: `npx remotion still <id> out.png --frame=N`؛ وللفيديو الشفاف انظر `transparent-videos.md` الرسمي (في المستودع المنسوخ `scratch/ext_repos/remotion-skills/skills/remotion-render/`).
 - **صور المعاينة السريعة عندنا:** `node tools/stills.mjs <id> <outDir> name:frame …` (متصفح واحد مشترك + حزمة مخزَّنة + أصول بالروابط الصلبة؛ التوازي أبطأ عندنا فالافتراضي إطار بعد إطار).
-
-## الرندر النهائي بالإطارات المستخرجة (أمر المستخدم 2026-10-25: «استمر عليها واعمل عليها في المستقبل»)
-الافتراضي لكل رندر نهائي لفيديو الشيخ: (1) استخرج إطارات القص صوراً: `ffmpeg -hwaccel cuda -i public/<cut>.mp4 -fps_mode passthrough -frame_pts 1 -q:v 3 -threads 4 public/<project>/fr/f_%06d.jpg` وتحقق من إطار واحد (PSNR=inf مقابل `select=eq(n\,N)`)؛ (2) مشغّل الفيديو الأساسي يعرض الصورة `f_<startFrom+frame>` حين `inputProps {"frames":true}` أثناء الرندر فقط (مثال: `BFrame`/`BV` في `src/Badawi.tsx`، و`KhVideo` في `src/KhKit.tsx`)؛ (3) `RENDER_PROPS='{"frames":true}' node tools/render_chunked.mjs … --audio-file public/<project>_audio.wav`. مقيس على البدوي: ×2.5 (3.5 د بدل 8.8 لكل 3000 إطار). المجلد `fr` يُحذف مع مؤقتات المشروع عند الاعتماد. لا تجرّب مدى في مجلد أجزاء رندر جارٍ بلا `--keep` (يُحذف المجلد بعد النجاح).
 

@@ -1,6 +1,6 @@
 ---
 name: remotion-upgrade
-description: Upgrade Remotion, and related packages
+description: Official Remotion reference only (not for this project's montage, reel, lesson or render requests; start those with the router skill). Upgrade Remotion, and related packages
 version: 4.0.538
 ---
 

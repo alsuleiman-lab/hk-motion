@@ -1,6 +1,6 @@
 ---
 name: remotion-interactivity
-description: Structure Remotion markup for interactivity
+description: Official Remotion reference only (not for this project's montage, reel, lesson or render requests; start those with the router skill). Structure Remotion markup for interactivity
 version: 4.0.538
 ---
 

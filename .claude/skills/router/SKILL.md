@@ -1,0 +1,46 @@
+---
+name: router
+description: الموجّه — أول مهارة تُقرأ عند أي طلب فيديو (حلقة، ريل، درس، بث، كرتون، تعديل فيديو، تعليق صامت، مونتاج ورقي، إعلان، رندر). جدول قصير: نوع الطلب ← سلسلته، ثم ترتيب المراحل المشترك (القواعد §2→§11) ومن ينفّذ كل مرحلة.
+---
+
+# الموجّه
+
+> قبل أي فيديو: `MONTAGE_BRIEF.md` (القواعد §0–§11). كل مرحلة مهارة صغيرة تعمل وحدها؛ اقرأها حين تصلها فقط.
+
+## 1) الطلب ← السلسلة
+| الطلب | السلسلة (المهارة الأولى) |
+|---|---|
+| فيديو يُرسل وحده («اعمل مونتاج لهذا الفيديو») | `video-montage` — حلقة عادية |
+| «ريل» / «ريلز» من فيديو | `video-montage` — سلسلة الريل (طولي 9:16 دائماً) |
+| «الدرس الأخير» / «البث الأخير»، أو رابط درس أو بث | `lessons-and-streams` — تجلب أحدث تسجيل من `C:\Users\mshms\Videos` بنفسها (`node tools/latest_recording.mjs lesson` أو `stream`) |
+| «كرتون دودو» / «كرتون أبو خط» / أي كرتون | `cartoon-animation` (طولي، رسوم فقط) |
+| «عدّل هذا الفيديو واعمل فيه كذا» (رسوم وتعديل) | `motion-graphics` (+ `gallery-placement` للمكان والوقت) |
+| «تعليق صامت» / «ريأكشن» / تسجيل مشاهدة صامت | `silent-reaction` |
+| «مونتاج ورقي» | `paper-montage` |
+| «إعلان» | `advertising-video` |
+| «رندر» لفيديو جاهز | `remotion-render` |
+| «مونتاج … انتهى مونتاج» أو رسالة تعليمات أثناء العمل | `montage-orders` (في أي سلسلة) |
+| غلاف | `thumbnail-design` |
+
+## 2) المراحل المشتركة (بالترتيب)
+| القواعد | المرحلة | تنفّذها |
+|---|---|---|
+| §2 | الأسئلة بالنقر (حيث تلزم) + بدء قص السكتات في الخلفية فوراً | السلسلة نفسها؛ `node tools/stage.mjs prep` |
+| §3 | قص السكتات والتلعثم + بوابة الصوت | `video-cutting`؛ `node tools/stage.mjs cut` |
+| §4 | التفريغ (بالكلمات، والمتحدثون) | `stage.mjs prep` و`cut` (`transcript.txt`، `speakers.txt`) |
+| §5 | أوامر «مونتاج…انتهى مونتاج» و«عفواً/أعيد» | `montage-orders` §1–§2 |
+| §6 | قائمة مهام الفيديو (سجل المطلوب) | `montage-orders` §3 (`requirements.md`، `montage_notes.mjs`) |
+| §7 | الهوية: نمط لوني عشوائي + فاصل عشوائي | `src/brand.ts` (حقل `brand`)؛ `node tools/pick_bumper.mjs pick` |
+| §8.1 | الأسماء: صور وخرائط | `video-montage/workflow-plan.md` 1ج (`fetch_images.mjs`) |
+| §8.2–§8.3 | القرآن والحديث | `verse_scan.mjs`، `verse_audit.mjs`؛ `critical-rules.md` ج |
+| §8.4 | B-roll ومقاطع يوتيوب | `pixabay-search`، `source-display` |
+| §8.5 | صور مصممة | `collage-broll-local` (`comfy_still.mjs`) |
+| §8.6 | الأخبار والمصادر | `source-display` |
+| §8.7 | العداد | `gallery-placement` §4 |
+| §8.8 | توزيع العناصر من المعرض + الهوك | `gallery-placement` |
+| §9 | البناء | السلسلة + `motion-graphics` (`spec_draft.mjs`) |
+| §10 | الفحص | `node tools/stage.mjs check …` + `WORKFLOW_CHECKLIST.md` |
+| §11 | الرندر والتصدير والاعتماد (والفاصل) | `remotion-render`؛ الاعتماد `montage_guard.mjs end` |
+
+## 3) مراجع لا سلاسل
+`remotion-*` (عدا `remotion-render`): توثيق Remotion الرسمي للرجوع فقط. `pixabay-search`: بحث B-roll. `video-montage/MG_CATALOG.md`: دليل القطع.

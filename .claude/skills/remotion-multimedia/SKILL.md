@@ -1,6 +1,6 @@
 ---
 name: remotion-multimedia
-description: Interacting with Mediabunny
+description: Official Remotion reference only (not for this project's montage, reel, lesson or render requests; start those with the router skill). Interacting with Mediabunny
 version: 4.0.538
 ---
 

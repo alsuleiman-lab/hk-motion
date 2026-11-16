@@ -25,6 +25,8 @@ import { spawn, spawnSync } from "node:child_process";
 const [stage, p, ...rest] = process.argv.slice(2);
 /* (user 2026-11-12: «وين عم تروح تعليماتي؟») no montage stage while an order of the user is still an unmerged draft/proposal in rules_registry/ */
 if (["prep", "cut", "check"].includes(stage)) { const { spawnSync: _sp } = await import("node:child_process"); const r = _sp(process.execPath, ["tools/rules_pending.mjs"], { encoding: "utf8" }); if (r.status !== 0) { console.log(r.stdout.trim()); console.log("✘ stage: أدمج أوامر المستخدم في الملفات الملزمة أولاً (أو اعرض التعارض عليه)"); process.exit(1); } }
+/* (أمر المستخدم 2026-11-16: «القص يكون مرة واحدة في البداية ثم بعد ذلك تقسم مقاطع»؛ تجاهلتُه فضاعت ساعتان) مقطع من بث هو شريحة من القص الواحد للبث كله: لا تجهيز ولا قص له وحده. */
+if (["prep", "cut"].includes(stage) && !process.env.STREAM_SLICE_OK) { const _m = /^(.+)_(\d+[a-z]?|r\d+)$/.exec(p ?? ""); try { if (_m && JSON.parse(fs.readFileSync(path.join(".tmp", _m[1], "plan.json"), "utf8")).clips?.some((c) => c.id === p)) { console.log(`✘ stage ${stage} ${p}: «${p}» مقطع من البث «${_m[1]}» (في خطته): لا تجهيز ولا قص لمقطع على حدة. قصّ البث كله مرة واحدة (cut_smart على «${_m[1]}») ثم اقتطع المقاطع شرائح بـtools/stream/clip_cut_all.mjs.`); process.exit(1); } } catch { /* not a stream clip */ } }
 const opt = (n, d) => (rest.includes("--" + n) ? rest[rest.indexOf("--" + n) + 1] : d);
 if (!["prep", "cut", "check"].includes(stage) || !p) { console.error("usage: node tools/stage.mjs prep|cut|check <project> …  (see the header)"); process.exit(2); }
 const PY = process.env.PY ?? "S:/AI_Tools/ComfyUI_windows_portable/python_embeded/python.exe";   // has faster_whisper + torch (system python does not)
@@ -248,7 +250,7 @@ if (stage === "cut") {
     if (!fixed) break;
   }
   { const jp = await run(PY, ["-I", "tools/join_polish.py", p]); say(jp.out.trim().split(String.fromCharCode(10)).slice(-2).join(" | ")); if (jp.code !== 0) { say("✘ join_polish — حافة بلا صمت"); finish(1); } segments = JSON.parse(fs.readFileSync(mapF, "utf8")).segments; await must("audio cut", "node", ["tools/cut_edl.mjs", "audio", src, mapF, wav]); }
-  const gate = await run("node", ["tools/audio_gate.mjs", p, "--cut", wav, "--map", mapF, "--tr", path.join(T, "tr_vad.json"), "--src16k", path.join(T, "a16k.wav"), "--audio", wav, ...(keepGate ? ["--keep", keepGate] : [])]);
+  const gate = process.env.SKIP_GATE === "1" ? { code: 1, out: "" } : await run("node", ["tools/audio_gate.mjs", p, "--cut", wav, "--map", mapF, "--tr", path.join(T, "tr_vad.json"), "--src16k", path.join(T, "a16k.wav"), "--audio", wav, ...(keepGate ? ["--keep", keepGate] : [])]);
   if (gate.code !== 0 && process.env.SKIP_GATE === "1") say("⚠ audio_gate متجاوَز (SKIP_GATE) — يُفحص كل مقطع بعد التقسيم");
   else if (gate.code !== 0) {
     /* (user 2026-11-15 «مرة واحدة نكتشف العيوب ما يعاد هذا الأمر مرة أخرى») the sounds the gate itself marks for deletion (noise_scan «cut»: a laugh, a stock
@@ -316,6 +318,7 @@ if (stage === "cut") {
   await srcWin;
   say(`cut ${(await dur(cut)).toFixed(1)} s · ${segments.length} segments → ${cut} (smoothing in the background → ${cutS} in ≈5 min, log ${path.join(T, "smooth.log")} — build on it; after the render run tools/judder_check.mjs)`);
   say(`read: ${path.join(T, "cut_transcript.txt")} (cut timeline — check stumbles/«أعيد» are gone)`);
+  if (process.env.STREAM_WHOLE === "1") { say("بث كامل: بلا آيات ولا بحث ولا حركات ولا متطلبات على القص كله؛ يُجرى كل منها على كل شريحة في clip_slice.mjs (ميزانية الساعتين)"); finish(0); }
   const vs = await run("node", ["tools/verse_scan.mjs", p]);   // every recited verse becomes a verse item at the second it is said (user 2026-10-28)
   say(`verse_scan: ${(vs.out.match(/✔ /g) ?? []).length} تلاوة في القص → .tmp/${p}/verses.json (كل تلاوة تُكتب في الخطة)`);
   // research (verse slips, hadith, people, countries/places, numbers) and the camera-move plan run AT THE SAME TIME (user 2026-11-10); findings that need the user go to the questions page
@@ -399,7 +402,7 @@ if (stage === "check") {
      and no face may stay visible in a clip window / B-roll without an explicit decision (tools/clip_people_gate.py) */
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) {
     await step("bumper_at --write", "node", ["tools/bumper_at.mjs", p, "--write"], /bumper|فاصل|✘|—/);
-    await step("bumper_present", "node", ["-e", "const s=JSON.parse(require('fs').readFileSync('data/specs/" + p + ".json','utf8'));if(s.kind==='reel'){console.log('✔ bumper_present (ريل)');process.exit(0)}if(!s.bumper||typeof s.bumper.at!=='number'){console.log('✘ bumper_present: لا فاصل في المواصفة');process.exit(1)}console.log('✔ bumper_present '+s.bumper.id+' @'+s.bumper.at)"], /bumper_present/);
+    await step("bumper_present", "node", ["-e", "const s=JSON.parse(require('fs').readFileSync('data/specs/" + p + ".json','utf8'));if(s.kind==='reel'){console.log('✔ bumper_present (ريل)');process.exit(0)}if(s.bumper&&s.bumper.at<1&&!s.bumper.end){console.log('✘ bumper_present: الفاصل عند الثانية 0 ممنوع');process.exit(1)}if(!s.bumper||typeof s.bumper.at!=='number'){console.log('✘ bumper_present: لا فاصل في المواصفة');process.exit(1)}console.log('✔ bumper_present '+s.bumper.id+' @'+s.bumper.at)"], /bumper_present/);
     await step("clip_people_gate", PY, ["-I", "tools/clip_people_gate.py", path.join("data", "specs", `${p}.json`)], /clip_people_gate|وجه/);
   }
   // continuous captions lose no spoken word (user 2026-11-09): a report, judged by me
@@ -434,6 +437,16 @@ if (stage === "check") {
   else await step("face_check", "node", ["tools/face_check.mjs", comp, ...(faceFrames.length ? ["--frames", faceFrames.join(",")] : ["--step", "90"]), "--out", path.join(T, "fc")], /FAIL overlap|PASSED|FAILED|UNVERIFIED/);
   // data-spec montage: coverage_check already proves from the spec that nothing is empty > 5 s and the first minute never (seconds, not the 30+ min
   // two-pass render of the whole video that frame_audit needs); frame_audit stays for old TSX compositions
+  // judder probe at the end of every montage (user 2026-11-16): with the preview link, a random 10 s from the middle is rendered and compared with the source — detached, log <T>/probe.log
+  if (!failed && fs.existsSync(specF) && !rest.includes("--no-probe")) {
+    const sp = JSON.parse(fs.readFileSync(specF, "utf8")), src = sp.cut ? path.join("public", sp.cut) : path.join("public", `${p}_cut_s.mp4`);
+    if (fs.existsSync(src)) {
+      const { spawn: _spawn } = await import("node:child_process");
+      const log = fs.openSync(path.join(T, "probe.log"), "w");
+      _spawn(process.execPath, ["tools/judder_probe.mjs", comp, "--src", src, "--offset", "0", "--name", p, "--random"], { detached: true, stdio: ["ignore", log, log], windowsHide: true }).unref();
+      say(`judder probe: random 10 s from the middle rendering in the background → ${path.join(T, "probe.log")} (✔/✘ at its end; send the preview link now, report the result when it ends)`);
+    } else say(`– judder probe skipped: no cut file ${src}`);
+  }
   if (!fs.existsSync(specF)) await step("frame_audit", "node", ["tools/frame_audit.mjs", comp, ...(opt("skip", "") ? ["--skip", opt("skip", "")] : [])], /plain share|PASSED|FAILED/);
   finish(failed ? 1 : 0);
 }

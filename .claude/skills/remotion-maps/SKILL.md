@@ -1,6 +1,6 @@
 ---
 name: remotion-maps
-description: Remotion Map animation knowledge
+description: Official Remotion reference only (not for this project's montage, reel, lesson or render requests; start those with the router skill). Remotion Map animation knowledge
 version: 4.0.538
 ---
 

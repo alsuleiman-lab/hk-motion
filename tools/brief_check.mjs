@@ -1,11 +1,13 @@
-// Is MONTAGE_BRIEF.md still in step with the rule files it summarises? (user order 2026-10-25: the brief is read instead of the full PREFERENCES.md)
+// Is MONTAGE_BRIEF.md still in step with its detail file PREFERENCES.md and the checklist? (a change there must be reflected in the brief, then stamped)
 //   node tools/brief_check.mjs           OK (exit 0) or STALE + which source changed since the brief was last stamped (exit 1)
 //   node tools/brief_check.mjs --stamp   after updating MONTAGE_BRIEF.md to match the sources: record their current fingerprints
 // The guard hook (tools/hooks/guard.mjs prompt) adds a warning to every montage prompt while the brief is stale.
 import fs from "node:fs";
 import crypto from "node:crypto";
 
-const SOURCES = ["PREFERENCES.md", "WORKFLOW_CHECKLIST.md", ".claude/skills/video-montage/critical-rules.md", ".claude/skills/video-montage/SKILL.md"];
+// (2026-11-16 rebuild) MONTAGE_BRIEF.md is the single binding file; PREFERENCES.md holds its detail under the same section numbers and the checklist is keyed to them.
+// Skill files are execution, not sources of the brief, so skill edits do not make the brief stale.
+const SOURCES = ["PREFERENCES.md", "WORKFLOW_CHECKLIST.md"];
 const STAMP = "tools/brief_stamp.json";
 const sha = (f) => { try { return crypto.createHash("sha1").update(fs.readFileSync(f)).digest("hex"); } catch { return "missing"; } };
 const now = Object.fromEntries(SOURCES.map((f) => [f, sha(f)]));

@@ -1,6 +1,6 @@
 ---
 name: remotion-create
-description: Create a new Remotion video
+description: Official Remotion reference only (not for this project's montage, reel, lesson or render requests; start those with the router skill). Create a new Remotion video
 version: 4.0.538
 ---
 

@@ -21,10 +21,13 @@ const srcDur = animation ? 0 : Number(spawnSync("ffprobe", ["-v", "error", "-sho
 const totalFrames = animation ? Number(opt("total-frames", "0")) : Math.round(srcDur * fps) + offset;
 if (!Number.isInteger(totalFrames) || totalFrames < len) throw new Error("Invalid total frame count");
 const bad = (s, e) => avoid.some(([a, b]) => s < b && e > a);
-let start = Math.round(totalFrames / 2 - len / 2);
+// --random (user 2026-11-16: «بعد ما يخلص مونتاج … فحص ارتجاف على عينة عشوائية من وسط الفيديو 10 ثواني»): a random window inside the middle 30–70 %
+const random = rest.includes("--random");
+let start = random ? Math.round(totalFrames * (0.3 + Math.random() * 0.4) - len / 2) : Math.round(totalFrames / 2 - len / 2);
+start = Math.max(offset + 5, Math.min(start, totalFrames - len));
 for (let g = 0; g < 600 && (bad(start / fps - 0.5, (start + len) / fps + 0.5) || start - offset < 5); g++) start += 15;
 const end = start + len - 1;
-console.log(`[probe] ${id}: frames ${start}-${end} (${(len / fps).toFixed(1)} s from the middle)`);
+console.log(`[probe] ${id}: frames ${start}-${end} (${(len / fps).toFixed(1)} s from the middle${random ? ", random" : ""})`);
 
 const out = path.join(".tmp", `${name}_probe.mp4`);
 fs.mkdirSync(".tmp", { recursive: true });

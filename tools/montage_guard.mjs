@@ -38,8 +38,8 @@ const STAGES = [
   { id: "assets", skills: ["video-montage", "pixabay-search"], label: "جدول الأصول: صور كل الأسماء" },
   { id: "cover", skills: ["thumbnail-design"], label: "الغلاف" },
   { id: "plan", skills: ["video-montage", "cartoon-animation"], label: "الخطة (كل بند باسم مهارته)" },
-  { id: "hook", skills: ["hook"], label: "الهوك" },
-  { id: "build", skills: ["motion-graphics", "comparisons", "book-source-display", "website-source-display", "video-source-display", "source-motions", "timeline-and-numbers", "enumeration-and-flow", "collage-broll-local", "paper-montage", "video-montage", "cartoon-animation"], label: "بناء بقية الفيديو" },
+  { id: "hook", skills: ["gallery-placement"], label: "الهوك" },
+  { id: "build", skills: ["motion-graphics", "gallery-placement", "source-display", "collage-broll-local", "paper-montage", "video-montage", "cartoon-animation"], label: "بناء بقية الفيديو" },
   { id: "review", skills: ["video-montage"], label: "المراجعة والحارس" },
 ];
 const stageIds = STAGES.map((s) => s.id);

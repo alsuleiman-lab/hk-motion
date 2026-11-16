@@ -1,10 +1,8 @@
 {
- "stamped": "2026-11-15T20:36:38.196Z",
- "brief": "88ecf0616b98dd42cb96d28416b38148e135349d",
+ "stamped": "2026-11-16T22:08:03.688Z",
+ "brief": "b4969a7bf9e73f01fb4c4689da01d82092e8d519",
  "sources": {
-  "PREFERENCES.md": "b3a1f666d9f39dd08e44d8a8d3c842e64190b578",
-  "WORKFLOW_CHECKLIST.md": "135a2176ad19e5726cbcfd9189709681066c6a4c",
-  ".claude/skills/video-montage/critical-rules.md": "c769883f35a596e94a1a64d6d5b697f85a44c4b3",
-  ".claude/skills/video-montage/SKILL.md": "e898940786bae821a4504951fa2e4ca5c04c7779"
+  "PREFERENCES.md": "3a295c7710702c6f486d751409509087e7cad445",
+  "WORKFLOW_CHECKLIST.md": "6a1a9659e2e04fe27e6eaa581b9cee13c196fae7"
  }
 }

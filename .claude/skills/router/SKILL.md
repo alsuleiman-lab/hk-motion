@@ -40,7 +40,7 @@ description: الموجّه — أول مهارة تُقرأ عند أي طلب 
 | §8.8 | توزيع العناصر من المعرض + الهوك | `gallery-placement` |
 | §9 | البناء | السلسلة + `motion-graphics` (`spec_draft.mjs`) |
 | §10 | الفحص | `node tools/stage.mjs check …` + `WORKFLOW_CHECKLIST.md` |
-| §11 | الرندر والتصدير والاعتماد (والفاصل) | `remotion-render`؛ الاعتماد `montage_guard.mjs end` |
+| §11 | الرندر والتصدير والاعتماد (والفاصل) | `remotion-render`؛ الاعتماد والرفع مهارة `approval` |
 
 ## 3) مراجع لا سلاسل
 `remotion-*` (عدا `remotion-render`): توثيق Remotion الرسمي للرجوع فقط. `pixabay-search`: بحث B-roll. `video-montage/MG_CATALOG.md`: دليل القطع.

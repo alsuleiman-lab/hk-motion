@@ -1,0 +1,16 @@
+{
+ "_about": "Where each finished video goes after approval (skill approval, rules §11.4). Drive owner internetarchiveservice@gmail.com.",
+ "drive": {
+  "insta_face": { "name": "طولي/انستا وفيس", "id": "1tjE5DVDGULTwc0US-6lXWid0PdDpv_-b" },
+  "all": { "name": "طولي/الكل", "id": "1AA8EuSK9GyR8bc9kkdRBtznx-R_8-tMm" },
+  "landscape": { "name": "عرضي", "id": "1jKMaA1bt4qRwLCzrsCiBFankl1h37Rk0" },
+  "lessons": { "name": "دروس", "id": "1-Uym_4A6rFN0BKJTxqr_Jo8LpgH_4UsV" },
+  "streams_port": { "name": "طولي/بثوث", "id": "1s7lvur8ZY-Z4rNkAwoFmaGCXEuu6AXlr" },
+  "streams_land": { "name": "عرضي/بثوث", "id": "17zZ4ESICHP0_n_yvoMbwhj7BCoBQaFbM" }
+ },
+ "youtube": {
+  "main": { "name": "محمد بن شمس الدين @MShmsDin", "studio": "https://studio.youtube.com/?authuser=1", "channelId": "UCNQR1yu8BLrSihTabql3rVQ" },
+  "replies": { "name": "الردود العلمية لمحمد بن شمس الدين", "studio": "https://studio.youtube.com/?authuser=3", "channelId": "UCiu_Wwm_NCows_g4TEPA8Dg", "collaborator": "main" }
+ },
+ "okru": "https://ok.ru/video/manager"
+}

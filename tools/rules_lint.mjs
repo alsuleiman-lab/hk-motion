@@ -8,7 +8,7 @@ import path from "node:path";
 
 const ROOT = process.cwd();
 const RULES = ["PREFERENCES.md", "MONTAGE_BRIEF.md", "WORKFLOW_CHECKLIST.md", "AGENTS.md", "CLAUDE.md"];
-const OWN_SKILLS = ["router", "montage-orders", "video-montage", "gallery-placement", "source-display", "motion-graphics", "thumbnail-design", "silent-reaction", "paper-montage", "collage-broll-local", "video-cutting", "advertising-video", "pixabay-search", "lessons-and-streams", "cartoon-animation", "remotion-render"];
+const OWN_SKILLS = ["router", "montage-orders", "video-montage", "gallery-placement", "source-display", "motion-graphics", "thumbnail-design", "silent-reaction", "paper-montage", "collage-broll-local", "video-cutting", "advertising-video", "pixabay-search", "lessons-and-streams", "cartoon-animation", "remotion-render", "approval"];
 const walk = (d) => (fs.existsSync(d) ? fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : e.name.endsWith(".md") ? [path.join(d, e.name)] : [])) : []);
 const skillFiles = OWN_SKILLS.flatMap((s) => walk(path.join(".claude", "skills", s)));
 const rel = (f) => f.split(path.sep).join("/");

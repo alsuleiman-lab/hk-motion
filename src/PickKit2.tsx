@@ -179,20 +179,26 @@ export const BottomShade: React.FC<{ at: number; until: number }> = ({ at, until
 /** 37 · بوابة السجن (user order in «اعتقالات الدعاة في الأردن», 2026-11-17: «كل ما أذكر شخص تحط صورته… بعدين لما أقول كلهم معتقلون تسكر عليهم
  *  بوابة السجن مع صوت إغلاق… خطوط السجن، موشن جرافيك احترافي»): every named person's photo in a white frame with his name pops in WHEN he is named,
  *  the cards fill a grid; at `closeAt` iron bars slam down over all of them (a jolt on impact), then stay. Sound: spec sfx at closeAt (a metal slam). */
-export const PrisonBars: React.FC<Base & { people: { src: string; name: string; at: number }[]; closeAt: number; cols?: number }> = ({ at, until, x, y, people, closeAt, cols = 4 }) => {
+/* (user 2026-11-17, frames 13341/14760) `closeAt` is OPTIONAL: without it there are no bars (a plain group of pictures) — a far closeAt kept the element on screen to the end;
+ *  every picture keeps its whole image: its white frame follows the picture's own proportions (`ratio` = height/width), never a crop («برمج الإطار ليناسب الصورة لا العكس») */
+export const PrisonBars: React.FC<Base & { people: { src: string; name: string; at: number; ratio?: number }[]; closeAt?: number; cols?: number }> = ({ at, until, x, y, people, closeAt, cols = 4 }) => {
   const { t, k } = useK(); const n0 = people.length, cw = n0 <= 2 ? 330 : n0 <= 3 ? 260 : 180, ch = Math.round(cw * 1.22), gap = 22, n = n0;   /* few people = bigger cards (user 2026-11-17: two pictures under him in portrait) */
-  const rows = Math.ceil(n / cols), W = cols * cw + (cols - 1) * gap, H = rows * (ch + 56) + (rows - 1) * gap;
-  const drop = clamp((t - closeAt) / 0.45), fall = drop < 1 ? drop * drop : 1, jolt = t > closeAt + 0.45 && t < closeAt + 0.75 ? Math.sin((t - closeAt - 0.45) * 60) * 6 * (1 - (t - closeAt - 0.45) / 0.3) : 0;
+  const rows = Math.ceil(n / cols), W = cols * cw + (cols - 1) * gap;
+  const ph = (i: number) => { const r = people[i].ratio; return r ? Math.round(Math.min(cw * 1.6, Math.max(cw * 0.45, (cw - 16) * r + 16))) : ch; };
+  const rowH = Array.from({ length: rows }, (_, r) => Math.max(...people.slice(r * cols, r * cols + cols).map((_, j) => ph(r * cols + j)))), rowTop = rowH.map((_, r) => 30 + rowH.slice(0, r).reduce((a, h) => a + h + 56 + gap, 0));
+  const H = rowH.reduce((a, h) => a + h + 56, 0) + (rows - 1) * gap;
+  const CA = closeAt ?? Infinity;
+  const drop = clamp((t - CA) / 0.45), fall = drop < 1 ? drop * drop : 1, jolt = t > CA + 0.45 && t < CA + 0.75 ? Math.sin((t - CA - 0.45) * 60) * 6 * (1 - (t - CA - 0.45) / 0.3) : 0;
   const tilt = (i: number) => ((i * 37) % 7) - 3;
   return (
     <div style={abs({ left: x, top: y, width: W + 60, height: H + 60, transform: `translateY(${jolt}px)` })}>
       {people.map((p, i) => { const kk = k(p.at, 0.35, until), r = Math.floor(i / cols), c = i % cols;
-        const left = 30 + c * (cw + gap) + (r === rows - 1 && n % cols ? ((cols - (n % cols)) * (cw + gap)) / 2 : 0), top = 30 + r * (ch + 56 + gap);
+        const left = 30 + c * (cw + gap) + (r === rows - 1 && n % cols ? ((cols - (n % cols)) * (cw + gap)) / 2 : 0), top = rowTop[r] + (rowH[r] - ph(i));
         return <div key={i} style={abs({ left, top, width: cw, visibility: kk > 0 ? "visible" : "hidden", transform: `rotate(${tilt(i)}deg) scale(${0.3 + 0.7 * ease(kk)})` })}>
-          <div style={{ width: cw, height: ch, background: "#fff", padding: 8, boxSizing: "border-box", boxShadow: "0 14px 34px rgba(0,0,0,.55)" }}><Pic src={p.src} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 20%" }} /></div>
+          <div style={{ width: cw, height: ph(i), background: "#fff", padding: 8, boxSizing: "border-box", boxShadow: "0 14px 34px rgba(0,0,0,.55)" }}><Pic src={p.src} style={{ width: "100%", height: "100%", objectFit: p.ratio ? "contain" : "cover", objectPosition: "50% 20%" }} /></div>
           <div style={{ marginTop: 8, padding: "6px 8px", background: BRAND.navy, color: BRAND.card, fontFamily: kufiF, fontSize: 24, lineHeight: 1.25, textAlign: "center", borderRadius: 6 }}>{p.name}</div>
         </div>; })}
-      {t >= closeAt && t < until ? <div style={abs({ left: 0, top: 0, width: W + 60, height: H + 60, overflow: "hidden" })}>
+      {t >= CA && t < until ? <div style={abs({ left: 0, top: 0, width: W + 60, height: H + 60, overflow: "hidden" })}>
         <div style={abs({ left: 0, top: -(H + 60) * (1 - fall), width: W + 60, height: H + 60 })}>
           {Array.from({ length: Math.round((W + 60) / 64) + 1 }).map((_, b) => <div key={b} style={abs({ left: 10 + b * 64, top: 0, width: 18, height: H + 60, borderRadius: 9, background: "linear-gradient(90deg, #2a2d31, #9aa2aa 45%, #3a3e43 70%, #1c1e21)", boxShadow: "4px 0 10px rgba(0,0,0,.6)" })} />)}
           {[0.18, 0.82].map((f, j) => <div key={j} style={abs({ left: 0, top: (H + 60) * f - 14, width: W + 60, height: 28, borderRadius: 6, background: "linear-gradient(180deg, #2a2d31, #9aa2aa 45%, #3a3e43 70%, #1c1e21)", boxShadow: "0 6px 12px rgba(0,0,0,.6)" })} />)}
@@ -247,7 +253,7 @@ export const PICK_XY: Record<string, [number, number]> = { PrisonBars: [60, 120]
  *  and the board is scaled (≤ 0.95) and placed so that part fills the band, centred (the board's content column is centred on x ≈ 590). */
 export const PICK_PORT_BOX: Record<string, [number, number]> = {
   PrisonBars: [120, 620],
-  BigQuestion: [170, 200], NeverMeet: [250, 550], RingStat: [220, 630], ClaimWall: [300, 700], Crossroads: [150, 800], MythFact: [270, 440], DecisionFlow: [150, 780],
+  BigQuestion: [170, 650], NeverMeet: [250, 550], RingStat: [220, 630], ClaimWall: [300, 700], Crossroads: [150, 800], MythFact: [270, 440], DecisionFlow: [150, 780],
   MindMap: [180, 670], ViciousCycle: [180, 680], WordCloud: [200, 560], InkQuote: [380, 400], MinuteTeaser: [150, 600], NoProof: [200, 600],
   FlapBoard: [260, 420], ThoughtBubble: [170, 600], RootsTree: [120, 800], Iceberg: [130, 800], ChatThread: [250, 560], QACard: [300, 480], FillGlasses: [220, 620],
   Footnote: [230, 520], CopiedMessages: [150, 720], CommentsFlood: [150, 760],

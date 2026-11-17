@@ -88,37 +88,44 @@
     {
      "src": "jordan-arrests/nasr.jpg",
      "name": "عصر النصر",
-     "at": 0.48
+     "at": 0.48,
+     "ratio": 1
     },
     {
      "src": "jordan-arrests/sahouri.jpg",
      "name": "أحمد الساحوري",
-     "at": 1.83
+     "at": 1.83,
+     "ratio": 1
     },
     {
      "src": "jordan-arrests/otaibi.jpg",
      "name": "إحسان العتيبي",
-     "at": 3.51
+     "at": 3.51,
+     "ratio": 1.056
     },
     {
      "src": "jordan-arrests/malik.webp",
      "name": "مالك بن إحسان العتيبي",
-     "at": 5
+     "at": 5,
+     "ratio": 1.333
     },
     {
      "src": "jordan-arrests/sawaeer.jpg",
      "name": "عماد السواعير",
-     "at": 6.64
+     "at": 6.64,
+     "ratio": 1
     },
     {
      "src": "jordan-arrests/saqi.jpg",
      "name": "غالب الساقي",
-     "at": 8.3
+     "at": 8.3,
+     "ratio": 1
     },
     {
      "src": "jordan-arrests/abutalha.jpg",
      "name": "عمر أبو طلحة",
-     "at": 9.9
+     "at": 9.9,
+     "ratio": 1
     }
    ],
    "closeAt": 12.57
@@ -566,37 +573,44 @@
     {
      "src": "jordan-arrests/nasr.jpg",
      "name": "عصر النصر",
-     "at": 239.6
+     "at": 239.6,
+     "ratio": 1
     },
     {
      "src": "jordan-arrests/sahouri.jpg",
      "name": "أحمد الساحوري",
-     "at": 239.6
+     "at": 239.6,
+     "ratio": 1
     },
     {
      "src": "jordan-arrests/otaibi.jpg",
      "name": "إحسان العتيبي",
-     "at": 239.6
+     "at": 239.6,
+     "ratio": 1.056
     },
     {
      "src": "jordan-arrests/malik.webp",
      "name": "مالك بن إحسان العتيبي",
-     "at": 239.6
+     "at": 239.6,
+     "ratio": 1.333
     },
     {
      "src": "jordan-arrests/sawaeer.jpg",
      "name": "عماد السواعير",
-     "at": 239.6
+     "at": 239.6,
+     "ratio": 1
     },
     {
      "src": "jordan-arrests/saqi.jpg",
      "name": "غالب الساقي",
-     "at": 239.6
+     "at": 239.6,
+     "ratio": 1
     },
     {
      "src": "jordan-arrests/abutalha.jpg",
      "name": "عمر أبو طلحة",
-     "at": 239.6
+     "at": 239.6,
+     "ratio": 1
     }
    ],
    "closeAt": 240.2
@@ -726,15 +740,16 @@
     {
      "src": "jordan-arrests/albani.jpg",
      "name": "محمد ناصر الدين الألباني",
-     "at": 292.72
+     "at": 292.72,
+     "ratio": 1.418
     },
     {
      "src": "jordan-arrests/kasasbeh.jpg",
      "name": "معاذ الكساسبة",
-     "at": 296.87
+     "at": 296.87,
+     "ratio": 1.132
     }
-   ],
-   "closeAt": 9999
+   ]
   },
   {
    "t": "pick",
@@ -993,20 +1008,22 @@
     {
      "src": "jordan-arrests/khariji1.jpg",
      "name": "رسالة خارجي تائب ١",
-     "at": 436.53
+     "at": 436.53,
+     "ratio": 1.66
     },
     {
      "src": "jordan-arrests/khariji2.jpg",
      "name": "رسالة خارجي تائب ٢",
-     "at": 438
+     "at": 438,
+     "ratio": 0.954
     },
     {
      "src": "jordan-arrests/khariji3.jpg",
      "name": "رسالة خارجي تائب ٣",
-     "at": 439.5
+     "at": 439.5,
+     "ratio": 0.126
     }
-   ],
-   "closeAt": 9999
+   ]
   },
   {
    "t": "rows",
@@ -1190,15 +1207,16 @@
     {
      "src": "jordan-arrests/ibn_abdulwahhab.png",
      "name": "محمد بن عبد الوهاب",
-     "at": 588.1
+     "at": 588.1,
+     "ratio": 1
     },
     {
      "src": "jordan-arrests/taymiyya.png",
      "name": "ابن تيمية",
-     "at": 589.1
+     "at": 589.1,
+     "ratio": 1
     }
-   ],
-   "closeAt": 9999
+   ]
   },
   {
    "t": "torn",

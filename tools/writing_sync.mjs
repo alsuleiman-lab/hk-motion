@@ -29,6 +29,11 @@ const mm = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2
 let bad = 0, moved = 0, dropped = 0, nomatch = 0;
 const drop = new Set();
 const check = (label, text, a, b, setAt, only) => {
+  /* (user 2026-11-17, «أنت لا تراعي السياق في اختيار الكلام المكتوب، وهذا خطأ فادح»; lesson short «صفحة 129 وقال أبو طالب المكي وعند»):
+     a written phrase is a complete meaning chosen from the context — it never ends on a connector or preposition, never starts in the middle of a citation */
+  { const w = String(text ?? "").replace(/[«»"،.؟?!:]/g, " ").trim().split(/\s+/), last = w[w.length - 1] ?? "", first = w[0] ?? "";
+    const DANGLE = /^(و|ف|ثم|أو|أم|بل|لكن|ولكن|عند|وعند|في|من|إلى|على|عن|مع|أن|إن|التي|الذي|الذين|حتى|لأن|كما|قال|وقال|فقال|يقول|ويقول)$/;
+    if (w.length && (DANGLE.test(last) || /^(صفحة|ص)$/.test(first))) { bad++; console.log(`  ✘ ${label} ${mm(a)} — عبارة ناقصة بلا معنى («${String(text).slice(0, 50)}»): تنتهي بـ«${last}» أو تبدأ وسط إحالة؛ اختر جملة كاملة المعنى من السياق، أو عنصر المعرض المناسب (حجة «إن قالوا… قلنا…» ← محادثة رسائل)`); } }
   const t0 = firstSpoken(text, a, b);
   if (t0 === null) { nomatch++; return; }
   if (a < t0 - slack) {

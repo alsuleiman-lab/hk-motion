@@ -1,5 +1,5 @@
 {
- "stamped": "2026-11-17T20:33:49.692Z",
+ "stamped": "2026-11-17T20:37:24.577Z",
  "files": {
   "القواعد_العامة.md": "f47a4cf6bb2cf3ddc9ee5ed05a5472ce725c11fb",
   "شجرة_العمليات.md": "4aff381a2ca67a6ea3ca0d9907017d8cf0481aa5",
@@ -12,9 +12,9 @@
   ".claude/skills/explainer-motion/SKILL.md": "c167a2459c15164b7c7458125753b4b65822a21a",
   ".claude/skills/extraction/SKILL.md": "d3eff38111a87d0ca7c68933b76f5e0127fbfb3d",
   ".claude/skills/first-questions/SKILL.md": "f094c3588c828c42339c0711d1b19cfdd8a54fe5",
-  ".claude/skills/gallery-placement/SKILL.md": "21e9959df05e9a5082ab0f54de64026daeb753cb",
+  ".claude/skills/gallery-placement/SKILL.md": "6519edb4d73e197aa2e676fe77ff83ce47f6f67b",
   ".claude/skills/identity/SKILL.md": "90c9aaf37c5f0b54e6e3186e33c789e6fb67c4d2",
-  ".claude/skills/lessons-and-streams/SKILL.md": "7e9113dd8897b7e7a2a118cedf3ffca7a4089455",
+  ".claude/skills/lessons-and-streams/SKILL.md": "60967546584ca4fb11c29ba42e262c625ea34cc5",
   ".claude/skills/montage-orders/SKILL.md": "8cf9aba0485f9acd5284bc64ac2faf83533e39ee",
   ".claude/skills/motion-graphics/SKILL.md": "1e7b3f334f7d5d9848339c43eefee7e34163a03b",
   ".claude/skills/paper-montage/SKILL.md": "be210f19b06105b42b6c333203c38c8d10a056c3",
@@ -29,7 +29,7 @@
   ".claude/skills/thumbnail-design/SKILL.md": "053bd144c982f3e8f69ad9f8c614d14925075878",
   ".claude/skills/transcription/SKILL.md": "be866ad10b7a7fed464d834447b8589e5d53724c",
   ".claude/skills/video-cutting/SKILL.md": "0585d8192d25345ed87c0985105be717ac5c9314",
-  ".claude/skills/video-montage/SKILL.md": "b388b30a951b3b89fb0af175dd2e206fa994d1af",
+  ".claude/skills/video-montage/SKILL.md": "9eacfd8515f16a41ceb040a950b2ff96b6c039d5",
   ".claude/skills/video-sections/SKILL.md": "9bc7b07cd5d27f2f84ca675434486fb37dacd8ac"
  }
 }

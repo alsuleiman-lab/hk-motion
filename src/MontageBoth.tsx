@@ -11,57 +11,46 @@ import type { MontageSpec } from "./MontageSpec";
  * Three separate black panels on the Studio's own background (no black sheet behind them; user 2026-11-16: «لكل واحدة شاشة سوداء، وأريد عمود للتحديد»): a STRIP across the
  * TOP for the Studio's «تحديد» button and its list of saved frames (src/studioTools.ts moves them onto it; user 2026-11-17, from the phone: «التحديد يكون فوق، عرضي، لتكون
  * مساحة المشاهدة تحته» — it was a column on the left, which ate the width of a narrow viewer), then the portrait screen and the landscape one below it. The strip is about
- * 44 screen px high whatever the viewer's size (measured live), the two screens take the rest.
+ * 340 canvas px high, part of the canvas (nothing is scaled down for it), the two screens fill the whole width under it.
  * Final renders never use this composition: it refuses to run while rendering (render the landscape and the portrait compositions one after the other).
  */
-/* BOTH SCREENS AT THEIR REAL SIZE, packed tight (user 2026-11-17, from his phone: «شو استفدنا، لسه مساحات فارغة يمين ويسار وفوق وتحت»): the landscape screen used to be scaled up to the
-   portrait's height (a 5000×1960 canvas, 2.55:1), so a phone's viewer fitted it by width and left most of its height empty. Real sizes: 1080×1920 + 1920×1080 side by side, the landscape
-   one centred in height = a 3070×1960 canvas (1.57:1); on a phone the screens come out about 2.7 times bigger, on a desktop the portrait is bigger and the landscape a bit smaller. */
+/* THE TWO SCREENS FILL THE WHOLE WIDTH (user 2026-11-17, from his phone, twice: «لا يزال هناك مساحة يمينا ويسارا، كبّر الفيديو العرضي»): the strip for the «تحديد» tools used to be carved out of
+   the canvas by scaling everything down, which left empty margins left and right. Now the strip is part of the canvas (SH canvas px, full width) and nothing is scaled: the portrait screen at 85 %
+   (918×1632) and the landscape one beside it taking ALL the rest of the width (2082×1171, 1.08 of its real size), centred in height. 3070×1942 canvas. */
 const PW = 1080, PH = 1920, LW = 1920, LH = 1080, M = 20, GAP = 30;
-export const BOTH = { W: M + PW + GAP + LW + M, H: M + PH + M };
-/* the PHONE form (user 2026-11-17: «حتى الآن في مساحات غير مستغلة»): a phone's viewer is about SQUARE, so the canvas is too (2010×1960) and nothing is left empty: the portrait screen on the
+const SH = 340;   // the top strip (the button and the saved frames), canvas px, with a 12 px gap under it
+const PS = 0.85, PWB = Math.round(PW * PS), PHB = Math.round(PH * PS), BW = M + PW + GAP + LW + M;
+const LWB = BW - M - PWB - GAP - M, LHB = Math.round((LWB * LH) / LW);
+export const BOTH = { W: BW, H: SH + M + PHB + M };
+/* the PHONE form (user 2026-11-17: «حتى الآن في مساحات غير مستغلة»): a phone's viewer is about SQUARE, so the canvas is too (2010×1816) and nothing is left empty: the portrait screen on the
    left at 92 %; the landscape screen in a column on its right, scaled to that column (about 0.49); under the landscape one the «تحديد» button and its list (the Studio's own tools sit on that
    black panel). */
-const PS = 0.92, PWS = Math.round(PW * PS), PHS = Math.round(PH * PS);   // the portrait screen at 92 % so the landscape one beside it can be bigger (balanced)
+const PSV = 0.92, PWS = Math.round(PW * PSV), PHS = Math.round(PH * PSV);
 const RW = 2010 - M - PWS - GAP - M, RH = Math.round((RW * LH) / LW);
 export const BOTHV = { W: M + PWS + GAP + RW + M, H: M + PHS + M };
 
 const screen = (left: number, w: number, h: number, top: number): React.CSSProperties => ({ position: "absolute", left, top, width: w, height: h, overflow: "hidden", background: "#000", boxShadow: "0 0 0 3px rgba(255,255,255,.35)" });
+const scaled = (w: number, h: number, k: number): React.CSSProperties => ({ position: "absolute", left: 0, top: 0, width: w, height: h, transform: k === 1 ? undefined : `scale(${k})`, transformOrigin: "0 0" });
 
 export const MontageBoth: React.FC<{ spec: MontageSpec; phone?: boolean }> = ({ spec, phone }) => {
-  const B = phone ? BOTHV : BOTH;
   if (getRemotionEnvironment().isRendering) throw new Error("تركيبة «الاثنان معاً» للمعاينة فقط: لا تُرندر. ارندر العرضي ثم الطولي كلاً على حدة بتركيبتيهما.");
-  const hostRef = React.useRef<HTMLDivElement>(null);
-  const [share, setStripShare] = React.useState(44 / 54);   // the strip's part of the top band (the rest is the gap)
-  const [res, setRes] = React.useState(0);   // canvas px of the strip on top (≈ 44 screen px + a 10 px gap) for the «تحديد» button and list
-  React.useEffect(() => {
-    const t = window.setInterval(() => {
-      const host = hostRef.current?.getBoundingClientRect();
-      if (!host || !host.width) return;
-      const k = host.width / B.W, strip = Math.max(26, Math.min(44, host.height * 0.2));   // screen px: a fifth of the viewer's height, 26…44 (a phone's viewer is small)
-      const r = Math.min(B.H * 0.3, Math.round((strip + 10) / k / 4) * 4);   // strip + a 10 px gap → canvas px
-      setStripShare(strip / (strip + 10));
-      setRes((o) => (Math.abs(o - r) < 8 ? o : r));
-    }, 400);
-    return () => window.clearInterval(t);
-  }, []);
-  const top = phone ? 0 : res, c = (B.H - top) / B.H;   // phone form: no strip on top, the whole canvas is used   // the two screens as one block, scaled into what is left under the strip
+  const panel: React.CSSProperties = { position: "absolute", background: "#000", boxShadow: "0 0 0 3px rgba(255,255,255,.35)" };
+  const pl = phone ? { port: screen(M, PWS, PHS, M), land: screen(M + PWS + GAP, RW, RH, M), kp: PSV, kl: RW / LW }
+    : { port: screen(M, PWB, PHB, SH + M), land: screen(M + PWB + GAP, LWB, LHB, SH + M + (PHB - LHB) / 2), kp: PS, kl: LWB / LW };
   return (
-    <AbsoluteFill ref={hostRef}>
+    <AbsoluteFill>
       {phone
-        ? <div id="__both_col" style={{ position: "absolute", left: (B.W - B.W * c) / 2 + (M + PW + GAP) * c, top: (M + RH + GAP) * c, width: RW * c, height: (PHS - RH - GAP) * c, background: "#000", boxShadow: "0 0 0 3px rgba(255,255,255,.35)" }} />
-        : <div id="__both_col" style={{ position: "absolute", left: 0, top: 0, width: B.W, height: Math.max(0, res * share), background: "#000", boxShadow: "0 0 0 3px rgba(255,255,255,.35)" }} />}
-      <div style={{ position: "absolute", left: (B.W - B.W * c) / 2, top, width: B.W, height: B.H, transform: `scale(${c})`, transformOrigin: "0 0" }}>
-      <div id="__both_port" style={phone ? screen(M, PWS, PHS, M) : screen(M, PW, PH, M)}>
-        <div style={{ position: "absolute", left: 0, top: 0, width: PW, height: PH, transform: phone ? `scale(${PS})` : undefined, transformOrigin: "0 0" }}>
+        ? <div id="__both_col" style={{ ...panel, left: M + PWS + GAP, top: M + RH + GAP, width: RW, height: PHS - RH - GAP }} />
+        : <div id="__both_col" style={{ ...panel, left: M, top: 0, width: BW - 2 * M, height: SH - 12 }} />}
+      <div id="__both_port" style={pl.port}>
+        <div style={scaled(PW, PH, pl.kp)}>
           <Sequence layout="none" width={PW} height={PH} showInTimeline={false}><MontageFromSpec spec={spec} muted /></Sequence>
         </div>
       </div>
-      <div id="__both_land" style={phone ? screen(M + PW + GAP, RW, RH, M) : screen(M + PW + GAP, LW, LH, M + (PH - LH) / 2)}>
-        <div style={{ position: "absolute", left: 0, top: 0, width: LW, height: LH, transform: phone ? `scale(${RW / LW})` : undefined, transformOrigin: "0 0" }}>
+      <div id="__both_land" style={pl.land}>
+        <div style={scaled(LW, LH, pl.kl)}>
           <Sequence layout="none" width={LW} height={LH} showInTimeline={false}><MontageFromSpec spec={spec} /></Sequence>
         </div>
-      </div>
       </div>
     </AbsoluteFill>
   );

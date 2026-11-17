@@ -377,6 +377,11 @@ const installMarks = () => {
   addBtn.style.cssText = "flex:0 0 auto;height:30px;border:1px solid rgba(255,255,255,.35);border-radius:8px;background:#1f6feb;color:#fff;font:700 14px Tahoma,Arial,sans-serif;cursor:pointer";
   const list = document.createElement("div");
   list.style.cssText = "display:flex;flex-direction:column;gap:5px;overflow-y:auto;min-height:0;padding-bottom:2px";
+  list.className = "__fm_list";
+  /* the horizontal form (on the preview's top strip): the rows fill the strip's height and the scroll bar sits BELOW them, a thin bar that does not touch the numbers (user 2026-11-17) */
+  const css = document.createElement("style");
+  css.textContent = "#__frame_marks_box .__fm_list::-webkit-scrollbar{height:4px;width:4px}#__frame_marks_box .__fm_list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.4);border-radius:3px}#__frame_marks_box[data-h='1'] .__fm_list{padding-bottom:9px;align-items:stretch}#__frame_marks_box[data-h='1'] .__fm_row button{height:auto !important}";
+  document.head.appendChild(css);
   box.append(addBtn, list);
   document.body.appendChild(box);
   w.__frameMarks.box = box;
@@ -391,6 +396,7 @@ const installMarks = () => {
     for (const f of marks) {
       const row = document.createElement("div");
       row.style.cssText = "display:flex;gap:3px;flex:0 0 auto";
+      row.className = "__fm_row";
       if (box.style.flexDirection === "row") row.style.width = "76px";
       const go = document.createElement("button");
       go.type = "button"; go.textContent = String(f); go.title = `ارجع إلى الإطار ${f} — كليك يمين للحذف`;
@@ -432,7 +438,7 @@ const installMarks = () => {
       const bh = horiz ? `${Math.max(16, Math.round(col!.height - 8))}px` : "";
       const dir = horiz ? "row" : "column";
       if (box.style.flexDirection !== dir) {
-        box.style.flexDirection = dir; box.style.alignItems = horiz ? "center" : ""; box.style.maxHeight = horiz ? "none" : "320px";
+        box.style.flexDirection = dir; if (horiz) box.dataset.h = "1"; else delete box.dataset.h; box.style.alignItems = horiz ? "center" : ""; box.style.maxHeight = horiz ? "none" : "320px";
         list.style.flexDirection = dir; list.style.overflowY = horiz ? "hidden" : "auto"; list.style.overflowX = horiz ? "auto" : "hidden"; list.style.flex = horiz ? "1 1 0" : ""; list.style.minWidth = "0";
         addBtn.style.width = horiz ? "84px" : ""; addBtn.style.height = horiz ? "100%" : "30px";
         for (const r of Array.from(list.children) as HTMLElement[]) r.style.width = horiz ? "76px" : "";

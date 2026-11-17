@@ -449,12 +449,12 @@ const installElementNames = () => {
      viewer column, so the viewer shrinks above it instead of being covered; plain selectable text (select + Ctrl+C) */
   const row = document.createElement("div");
   row.id = "__el_names_row";
-  row.style.cssText = "flex:0 0 32px;height:32px;position:relative;display:none;box-sizing:border-box;border-top:1px solid rgba(255,255,255,.12);background:#1f2428;direction:rtl;font:600 13px Tahoma,Arial,sans-serif;color:#e8e8e8;overflow:hidden;user-select:text;-webkit-user-select:text;cursor:text";
-  const cell = () => { const c = document.createElement("div"); c.style.cssText = "position:absolute;top:0;height:31px;line-height:31px;padding:0 8px;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;user-select:text;-webkit-user-select:text"; row.appendChild(c); return c; };
+  row.style.cssText = "flex:0 0 22px;height:22px;position:relative;display:none;box-sizing:border-box;border-top:1px solid rgba(255,255,255,.12);background:#1f2428;direction:rtl;font:600 11px Tahoma,Arial,sans-serif;color:#e8e8e8;overflow:hidden;user-select:text;-webkit-user-select:text;cursor:text";
+  const cell = () => { const c = document.createElement("div"); c.style.cssText = "position:absolute;top:0;height:21px;line-height:21px;padding:0 8px;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;user-select:text;-webkit-user-select:text"; row.appendChild(c); return c; };
   const cells = [cell(), cell()];
   w.__elNames = { row };
   const text = (names?: string[]) => { if (!names?.length) return "لا عنصر من المعرض الآن"; const c = new Map<string, number>(); for (const n of names) c.set(n, (c.get(n) ?? 0) + 1); return "مستخدم: " + [...c].map(([n, k]) => (k > 1 ? n + " ×" + k : n)).join(" · "); };
-  const set = (c: HTMLElement, s: string, left: number, width: number, top = 0, h = 31) => {
+  const set = (c: HTMLElement, s: string, left: number, width: number, top = 0, h = 21) => {
     c.style.top = top + "px"; c.style.height = h + "px"; c.style.lineHeight = h + "px";
     if (c.textContent !== s && !(window.getSelection()?.toString() && c.contains(window.getSelection()?.anchorNode ?? null))) { c.textContent = s; c.title = s; }   // never replaced under a selection being copied
     c.style.left = Math.round(left) + "px"; c.style.width = Math.max(40, Math.round(width)) + "px"; c.style.display = "block";
@@ -472,15 +472,9 @@ const installElementNames = () => {
       if (row.parentElement !== col || col.lastElementChild !== row) col.appendChild(row);
       if (row.style.display !== "block") row.style.display = "block";
       const rr = row.getBoundingClientRect(), P = document.getElementById("__both_port"), L = document.getElementById("__both_land");
-      if (P && L) {   // the two-screen preview: one full line per screen
-        if (row.style.height !== "56px") { row.style.height = "56px"; row.style.flexBasis = "56px"; }
-        set(cells[0], "طولي — " + text(now.port), 0, rr.width, 1, 27);
-        set(cells[1], "عرضي — " + text(now.land), 0, rr.width, 28, 27);
-        return;
-      }
-      if (row.style.height !== "32px") { row.style.height = "32px"; row.style.flexBasis = "32px"; }
-      const o = now.land ? "land" : "port";
-      set(cells[0], text(now[o]), 0, rr.width);
+      /* the two-screen preview: ONE line — the same elements serve both screens, each at its own size (user 2026-11-17); a name counted as often as on the screen that shows it most */
+      const names = P && L ? (() => { const m = new Map<string, number>(); for (const k of ["port", "land"] as const) { const c = new Map<string, number>(); for (const n of now[k] ?? []) c.set(n, (c.get(n) ?? 0) + 1); for (const [n, v] of c) m.set(n, Math.max(m.get(n) ?? 0, v)); } return [...m].flatMap(([n, v]) => Array(v).fill(n) as string[]); })() : now[now.land ? "land" : "port"];
+      set(cells[0], text(names), 0, rr.width);
       cells[1].style.display = "none";
     } catch { /* never break the Studio */ }
   };

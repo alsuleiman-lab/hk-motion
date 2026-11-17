@@ -141,6 +141,8 @@ const install = () => {
       if (badge.style.width !== bw) badge.style.width = bw;
       if (badge.style.fontSize !== bf) badge.style.fontSize = bf;
       if (badge.style.padding !== bp) badge.style.padding = bp;
+      /* the compositions list opened over the player (phone): the badge is position:fixed above everything and floated over it (user 2026-11-17) — hide it while that list is under it */
+      if (document.elementsFromPoint(l + 10, tp + 12).some((e) => e !== badge && e.getAttribute("aria-label") === "Composition browser")) { if (badge.style.display !== "none") badge.style.display = "none"; return; }
       const txt = `الإطار ${n}`;
       if (badge.textContent !== txt) badge.textContent = txt;
       if (badge.style.display !== "block") badge.style.display = "block";
@@ -427,6 +429,10 @@ const installMarks = () => {
       if (!cont || !area) { if (box.style.display !== "none") box.style.display = "none"; return; }
       const ar = area.getBoundingClientRect();
       if (ar.width < 140) { if (box.style.display !== "none") box.style.display = "none"; return; }
+      /* covered (user 2026-11-17, phone: the compositions list opened over the preview and the button and numbers floated on top of it): when something that is NOT the canvas area
+         (the list, a menu, a dialog) is on top of where the box would sit, hide it. The box is position:fixed above everything, so it never hides by itself */
+      const under = (x: number, y: number) => document.elementsFromPoint(x, y).find((e) => e !== box && !box.contains(e));
+      const covered = (x: number, y: number) => { const e = under(x, y); return !!e && !area.contains(e) && e !== area; };
       render();
       /* the two-screens preview (src/MontageBoth.tsx) draws a black STRIP across its top for this box (user 2026-11-17: the selection on top, the screens under it):
          sit on it, the button first and the saved frames in one row beside it; a tall narrow panel (older layout) keeps the column form */
@@ -434,6 +440,8 @@ const installMarks = () => {
       const onCol = !!col && col.width > 40 && col.height > 20;
       const horiz = onCol && col!.width > col!.height * 2;
       const l = onCol ? Math.round(col!.left + 4) : Math.round(ar.left + 8), t = onCol ? Math.round(col!.top + 4) : Math.round(ar.top + 8);
+      const probe: [number, number][] = onCol ? [[col!.left + 3, col!.top + col!.height - 3], [col!.left + col!.width - 3, col!.top + col!.height - 3], [col!.left + col!.width / 2, col!.top + col!.height - 3]] : [[ar.left + 12, ar.top + 12]];
+      if (probe.some(([x, y]) => covered(x, y))) { if (box.style.display !== "none") box.style.display = "none"; return; }
       const bw = horiz ? `${Math.max(60, Math.round(col!.width - 8))}px` : onCol ? `${Math.min(150, Math.round(col!.width - 8))}px` : "100px";
       const bh = horiz ? `${Math.max(16, Math.round(col!.height - 8))}px` : "";
       const dir = horiz ? "row" : "column";

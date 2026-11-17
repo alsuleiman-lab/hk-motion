@@ -58,7 +58,8 @@ for x in words:
     if ca is not None and cb is not None:
         ranges.append((ca, cb))
 
-with wave.open(f".tmp/{p}/cut.wav") as f:
+INP = sys.argv[sys.argv.index("--in") + 1] if "--in" in sys.argv else f".tmp/{p}/cut.wav"   # (2026-11-17) --in = the denoised cut (cut_clean.wav): clean first, then bleep, then sfx
+with wave.open(INP) as f:
     ch, n = f.getnchannels(), f.getnframes()
     x = np.frombuffer(f.readframes(n), dtype=np.int16).reshape(-1, ch).astype(np.float32) / 32768
 

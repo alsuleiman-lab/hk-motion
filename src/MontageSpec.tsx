@@ -34,7 +34,7 @@ import type { PickAllName as PickName } from "./PickKit2";
 import type { BrandName } from "./brand";
 import { MaskedVideo } from "./MaskedVideo";
 import { DEBATE_LAYOUTS } from "./DebateLayouts";
-import { HybridHost, HybridBg, VSlot, HY, HYL, HyLayer, hyBg, UnderHim } from "./hybrid/Slot";
+import { HybridHost, HybridBg, VSlot, HY, HYL, HyLayer, HyLevel, hyBg, UnderHim } from "./hybrid/Slot";
 import type { PortIso } from "./GazaFx";
 import type { DebateLayoutName } from "./DebateLayouts";
 import { BgClip, HClip, Watermark, FxStage, HorrorVeil, TailFade, TvOff, WeightsOnBack } from "./GazaFx";
@@ -156,7 +156,7 @@ export type MontageSpec = {
   shake?: { from: number; to: number }[];
   /** windows where the source recording has a baked-in split (clip left | him right): landscape = the reply model `layout` behind a curtain (default "dossier" = الملف, user 2026-10-30;
    *  blocks | dossier, src/DebateLayouts.tsx;); portrait = his slice + the clip as a tilted card at his shoulder (x/w are source px) */
-  splits?: { from: number; to: number; clip: { x: number; w: number; y?: number; h?: number }; sheikh: { x: number; w: number }; clipName?: string; mainSrc?: string /* a whole added clip in HIS window (the pair: the recorded clip beside an added clip) */; mainAspect?: number; clipAspect?: number; clipSrc?: string /* a whole added clip (public/ path, 16:9, silent) shown in the answered-clip window instead of the recording column */; clipUrl?: string; faceX?: number; blur?: number; layout?: DebateLayoutName; card?: { left: number; top: number; rot: number; innerH: number }; page?: boolean /* a shown PAGE (book/document): in a reel the page is drawn very large in the lower zone and his video shrinks to the top (user 2026-11-17) */ }[];
+  splits?: { from: number; to: number; clip: { x: number; w: number; y?: number; h?: number }; sheikh: { x: number; w: number }; clipName?: string; mainSrc?: string /* a whole added clip in HIS window (the pair: the recorded clip beside an added clip) */; mainAspect?: number; clipAspect?: number; clipSrc?: string /* a whole added clip (public/ path, 16:9, silent) shown in the answered-clip window instead of the recording column */; clipUrl?: string; faceX?: number; blur?: number; layout?: DebateLayoutName; card?: { left: number; top: number; rot: number; innerH: number }; page?: boolean /* a shown PAGE (book/document): in a reel the page is drawn very large in the lower zone and his video shrinks to the top (user 2026-11-17) */; marks?: { at: number; x: number; y: number; w: number; h: number; z?: number; dur?: number }[] /* the text of the page he is talking about, in crop pixels: a marker sweeps over it at `at` (his word) and the page zooms onto it (user 2026-11-17, frame 1109) */ }[];
   /** an audio message added after his video: plays `src` from `from` s (+ voice card with a waveform and cycling photos) */
   tail?: { from: number; to: number; src: string; label: string; photos: string[] };
   /** light sound effects at transitions / element entries (user 2026-11-06: light, varied, not loud, not many): src under public/sfx, at = seconds on the cut timeline, vol relative to speech (≤ 0.06) */
@@ -344,7 +344,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
         </Only>
       );
     }
-    case "pick": { const ip = { ...it, until: pickUntil(it) }; const C = PICK_KIT[ip.el] as React.FC<Record<string, unknown>>; const { t: _t, el: _e, land, noShift: _ns, ...rest0 } = ip as { t: string; el: string; land?: Record<string, unknown>; noShift?: boolean } & Record<string, unknown>; const ns = ip.noShift ?? !!PICK_NOSPLIT[ip.el], xy = PICK_XY[ip.el], rest = { ...(rest0.x == null && xy ? { x: xy[0], y: xy[1] } : {}), ...rest0 }, lp = { ...(ns ? PICK_NOSPLIT[ip.el] ?? {} : {}), ...(land ?? {}) }; return C ? <Only key={i} from={ip.at - HALF_LEAD} to={ip.until}>{L && !ns && !PICK_FULL_FRAME.has(ip.el) ? <PickPanel at={ip.at} until={ip.until} /> : null}{L && ns && !PICK_FULL_FRAME.has(ip.el) ? <LeftShade at={ip.at} until={ip.until} /> : null}{L || PICK_FULL_FRAME.has(ip.el) ? <C {...rest} {...(L ? lp : {})} /> : <div style={pickPortBoard(ip.el)}><C {...rest} /></div>}</Only> : null; }   // the gallery decides place and look: its own x,y (PICK_XY), no split screen for PICK_NOSPLIT, portrait = the gallery's lower-half board
+    case "pick": { const ip = { ...it, until: pickUntil(it) }; const C = PICK_KIT[ip.el] as React.FC<Record<string, unknown>>; const { t: _t, el: _e, land, noShift: _ns, ...rest0 } = ip as { t: string; el: string; land?: Record<string, unknown>; noShift?: boolean } & Record<string, unknown>; const ns = ip.noShift ?? !!PICK_NOSPLIT[ip.el], xy = PICK_XY[ip.el], rest = { ...(rest0.x == null && xy ? { x: xy[0], y: xy[1] } : {}), ...rest0 }, lp = { ...(ns ? PICK_NOSPLIT[ip.el] ?? {} : {}), ...(land ?? {}) }; return C ? <Only key={i} from={ip.at - HALF_LEAD} to={ip.until}>{L && !ns && !PICK_FULL_FRAME.has(ip.el) ? <PickPanel at={ip.at} until={ip.until} /> : null}{L && ns && !PICK_FULL_FRAME.has(ip.el) ? <LeftShade at={ip.at} until={ip.until} /> : null}{L || PICK_FULL_FRAME.has(ip.el) ? <C {...rest} {...(L ? lp : ip.el === "AlertFrame" ? { W: 1080, H: 1920 } : {})} /> : <div style={pickPortBoard(ip.el)}><C {...rest} /></div>}</Only> : null; }   // the gallery decides place and look: its own x,y (PICK_XY), no split screen for PICK_NOSPLIT, portrait = the gallery's lower-half board
     case "subscribe": return <Subscribe key={i} at={it.at} x={L ? ov.x ?? 1300 : it.x} y={L ? ov.y ?? 790 : it.y} dur={it.dur} />;
     case "verse": {
       // a verse he recites INSIDE his talk = the known verse card (VerseWords) in the writing area / the empty side, his picture visible (user 2026-11-01); full screen (full:true) only for a lone recitation
@@ -352,7 +352,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
       if (it.full) return <ReelVerseFull key={i} to={to} refName={`${it.title} — ${it.refText}`} lines={[{ words: it.words, times: it.times }]} />;
       if (L && (it.way === "noor" || it.way === "bigword")) { const P = it.way === "noor" ? VerseNoorPanel : VerseBigWordPanel; return <P key={i} words={it.words} times={it.times} surah={it.title} aya={ayaOf(it)} until={to} />; }
       /* (user 2026-11-17, frame 19625: «القرآن في المقاطع الطولية لازم تقسم الشاشة وتحط نفس الستايل تبع العرضي») portrait: the SAME landscape panel, scaled into the zone under his shrunk video (the split window comes from withPortZones) */
-      if (!L && (it.way === "noor" || it.way === "bigword")) { const P = it.way === "noor" ? VerseNoorPanel : VerseBigWordPanel; return <div key={i} style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, clipPath: "inset(1135px 0 155px 0)" }}><div style={{ position: "absolute", left: 204, top: 1009, width: 1920, height: 1080, transform: "scale(0.84)", transformOrigin: "0 0" }}><P words={it.words} times={it.times} surah={it.title} aya={ayaOf(it)} until={to} /></div></div>; }
+      if (!L && (it.way === "noor" || it.way === "bigword")) { const P = it.way === "noor" ? VerseNoorPanel : VerseBigWordPanel; return <div key={i} style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, clipPath: "inset(1135px 0 0 0)" }}><div style={{ position: "absolute", left: 249, top: 1135, width: 1920, height: 1080, transform: "scale(0.727)", transformOrigin: "0 0" }}>   {/* (user 2026-11-17, «يجب أن يملأ الجزء الأيسر إلى أسفل الصفحة») the golden panel COVERS the whole lower zone (1080 × 785): scale 0.727, centred sideways, down to the bottom edge */}<P words={it.words} times={it.times} surah={it.title} aya={ayaOf(it)} until={to} bleed={344} /></div></div>; }
       return <VerseWords key={i} words={it.words} times={it.times} x={L ? ov.x ?? G.x : it.x} y={L ? ov.y ?? G.y : it.y} w={L ? ov.w ?? G.w : it.w} size={L ? ov.size ?? 38 : it.size ?? 44} title={it.title} refText={it.refText} until={to} />;
     }
     case "hadith": return <ReelVerseFull key={i} hadith to={it.until ?? it.times[it.times.length - 1] + 1.2} refName={it.source} lines={[{ words: it.words, times: it.times }]} />;
@@ -432,15 +432,33 @@ const CARD_H = 800;
 const CARD_PAD = 18;
 /** (user 2026-11-17: «لما أعرض صفحة تكبرها جداً وتصغر صورتي، يعني تعكس») a shown page in a REEL: his video shrinks to the top (PAGE_S) and the page fills the lower zone */
 export const PAGE_S = 0.42, PAGE_TOP = 812, PAGE_CARD = { left: 96, top: 836, rot: -1.2, innerH: 1000 };
-const CropPolaroid: React.FC<{ cut: string; x: number; w: number; y?: number; h?: number; name?: string; left: number; top: number; rot: number; innerH?: number; blur?: number; aspect?: number; t0?: number }> = ({ cut, x, w, left, top, rot, innerH = CARD_H, blur, y = 0, h = 1080, aspect, t0 }) => {
+type PageMark = NonNullable<Split["marks"]>[number];
+/** the page camera: chained zoom-ins onto each marked text (smoother2 ramps, each starting 0.25 s before the marker sweeps) */
+const pageCam = (t: number, marks: PageMark[], w: number, h: number) => {
+  let z = 1, cx = w / 2, cy = h / 2;
+  for (const m of marks) {
+    const p = smoother2(clamp((t - (m.at - 0.25)) / 0.5));
+    if (p <= 0) break;
+    z += ((m.z ?? 1.9) - z) * p; cx += (m.x + m.w / 2 - cx) * p; cy += (m.y + m.h / 2 - cy) * p;
+  }
+  return { z, cx, cy };
+};
+const CropPolaroid: React.FC<{ cut: string; x: number; w: number; y?: number; h?: number; name?: string; left: number; top: number; rot: number; innerH?: number; blur?: number; aspect?: number; t0?: number; marks?: PageMark[] }> = ({ cut, x, w, left, top, rot, innerH = CARD_H, blur, y = 0, h = 1080, aspect, t0, marks }) => {
   const k = innerH / h, iw = aspect ? Math.round(innerH * aspect) : Math.round(w * k), pw = iw + CARD_PAD * 2, ph = innerH + CARD_PAD * 2;
+  const tt = useT(0), mk = !aspect && marks && marks.length ? [...marks].sort((a, b) => a.at - b.at) : null, cam = mk ? pageCam(tt, mk, w, h) : null, zz = cam ? cam.z : 1;
+  const pl = aspect ? 0 : cam ? clamp(iw / 2 - (x + cam.cx) * k * zz, iw - (x + w) * k * zz, -x * k * zz) : -x * k, pt = aspect ? 0 : cam ? clamp(innerH / 2 - (y + cam.cy) * k * zz, innerH - (y + h) * k * zz, -y * k * zz) : -y * k, PW = aspect ? iw : 1920 * k * zz, PH = aspect ? innerH : 1080 * k * zz;
   const hole = `linear-gradient(#000 0 0) 0 0/100% 100% no-repeat, linear-gradient(#000 0 0) ${CARD_PAD}px ${CARD_PAD}px/${iw}px ${innerH}px no-repeat`;
   return (
     <div style={{ position: "absolute", left, top, width: pw, height: ph, transform: `rotate(${rot}deg)`, filter: "drop-shadow(0 14px 18px rgba(0,0,0,.5))" }}>
       {/* hybrid: the video is composited under the graphics, so the paper is a ring with a window cut out of it; otherwise the video is drawn on the paper */}
       <div style={{ position: "absolute", inset: 0, background: BRAND.card, clipPath: tornClip(pw, ph, "port-clip", 7, 22), ...(HY ? { WebkitMask: hole, WebkitMaskComposite: "xor", mask: hole, maskComposite: "exclude" } : {}) }} />
       <div style={{ position: "absolute", left: CARD_PAD, top: CARD_PAD, width: iw, height: innerH, overflow: "hidden", background: hyBg("#000") }}>
-        {HY ? <VSlot src={cut} startFrom={t0 != null ? -Math.round(t0 * 30) : 0} w={iw} h={innerH} vx={aspect ? 0 : -x * k} vy={aspect ? 0 : -y * k} vw={aspect ? iw : 1920 * k} vh={aspect ? innerH : 1080 * k} /> : (t0 != null ? <Sequence from={Math.round(t0 * 30)} layout="none"><RV src={staticFile(cut)} style={{ position: "absolute", left: aspect ? 0 : -x * k, top: aspect ? 0 : -y * k, width: aspect ? iw : 1920 * k, height: aspect ? innerH : 1080 * k, ...(blur ? { filter: `blur(${blur}px)` } : {}) }} /></Sequence> : <RV src={staticFile(cut)} style={{ position: "absolute", left: aspect ? 0 : -x * k, top: aspect ? 0 : -y * k, width: aspect ? iw : 1920 * k, height: aspect ? innerH : 1080 * k, ...(blur ? { filter: `blur(${blur}px)` } : {}) }} />)}
+        {HY ? <VSlot src={cut} startFrom={t0 != null ? -Math.round(t0 * 30) : 0} w={iw} h={innerH} vx={pl} vy={pt} vw={PW} vh={PH} /> : (t0 != null ? <Sequence from={Math.round(t0 * 30)} layout="none"><RV src={staticFile(cut)} style={{ position: "absolute", left: pl, top: pt, width: PW, height: PH, ...(blur ? { filter: `blur(${blur}px)` } : {}) }} /></Sequence> : <RV src={staticFile(cut)} style={{ position: "absolute", left: pl, top: pt, width: PW, height: PH, ...(blur ? { filter: `blur(${blur}px)` } : {}) }} />)}
+        {mk ? mk.map((m, i) => {   /* the marker over the text he is talking about: sweeps right to left (Arabic reading) from his word */
+          const p = smoother2(clamp((tt - m.at) / (m.dur ?? 0.45)));
+          if (p <= 0) return null;
+          return <div key={i} style={{ position: "absolute", left: pl + (x + m.x) * k * zz, top: pt + (y + m.y) * k * zz, width: m.w * k * zz, height: m.h * k * zz, borderRadius: 8, background: "rgba(255,206,0,.42)", boxShadow: "0 0 0 2px rgba(255,160,0,.85), 0 0 24px rgba(255,200,0,.55)", clipPath: `inset(-30px 0 -30px ${(1 - p) * 100}%)` }} />;
+        }) : null}
       </div>
       <Tape x={pw * 0.34} y={-16} w={Math.max(110, pw * 0.34)} rot={-12} />
     </div>
@@ -520,7 +538,9 @@ const PortraitClipCard: React.FC<{ cut: string; sp: Split }> = ({ cut, sp }) => 
   }
     return (
     <Only from={sp.from} to={sp.to}>
-      <CropPolaroid aspect={sp.clipSrc ? sp.clipAspect ?? 16 / 9 : undefined} cut={sp.clipSrc ?? cut} x={sp.clip.x} w={sp.clip.w} y={sp.clip.y} h={sp.clip.h} name={sp.clipName ?? "المقطع المردود عليه"} left={sp.page ? sp.card?.left ?? PAGE_CARD.left : sp.card?.left ?? 30} top={sp.page ? sp.card?.top ?? PAGE_CARD.top : sp.card?.top ?? 1320} rot={sp.page ? sp.card?.rot ?? PAGE_CARD.rot : sp.card?.rot ?? -2} innerH={sp.page ? sp.card?.innerH ?? PAGE_CARD.innerH : sp.card?.innerH ?? 450} blur={sp.blur} t0={sp.clipSrc ? sp.from : undefined} />
+      <HyLevel z={sp.page ? 1 : 0}>{/* a shown page sits above the PortPanel ground (layer 1): its video must be level 1 or the ground covers it (2026-11-17) */}
+      <CropPolaroid aspect={sp.clipSrc ? sp.clipAspect ?? 16 / 9 : undefined} cut={sp.clipSrc ?? cut} x={sp.clip.x} w={sp.clip.w} y={sp.clip.y} h={sp.clip.h} name={sp.clipName ?? "المقطع المردود عليه"} left={sp.page ? sp.card?.left ?? PAGE_CARD.left : sp.card?.left ?? 30} top={sp.page ? sp.card?.top ?? PAGE_CARD.top : sp.card?.top ?? 1320} rot={sp.page ? sp.card?.rot ?? PAGE_CARD.rot : sp.card?.rot ?? -2} innerH={sp.page ? sp.card?.innerH ?? PAGE_CARD.innerH : sp.card?.innerH ?? 450} blur={sp.blur} t0={sp.clipSrc ? sp.from : undefined} marks={sp.page ? sp.marks : undefined} />
+      </HyLevel>
     </Only>
   );
 };
@@ -757,7 +777,7 @@ const withPortZones = (spec0: MontageSpec): MontageSpec => {
     if (it.t === "note" && it.phrases?.length) w.push({ from: it.phrases[0].at - 0.35, to: it.until });
     else if (it.t === "pick" && !PICK_FULL_FRAME.has(it.el)) w.push({ from: it.at - 0.35, to: pickUntil(it as PickItem) });
     else if (it.t === "verse" && !(it as { full?: boolean }).full && ((it as { way?: string }).way === "noor" || (it as { way?: string }).way === "bigword")) { const v = it as unknown as { times: number[]; until?: number }; w.push({ from: v.times[0] - 0.35, to: v.until ?? v.times[v.times.length - 1] + 1.2 }); }
-    else if (["pic", "tphoto", "scholar", "news"].includes(it.t) && typeof (it as { at?: number }).at === "number") { const q = it as { at: number; until?: number; dur?: number }; w.push({ from: q.at - 0.35, to: q.until ?? q.at + (q.dur ?? 4) }); }   /* (user 2026-11-17, frame 16936) a picture never on his face/beard in portrait: his video shrinks to the upper half, the picture in the zone below */
+    /* (user 2026-11-17, frame 2800 of umawi_actress, overrides the rule of frame 16936) a picture NEVER shrinks him: pic/tphoto/scholar/news sit in the lower band away from his face (grid_plan), he stays full size */
   }
   w.sort((a, b) => a.from - b.from);
   const m: { from: number; to: number }[] = [];

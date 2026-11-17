@@ -136,7 +136,7 @@ if (missing.length) fails++;
 //     and the centre of each highlighted country must fall outside his head/body zone (x 700–1500 shifted by the window's dx, y < 760)
 {
   const bad = [];
-  for (const it of spec.items ?? []) if (it.t === "pmap") {
+  for (const it of spec.items ?? []) if (it.t === "pmap" && spec.kind !== "reel") {   /* landscape-only rule: a reel is portrait only (2026-11-17) */
     const w = it.land?.w ?? 1920, h = it.land?.h ?? 1080, [clon, clat] = it.landCenter ?? it.center, span = it.landSpan ?? it.spanLat;
     const P = (lon, lat) => [w / 2 + (lon - clon) * Math.cos((clat * Math.PI) / 180) * (h / span), h / 2 - (lat - clat) * (h / span)];
     const win = (spec.behind ?? []).find((b) => (!b.only || b.only === "land") && b.from <= it.from + 0.01 && b.to >= it.to - 0.01), dx = win?.dx ?? 0;
@@ -151,7 +151,7 @@ if (missing.length) fails++;
 {
   const inSplit = (t) => (spec.splits ?? []).some((w) => t >= w.from - 0.05 && t < w.to);
   const bad = [];
-  for (const it of items.filter((x) => x.t === "pmap" && !x.only && !inSplit(x.from ?? 0))) {
+  for (const it of items.filter((x) => x.t === "pmap" && !x.only && spec.kind !== "reel" && !inSplit(x.from ?? 0))) {   /* reel = portrait only: the landscape-map rule does not apply (2026-11-17) */
     const L = it.land ?? {}, full = (L.w ?? 0) >= 1900 && (L.h ?? 0) >= 1060 && (L.x ?? 0) <= 10 && (L.y ?? 0) <= 10;
     const win = (spec.behind ?? []).some((w) => (w.only === "land" || !w.only) && w.from <= (it.from ?? 0) + 0.3 && w.to >= (it.to ?? 0) - 0.3);
     if (!full || !win) bad.push(`${mm(it.from ?? 0)} ${!full ? "ليست ملء الإطار" : ""}${!full && !win ? " و" : ""}${!win ? "بلا نافذة عزل خلفها" : ""}`);

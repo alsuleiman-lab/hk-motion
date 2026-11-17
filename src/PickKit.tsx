@@ -68,12 +68,14 @@ export const InkQuote: React.FC<Base & { w?: number; size?: number; lines: { tex
 };
 
 /** 2 · علامة استفهام عملاقة — a huge question mark spins in and settles, the question written under it when he asks it */
-export const BigQuestion: React.FC<Base & { text: string; textAt: number; size?: number; w?: number }> = ({ at, until, x, y, text, textAt, size = 500, w = 960 }) => {
-  const { k } = useK(); const a = k(at, 0.7, until);
+/* (user 2026-11-17, frames 268 and 2903 of «مفتي الأردن»): the mark was the palette's accent on the same blue ground (no contrast) and 500 px tall, so the question under it ran off the bottom edge;
+   now a light mark with a dark edge, a smaller mark (360) and the question in a bold light face with a dark shadow, up to two lines, always inside the frame */
+export const BigQuestion: React.FC<Base & { text: string; textAt: number; size?: number; w?: number }> = ({ at, until, x, y, text, textAt, size = 360, w = 960 }) => {
+  const { k } = useK(); const a = k(at, 0.7, until), fs = Math.max(72, Math.round(size * 0.22));
   return (
     <div style={abs({ left: x, top: y, width: w })}>
-      <div style={abs({ left: 0, width: w, top: 0, height: size * 1.1, lineHeight: `${size * 1.1}px`, textAlign: "center", fontFamily: kufiF, fontSize: size, color: BRAND.accent, textShadow: `0 ${size * 0.03}px 0 ${BRAND.accentDeep}`, visibility: a > 0 ? "visible" : "hidden", transform: `rotate(${(1 - back(a)) * -220}deg) scale(${0.2 + 0.8 * back(a)})` })}>؟</div>
-      <div style={abs({ left: 0, width: w, top: size * 1.15, textAlign: "center", fontFamily: kufiF, fontSize: size * 0.17, color: BRAND.card, ...wipe(ease(k(textAt, 0.5, until))) })}>{text}</div>
+      <div style={abs({ left: 0, width: w, top: 0, height: size * 1.1, lineHeight: `${size * 1.1}px`, textAlign: "center", fontFamily: kufiF, fontSize: size, color: BRAND.card, textShadow: `0 ${size * 0.035}px 0 ${BRAND.navyDeep}, 0 0 ${size * 0.08}px rgba(0,0,0,.45)`, visibility: a > 0 ? "visible" : "hidden", transform: `rotate(${(1 - back(a)) * -220}deg) scale(${0.2 + 0.8 * back(a)})` })}>؟</div>
+      <div style={abs({ left: 40, width: w - 80, top: size * 1.1 + 24, textAlign: "center", direction: "rtl", fontFamily: kufiF, fontWeight: 800, fontSize: fs, lineHeight: 1.35, color: BRAND.card, textShadow: "0 3px 10px rgba(0,0,0,.65), 0 1px 0 rgba(0,0,0,.8)", ...wipe(ease(k(textAt, 0.5, until))) })}>{text}</div>
     </div>
   );
 };
@@ -155,12 +157,16 @@ export const SearchBar: React.FC<Base & { w?: number; query: string; typeAt: num
 };
 
 /** 7 · خرافة وحقيقة — correcting ANY wrong idea: the wrong saying (red tag) is struck, then the truth (green tag) with a tick */
-export const MythFact: React.FC<{ until: number; x: number; y: number; w?: number; size?: number; myth: string; mythAt: number; fact: string; factAt: number; mythTag?: string; factTag?: string }> = ({ until, x, y, w = 940, size = 60, myth, mythAt, fact, factAt, mythTag = "خطأ شائع", factTag = "الصواب" }) => {
-  const { k } = useK(); const rh = size * 2.8;
+export const MythFact: React.FC<{ until: number; x: number; y: number; w?: number; size?: number; myth: string; mythAt: number; fact: string; factAt: number; mythTag?: string; factTag?: string }> = ({ until, x, y, w = 940, size = 60, myth, mythAt, fact, factAt, mythTag = "خطأ", factTag = "الصواب" }) => {
+  /* (user 2026-11-17) tag «خطأ» only; the row is as wide as its longest text (no empty space beside the writing) and taller, the writing sits lower so the tag never touches it */
+  const { k } = useK(); const rh = size * 3.4;
+  const fsOf = (tx: string) => fitBox(tx, { font: size, minFont: Math.round(size * 0.6), minW: w - size * 1.8 - 40, maxW: w - size * 1.8 - 40, padX: 0 }).fs;
+  const need = Math.max(...[myth, fact].map((tx) => tx.length * fsOf(tx) * 0.47)) + size * 1.8 + 40 + 12;
+  w = Math.round(Math.min(w, need));
   const row = (top: number, tag: string, c: string, text: string, kk: number, mark: string, mk: number, strike?: number) => (
     <div style={abs({ left: 0, width: w, top, height: rh, background: "rgba(255,255,255,.07)", borderRadius: 18, borderRight: `12px solid ${c}`, visibility: kk > 0 ? "visible" : "hidden", transform: `translateX(${(1 - ease(kk)) * -700}px)` })}>
       <div style={abs({ right: 30, top: -size * 0.5, padding: "6px 26px", background: c, borderRadius: 10, color: "#fff", fontFamily: kufiF, fontSize: size * 0.6 })}>{tag}</div>
-      <div style={abs({ right: 40, left: size * 1.8, top: 0, height: rh, display: "flex", alignItems: "center", fontFamily: kufiF, fontSize: fitBox(text, { font: size, minFont: Math.round(size * 0.6), minW: w - size * 1.8 - 40, maxW: w - size * 1.8 - 40, padX: 0 }).fs, lineHeight: 1.3, color: BRAND.card })}>
+      <div style={abs({ right: 40, left: size * 1.8, top: size * 0.55, height: rh - size * 0.55, display: "flex", alignItems: "center", fontFamily: kufiF, fontSize: fitBox(text, { font: size, minFont: Math.round(size * 0.6), minW: w - size * 1.8 - 40, maxW: w - size * 1.8 - 40, padX: 0 }).fs, lineHeight: 1.3, color: BRAND.card })}>
         <span style={{ position: "relative" }}>{text}{strike !== undefined ? <i style={{ position: "absolute", right: -6, left: -6, top: "52%", height: size * 0.15, borderRadius: 5, background: c, transformOrigin: "100% 50%", transform: `scaleX(${strike})` }} /> : null}</span>
       </div>
       <div style={abs({ left: size * 0.4, top: 0, height: rh, display: "flex", alignItems: "center", fontFamily: kufiF, fontSize: size * 1.3, color: c, ...pop(mk, 0.4) })}>{mark}</div>

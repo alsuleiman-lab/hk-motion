@@ -19,7 +19,7 @@ export const ease = (x: number) => Easing.bezier(0.45, 0, 0.15, 1)(clamp(x));
 const AR = "٠١٢٣٤٥٦٧٨٩";
 export const ar = (n: number) => String(n).replace(/[0-9]/g, (d) => AR[+d]);
 const Q = `"${QURAN_FONT}", ${TEXT}`;
-export type VerseProps = { words: string[]; times: number[]; surah: string; aya: number; until?: number };
+export type VerseProps = { words: string[]; times: number[]; surah: string; aya: number; until?: number; bleed?: number /* portrait (2026-11-17): the panel's ground extends `bleed` px to its LEFT with the same gradient, stars and rosette so it fills the zone edge to edge */ };
 
 /** a gold word: written in when recited (rises out of a soft blur-free clip), then a light sweep runs across it once */
 export const GoldWord: React.FC<{ w: string; at: number; t: number; size: number; carve?: boolean }> = ({ w, at, t, size, carve }) => {
@@ -77,16 +77,16 @@ export const Header: React.FC<{ surah: string; size: number; k: number; font?: s
 
 /** the half-screen panel in the video's palette: base colours + star tiling + turning rosette (ornament in the palette's light tone);
  *  its right side melts into his video by transparency — no seam. `k` = 0..1 slide-in; opaque up to `solid` of `w`, then fades to nothing. */
-export const BlendPanel: React.FC<{ k: number; t: number; w?: number; solid?: number; id: string; children?: React.ReactNode }> = ({ k, t, w = 1560, solid = 0.58, id, children }) => {
+export const BlendPanel: React.FC<{ k: number; t: number; w?: number; solid?: number; id: string; bleed?: number; children?: React.ReactNode }> = ({ k, t, w = 1560, solid = 0.58, id, bleed = 0, children }) => {
   if (k <= 0) return null;
-  const fade = `linear-gradient(90deg, #000 0%, #000 ${solid * 100}%, rgba(0,0,0,.55) ${(solid + (1 - solid) * 0.45) * 100}%, transparent 100%)`;
+  const fade = bleed ? `linear-gradient(90deg, #000 0, #000 ${bleed + solid * w}px, rgba(0,0,0,.55) ${bleed + (solid + (1 - solid) * 0.45) * w}px, transparent ${bleed + w}px)` : `linear-gradient(90deg, #000 0%, #000 ${solid * 100}%, rgba(0,0,0,.55) ${(solid + (1 - solid) * 0.45) * 100}%, transparent 100%)`;
   return (
-    <div style={{ position: "absolute", left: 0, top: 0, width: w, height: 1080, transform: `translateX(${-(1 - k) * w}px)`, overflow: "hidden", WebkitMaskImage: fade, maskImage: fade,
-      background: `radial-gradient(ellipse at 400px 46%, ${BRAND.base2} 0%, ${BRAND.base} 45%, ${BRAND.base3} 100%)` }}>
+    <div style={{ position: "absolute", left: -bleed, top: 0, width: w + bleed, height: 1080, transform: `translateX(${-(1 - k) * w}px)`, overflow: "hidden", WebkitMaskImage: fade, maskImage: fade,
+      background: `radial-gradient(ellipse ${bleed ? `${1640 + bleed * 0.5}px 824px at ${400 + bleed}px 46%` : "at 400px 46%"}, ${BRAND.base2} 0%, ${BRAND.base} 45%, ${BRAND.base3} 100%)` }}>
       <StarField id={id + "-stars"} cell={120} color={BRAND.light} op={0.09} rot={t * 2} />
-      <Rosette cx={400} cy={520} r={430} t={t} color={BRAND.light} op={0.14} />
-      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 400px 50%, transparent 40%, ${alpha(BRAND.base3, 0.6)} 100%)` }} />
-      {children}
+      <Rosette cx={400 + bleed} cy={520} r={430} t={t} color={BRAND.light} op={0.14} />
+      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at ${400 + bleed}px 50%, transparent 40%, ${alpha(BRAND.base3, 0.6)} 100%)` }} />
+      {bleed ? <div style={{ position: "absolute", left: bleed, top: 0, width: w, height: 1080 }}>{children}</div> : children}
     </div>
   );
 };
@@ -113,12 +113,12 @@ const chars = (ws: string[]) => ws.reduce((s, w) => s + [...cleanQuran(w)].lengt
 const fitSize = (n: number, w: number, h: number, lh: number, max: number, min: number) => Math.round(Math.max(min, Math.min(max, Math.sqrt((w * h) / (0.45 * lh * Math.max(1, n))))));
 
 /** 1) the panel of light: the words huge in gold, a light sweep over each word as he says it */
-export const VerseNoorPanel: React.FC<VerseProps & { size?: number }> = ({ words, times, surah, aya, until, size }) => {
+export const VerseNoorPanel: React.FC<VerseProps & { size?: number }> = ({ words, times, surah, aya, until, size, bleed }) => {
   FONT_QURAN();
   const t = useT(), k = halfK(t, times[0] - HALF_LEAD, until);
   const s = size ?? fitSize(chars(words), 590, 700, 1.75, 112, 52);
   return (
-    <BlendPanel k={k} t={t} id="vn">
+    <BlendPanel k={k} t={t} id="vn" bleed={bleed}>
       <div style={{ position: "absolute", left: 100, width: 560, top: 130, direction: "rtl" }}><Header surah={surah} size={44} k={(t - times[0] + 0.3) / 0.5} /></div>
       <div style={{ position: "absolute", left: 90, width: 590, top: 240, bottom: 140, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", textAlign: "center", fontFamily: Q, fontSize: s, lineHeight: 1.75 }}>
         <div>{words.map((w, i) => <GoldWord key={i} w={w} at={times[i]} t={t} size={s} />)}<AyahEnd n={aya} size={s * 0.62} k={(t - times[times.length - 1] - 0.35) / 0.3} /></div>
@@ -127,7 +127,7 @@ export const VerseNoorPanel: React.FC<VerseProps & { size?: number }> = ({ words
   );
 };
 /** 2) the big word then the verse: each word he says appears alone, huge, then shrinks down into its place in the verse line; the line completes with its roundel */
-export const VerseBigWordPanel: React.FC<VerseProps & { size?: number }> = ({ words, times, surah, aya, until, size }) => {
+export const VerseBigWordPanel: React.FC<VerseProps & { size?: number }> = ({ words, times, surah, aya, until, size, bleed }) => {
   FONT_QURAN();
   const t = useT(), k = halfK(t, times[0] - HALF_LEAD, until);
   const s = size ?? fitSize(chars(words), 590, 330, 1.6, 78, 42);
@@ -137,7 +137,7 @@ export const VerseBigWordPanel: React.FC<VerseProps & { size?: number }> = ({ wo
   const bigOn = cur >= 0 && a < land + 0.2 && (until === undefined || t < until - 0.3);
   const w0 = cur >= 0 ? [...cleanQuran(words[cur])].length : 1, big = Math.min(200, Math.round(1050 / Math.max(3, w0)));
   return (
-    <BlendPanel k={k} t={t} id="vb">
+    <BlendPanel k={k} t={t} id="vb" bleed={bleed}>
       <div style={{ position: "absolute", left: 100, width: 560, top: 110, direction: "rtl" }}><Header surah={surah} size={42} k={(t - times[0] + 0.3) / 0.5} /></div>
       {bigOn ? (
         <div style={{ position: "absolute", left: 90, width: 590, top: 220, height: 380, display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", fontFamily: Q, fontSize: big, opacity: 1 - d,

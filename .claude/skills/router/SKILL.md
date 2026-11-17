@@ -43,4 +43,4 @@ description: الموجّه — أول مهارة تُقرأ عند أي طلب 
 | §11 | الرندر والتصدير والاعتماد (والفاصل) | `remotion-render`؛ الاعتماد والرفع مهارة `approval` |
 
 ## 3) مراجع لا سلاسل
-`remotion-*` (عدا `remotion-render`): توثيق Remotion الرسمي للرجوع فقط. `pixabay-search`: بحث B-roll. `video-montage/MG_CATALOG.md`: دليل القطع.
+`remotion-*` (عدا `remotion-render`): توثيق Remotion الرسمي للرجوع فقط. `pixabay-search`: بحث B-roll. عناصر المعرض بأسمائها ومتغيراتها: `node tools/el.mjs list|show`.

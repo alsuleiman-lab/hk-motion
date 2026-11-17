@@ -95,7 +95,8 @@ if (cmd === "list") {
   console.log(`✔ أُضيف ${code} رقم ${n} عند ${it.at ?? it.from}ث${s.galleryRef ? " (المكان والمقاس من المعرض)" : ""}`);
 } else if (cmd === "items") {
   const s = JSON.parse(read(specPath(args[0]))), [A, B] = (args[1] ?? "").split("-").map(Number);
-  s.items.forEach((it, i) => { const sp = span(it); if (args[1] && sp && (sp[1] < A || sp[0] > B)) return; console.log(`${i} · ${label(it)} · ${sp ? sp.map((v) => v.toFixed(1)).join("–") : "—"}${it.only ? ` · ${it.only === "land" ? "عرضي فقط" : "طولي فقط"}` : ""} · ${textOf(it)}`); });
+  const cat = catalog(), nm = (it) => ar(cat[label(it)] ?? {}) || label(it);   // the Arabic name, as under the screen in the Studio
+  s.items.forEach((it, i) => { const sp = span(it); if (args[1] && sp && (sp[1] < A || sp[0] > B)) return; console.log(`${i} · ${nm(it)} · ${sp ? sp.map((v) => v.toFixed(1)).join("–") : "—"}${it.only ? ` · ${it.only === "land" ? "عرضي فقط" : "طولي فقط"}` : ""} · ${textOf(it)}`); });
 } else if (cmd === "set") {
   const [p, n, ...rest] = args, f = specPath(p), s = JSON.parse(read(f)), it = s.items[Number(n)];
   if (!it) { console.error(`✘ لا عنصر رقم ${n}`); process.exit(2); }

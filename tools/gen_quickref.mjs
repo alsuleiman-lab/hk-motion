@@ -36,6 +36,8 @@ while ((m = re.exec(src))) {
   rows.push({ name: m[1], doc: doc.slice(0, 260), props: props.length > 330 ? props.slice(0, 330) + " …" : props });
 }
 const body = rows.map((r) => `### \`${r.name}\`\n${r.doc || "(بلا وصف: مكوّن أساسي)"}\n\`props:\` ${r.props}\n`).join("\n");
-const out = `# فهرس قطع الموشن (مولَّد آلياً من src/MG.tsx وPortraitKit وSourceFrames وPaperKit وPaperTear وDebateLayouts — لا تعدّله يدوياً)\n\n> يُولَّد بـ\`node tools/gen_quickref.mjs\`. الزمن بالثواني المطلقة ما لم يُذكر؛ كل قطعة تُوضع داخل \`<Gfx>\`؛ التفاصيل والضوابط الكاملة لكل قطعة في مهارة motion-graphics وأخواتها، وهنا ما يكفي لاستدعائها دون قراءة طويلة. عدد القطع: ${rows.length}.\n\n${body}`;
+const out = `> **للمونتاج لا تقرأ هذا الفهرس:** العنصر يُضاف باسمه ومتغيراته «node tools/el.mjs list|show|add» (نموذج العمل في رأس مهارة video-montage)؛ هذا فهرس لمكوّنات الكود للتراكيب القديمة المكتوبة يدوياً.
+
+# فهرس قطع الموشن (مولَّد آلياً من src/MG.tsx وPortraitKit وSourceFrames وPaperKit وPaperTear وDebateLayouts — لا تعدّله يدوياً)\n\n> يُولَّد بـ\`node tools/gen_quickref.mjs\`. الزمن بالثواني المطلقة ما لم يُذكر؛ كل قطعة تُوضع داخل \`<Gfx>\`؛ التفاصيل والضوابط الكاملة لكل قطعة في مهارة motion-graphics وأخواتها، وهنا ما يكفي لاستدعائها دون قراءة طويلة. عدد القطع: ${rows.length}.\n\n${body}`;
 fs.writeFileSync(".claude/skills/video-montage/MG_CATALOG.md", out);
 console.log(`catalogued ${rows.length} components → .claude/skills/video-montage/MG_CATALOG.md (${out.length} chars)`);

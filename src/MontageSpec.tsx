@@ -351,6 +351,8 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
       const to = it.until ?? it.times[it.times.length - 1] + 1.2;
       if (it.full) return <ReelVerseFull key={i} to={to} refName={`${it.title} — ${it.refText}`} lines={[{ words: it.words, times: it.times }]} />;
       if (L && (it.way === "noor" || it.way === "bigword")) { const P = it.way === "noor" ? VerseNoorPanel : VerseBigWordPanel; return <P key={i} words={it.words} times={it.times} surah={it.title} aya={ayaOf(it)} until={to} />; }
+      /* (user 2026-11-17, frame 19625: «القرآن في المقاطع الطولية لازم تقسم الشاشة وتحط نفس الستايل تبع العرضي») portrait: the SAME landscape panel, scaled into the zone under his shrunk video (the split window comes from withPortZones) */
+      if (!L && (it.way === "noor" || it.way === "bigword")) { const P = it.way === "noor" ? VerseNoorPanel : VerseBigWordPanel; return <div key={i} style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, clipPath: "inset(1135px 0 155px 0)" }}><div style={{ position: "absolute", left: 204, top: 1009, width: 1920, height: 1080, transform: "scale(0.84)", transformOrigin: "0 0" }}><P words={it.words} times={it.times} surah={it.title} aya={ayaOf(it)} until={to} /></div></div>; }
       return <VerseWords key={i} words={it.words} times={it.times} x={L ? ov.x ?? G.x : it.x} y={L ? ov.y ?? G.y : it.y} w={L ? ov.w ?? G.w : it.w} size={L ? ov.size ?? 38 : it.size ?? 44} title={it.title} refText={it.refText} until={to} />;
     }
     case "hadith": return <ReelVerseFull key={i} hadith to={it.until ?? it.times[it.times.length - 1] + 1.2} refName={it.source} lines={[{ words: it.words, times: it.times }]} />;
@@ -754,6 +756,8 @@ const withPortZones = (spec0: MontageSpec): MontageSpec => {
     if (it.only === "land") continue;
     if (it.t === "note" && it.phrases?.length) w.push({ from: it.phrases[0].at - 0.35, to: it.until });
     else if (it.t === "pick" && !PICK_FULL_FRAME.has(it.el)) w.push({ from: it.at - 0.35, to: pickUntil(it as PickItem) });
+    else if (it.t === "verse" && !(it as { full?: boolean }).full && ((it as { way?: string }).way === "noor" || (it as { way?: string }).way === "bigword")) { const v = it as unknown as { times: number[]; until?: number }; w.push({ from: v.times[0] - 0.35, to: v.until ?? v.times[v.times.length - 1] + 1.2 }); }
+    else if (["pic", "tphoto", "scholar", "news"].includes(it.t) && typeof (it as { at?: number }).at === "number") { const q = it as { at: number; until?: number; dur?: number }; w.push({ from: q.at - 0.35, to: q.until ?? q.at + (q.dur ?? 4) }); }   /* (user 2026-11-17, frame 16936) a picture never on his face/beard in portrait: his video shrinks to the upper half, the picture in the zone below */
   }
   w.sort((a, b) => a.from - b.from);
   const m: { from: number; to: number }[] = [];

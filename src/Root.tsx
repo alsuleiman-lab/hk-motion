@@ -27,7 +27,7 @@ import type { MontageSpec } from "./MontageSpec";
 import hadraKhatibSpec from "../data/specs/hadra-khatib.json";
 const HadraKhatibComp: React.FC = () => <MontageFromSpec spec={hadraKhatibSpec as unknown as MontageSpec} />;
 const HadraKhatibBothComp: React.FC = () => <MontageBoth spec={hadraKhatibSpec as unknown as MontageSpec} />;
-import { MontageBoth, BOTH } from "./MontageBoth";
+import { MontageBoth, BOTH, BOTHV } from "./MontageBoth";
 
 import streamArshFakhSpec from "../data/specs/stream_arsh_fakh_reel.json";
 import streamMayyitIlmSpec from "../data/specs/stream_mayyit_ilm_reel.json";
@@ -37,6 +37,7 @@ const IndividualReligiosityLComp: React.FC = () => <MontageFromSpec spec={indivi
 const IndividualReligiosityBothComp: React.FC = () => <MontageBoth spec={individualReligiositySpec as unknown as MontageSpec} />;
 import sufiBaathSpec from "../data/specs/sufi-baath.json";
 const SufiBaathComp: React.FC = () => <MontageFromSpec spec={sufiBaathSpec as unknown as MontageSpec} />;
+const SufiBaathBothVComp: React.FC = () => <MontageBoth spec={sufiBaathSpec as unknown as MontageSpec} phone />;
 const SufiBaathBothComp: React.FC = () => <MontageBoth spec={sufiBaathSpec as unknown as MontageSpec} />;
 import ahmedAbdoMaherSpec from "../data/specs/ahmed-abdo-maher.json";
 const AhmedAbdoMaherComp: React.FC = () => <MontageFromSpec spec={ahmedAbdoMaherSpec as unknown as MontageSpec} />;
@@ -70,6 +71,7 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Sufi-Baath" component={SufiBaathComp} durationInFrames={specFrames(sufiBaathSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
         <Composition id="Sufi-Baath-L" component={SufiBaathComp} durationInFrames={specFrames(sufiBaathSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
         <Composition id="Sufi-Baath-Both" component={SufiBaathBothComp} durationInFrames={specFrames(sufiBaathSpec as unknown as MontageSpec)} fps={30} width={BOTH.W} height={BOTH.H} />
+        <Composition id="Sufi-Baath-BothV" component={SufiBaathBothVComp} durationInFrames={specFrames(sufiBaathSpec as unknown as MontageSpec)} fps={30} width={BOTHV.W} height={BOTHV.H} />
         <Composition id="Ahmed-Abdo-Maher" component={AhmedAbdoMaherComp} durationInFrames={specFrames(ahmedAbdoMaherSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
         <Composition id="Ahmed-Abdo-Maher-L" component={AhmedAbdoMaherComp} durationInFrames={specFrames(ahmedAbdoMaherSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
         <Composition id="Ahmed-Abdo-Maher-Both" component={AhmedAbdoMaherBothComp} durationInFrames={specFrames(ahmedAbdoMaherSpec as unknown as MontageSpec)} fps={30} width={BOTH.W} height={BOTH.H} />

@@ -30,6 +30,7 @@ export const COMPOSITION_DATES: Record<string, number> = {
   "Sufi-Baath": 0,
   "Sufi-Baath-L": 0,
   "Sufi-Baath-Both": 0,
+  "Sufi-Baath-BothV": 0,
   "Ahmed-Abdo-Maher": 0,
   "Ahmed-Abdo-Maher-L": 0,
   "Ahmed-Abdo-Maher-Both": 0,

@@ -4,6 +4,7 @@ import { BRAND, alpha } from "./brand";
 import { FONT_NASKH, FONT_TEXT } from "./localFonts";
 import { TEXT } from "./EuKit";
 import { BlendPanel, HalfScene, HALF_LEAD, halfK, ease, clamp } from "./VerseKit";
+import { measureText } from "@remotion/layout-utils";
 
 /**
  * HadithKit — the hadith ways the user kept from the choice page (2026-11-12), try-only until approved in the gallery.
@@ -33,6 +34,8 @@ const Phrase: React.FC<{ p: HadithPhrase; t: number; size: number; color: string
 
 /** the big quote in half screen: `him` = his landscape video layer; `lead` = «قال رسول الله ﷺ»; `src` = the source line (book + number) */
 export type HadithHalf = { lead?: string; phrases: HadithPhrase[]; src: string; until?: number; size?: number };
+/** lines a phrase really takes at this size and width (measured with the font, +6 % margin; estimate when the font is not ready) — for centring the matn (user 2026-11-17) */
+const phraseLines = (ps: HadithPhrase[], size: number, width: number) => ps.reduce((a, p) => { let w: number; try { w = measureText({ text: p.text ?? "", fontFamily: "Amiri", fontSize: size, fontWeight: "700" }).width * 1.06 + size * 0.28; } catch { w = [...(p.text ?? "")].length * size * 0.42; } return a + Math.max(1, Math.ceil(w / width)); }, 0);
 const pchars = (ps: HadithPhrase[]) => ps.reduce((s, p) => s + [...p.text].length + 1, 0);
 const fitN = (n: number, w: number, h: number, lh: number, max: number, min: number) => Math.round(Math.max(min, Math.min(max, Math.sqrt((w * h) / (0.42 * lh * Math.max(1, n))))));
 
@@ -42,12 +45,14 @@ export const HadithQuotePanel: React.FC<HadithHalf> = ({ lead, phrases, src, unt
   const t = useT();
   const t0 = phrases[0].at, last = phrases[phrases.length - 1], k = halfK(t, t0 - HALF_LEAD, until);
   const s = size ?? fitN(pchars(phrases), 590, 500, 1.7, 84, 44);
+  /* (user 2026-11-17) the quote in the MIDDLE between the lead (or the top quote mark) and the source line, as in portrait */
+  const qTop = lead ? 310 : 230, qBot = 1080 - 150, qLines = phraseLines(phrases, s, 590), qTextTop = qTop + Math.max(0, (qBot - qTop - qLines * s * 1.7) / 2);
   return (
     <BlendPanel k={k} t={t} id="hq">
       <div style={{ position: "absolute", left: 530, top: 100, fontFamily: N, fontSize: 260, lineHeight: 1, color: "rgba(231,184,74,.35)" }}>«</div>
       <div style={{ position: "absolute", left: 100, bottom: 110, fontFamily: N, fontSize: 260, lineHeight: 1, color: "rgba(231,184,74,.35)" }}>»</div>
       {lead ? <div style={{ position: "absolute", left: 100, width: 560, top: 250, textAlign: "center", direction: "rtl", fontFamily: N, fontWeight: 700, fontSize: 42, color: "#e7b84a", opacity: clamp((t - t0 + 0.4) / 0.3) }}>{lead}</div> : null}
-      <div style={{ position: "absolute", left: 90, width: 590, top: 330, textAlign: "center", direction: "rtl", lineHeight: 1.7 }}>
+      <div style={{ position: "absolute", left: 90, width: 590, top: qTextTop, textAlign: "center", direction: "rtl", lineHeight: 1.7 }}>
         {phrases.map((p, i) => <div key={i}><Phrase p={p} t={t} size={s} color={BRAND.card} /></div>)}
       </div>
       <div style={{ position: "absolute", left: 100, width: 560, bottom: 90, borderTop: `2px solid ${alpha("#e7b84a", 0.5)}`, paddingTop: 14, textAlign: "center", direction: "rtl", fontFamily: TEXT, fontWeight: 700, fontSize: 28, color: BRAND.light, opacity: clamp((t - last.at - 0.5) / 0.3) }}>{src}</div>
@@ -62,6 +67,8 @@ export const HadithBooksPanel: React.FC<HadithHalf & { narrator?: string; books?
   const t0 = phrases[0].at, last = phrases[phrases.length - 1], k = halfK(t, t0 - HALF_LEAD, until);
   const bs = books?.length ? books.slice(0, 3) : [{ book: src, n: "" }];
   const topM = lead ? 232 : 192, s = size ?? fitN(pchars(phrases), 590, (930 - topM - 24) * 0.74, 1.6, 56, 38);   /* (user 2026-11-16) bigger text; the books are ONE line so the matn gets the room of the second card */
+  /* (user 2026-11-17: «عملته بالطول فقط، أيضاً بالعرض نحتاج هذا») as in portrait: the matn in the MIDDLE of the free band between the lead and the books card */
+  const lineN = phraseLines(phrases, s, 590), textTop = topM + Math.max(0, (930 - 16 - topM - lineN * s * 1.6) / 2);
   const bookAt = last.at + 0.6, top0 = 930;
   const AR = "٠١٢٣٤٥٦٧٨٩", ar = (n: number | string) => String(n).replace(/[0-9]/g, (d) => AR[+d]);
   return (
@@ -69,7 +76,7 @@ export const HadithBooksPanel: React.FC<HadithHalf & { narrator?: string; books?
       {narrator ? <div style={{ position: "absolute", left: 110, width: 520, top: 104, padding: "10px 0", textAlign: "center", direction: "rtl", background: BRAND.navy, border: `2px solid ${alpha(BRAND.light, 0.5)}`, borderRadius: 40,
         fontFamily: N, fontSize: 32, color: BRAND.light, opacity: clamp((t - t0 + 0.4) / 0.3), transform: `scaleX(${ease((t - t0 + 0.4) / 0.4)})` }}>{narrator}</div> : null}
       {lead ? <div style={{ position: "absolute", left: 90, width: 590, top: 172, textAlign: "center", direction: "rtl", fontFamily: N, fontWeight: 700, fontSize: 40, color: BRAND.light, opacity: clamp((t - t0 + 0.3) / 0.3) }}>{lead}:</div> : null}
-      <div style={{ position: "absolute", left: 90, width: 590, top: topM, textAlign: "center", direction: "rtl", lineHeight: 1.6 }}>
+      <div style={{ position: "absolute", left: 90, width: 590, top: textTop, textAlign: "center", direction: "rtl", lineHeight: 1.6 }}>
         {phrases.map((p, i) => <div key={i}><Phrase p={p} t={t} size={s} color={BRAND.card} dur={0.9} /></div>)}
       </div>
       {(() => {
@@ -94,11 +101,13 @@ export const HadithPortPanel: React.FC<HadithHalf & { narrator?: string; books?:
   const bs = books?.length ? books.slice(0, 3) : [{ book: src, n: "" }];
   const Z0 = 1135, bookTop = 1722, topM = Z0 + (narrator ? 72 : 0) + (lead ? 60 : 0) + 8, s = size ?? Math.max(30, Math.min(fitN(pchars(phrases), 960, (bookTop - topM - 16) * 0.8, 1.6, 60, 30), Math.floor((bookTop - topM - 24) / (phrases.length * 1.72))));   /* a phrase per line: the height decides */
   const bookAt = last.at + 0.6, AR = "٠١٢٣٤٥٦٧٨٩", ar = (n: number | string) => String(n).replace(/[0-9]/g, (d) => AR[+d]), u = ease((t - bookAt) / 0.4);
+  /* (user 2026-11-17, frame 569 of «مفتي الأردن»: «الحديث ملتصق بالأعلى لازم يكون في الوسط طالما جملة وحدة») the matn sits in the MIDDLE of the free band between the narrator ribbon and the books card, not stuck under the ribbon */
+  const lineN = phraseLines(phrases, s, 960), blockH = lineN * s * 1.6, textTop = topM + Math.max(0, (bookTop - 16 - topM - blockH) / 2);
   return (
     <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, clipPath: `inset(${Z0}px 0 0 0)`, visibility: k > 0 ? "visible" : "hidden" }}>
       {narrator ? <div style={{ position: "absolute", left: 190, width: 700, top: Z0, padding: "8px 0", textAlign: "center", direction: "rtl", background: BRAND.navy, border: `2px solid ${alpha(BRAND.light, 0.5)}`, borderRadius: 40, fontFamily: N, fontSize: 32, color: BRAND.light, transform: `scaleX(${ease((t - t0 + 0.4) / 0.4)})` }}>{narrator}</div> : null}
       {lead ? <div style={{ position: "absolute", left: 60, width: 960, top: Z0 + (narrator ? 70 : 0), textAlign: "center", direction: "rtl", fontFamily: N, fontWeight: 700, fontSize: 38, color: BRAND.light, opacity: clamp((t - t0 + 0.3) / 0.3) }}>{lead}:</div> : null}
-      <div style={{ position: "absolute", left: 60, width: 960, top: topM, textAlign: "center", direction: "rtl", lineHeight: 1.6 }}>
+      <div style={{ position: "absolute", left: 60, width: 960, top: textTop, textAlign: "center", direction: "rtl", lineHeight: 1.6 }}>
         {phrases.map((p, i) => <div key={i}><Phrase p={p} t={t} size={s} color={BRAND.card} dur={0.9} /></div>)}
       </div>
       {u > 0 ? (

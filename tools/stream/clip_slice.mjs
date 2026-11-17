@@ -14,6 +14,7 @@ const map = rd(path.join("public", `${P}_map.json`)).segments;
 const pieces = [];
 for (const r of spec.split(",")) { const [a, b] = r.split("-").map(Number); for (const g of map) { const lo = Math.max(g.a, a), hi = Math.min(g.b, b); if (hi - lo > 0.02) { const cs = g.n + (lo - g.a), ce = g.n + (hi - g.a); const l = pieces[pieces.length - 1]; if (l && Math.abs(cs - l[1]) < 0.02) l[1] = ce; else pieces.push([cs, ce]); } } }
 if (!pieces.length) { console.error(`✘ ${id}: النطاق ${spec} خارج ما بقي من القص`); process.exit(1); }
+for (let k = 0; k < pieces.length; k++) pieces[k][1] = pieces[k][0] + Math.max(1, Math.round((pieces[k][1] - pieces[k][0]) * 30)) / 30;   // كل قطعة بعدد صحيح من الإطارات: الكلمات والخريطة والفيديو والصوت على خط زمني واحد بلا انجراف
 const off = []; let acc = 0; for (const [a, b] of pieces) { off.push(acc); acc += b - a; } const D = +acc.toFixed(3);
 const toChild = (t) => { for (let k = 0; k < pieces.length; k++) if (t >= pieces[k][0] - 1e-6 && t < pieces[k][1] + 1e-6) return t - pieces[k][0] + off[k]; return null; };
 const sh = (cmd, args) => { const r = spawnSync(cmd, args, { encoding: "utf8", maxBuffer: 1 << 26, windowsHide: true, env: { ...process.env, PYTHONIOENCODING: "utf-8", STREAM_SLICE_OK: "1" } }); if (r.status !== 0) throw new Error(`${cmd} ${args.slice(0, 3).join(" ")}: ${(r.stderr || r.stdout || "").slice(-300)}`); return r.stdout; };
@@ -21,7 +22,7 @@ fs.mkdirSync(T, { recursive: true }); fs.mkdirSync(path.join("public", id), { re
 // 2) شريحة الصوت أو الفيديو من ملف البث
 const slice = (inF, outF, video) => {
   const ins = pieces.flatMap(([a, b]) => ["-ss", a.toFixed(3), "-t", (b - a).toFixed(3), "-i", inF]);
-  const n = pieces.length, fc = video ? pieces.map((_, i) => `[${i}:v]setpts=PTS-STARTPTS,fps=30[v${i}];[${i}:a]asetpts=PTS-STARTPTS[a${i}];`).join("") + pieces.map((_, i) => `[v${i}][a${i}]`).join("") + `concat=n=${n}:v=1:a=1[v][a]`
+  const n = pieces.length, fc = video ? pieces.map(([pa, pb], i) => { const nf = Math.max(1, Math.floor((pb - pa) * 30 + 1e-6)); return `[${i}:v]setpts=PTS-STARTPTS,fps=30,trim=end_frame=${nf},setpts=PTS-STARTPTS[v${i}];[${i}:a]asetpts=PTS-STARTPTS,atrim=end=${(nf / 30).toFixed(5)},asetpts=PTS-STARTPTS[a${i}];`; }).join("")   /* كل قطعة فيديو وصوت بطول متساوٍ بالإطار: لا حشو صمت عند الوصلات (كان يضيف نحو 0.46 ث لمقطع من 54 وصلة فتظهر سكتات في الناتج لا في الصوت المنظَّف) */ + pieces.map((_, i) => `[v${i}][a${i}]`).join("") + `concat=n=${n}:v=1:a=1[v][a]`
     : pieces.map((_, i) => `[${i}:a]asetpts=PTS-STARTPTS[a${i}];`).join("") + pieces.map((_, i) => `[a${i}]`).join("") + `concat=n=${n}:v=0:a=1[a]`;
   sh("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", "-threads", "4", ...ins, "-filter_complex", fc, ...(video ? ["-map", "[v]", "-map", "[a]", "-c:v", "h264_nvenc", "-preset", "p7", "-rc", "vbr", "-cq", "19", "-b:v", "0", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-ar", "48000"] : ["-map", "[a]"]), outF]);
 };

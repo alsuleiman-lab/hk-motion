@@ -46,7 +46,7 @@ else if (cmd === "slice") {
   const CF = path.join(T, "fast_checks.json"), res = rd(CF, {});
   const pascal = (x) => x.split(/[-_ ]+/).filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join("");   // كما في tools/spec_register.mjs
   const realDur = (c) => { const s = rd(`data/specs/${c.id}.json`, null); return s?.frames ? s.frames / 30 : c.dur; };   // مدة المواصفة الفعلية لا مدة الخطة (قصّ السكتات يقصّرها)
-  const orientOf = (c) => (c.kind === "reel" || realDur(c) <= 120 ? "R" : "L");   // دقيقتان فأقل طولي، وأكثر عرضي (AGENTS.md)
+  const orientOf = (c) => (arg("orient") ? arg("orient") : (c.kind === "reel" || realDur(c) <= 120 ? "R" : "L"));   // --orient R للدروس: طولي دائماً (≤ 3 د)   // دقيقتان فأقل طولي، وأكثر عرضي (AGENTS.md)
   const compOf = (id, o = "R") => pascal(id).replace(/([a-z0-9])([A-Z])/g, "$1-$2") + (o === "L" ? "-L" : "");
   const only = arg("only") ? new Set(arg("only").split(",")) : null;
   if (cmd === "checks") {

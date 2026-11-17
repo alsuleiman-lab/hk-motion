@@ -72,7 +72,8 @@ for (const id of ids) {
       if (prevOk && SOLO.has(prev.t) && next && SOLO.has(next.t) && g1 - endOf(prev) <= 4 && snapSolo(prev, next)) { ch++; log.push(`ضُبط الفاصل بين البطاقتين عند ${fix(next.at)}`); continue; }
       if (prevOk && SOLO.has(prev.t) && g1 - endOf(prev) <= 1.5) { setEnd(prev, room(g1 - (next && SOLO.has(next.t) ? 0.5 : 0))); ch++; log.push(`مُدّ ${prev.t}@${fix(start(prev))} قليلاً`); continue; }
       if (prevOk && PANEL.has(prev.t) && g1 - endOf(prev) < 12) { setEnd(prev, g1 - 0.2); ch++; log.push(`مُدّ ${prev.t}@${fix(start(prev))} إلى ${fix(g1)}`); continue; }
-      if (next && PANEL.has(next.t) && g1 - g0 < 14) { const oldAt = start(next); next.at = fix(g0 + 0.2); if (next.t === "rows") next.from = next.at; ch++; log.push(`قُدِّم ${next.t}@${fix(oldAt)} إلى ${fix(g0)}`); continue; }
+      if (next && PANEL.has(next.t) && g1 - g0 < 14 && !(lsGap.length && g1 - g0 >= 1.6)) {   // لا تُقدَّم لوحة فتظهر فارغة قبل أول سطر: إن وُجد كلام في الفراغ توضع لوحة حقيقية بدلاً منها
+      const oldAt = start(next); next.at = fix(g0 + 0.2); if (next.t === "rows") next.from = next.at; ch++; log.push(`قُدِّم ${next.t}@${fix(oldAt)} إلى ${fix(g0)}`); continue; }
       const ls = lsGap;   // لوحة جديدة بأسطر قيلت قبل نهاية الفراغ
       if (ls.length && g1 - g0 >= 1.6) { const at = fix(g0 + 0.2), rs = ls.map((l) => ({ text: l.text, at: fix(Math.max(at + 0.1, l.s)) })); sp.items.push({ at, until: fix(next ? g1 - 0.2 : g1), t: "pick", el: ls.length > 1 ? "FlapBoard" : "InkQuote", ...(ls.length > 1 ? { rows: rs } : { lines: rs }) }); ch++; log.push(`لوحة جديدة ${fix(g0)}–${fix(g1)}`); continue; }
       if (!prev && g1 - g0 >= 3.3) { const sv = items().filter((x) => SOLO.has(x.t) && start(x) > g1).sort((a, b) => (a.t === "nameTag" ? 0 : 1) - (b.t === "nameTag" ? 0 : 1))[0]; if (sv) { sv.at = fix(g0 + 0.1); sv.dur = fix(Math.min(4.5, g1 - g0 - 0.2)); ch++; log.push(`نُقلت ${sv.t} إلى الفراغ الأول`); continue; } }

@@ -140,7 +140,7 @@ export const PaperMap: React.FC<{
 }> = ({ at, until, x, y, w, h, center, spanLat, highlight = ["SYR"], highlightAt, geo, pts = [], legs = [], carSrc = "collage/car.png", carW = 140, atlas = false }) => {
   const { t, k } = useStop();
   if (t < at || t > until) return null;
-  const pop = clamp((t - at) / 0.35), out = clamp((until - t) / 0.3);
+  const pop = clamp((t - at) / 0.35);
   const [clon, clat] = center, cosl = Math.cos((clat * Math.PI) / 180), pxPerLat = h / spanLat;
   const P = (lon: number, lat: number): [number, number] => [w / 2 + (lon - clon) * cosl * pxPerLat, h / 2 - (lat - clat) * pxPerLat];
   const path = (poly: number[][][]) => poly.map((ring) => "M" + ring.map(([lo, la]) => P(lo, la).map((v) => v.toFixed(1)).join(",")).join("L") + "Z").join("");
@@ -152,7 +152,7 @@ export const PaperMap: React.FC<{
     return { l, e, px: u * u * x1 + 2 * u * e * mx + e * e * x2, py: u * u * y1 + 2 * u * e * my + e * e * y2, dx: x2 - x1, x1, y1, x2, y2, mx, my };
   });
   return (
-    <div style={{ ...paperCard(x, y, w, h, pop, -2.5), opacity: out * Math.min(1, pop * 2.5) }}>
+    <div style={{ ...paperCard(x, y, w, h, pop, -2.5), opacity: Math.min(1, pop * 2.5) /* (user 2026-11-17, 4:42 of «اعتقالات الدعاة»: a dissolving map over his cut-out = double image) hard exit, no opacity transition */ }}>
       <Grain />
       <svg width={w} height={h} style={{ position: "absolute", left: 0, top: 0 }}>
         <defs>

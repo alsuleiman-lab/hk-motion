@@ -51,7 +51,7 @@ export const NewsClip: React.FC<{ at: number; until?: number; x: number; y: numb
     <div style={{ position: "absolute", left: x, top: y, width: w, height: H, filter: shadow, ...s }}>
       <div style={{ position: "absolute", inset: 0, background: BRAND.card, clipPath: tornClip(w, H, "nc" + src, 8), direction: "rtl" }}>
         {headline ? <div style={{ position: "absolute", left: 44, right: 44, top: 32, fontFamily: kufiF, fontSize: 34, color: BRAND.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", borderBottom: `3px double ${BRAND.ink}`, paddingBottom: 8 }}>{headline}</div> : null}
-        <div style={{ position: "absolute", left: 40, right: 40, top: head + 14, height: h - 14, overflow: "hidden" }}><Pic src={src} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(.25) contrast(1.05)" }} /></div>
+        <div style={{ position: "absolute", left: 40, right: 40, top: head + 14, height: h - 14, overflow: "hidden" }}><Pic src={src} style={{ width: "100%", height: "100%", objectFit: "contain", filter: "grayscale(.25) contrast(1.05)" }} />   {/* (user 2026-11-17, frame 4545: «صور الأخبار يجب أن تظهر صفحة كاملة») the whole page, never cropped */}</div>
         <div style={{ position: "absolute", left: 44, right: 44, bottom: 22, fontFamily: "Almarai", fontWeight: 800, fontSize: 20, color: BRAND.gray }}>المصدر: {source}</div>
       </div>
       <Tape x={-30} y={-6} rot={-28} /><Tape x={w - 90} y={H - 30} rot={-24} />

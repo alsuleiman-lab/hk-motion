@@ -1591,6 +1591,21 @@
   "orient": "both"
  },
  {
+  "id": "PrisonBars",
+  "ar": "بوابة السجن",
+  "kit": "PickKit2",
+  "group": "الأشخاص",
+  "where": "حين يذكر أشخاصاً سُجنوا أو اعتُقلوا: صورة كل واحد بإطار واسمه عند ذكره، ثم عند «كلهم معتقلون» تنزل قضبان السجن عليهم مع صوت إغلاق. (جديد 2026-11-17 بأمر المستخدم في حلقة الأردن)",
+  "note": "في ملف المونتاج: { t: \"pick\", el: \"PrisonBars\", at, until, people: [{ src, name, at }], closeAt, cols? } + صوت ارتطام معدني عند closeAt (sfx).",
+  "section": "image",
+  "mode": "full",
+  "slot": {
+   "land": "frame",
+   "port": "frame"
+  },
+  "orient": "both"
+ },
+ {
   "id": "SectionsRail",
   "ar": "خط الأقسام",
   "kit": "PickKit2",

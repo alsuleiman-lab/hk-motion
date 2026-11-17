@@ -61,6 +61,8 @@ export function resolveGalleryRef<S extends { items: unknown[] }>(spec: S, geo: 
       it.w = W; it.h = H;
       if (!land.panel) { const lw = (land.w as number | undefined) ?? (it.t === "pic" ? 600 : 300), lh = (land.h as number | undefined) ?? (it.t === "pic" ? 400 : 370), [LW, LH] = fitPicture(it, lw, lh, ratio); land.w = LW; land.h = LH; }
     }
+    /* (user 2026-11-17, frame 4545: «صور الأخبار يجب أن تظهر صفحة كاملة») a news page keeps its own proportions: the engine sizes it from it.h/it.w */
+    if (ratio && it.t === "news") { const pw = (it.w as number | undefined) ?? 700; it.w = pw; it.h = Math.round(pw * ratio); }
     it.land = land;
     // fitted into its slot of this video, away from his face (the fitting the grid used to write as numbers, now done here from the gallery's size)
     const slot = (it0.slot ?? {}) as { port?: string; land?: string }, sp = spanOf(it);

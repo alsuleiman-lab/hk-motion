@@ -176,6 +176,32 @@ export const BottomShade: React.FC<{ at: number; until: number }> = ({ at, until
   const t = useT(0), c = (x: number) => Math.max(0, Math.min(1, x)), e = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2), k = e(Math.min(c((t - at) / 0.5), c((until - t) / 0.4)));
   return <div style={{ position: "absolute", left: 0, top: 900, width: 1080, height: 1020, pointerEvents: "none", visibility: k > 0 ? "visible" : "hidden", clipPath: `inset(${(1 - k) * 100}% 0 0 0)`, background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.6) 35%, rgba(0,0,0,.82) 100%)" }} />;
 };
+/** 37 · بوابة السجن (user order in «اعتقالات الدعاة في الأردن», 2026-11-17: «كل ما أذكر شخص تحط صورته… بعدين لما أقول كلهم معتقلون تسكر عليهم
+ *  بوابة السجن مع صوت إغلاق… خطوط السجن، موشن جرافيك احترافي»): every named person's photo in a white frame with his name pops in WHEN he is named,
+ *  the cards fill a grid; at `closeAt` iron bars slam down over all of them (a jolt on impact), then stay. Sound: spec sfx at closeAt (a metal slam). */
+export const PrisonBars: React.FC<Base & { people: { src: string; name: string; at: number }[]; closeAt: number; cols?: number }> = ({ at, until, x, y, people, closeAt, cols = 4 }) => {
+  const { t, k } = useK(); const n0 = people.length, cw = n0 <= 2 ? 330 : n0 <= 3 ? 260 : 180, ch = Math.round(cw * 1.22), gap = 22, n = n0;   /* few people = bigger cards (user 2026-11-17: two pictures under him in portrait) */
+  const rows = Math.ceil(n / cols), W = cols * cw + (cols - 1) * gap, H = rows * (ch + 56) + (rows - 1) * gap;
+  const drop = clamp((t - closeAt) / 0.45), fall = drop < 1 ? drop * drop : 1, jolt = t > closeAt + 0.45 && t < closeAt + 0.75 ? Math.sin((t - closeAt - 0.45) * 60) * 6 * (1 - (t - closeAt - 0.45) / 0.3) : 0;
+  const tilt = (i: number) => ((i * 37) % 7) - 3;
+  return (
+    <div style={abs({ left: x, top: y, width: W + 60, height: H + 60, transform: `translateY(${jolt}px)` })}>
+      {people.map((p, i) => { const kk = k(p.at, 0.35, until), r = Math.floor(i / cols), c = i % cols;
+        const left = 30 + c * (cw + gap) + (r === rows - 1 && n % cols ? ((cols - (n % cols)) * (cw + gap)) / 2 : 0), top = 30 + r * (ch + 56 + gap);
+        return <div key={i} style={abs({ left, top, width: cw, visibility: kk > 0 ? "visible" : "hidden", transform: `rotate(${tilt(i)}deg) scale(${0.3 + 0.7 * ease(kk)})` })}>
+          <div style={{ width: cw, height: ch, background: "#fff", padding: 8, boxSizing: "border-box", boxShadow: "0 14px 34px rgba(0,0,0,.55)" }}><Pic src={p.src} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 20%" }} /></div>
+          <div style={{ marginTop: 8, padding: "6px 8px", background: BRAND.navy, color: BRAND.card, fontFamily: kufiF, fontSize: 24, lineHeight: 1.25, textAlign: "center", borderRadius: 6 }}>{p.name}</div>
+        </div>; })}
+      {t >= closeAt && t < until ? <div style={abs({ left: 0, top: 0, width: W + 60, height: H + 60, overflow: "hidden" })}>
+        <div style={abs({ left: 0, top: -(H + 60) * (1 - fall), width: W + 60, height: H + 60 })}>
+          {Array.from({ length: Math.round((W + 60) / 64) + 1 }).map((_, b) => <div key={b} style={abs({ left: 10 + b * 64, top: 0, width: 18, height: H + 60, borderRadius: 9, background: "linear-gradient(90deg, #2a2d31, #9aa2aa 45%, #3a3e43 70%, #1c1e21)", boxShadow: "4px 0 10px rgba(0,0,0,.6)" })} />)}
+          {[0.18, 0.82].map((f, j) => <div key={j} style={abs({ left: 0, top: (H + 60) * f - 14, width: W + 60, height: 28, borderRadius: 6, background: "linear-gradient(180deg, #2a2d31, #9aa2aa 45%, #3a3e43 70%, #1c1e21)", boxShadow: "0 6px 12px rgba(0,0,0,.6)" })} />)}
+        </div>
+      </div> : null}
+    </div>
+  );
+};
+
 /** 36 · خط الأقسام (user 2026-11-17: «على اليمين خط طولي وفيه نقاط والأقسام عندها وخلفه ظل أسود متدرج»; in the first seconds of the video):
  *  a black gradient shade slides in from the right edge, a vertical rail draws down near the right edge, a dot lands on it for every section and the
  *  section's title appears beside its dot (right-aligned, all titles one fitted font). `current` (optional) lights one section. Whole frame, both orientations. */
@@ -212,14 +238,15 @@ export const SectionsRail: React.FC<{ at: number; until: number; sections: { tit
   );
 };
 
-export const PICK_KIT2 = { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, FillGlasses, SectionsRail } as const;
+export const PICK_KIT2 = { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, FillGlasses, SectionsRail, PrisonBars } as const;
 /** every picked element (PickKit + PickKit2) by spec name */
 /** the gallery's own x,y of every picked element (src/ElementsLab.tsx): used when a spec item gives none, so a spec never invents a place (user 2026-11-14: «لابد أن تنتبه إلى أماكن العناصر»). StickyNotes carry their own per-note x,y. */
-export const PICK_XY: Record<string, [number, number]> = { MinuteTeaser: [150, 150], NoProof: [100, 200], FlapBoard: [80, 260], BigQuestion: [90, 150], NeverMeet: [110, 260], ThoughtBubble: [90, 170], RootsTree: [110, 120], Iceberg: [110, 130], Crossroads: [110, 150], MythFact: [90, 300], InkQuote: [90, 380], ChatThread: [110, 250], MindMap: [560, 560], RingStat: [560, 470], QACard: [160, 300], ViciousCycle: [560, 520], FillGlasses: [110, 220], DecisionFlow: [80, 150], Footnote: [90, 230], ClaimWall: [110, 300], CopiedMessages: [110, 150], WordCloud: [560, 480], CommentsFlood: [110, 150] };
+export const PICK_XY: Record<string, [number, number]> = { PrisonBars: [60, 120], MinuteTeaser: [150, 150], NoProof: [100, 200], FlapBoard: [80, 260], BigQuestion: [90, 150], NeverMeet: [110, 260], ThoughtBubble: [90, 170], RootsTree: [110, 120], Iceberg: [110, 130], Crossroads: [110, 150], MythFact: [90, 300], InkQuote: [90, 380], ChatThread: [110, 250], MindMap: [560, 560], RingStat: [560, 470], QACard: [160, 300], ViciousCycle: [560, 520], FillGlasses: [110, 220], DecisionFlow: [80, 150], Footnote: [90, 230], ClaimWall: [110, 300], CopiedMessages: [110, 150], WordCloud: [560, 480], CommentsFlood: [110, 150] };
 /** PORTRAIT place of a picked element (user 2026-11-16, marked screenshot: the elements in the band 1400–1880 under the caption, never on his beard):
  *  the element is drawn in its landscape 1920×1080 board; PICK_PORT_BOX = the part of that board it really uses [top, height] (estimated from its layout),
  *  and the board is scaled (≤ 0.95) and placed so that part fills the band, centred (the board's content column is centred on x ≈ 590). */
 export const PICK_PORT_BOX: Record<string, [number, number]> = {
+  PrisonBars: [120, 620],
   BigQuestion: [170, 200], NeverMeet: [250, 550], RingStat: [220, 630], ClaimWall: [300, 700], Crossroads: [150, 800], MythFact: [270, 440], DecisionFlow: [150, 780],
   MindMap: [180, 670], ViciousCycle: [180, 680], WordCloud: [200, 560], InkQuote: [380, 400], MinuteTeaser: [150, 600], NoProof: [200, 600],
   FlapBoard: [260, 420], ThoughtBubble: [170, 600], RootsTree: [120, 800], Iceberg: [130, 800], ChatThread: [250, 560], QACard: [300, 480], FillGlasses: [220, 620],

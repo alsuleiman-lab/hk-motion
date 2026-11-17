@@ -28,7 +28,7 @@ import { TRANSITIONS, TransitionScene } from "./TransitionsLab";
 import { Keycaps, Burst } from "./KhaamKit";
 import { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle, Footnote, ClaimWall, NoProof, BrokenIsnad, GradeLadder, YearsGap, Lifespans, Crossroads, AlertFrame, NeverMeet, RisingTimeline, MinuteTeaser, PipSource, PIP, pipK } from "./PickKit";
 import { VerseNoor, VerseBigWord, HalfScene, BlendPanel, halfK } from "./VerseKit";
-import { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, FillGlasses, SectionsRail, railPortDrop, LeftShade, BottomShade, PICK_NOSPLIT, pickPortBoard } from "./PickKit2";
+import { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, FillGlasses, SectionsRail, PrisonBars, railPortDrop, LeftShade, BottomShade, PICK_NOSPLIT, pickPortBoard } from "./PickKit2";
 import { HadithQuote, HadithBooks, HadithIsnad } from "./HadithKit";
 
 import { BRAND, applyBrand } from "./brand";
@@ -188,6 +188,7 @@ const VERSE_SCENES: Record<string, (o: Orient) => React.ReactNode> = {
   CopiedMessages: (o) => <PickScene o={o} el="CopiedMessages"><CopiedMessages at={0.1} until={2.95} x={110} y={150} text="يا شيخ نريد حلقة عن هذا الموضوع" tag="طلب" count={1200} label="طلب حلقة (مثال)" /></PickScene>,
   Iceberg: (o) => <PickScene o={o} el="Iceberg"><Iceberg at={0.1} until={2.95} x={110} y={130} top={["التجديد"]} hidden={["إسقاط السنة", "هدم الإجماع", "تمييع العقيدة"]} revealAt={1.2} /></PickScene>,
   CommentsFlood: (o) => <PickScene o={o} el="CommentsFlood"><CommentsFlood at={0.1} until={2.95} x={150} y={110} comments={["جزاك الله خيراً يا شيخ", "هل هذا الكلام صحيح؟", "أريد الدليل من فضلك", "سمعت غير هذا", "ما حكم من فعل ذلك؟", "نريد حلقة عن هذا"]} /></PickScene>,
+  PrisonBars: (o) => <PickScene o={o} el="PrisonBars"><PrisonBars at={0.1} until={2.95} x={60} y={120} people={[{ src: "jordan-arrests/nasr.jpg", name: "عصر النصر", at: 0.2 }, { src: "jordan-arrests/sahouri.jpg", name: "أحمد الساحوري", at: 0.45 }, { src: "jordan-arrests/otaibi.jpg", name: "إحسان العتيبي", at: 0.7 }, { src: "jordan-arrests/saqi.jpg", name: "غالب الساقي", at: 0.95 }, { src: "jordan-arrests/abutalha.jpg", name: "عمر أبو طلحة", at: 1.2 }]} closeAt={1.7} /></PickScene>,
   SectionsRail: (o) => <>{o === "land" ? <Rec /> : <RailDrop n={5} />}<SectionsRail at={0.1} until={2.95} sections={[{ title: "التدين الفردي" }, { title: "حديث طلحة: أفلح إن صدق" }, { title: "هل تكفي الأركان الخمسة؟" }, { title: "التجارة المنجية" }, { title: "الخلاصة" }]} W={o === "land" ? 1920 : 1080} H={o === "land" ? 1080 : 1920} /></>,
   BrushWipe: (o) => <>{o === "land" ? <Rec /> : <PortRec />}<BrushWipe at={0.4} until={2.95} title="المحور الجديد" W={o === "land" ? 1920 : 1080} H={o === "land" ? 1080 : 1920} /></>,
   RootsTree: (o) => <PickScene o={o} el="RootsTree"><RootsTree at={0.1} until={2.95} x={110} y={120} roots={["الكتاب", "السنة", "الإجماع"].map((text, i) => ({ text, at: 0.4 + i * 0.25 }))} branches={["الفقه", "الآداب", "الأخلاق"].map((text, i) => ({ text, at: 1.6 + i * 0.25 }))} /></PickScene>,

@@ -95,16 +95,20 @@ export const PhoneWin: React.FC<{ at: number; to: number; src: string; dur: numb
 
 /* ───────── the Sheikh FILLS the frame: isolated (alpha) during the hook, then his original room (same crop → seamless) ───────── */
 export type Cam = { from: number; to: number; cx: number };   // cx = x of his face in the 1920×1080 cut; the frame shows the 608×1080 slice around it
-export const SheikhLayers: React.FC<{ cut: string; cams: Cam[]; zooms?: { from: number; to: number; amt?: number }[]; originY?: number }> = ({ cut, cams, zooms = [], originY = 600 }) => {
+export const SheikhLayers: React.FC<{ cut: string; cams: Cam[]; zooms?: { from: number; to: number; amt?: number }[]; originY?: number; drops?: { from: number; to: number; dy?: number }[] }> = ({ cut, cams, zooms = [], originY = 600, drops = [] }) => {
   const t = useT(0);
   const cam = cams.find((c) => t >= c.from && t < c.to) ?? cams[cams.length - 1];
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 1.2);
   const z = zz ? 1 + (zz.amt ?? 0.08) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1;
+  /* (user 2026-11-17) room above his head (sections rail): the recording is LANDSCAPE, so the portrait crop ZOOMS OUT — bottom edge stays on the frame's
+     bottom, the top edge comes down by d, and more of the sides comes in from the recording (nothing of him is cut, no empty side) */
+  const dw = drops.find((q) => t >= q.from - 0.01 && t <= q.to + 0.4), kd = dw ? Math.min(clamp((t - dw.from) / 0.4), clamp((dw.to + 0.4 - t) / 0.4)) : 0, d = (dw?.dy ?? 0) * kd, s = (1920 - d) / 1920;
+  const W = 1920 * K * s, L0 = -(cam.cx - 304) * K, L = d > 0 ? Math.min(0, Math.max(1080 - W, 540 - (540 - L0) * s)) : L0;
   return (
     <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, transform: `scale(${z})`, transformOrigin: `540px ${originY}px` }}>
-      <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: hyBg(BRAND.ink) }}>
+      <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: d > 0 ? undefined : hyBg(BRAND.ink) }}>
         {/* hybrid: the picture snapped to whole pixels as the browser paints the <img> (left/right edges rounded in its layer; 2026-11-13: ½ px off before) */}
-        {HY ? <VSlot src={cut} w={1080} h={1920} vx={Math.round(-(cam.cx - 304) * K)} vy={0} vw={Math.round(-(cam.cx - 304) * K + 1920 * K) - Math.round(-(cam.cx - 304) * K)} vh={1920} grow={0} /> : <RV src={staticFile(cut)} style={{ position: "absolute", left: -(cam.cx - 304) * K, top: 0, width: 1920 * K, height: 1920 }} />}
+        {HY ? <VSlot src={cut} w={1080} h={1920} vx={Math.round(L)} vy={Math.round(d)} vw={Math.round(L + W) - Math.round(L)} vh={1920 - Math.round(d)} grow={0} /> : <RV src={staticFile(cut)} style={{ position: "absolute", left: L, top: d, width: W, height: 1920 - d }} />}
       </div>
     </div>
   );

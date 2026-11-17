@@ -171,7 +171,7 @@ export type MontageSpec = {
    *  graphics replace the clip; portrait = no entry needed (put his slice centre in `cams`) */
   solos?: { from: number; to: number; sheikh: { x: number; w: number }; scale?: number; align?: "right"; center?: { from: number; to: number }[] }[];
   /** portrait split screen (user 2026-10-29: «عند الشجرة والعناصر الكبيرة استخدم تقسيم الشاشة»): inside each window his video shrinks to the top (scale `s`, pinned at the top centre) and the lower part of the frame is a backdrop panel for the big element (`parchment` for the family tree) */
-  psplits?: { from: number; to: number; s?: number; top?: number; panel?: "warm" | "parchment"; dy?: number }[];   /* dy (2026-11-17): his video slides DOWN by dy px (the sections rail above his head), no panel */
+  psplits?: { from: number; to: number; s?: number; top?: number; panel?: "warm" | "parchment"; dy?: number }[];   /* dy (2026-11-17): room of dy px above his head (sections rail): SheikhLayers zooms the crop out, bottom pinned, sides from the recording; no panel */
   /** landscape split screen: his frame slides right by `dx` px between from and to (eased 0.4 s) so a left-hand panel (family tree) gets half the screen */
   shifts?: { from: number; to: number; dx: number; feather?: number }[];
   /** windows (cut seconds) where he is drawn over the full-screen pictures and the clip card (needs `matte`) */
@@ -475,8 +475,8 @@ const SoloLand: React.FC<{ cut: string; sp: NonNullable<MontageSpec["solos"]>[nu
 const PortSplit: React.FC<{ windows: NonNullable<MontageSpec["psplits"]>; children: React.ReactNode }> = ({ windows, children }) => {
   const t = useT(0);
   const w = windows.find((q) => t >= q.from - 0.01 && t <= q.to + 0.4);
-  const k = w ? Math.min(clamp((t - w.from) / 0.4), clamp((w.to + 0.4 - t) / 0.4)) : 0, sc = 1 + ((w?.s ?? 0.66) - 1) * k, dy = (w?.dy ?? 0) * k;
-  return <AbsoluteFill style={{ transform: `${dy ? `translateY(${dy}px) ` : ""}scale(${sc})`, transformOrigin: "50% 0%" }}>{children}</AbsoluteFill>;
+  const k = w && !w.dy ? Math.min(clamp((t - w.from) / 0.4), clamp((w.to + 0.4 - t) / 0.4)) : 0, sc = 1 + ((w?.s ?? 0.66) - 1) * k;   /* a dy window is drawn by SheikhLayers (zoom-out, bottom pinned), not here */
+  return <AbsoluteFill style={{ transform: `scale(${sc})`, transformOrigin: "50% 0%" }}>{children}</AbsoluteFill>;
 };
 /** the backdrop under the big element: from `top` down, the base (or parchment) and a rule line that slides in */
 const PortPanel: React.FC<{ windows: NonNullable<MontageSpec["psplits"]>; top?: number }> = ({ windows, top = 936 }) => {
@@ -794,7 +794,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutA
   const behindNodes = spec.items.map((it, i) => (behindIt(it) ? renderItem(it, i, o, bar) : null));
   const body = o === "land"
     ? (spec.cut ? <LandFootage cut={spec.cut} zooms={spec.zooms} splits={spec.splits} shifts={spec.shifts} behind={behindGaps.length ? behindNodes : undefined} gaps={behindGaps} pips={spec.items.filter((x) => x.t === "pick" && x.el === "PipSource" && x.only !== "port").map((x) => ({ at: (x as { at: number }).at, until: pickUntil(x as PickItem) }))} /> : null)
-    : (spec.cut ? <SheikhLayers cut={spec.cut} cams={spec.cams ?? [{ from: 0, to: 9999, cx: 990 }]} zooms={spec.zooms} /> : null);
+    : (spec.cut ? <SheikhLayers cut={spec.cut} cams={spec.cams ?? [{ from: 0, to: 9999, cx: 990 }]} zooms={spec.zooms} drops={(spec.psplits ?? []).filter((w) => w.dy)} /> : null);
   return (
     <HybridHost>
     <AbsoluteFill style={{ background: hyBg(BRAND.base) }}>

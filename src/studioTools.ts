@@ -391,6 +391,7 @@ const installMarks = () => {
     for (const f of marks) {
       const row = document.createElement("div");
       row.style.cssText = "display:flex;gap:3px;flex:0 0 auto";
+      if (box.style.flexDirection === "row") row.style.width = "76px";
       const go = document.createElement("button");
       go.type = "button"; go.textContent = String(f); go.title = `ارجع إلى الإطار ${f} — كليك يمين للحذف`;
       go.style.cssText = "flex:1;height:26px;border:1px solid rgba(255,255,255,.3);border-radius:7px;background:rgba(22,54,92,.96);color:#fff;font:600 13px Tahoma,Arial,sans-serif;font-variant-numeric:tabular-nums;cursor:pointer";
@@ -421,11 +422,22 @@ const installMarks = () => {
       const ar = area.getBoundingClientRect();
       if (ar.width < 140) { if (box.style.display !== "none") box.style.display = "none"; return; }
       render();
-      /* the two-screens preview (src/MontageBoth.tsx) draws a black column for this box: sit on it, as wide as it is */
+      /* the two-screens preview (src/MontageBoth.tsx) draws a black STRIP across its top for this box (user 2026-11-17: the selection on top, the screens under it):
+         sit on it, the button first and the saved frames in one row beside it; a tall narrow panel (older layout) keeps the column form */
       const col = document.getElementById("__both_col")?.getBoundingClientRect();
-      const onCol = !!col && col.width > 40;
+      const onCol = !!col && col.width > 40 && col.height > 20;
+      const horiz = onCol && col!.width > col!.height * 2;
       const l = onCol ? Math.round(col!.left + 4) : Math.round(ar.left + 8), t = onCol ? Math.round(col!.top + 4) : Math.round(ar.top + 8);
-      const bw = onCol ? `${Math.min(150, Math.round(col!.width - 8))}px` : "100px";
+      const bw = horiz ? `${Math.max(60, Math.round(col!.width - 8))}px` : onCol ? `${Math.min(150, Math.round(col!.width - 8))}px` : "100px";
+      const bh = horiz ? `${Math.max(16, Math.round(col!.height - 8))}px` : "";
+      const dir = horiz ? "row" : "column";
+      if (box.style.flexDirection !== dir) {
+        box.style.flexDirection = dir; box.style.alignItems = horiz ? "center" : ""; box.style.maxHeight = horiz ? "none" : "320px";
+        list.style.flexDirection = dir; list.style.overflowY = horiz ? "hidden" : "auto"; list.style.overflowX = horiz ? "auto" : "hidden"; list.style.flex = horiz ? "1 1 0" : ""; list.style.minWidth = "0";
+        addBtn.style.width = horiz ? "84px" : ""; addBtn.style.height = horiz ? "100%" : "30px";
+        for (const r of Array.from(list.children) as HTMLElement[]) r.style.width = horiz ? "76px" : "";
+      }
+      if (box.style.height !== bh) box.style.height = bh;
       if (box.style.width !== bw) box.style.width = bw;
       if (box.style.display !== "flex") box.style.display = "flex";
       if (box.style.left !== `${l}px`) box.style.left = `${l}px`;

@@ -1,7 +1,8 @@
 // ONE COMMAND FOR THE GALLERY'S ELEMENTS (user 2026-11-17: «كل أداة لها اسم أو كود… البرنامج لما بده يضيف أداة يختار الأداة ويعدل النصوص القابلة للتعديل فيها فقط…
 // يستهلك توكنز أقل ويشتغل بسرعة أعلى»). The agent never reads the kits or copies sizes/places: it names the element by its gallery code and gives its content.
 //   node tools/el.mjs list [word]                     every element: code · Arabic name · its editable fields (one line each; a word filters)
-//   node tools/el.mjs show <code>                     one element: when to use it, its fields (required ones marked), orientations, an example
+//   node tools/el.mjs show <code|اسمه>                one element: when to use it, its fields (required ones marked), orientations, an example
+//   node tools/el.mjs names                           every element has ONE Arabic name, no two alike (exit 1 otherwise) — the name the Studio writes under the screen
 //   node tools/el.mjs add <p> <code> at=12.3 [until=15] field=value …   append it to data/specs/<p>.json — content and timing ONLY
 //   node tools/el.mjs items <p> [from-to]             the spec's elements, numbered (seconds), one line each
 //   node tools/el.mjs set <p> <n> field=value …       change content/timing of element n (size/place cannot be set: they are the gallery's)
@@ -40,12 +41,15 @@ const catalog = () => {
     const s = read(f), names = (s.match(/export const PICK_KIT2? = \{([^}]*)\}/)?.[1] ?? "").split(",").map((x) => x.trim()).filter(Boolean);
     for (const n of names) { const m = s.match(new RegExp(`export const ${n}: React\\.FC<Base & \\{`)); if (!m) continue; const i = s.indexOf("{", m.index + m[0].length - 1); els[n] = { code: n, t: "pick", el: n, fields: [{ name: "at", opt: false, type: "number" }, { name: "until", opt: false, type: "number" }, ...fieldsOf(braceBody(s, i))], lab: lab[n] }; }
   }
-  for (const t of approved) if (specFields[t] && !Object.values(els).some((e) => e.t === t)) els[t] = { code: t, t, fields: specFields[t] };
+  const X = JSON.parse(read("data/element_names.json"));   // names of the elements with no gallery card, and types named after another gallery element
+  for (const t of approved) if (specFields[t] && !Object.values(els).some((e) => e.t === t)) { const code = X.codeOf?.[t] ?? t; els[code] = { code, t, fields: specFields[t], lab: lab[code] ?? (X.names?.[t] ? { ar: X.names[t] } : undefined) }; }
   for (const e of Object.values(els)) e.edit = e.fields.filter((f) => !NOT_CONTENT.has(f.name));
   return els;
 };
 const short = (e) => e.edit.map((f) => (TIMING.has(f.name) ? null : `${f.name}${f.opt ? "?" : ""}`)).filter(Boolean).join(" ");
 const ar = (e) => e.lab?.ar ?? "";
+/** an element by its code OR its Arabic name (the name written under the screen in the Studio, user 2026-11-17); a unique part of the name is enough */
+const find = (els, q) => { if (!q) return null; if (els[q]) return els[q]; const all = Object.values(els); const exact = all.find((e) => ar(e) === q); if (exact) return exact; const part = all.filter((e) => ar(e).includes(q)); return part.length === 1 ? part[0] : null; };
 
 // ── values and pictures
 const parseVal = (v) => { if (/^-?\d+(\.\d+)?$/.test(v)) return Number(v); if (/^[[{]/.test(v.trim())) { try { return JSON.parse(v); } catch { /* text */ } } if (v === "true" || v === "false") return v === "true"; return v; };
@@ -63,14 +67,21 @@ if (cmd === "list") {
   const els = Object.values(catalog()), q = args[0];
   for (const e of els.filter((x) => !q || `${x.code} ${ar(x)} ${x.lab?.group ?? ""}`.includes(q))) console.log(`${e.code} · ${ar(e) || "—"} · ${short(e) || "(التوقيت فقط)"}`);
 } else if (cmd === "show") {
-  const e = catalog()[args[0]]; if (!e) { console.error(`✘ لا عنصر بهذا الاسم: ${args[0]} (node tools/el.mjs list)`); process.exit(2); }
+  const e = find(catalog(), args[0]); if (!e) { console.error(`✘ لا عنصر بهذا الاسم: ${args[0]} (node tools/el.mjs list)`); process.exit(2); }
   console.log(`${e.code} · ${ar(e)}${e.lab?.group ? ` · ${e.lab.group}` : ""}${e.lab?.orient ? ` · الاتجاه: ${e.lab.orient === "both" ? "الاثنان" : e.lab.orient}` : ""}`);
   if (e.lab?.where) console.log(`متى: ${e.lab.where}`);
   for (const f of e.edit) console.log(`  ${f.name}${f.opt ? "" : " (إلزامي)"}: ${f.type}`);
   const ex = e.edit.filter((f) => !f.opt && !TIMING.has(f.name)).map((f) => `${f.name}=${/\[\]|\{/.test(f.type) ? "'[…]'" : /^number$/.test(f.type) ? "1" : '"…"'}`).join(" ");
   console.log(`مثال: node tools/el.mjs add <المشروع> ${e.code} at=12.3 until=16 ${ex}`);
+} else if (cmd === "names") {
+  const els = Object.values(catalog()), by = new Map();
+  for (const e of els) { const n = ar(e); if (n) by.set(n, [...(by.get(n) ?? []), e.code]); }
+  const none = els.filter((e) => !ar(e)).map((e) => e.code), dup = [...by].filter(([, c]) => c.length > 1);
+  if (none.length) console.log(`✘ بلا اسم: ${none.join("، ")} → أضفه في data/element_names.json`);
+  for (const [n, c] of dup) console.log(`✘ الاسم «${n}» لأكثر من عنصر: ${c.join("، ")}`);
+  console.log(none.length || dup.length ? "✘ el names" : `✔ el names: ${els.length} عنصراً لكل واحد اسم لا يتكرر`); process.exit(none.length || dup.length ? 1 : 0);
 } else if (cmd === "add") {
-  const [p, code, ...rest] = args, f = specPath(p), e = catalog()[code];
+  const [p, code, ...rest] = args, f = specPath(p), e = find(catalog(), code);
   if (!e) { console.error(`✘ لا عنصر بهذا الاسم: ${code} (node tools/el.mjs list)`); process.exit(2); }
   const vals = kv(rest), names = new Set(e.fields.map((x) => x.name));
   const bad = Object.keys(vals).filter((k) => NOT_CONTENT.has(k) || !names.has(k));

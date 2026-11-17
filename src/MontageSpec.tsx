@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { galleryPlace } from "./galleryPlace";
 import { resolveGalleryRef } from "./galleryRef";
+import { usePublishOnScreen } from "./elementNames";
 import type { GalleryGeo, Grids } from "./galleryRef";
 import galleryGeo from "../data/gallery_geo.json";
 import layoutGrids from "../data/layout_grids.json";
@@ -765,6 +766,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutA
   const { width, height } = useVideoConfig();
   const o: Orient = width > height ? "land" : "port";
   const spec = o === "port" ? withPortZones(spec0) : spec0;
+  usePublishOnScreen(spec.items, o, f / 30, (spec.showTitleBar ?? spec.kind !== "reel") ? ["TitleBar"] : []);   // Studio only: the names of the elements on screen now, written under the screen (src/studioTools.ts)
   /* (2026-11-12) the GPU renderer (HYL) draws every element: solos (SoloLand), phone (PhoneWin), mini (MiniMe), treefx, psplits. Only the hybrid
      fallback (hybrid_any, no extra layers) still refuses the ones it cannot draw */
   if (HY && !HYL && ((o === "port" && spec.items.some((x) => x.t === "phone")) || (o === "land" && spec.psplits?.length) || spec.solos?.length || spec.items.some((x) => x.t === "mini" || x.t === "treefx"))) throw new Error(`المسار الهجين لا يدعم هذا المونتاج (${spec.id}): طولي أو solos/psplits/mini/treefx — استعمل المحرّك الجديد tools/gpu_render.mjs`);

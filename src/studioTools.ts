@@ -436,6 +436,39 @@ const installMarks = () => {
   tick();
 };
 /**
+ * ELEMENT NAMES UNDER THE SCREEN (user 2026-11-17: «اجعل كل عنصر في المعرض له اسم، وهذا الاسم يظهر في ريموشن تحت الشاشة… عشان لما اطلب تعديله اعرف ايش اطلب»).
+ * The montage engine publishes the Arabic names of the elements on screen at the current frame (window.__elNow, src/elementNames.ts); this writes them in a strip
+ * under each screen: under the portrait and the landscape screens of a «-Both» composition, under the canvas otherwise. Studio-only, never breaks the Studio.
+ */
+const installElementNames = () => {
+  const w = window as unknown as { __elNames?: { timer?: number; boxes?: HTMLElement[] }; __elNow?: Partial<Record<"port" | "land", string[]>> };
+  if (w.__elNames?.timer) window.clearInterval(w.__elNames.timer);
+  w.__elNames?.boxes?.forEach((b) => b.remove());
+  const mk = () => { const b = document.createElement("div"); b.style.cssText = "position:fixed;z-index:2147482900;display:none;box-sizing:border-box;padding:3px 8px;direction:rtl;text-align:center;font:600 12px Tahoma,Arial,sans-serif;color:#fff;background:rgba(12,16,24,.88);border:1px solid rgba(255,255,255,.18);border-radius:6px;pointer-events:auto;user-select:text;white-space:normal;line-height:1.5"; document.body.appendChild(b); return b; };
+  const boxes = [mk(), mk()]; w.__elNames = { boxes };
+  const text = (names?: string[]) => { if (!names?.length) return "لا عنصر من المعرض الآن"; const c = new Map<string, number>(); for (const n of names) c.set(n, (c.get(n) ?? 0) + 1); return "مستخدم: " + [...c].map(([n, k]) => (k > 1 ? n + " ×" + k : n)).join(" · "); };
+  const put = (b: HTMLElement, r: DOMRect | null, s: string, below: boolean) => {
+    if (!r || r.width < 40) { if (b.style.display !== "none") b.style.display = "none"; return; }
+    const top = below ? Math.min(window.innerHeight - 24, Math.round(r.bottom + 4)) : Math.round(r.bottom - 26);
+    b.style.left = Math.round(r.left) + "px"; b.style.width = Math.round(r.width) + "px"; b.style.top = top + "px";
+    if (b.textContent !== s) b.textContent = s; if (b.style.display !== "block") b.style.display = "block";
+  };
+  const tick = () => {
+    try {
+      const now = w.__elNow ?? {}, P = document.getElementById("__both_port"), L = document.getElementById("__both_land");
+      if (P && L) { put(boxes[0], P.getBoundingClientRect(), text(now.port), true); put(boxes[1], L.getBoundingClientRect(), text(now.land), true); return; }
+      const o = now.land ? "land" : now.port ? "port" : null;
+      const cont = document.querySelector<HTMLElement>(".remotion-studio-composition-container");
+      if (!o || !cont) { boxes.forEach((b) => { if (b.style.display !== "none") b.style.display = "none"; }); return; }
+      const cr = cont.getBoundingClientRect(), ar = cont.parentElement?.getBoundingClientRect();
+      put(boxes[0], cr, text(now[o]), !!ar && cr.bottom + 30 <= ar.bottom);   // under the frame when the viewer has room, else over its lower edge
+      if (boxes[1].style.display !== "none") boxes[1].style.display = "none";
+    } catch { /* never break the Studio */ }
+  };
+  w.__elNames.timer = window.setInterval(tick, 250);
+  tick();
+};
+/**
  * Deep link (user 2026-11-09): /<CompId>?<frame> jumps to that frame, /<CompId>?<m>.<ss> to minute m, second ss (e.g. ?1.10 = 1:10). Studio-only; retries until the composition
  * is loaded (the frame counter exists), seeks, and stops once the jump took effect. Never breaks the Studio.
  */
@@ -639,5 +672,5 @@ const installFilterPanel = () => {
 };
 
 try {
-  if (typeof window !== "undefined" && typeof document !== "undefined" && getRemotionEnvironment().isStudio) { install(); installTitles(); installMobile(); installMarks(); installDeepLink(); installFilterPanel(); }
+  if (typeof window !== "undefined" && typeof document !== "undefined" && getRemotionEnvironment().isStudio) { install(); installTitles(); installMobile(); installMarks(); installElementNames(); installDeepLink(); installFilterPanel(); }
 } catch { /* ignore */ }

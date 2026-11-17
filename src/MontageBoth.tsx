@@ -37,10 +37,10 @@ export const MontageBoth: React.FC<{ spec: MontageSpec }> = ({ spec }) => {
     <AbsoluteFill ref={hostRef}>
       <div id="__both_col" style={{ position: "absolute", left: 0, top: (BOTH.H - BOTH.H * c) / 2 + M * c, width: Math.max(0, res - GAP * c), height: PH * c, background: "#000", boxShadow: "0 0 0 3px rgba(255,255,255,.35)" }} />
       <div style={{ position: "absolute", left: res, top: (BOTH.H - BOTH.H * c) / 2, width: BOTH.W, height: BOTH.H, transform: `scale(${c})`, transformOrigin: "0 0" }}>
-      <div style={screen(M)}>
+      <div id="__both_port" style={screen(M)}>
         <Sequence layout="none" width={PW} height={PH} showInTimeline={false}><MontageFromSpec spec={spec} muted /></Sequence>
       </div>
-      <div style={screen(M + PW + GAP)}>
+      <div id="__both_land" style={screen(M + PW + GAP)}>
         <div style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080, transform: `scale(${PH / 1080})`, transformOrigin: "0 0" }}>
           <Sequence layout="none" width={1920} height={1080} showInTimeline={false}><MontageFromSpec spec={spec} /></Sequence>
         </div>

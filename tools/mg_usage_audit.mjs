@@ -58,7 +58,9 @@ if (file.endsWith(".json")) {
 } else walk(file);
 const all = texts.join("\n"), counts = {};
 for (const [kind, names] of Object.entries(KIT)) counts[kind] = names.reduce((n, nm) => n + (all.match(new RegExp(`<${nm}[\\s>/]`, "g")) ?? []).length, 0);
-const used = Object.entries(counts).filter(([, n]) => n > 0), need = Math.min(9, Math.max(4, Math.ceil(minutes * 0.8)));
+let need = Math.min(9, Math.max(4, Math.ceil(minutes * 0.8))); let kindsWaiver = "";
+if (file.endsWith(".json")) { try { const w = JSON.parse(fs.readFileSync(file, "utf8")).kindsWaiver; if (w?.userConfirmed === true && w.need >= 4 && w.need < need && w.why) { kindsWaiver = ` (استثناء بنص المستخدم: ${w.need} بدل ${need} — ${w.why})`; need = w.need; } } catch { /* no waiver */ } }   /* استثناء بنص المستخدم لهذا المقطع وحده: spec.kindsWaiver {need, why, userConfirmed:true} */
+const used = Object.entries(counts).filter(([, n]) => n > 0);
 console.log(`ملفات مفحوصة: ${seen.size} | المدة المفترضة: ${minutes} د | المطلوب: ${need} أنواع مختلفة على الأقل من القطع\n`);
 for (const [k, n] of Object.entries(counts)) console.log(`${n > 0 ? "✔" : "·"} ${k}: ${n}`);
 const EXEMPT = new Set(["عنصر منتقى (المعرض)", "بطاقة حديث", "عبارة مفتاحية", "ملاحظة ممزقة", "اشتراك", "بطاقة اسم", "صورة ممزقة", "كابشن قصاصات", "بطاقات بنود", "مشي المصدر", "بطاقة آية"]);   /* (2026-11-12) pictures («صور أولاً») and a card for every recited verse are ordered by the rules: no cap */   // «صورة ممزقة» = صورة كل شخص مذكور (إلزامي)؛ وأشكال الكتابة الثلاثة (ممزقة/قصاصات/بنود) لا تُحَدّ بـ3 بل يُحَدّ نصيب الملاحظة الممزقة منها (أدناه)   // content/periodic obligations, not decoration (user 2026-10-29: «أنت لا تكتب الكلمات المهمة»): no cap

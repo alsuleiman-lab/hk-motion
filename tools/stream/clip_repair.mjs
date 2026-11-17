@@ -55,8 +55,8 @@ for (const id of ids) {
   for (let round = 0; round < 8; round++) {
     let ch = 0;
     // 1) التداخل مع الكتابة: العنصر غير الكتابة يُقصَّر قبلها أو يُؤخَّر بعدها
-    for (const w of items().filter((i) => WRITE.has(i.t))) for (const o of items()) {
-      if (o === w || WRITE.has(o.t)) continue; const a = start(o), e = endOf(o); if (a == null) continue;
+    for (const w of items().filter((i) => WRITE.has(i.t) || i.t === "verse")) for (const o of items()) {   // بطاقة الآية ملء الشاشة كالكتابة: لا لوحة فوقها
+      if (o === w || WRITE.has(o.t) || o.t === "verse") continue; const a = start(o), e = endOf(o); if (a == null) continue;
       if (a < endOf(w) + 0.15 && e > start(w) - 0.15) {
         if (a < start(w) - 1.2 && (PANEL.has(o.t) || SOLO.has(o.t))) { setEnd(o, start(w) - 0.2); for (const key of ["rows", "lines", "msgs"]) if (Array.isArray(o[key])) o[key] = o[key].filter((r, ri) => ri === 0 || r.at < start(w) - 0.5); ch++; log.push(`قُصِّر ${o.t}@${fix(a)} قبل ${w.t}@${fix(start(w))}`); }
         else if (PANEL.has(o.t) && a >= start(w) - 1.2 && a < endOf(w) + 0.15) { const na = fix(endOf(w) + 0.2); if (na + 1.6 <= e) { o.at = na; if (o.t === "rows") o.from = na; for (const key of ["rows", "lines", "msgs"]) if (Array.isArray(o[key])) for (const r of o[key]) if (r.at < na + 0.1) r.at = fix(na + 0.1); ch++; log.push(`أُخِّر ${o.t} بعد ${w.t}`); } }
@@ -103,7 +103,7 @@ for (const id of ids) {
     const cand = items().filter((i) => i.t === "pick" && (i.rows ?? i.lines ?? i.msgs ?? []).length >= 2 && ["FlapBoard", "InkQuote"].includes(i.el)).sort((a, b) => (b.rows ?? b.lines ?? b.msgs).length - (a.rows ?? a.lines ?? a.msgs).length)[0];
     if (!cand || (items().filter((i) => i.t === "pick").length < 2 && kindsNow().has("rows"))) break;
     const rs = cand.rows ?? cand.lines ?? cand.msgs, a = start(cand), e = endOf(cand);
-    sp.items[sp.items.indexOf(cand)] = { t: "rows", from: a, to: fix(e), y0: 1492, step: 64, rowH: 58, rows: rs.slice(0, 3).map((r) => ({ at: r.at, label: r.text })) };   // بلا عنوان: العنوان يرفع الصندوق إلى لافتة فوق الوجه، وبدونه تبدأ الصفوف عند y0 داخل خانة الشريط
+    sp.items[sp.items.indexOf(cand)] = { t: "rows", from: a, to: fix(e), y0: 1560, step: 64, rowH: 58, rows: rs.slice(0, 2).map((r) => ({ at: r.at, label: r.text })) };   // بلا عنوان: العنوان يرفع الصندوق إلى لافتة فوق الوجه، وبدونه تبدأ الصفوف عند y0 داخل خانة الشريط
     log.push(`حُوِّلت لوحة @${fix(a)} إلى بطاقات بنود`);
   }
   // قصاصة أو ملاحظة تبدأ بكلمة نُطقت قبل ظهورها: تُحذف الكلمات المبكرة من أولها (الصيغة والعزل)

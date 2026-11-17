@@ -21,6 +21,16 @@ const sh = (cmd, args) => { const r = spawnSync(cmd, args, { encoding: "utf8", m
 fs.mkdirSync(T, { recursive: true }); fs.mkdirSync(path.join("public", id), { recursive: true });
 // 2) شريحة الصوت أو الفيديو من ملف البث
 const slice = (inF, outF, video) => {
+  if (pieces.length > 40) {   // مقطع طويل بقطع كثيرة (وصلات حذف السكتات): دخل واحد وفلتر واحد بدل ملف دخل لكل قطعة (ffmpeg لا يحتمل مئات المداخل)
+    const ss = Math.max(0, Math.min(...pieces.map((p) => p[0])) - 1), n = pieces.length, nfOf = ([pa, pb]) => Math.max(1, Math.round((pb - pa) * 30));
+    const vs = video ? `[0:v]split=${n}${pieces.map((_, i) => `[sv${i}]`).join("")};` : "", as = `[0:a]asplit=${n}${pieces.map((_, i) => `[sa${i}]`).join("")};`;
+    const body = pieces.map((p, i) => { const s0 = (p[0] - ss).toFixed(4), e0 = (p[1] - ss).toFixed(4), nf = nfOf(p);
+      return (video ? `[sv${i}]trim=start=${s0}:end=${e0},setpts=PTS-STARTPTS,fps=30,trim=end_frame=${nf},setpts=PTS-STARTPTS[v${i}];` : "") + `[sa${i}]atrim=start=${s0}:end=${e0},asetpts=PTS-STARTPTS,atrim=end=${(nf / 30).toFixed(5)},asetpts=PTS-STARTPTS[a${i}];`; }).join("");
+    const cat = pieces.map((_, i) => (video ? `[v${i}]` : "") + `[a${i}]`).join("") + `concat=n=${n}:v=${video ? 1 : 0}:a=1${video ? "[v]" : ""}[a]`;
+    const fcf = path.join(T, "slice_fc.txt"); fs.writeFileSync(fcf, vs + as + body + cat);
+    sh("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", "-threads", "4", "-ss", ss.toFixed(3), "-i", inF, "-/filter_complex", fcf, ...(video ? ["-map", "[v]", "-map", "[a]", "-c:v", "h264_nvenc", "-preset", "p7", "-rc", "vbr", "-cq", "19", "-b:v", "0", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-ar", "48000"] : ["-map", "[a]"]), outF]);
+    return;
+  }
   const ins = pieces.flatMap(([a, b]) => ["-ss", a.toFixed(3), "-t", (b - a).toFixed(3), "-i", inF]);
   const n = pieces.length, fc = video ? pieces.map(([pa, pb], i) => { const nf = Math.max(1, Math.floor((pb - pa) * 30 + 1e-6)); return `[${i}:v]setpts=PTS-STARTPTS,fps=30,trim=end_frame=${nf},setpts=PTS-STARTPTS[v${i}];[${i}:a]asetpts=PTS-STARTPTS,atrim=end=${(nf / 30).toFixed(5)},asetpts=PTS-STARTPTS[a${i}];`; }).join("")   /* كل قطعة فيديو وصوت بطول متساوٍ بالإطار: لا حشو صمت عند الوصلات (كان يضيف نحو 0.46 ث لمقطع من 54 وصلة فتظهر سكتات في الناتج لا في الصوت المنظَّف) */ + pieces.map((_, i) => `[v${i}][a${i}]`).join("") + `concat=n=${n}:v=1:a=1[v][a]`
     : pieces.map((_, i) => `[${i}:a]asetpts=PTS-STARTPTS[a${i}];`).join("") + pieces.map((_, i) => `[a${i}]`).join("") + `concat=n=${n}:v=0:a=1[a]`;

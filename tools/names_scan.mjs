@@ -90,7 +90,7 @@ if (rest.includes("--write")) {
     const center = [+((Math.min(...lons) + Math.max(...lons)) / 2).toFixed(1), +((Math.min(...lats) + Math.max(...lats)) / 2).toFixed(1)];
     const spanLat = +Math.min(60, Math.max(8, (Math.max(...lats) - Math.min(...lats)) * 1.8, (Math.max(...lons) - Math.min(...lons)) * 1.1)).toFixed(1);
     const atlas = codes.every((c) => ATLAS.has(c));
-    spec.items.push({ t: "pmap", from, to, x: 60, y: 1400, w: 960, h: 480, center, spanLat, landCenter: center, landSpan: spanLat, land: { x: 0, y: 0, w: 1920, h: 1080 },
+    spec.items.push({ t: "pmap", from, to, center, spanLat, landCenter: center, landSpan: spanLat,   /* size and place: the gallery's (galleryRef specs, user 2026-11-17) */
       highlight: codes, highlightAt: Object.fromEntries(codes.map((c) => [c, g.hits.find((h) => h.iso3 === c).at])), ...(atlas ? { atlas: true } : { geo: "world" }), pts, auto: "names_scan" });
     busy.push([from, to]); added++;
   }

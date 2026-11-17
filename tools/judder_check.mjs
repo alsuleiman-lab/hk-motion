@@ -58,6 +58,14 @@ if (rest.includes("--full")) {
 const crop = opt("crop", "660,280,1100,800").split(",").map(Number);      // region of the OUTPUT frame
 const srcCrop = opt("src-crop", "").split(",").filter(Boolean).map(Number);   // matching region of the SOURCE (when the output is a re-framed / cropped version, e.g. portrait)
 const avoid = opt("avoid", "").split(",").filter(Boolean).map((r) => r.split("-").map(Number));
+/* (2026-11-16 cut model) an element passing over his face at a window start gave a false FAIL (the frames matched the source exactly once it had entered):
+   with a spec, everything outside the clear stretches (tools/free_windows.mjs --spans: split/half-screen elements, cards over him, verse, map, zoom, shake,
+   behind, bumper) is avoided automatically; --offset frames shift the comp timeline into this file's timeline. --no-auto-avoid turns it off. */
+if (!process.argv.includes("--no-auto-avoid") && !process.argv.includes("--at") && fs.existsSync(`data/specs/${name.replace(/_probe$/, "")}.json`)) {
+  const fw = spawnSync(process.execPath, ["tools/free_windows.mjs", name.replace(/_probe$/, ""), "--spans"], { encoding: "utf8" });
+  const spans = (fw.stdout || "").trim().split(/\s+/).filter(Boolean).map((x) => x.split("-").map(Number));
+  if (spans.length) { let last = 0; const off = offset / fps; for (const [a, b] of spans) { if (a > last) avoid.push([last + off, a + off]); last = b; } avoid.push([last + off, 1e9]); console.log(`[judder] clear stretches from the spec: ${spans.length} — windows only there`); }
+}
 const dur = Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", out], { encoding: "utf8" }).stdout);
 const raw = (file, startSec, n, [cx, cy, cw, ch]) => spawnSync("ffmpeg", ["-v", "error", "-ss", String(startSec), "-i", file, "-frames:v", String(n), "-vf", `crop=${cw}:${ch}:${cx}:${cy},scale=${W}:${H},format=gray`, "-f", "rawvideo", "-"], { maxBuffer: 1 << 28 }).stdout;
 const steps = (buf) => { const k = Math.floor(buf.length / SZ), r = []; for (let i = 1; i < k; i++) { let t = 0; for (let p = 0; p < SZ; p++) t += Math.abs(buf[i * SZ + p] - buf[(i - 1) * SZ + p]); r.push(t / SZ); } return r; };
@@ -79,4 +87,8 @@ fs.mkdirSync(".tmp/gates", { recursive: true });
 const gate = `.tmp/gates/${name}.judder.ok`;
 let g = { files: {} }; try { g = JSON.parse(fs.readFileSync(gate, "utf8")); } catch { /* new */ }
 if (ok) { g.files[out] = fs.statSync(out).size; fs.writeFileSync(gate, JSON.stringify(g, null, 1)); } else if (g.files[out]) { delete g.files[out]; fs.writeFileSync(gate, JSON.stringify(g, null, 1)); }
+{ const { contentId } = await import("./cut_model.mjs"); const id = contentId(out); fs.mkdirSync(".tmp/gates/judder", { recursive: true });
+  const rec = `.tmp/gates/judder/${id}.json`;
+  if (ok) fs.writeFileSync(rec, JSON.stringify({ file: out, name, share: +(ratio * 100).toFixed(1), min: +(min * 100).toFixed(1), windows: pick, at: new Date().toISOString() }, null, 1)); else fs.rmSync(rec, { force: true });
+  if (!ok) console.log(`✘ الارتجاف: ${agree}/${total} خطوة تطابق المصدر (${(ratio * 100).toFixed(1)}٪، الحد ${(min * 100).toFixed(1)}٪)، وإطارات مكررة صنعها الرندر: ${dup} — النوافذ عند ${pick.map((x) => x.toFixed(1) + "ث").join("، ")}؛ افحص إطارات هذه النوافذ`); }
 process.exit(ok ? 0 : 1);

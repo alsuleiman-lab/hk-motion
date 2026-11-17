@@ -87,7 +87,7 @@ items.sort((a, b) => (a.at ?? a.from) - (b.at ?? b.from));
 for (const v of read(path.join(T, "verses.json"), [])) {
   if (!v.inCut || !v.cut?.length) continue;
   const last = v.cut.at(-1);
-  items.push({ t: "verse", words: v.words, times: v.cut.map(r2), title: v.name, refText: v.ref, at: r2(v.cut[0] - 0.05), x: 40, y: 1400, w: 1000, size: 44, until: r2(last + 1.5), aya: v.aya, ...(kind === "reel" ? { full: true } : {}), land: { x: 40, y: 858, w: 600, size: 24 } });
+  items.push({ t: "verse", words: v.words, times: v.cut.map(r2), title: v.name, refText: v.ref, at: r2(v.cut[0] - 0.05), until: r2(last + 1.5), aya: v.aya, ...(kind === "reel" ? { full: true } : {}) });   // size and place: the gallery's (galleryRef)
 }
 items.sort((a, b) => (a.at ?? a.from) - (b.at ?? b.from));
 

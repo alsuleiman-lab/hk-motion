@@ -122,6 +122,10 @@ if (stage === "prep") {
   fs.writeFileSync(path.join(T, "words_vad.json"), JSON.stringify(words));
   fs.writeFileSync(path.join(T, "words.json"), JSON.stringify(words));   // one Whisper pass (per VAD segment, no long-file hallucinations); words.json kept for find_restarts & co.
   fs.writeFileSync(path.join(T, "transcript.txt"), toText(words));
+  // THE word table (cut model, user 2026-11-16): the large-v3 transcript aligned word by word (wav2vec2) — built once here; the cut and every cut check read it
+  { const sha = (await import("node:crypto")).createHash("sha256").update(fs.readFileSync(a16)).digest("hex");
+    const wt = await run(PY, ["-I", "tools/words_table.py", a16, path.join(T, "tr_vad.json"), path.join(T, "words_table.json"), "--sha", sha], { env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
+    say(wt.code === 0 ? wt.out.trim().split(/\r?\n/).pop() : `✘ words_table — ${wt.out.trim().split(/\r?\n/).slice(-2).join(" | ")}`); if (wt.code !== 0) finish(1); }
   say(`source ${(await dur(src)).toFixed(1)} s · ${segs.length} VAD segments · ${words.length} words`);
   // من يتكلم ومتى (WhisperX/pyannote، 2026-10-28): أدوار غير «sheikh» = المقطع الذي يرد عليه / الطرف الآخر في المناظرة. لا يوقف المرحلة إن فشل
   if (!rest.includes("--skip-diarize")) {
@@ -147,62 +151,21 @@ if (stage === "cut") {
   const src = prepConfig.source ?? path.join("public", `${p}_src.mp4`), mapF = path.join("public", `${p}_map.json`), wav = path.join(T, "cut.wav");
   const rem = (opt("rem", "") || "").split(",").filter(Boolean).map((r) => r.split("-").map(Number));
   try { for (const d of JSON.parse(fs.readFileSync(path.join(T, "stray_drops.json"), "utf8"))) rem.push(d.range); say(`stray drops: ${rem.length} range(s) incl. stray_drops.json`); } catch { /* none yet */ }   // (2026-11-13) a leftover sound found by stray_find.py stays removed in every rebuild
-  { const r = await must("vad_onset_fix", PY, ["tools/vad_onset_fix.py", p]); say(r.out.trim().split("\n").pop()); }   // never start a segment inside a word (first syllable clipped)
-  fs.writeFileSync(path.join(T, "explicit_rem.json"), JSON.stringify(rem));   // the removals he/I ordered (not pause trims): join_polish absorbs the stray sounds beside them
-  const vad = JSON.parse(fs.readFileSync(path.join(T, "vad.json"), "utf8")).speech;
-  let segs = [];
-  for (let [s, e] of vad) {   // VAD speech minus the removed ranges
-    for (const [ra, rb] of rem) {
-      if (s === null || e <= ra || s >= rb) continue;
-      if (s < ra) segs.push([s, ra]);
-      s = e > rb ? rb : null;
-    }
-    if (s !== null) segs.push([s, e]);
-  }
-  // --keep a-b,…: a shown clip kept whole as SPEECH: its words and short breaths stay, its pauses with no human voice are cut (below)
-  // --keep-sound a-b,…: ranges he ordered kept with ALL their sound (a clip's adhan, a nasheed, applause the VAD calls non-speech): merged untouched
-  const keepSound = (opt("keep-sound", "") || "").split(",").filter(Boolean).map((r) => r.split("-").map(Number));
-  const keep = (opt("keep", "") || "").split(",").filter(Boolean).map((r) => r.split("-").map(Number));
-  /* (user 2026-11-15 «إعادة القص 6 مرات غلط») the shown clip is kept as speech FROM THE FIRST CUT, no discovery by failure: prep already knows the display windows
-     (sources.json) and who speaks when (speakers.json); every other speaker's turn inside a window (merged across < 4 s, ±0.15 s) joins --keep.
-     In «إدلب» these turns matched the ranges kept by hand after two failed cuts within ~0.5 s. --no-auto-keep turns it off. */
-  if (!rest.includes("--no-auto-keep")) {
-    try {
-      const wins = JSON.parse(fs.readFileSync(path.join(T, "sources.json"), "utf8")).windows ?? [];
-      const turns = (JSON.parse(fs.readFileSync(path.join(T, "speakers.json"), "utf8")).turns ?? []).filter((t) => t.name !== "sheikh" && wins.some((w) => t.s >= w.a - 0.5 && t.e <= w.b + 0.5));
-      // turns closer than 4 s are one clip stretch: the gap between them is the clip's own noise, cut below as a pause with no human voice (with 1.5 s, 4 edges sat in that noise)
-      const auto = turns.map((t) => [Math.max(0, +(t.s - 0.15).toFixed(2)), +(t.e + 0.15).toFixed(2)]).sort((x, y) => x[0] - y[0]).reduce((o, g) => { const l = o[o.length - 1]; if (l && g[0] - l[1] < 4) l[1] = Math.max(l[1], g[1]); else o.push(g); return o; }, []);
-      for (const g of auto) for (const [s, e] of vad) if (e > g[0] && s < g[1]) { g[0] = Math.min(g[0], s); g[1] = Math.max(g[1], e); }   // snapped to the VAD: the diarized turn ended 0.5 s before Silero's speech did
-      const fresh = auto.filter(([a, b]) => !keep.some(([x, y]) => a >= x - 0.5 && b <= y + 0.5));
-      if (fresh.length) { keep.push(...fresh); say(`shown clips kept as speech (other speakers' turns in the display windows): ${fresh.map(([a, b]) => `${a}-${b}`).join(",")}`); }
-    } catch { /* no windows / speakers: nothing to add */ }
-  }
-  const keepGate = [...keep, ...keepSound].map(([a, b]) => `${a}-${b}`).join(",");   // the whole kept ranges (his + the shown clips'), as audio_gate exempts them
-  const srcDb = (() => { try { const b = fs.readFileSync(path.join(T, "a16k.wav")); let o = 12, sr = 16000, ch = 1, d0 = -1, dn = 0;   // mean level (dBFS) of the SOURCE 16 kHz audio
-    while (o < b.length - 8) { const id = b.toString("ascii", o, o + 4), sz = b.readUInt32LE(o + 4); if (id === "fmt ") { ch = b.readUInt16LE(o + 10); sr = b.readUInt32LE(o + 12); } if (id === "data") { d0 = o + 8; dn = Math.min(sz, b.length - d0); break; } o += 8 + sz + (sz & 1); }
-    return (t0, t1) => { let e = 0, k = 0; for (let i = Math.max(0, Math.floor(t0 * sr)), n = Math.min(Math.floor(t1 * sr), Math.floor(dn / 2 / ch)); i < n; i++) { const v = b.readInt16LE(d0 + i * 2 * ch); e += v * v; k++; } return k ? 10 * Math.log10(e / k + 1e-9) - 90.31 : 0; }; } catch { return () => 0; } })();
-  fs.writeFileSync(path.join(T, "noise_gaps.json"), "[]");   // no stale gaps from an earlier cut
-  if (keep.length) {
-    /* (user 2026-11-15 «قص السكتات المشوشة لازم من أول قص»، «أدواتنا لازم تفرق بين التشويش والإنسان») a pause with no human voice inside a kept clip is cut in the
-       FIRST cut: a VAD (Silero = human speech only) gap longer than 0.12 s (+ the 0.28 s of VAD pads = a pause > 0.40 s, the rule for every pause, clips too).
-       Loudness says nothing here: in «إدلب» the clip's background was as loud as speech (−20…−28 dB) and tonal, and 14 such pauses were cut by hand
-       after the build; the large model heard no word in 30 of the 31 gaps. Their edges sit in that noise, so join_polish accepts them where they are
-       (.tmp/<p>/noise_gaps.json) instead of stopping the stage. A range whose whole sound must stay goes in --keep-sound. */
-    const noise = [];
-    // a gap that only TOUCHES a kept range counts too: after the clip's last word its noise runs on until his voice is back (in «إدلب» 3 edges sat there)
-    for (let i = 1; i < vad.length; i++) { const a = vad[i - 1][1], b = vad[i][0]; if (b - a > 0.12 && keep.some(([x, y]) => b >= x - 0.01 && a <= y + 0.01) && !keepSound.some(([x, y]) => b > x && a < y)) noise.push([+a.toFixed(3), +b.toFixed(3)]); }
-    const pieces = keep.flatMap(([x, y]) => noise.reduce((acc, [a, b]) => acc.flatMap(([u, v]) => (b <= u || a >= v ? [[u, v]] : [[u, a], [b, v]].filter(([q, r]) => r - q > 0.01))), [[x, y]]));
-    fs.writeFileSync(path.join(T, "noise_gaps.json"), JSON.stringify(noise));
-    const inside = noise.reduce((s, [a, b]) => s + keep.reduce((t, [x, y]) => t + Math.max(0, Math.min(b, y) - Math.max(a, x)), 0), 0);
-    if (noise.length) say(`kept clips: ${noise.length} pause(s) with no human voice in them cut in this first cut (${inside.toFixed(1)} s inside the clips)`);
-    keep.splice(0, keep.length, ...pieces);
-  }
-  if (keep.length || keepSound.length) {
-    segs = [...segs, ...keep, ...keepSound].sort((x, y) => x[0] - y[0]);
-    segs = segs.reduce((o, g) => { const l = o[o.length - 1]; if (l && g[0] <= l[1] + 0.01) l[1] = Math.max(l[1], g[1]); else o.push([...g]); return o; }, []);
-  }
+  fs.writeFileSync(path.join(T, "explicit_rem.json"), JSON.stringify(rem));   // the removals he/I ordered
+  /* THE cut model (user 2026-11-16 «نموذج قص واحد»): the plan is built from the word table (tools/words_table.py, built at prep) by the one rule in data/cut_rules.json —
+     no VAD segments, no pause-trim rounds, no join polishing, no second measure. Shown clips (sources.json × speakers.json) and --keep ranges are typed «clip» IN the plan,
+     --keep-sound ranges «sound» (kept whole); the gate and the final review read the types from the plan, nobody passes exemptions by hand. */
+  const { buildPlan, loadTable, autoClips, verifyCut, printViolations, untranscribed } = await import("./cut_model.mjs");
+  const { words: tableWords0, source: tableSrc } = loadTable(p);
+  const extraSpeech = untranscribed(p, tableWords0), tableWords = [...tableWords0, ...extraSpeech];   // speech Whisper missed is kept, never dropped silently
+  if (extraSpeech.length) say(`ℹ speech with no transcribed word kept (listen): ${extraSpeech.map((x) => `${x.s.toFixed(2)}-${x.e.toFixed(2)}`).join(",")}`);
+  if (!tableWords.length) { say("✘ no word table (.tmp/<p>/words_table.json): run stage prep"); finish(1); }
+  if (tableSrc !== "words_table") say(`⚠ word table: ${tableSrc} — run stage prep again to build the aligned table`);
+  const rng = (x) => (x || "").split(",").filter(Boolean).map((r) => r.split("-").map(Number));
+  const keepSound = rng(opt("keep-sound", "")), keep = rng(opt("keep", ""));
+  if (!rest.includes("--no-auto-keep")) { const ac = autoClips(p); if (ac.length) { keep.push(...ac); say(`shown clips typed «clip» in the plan: ${ac.map(([a, b]) => `${a.toFixed(2)}-${b.toFixed(2)}`).join(",")}`); } }
   const fr = (t) => Math.round(t * 30) / 30;   // 1/30 s grid (cut_edl)
-  let segments = segs.filter(([a, b]) => b - a > 0.06).map(([s, e]) => ({ a: fr(s), b: fr(e) })).filter((g) => g.b > g.a);
+  let segments = buildPlan(tableWords, { rem, keep, keepSound, duration: await dur(src) });
   // --move a-b@t,…: a recorded block (source seconds a–b) is re-placed just before the segment that starts at/after source time t (in-recording order «حط الكلام التالي مكان …»)
   for (const mv of (opt("move", "") || "").split(",").filter(Boolean).map((x) => { const [r, t] = x.split("@"); const [a, b] = r.split("-").map(Number); return { a, b, t: Number(t) }; })) {
     const splitAt = (x) => { const i = segments.findIndex((g) => g.a < x - 1e-6 && g.b > x + 1e-6); if (i >= 0) { const g = segments[i]; segments.splice(i, 1, { a: g.a, b: fr(x) }, { a: fr(x), b: g.b }); } };
@@ -218,43 +181,12 @@ if (stage === "cut") {
     let n = 0; for (const g of segments) { g.n = +n.toFixed(3); n += g.b - g.a; } return n; };
   const writeMap = () => { const n = renumber(); fs.writeFileSync(mapF, JSON.stringify({ segments, duration: +n.toFixed(3) }, null, 1)); return n; };
   writeMap();
-  // pauses > 0.40 s: trim them at the nearest join (65% from the end of the left segment, 35% from the start of the right one), then re-check
-  for (let round = 0; round < 4; round++) {
-    { const jp = await run(PY, ["-I", "tools/join_polish.py", p]); say(jp.out.trim().split(String.fromCharCode(10)).slice(-2).join(" | ")); if (jp.code !== 0) { say("✘ join_polish — حافة بلا صمت: عالجها بـ--rem أو cut_at"); finish(1); } segments = JSON.parse(fs.readFileSync(mapF, "utf8")).segments; }   // (2026-11-13) every edge → real silence: no leftover of a deleted word, no clipped word
-    await must("audio cut", "node", ["tools/cut_edl.mjs", "audio", src, mapF, wav]);
-    const pc = await run(PY, ["tools/pause_check.py", wav, "0.40"]);
-    let pauses = []; try { pauses = JSON.parse((pc.out.split("\n")[1] ?? "[]").trim()); /* same parsing as audio_gate.mjs */ } catch { /* none */ }
-    if (!pauses.length) break;
-    let fixed = 0;
-    for (const [t, d] of pauses) {
-      let k = -1, best = 9;
-      for (let i = 0; i < segments.length - 1; i++) { const dd = Math.abs(segments[i + 1].n - t); if (dd < best) { best = dd; k = i; } }
-      if (best > 0.9) {   /* (user 2026-11-15 «إعادة القص 6 مرات غلط») a pause INSIDE a segment (a digital silence at a clip's start, a long breath) is split out here,
-                             in this same run: its middle goes, 0.18 s stays after the voice and 0.10 s before the next (a 0.28 s pause, the rule) — no hand cut, no re-run */
-        const g = segments.find((x) => t >= x.n - 1e-6 && t < x.n + (x.b - x.a)), s0 = g ? g.a + (t - g.n) : null, ra = s0 == null ? 0 : fr(s0 + 0.18), rb = s0 == null ? 0 : fr(s0 + d - 0.10);
-        if (g && rb - ra > 0.06 && ra > g.a + 0.06 && rb < g.b - 0.06) { segments.splice(segments.indexOf(g), 1, { a: g.a, b: ra }, { a: rb, b: g.b }); fixed++; say(`pause ${d}s at ${t}s inside a segment: source ${ra.toFixed(2)}–${rb.toFixed(2)} cut out`); }
-        else say(`pause ${d}s at ${t}s is inside a segment (not at a join) — cut it by hand (cut_at.mjs) or --rem`);
-        continue;
-      }
-      // shave only inside the VAD pads (0.18 s after / 0.10 s before speech) so the cut never lands inside a word (an audible click, audio_gate); a pause still over budget is left for --rem
-      const take = Math.min(d - 0.34, 0.3);
-      const gB = Math.min(take * 0.65, 0.12 - (segments[k].sb ?? 0)), gA = Math.min(take * 0.35, 0.04 - (segments[k + 1].sa ?? 0));
-      if (gB <= 0.005 && gA <= 0.005) {   /* (user 2026-11-15) pads used up: the excess goes from a side that is REAL silence in the source (< −40 dB: a digital silence at a
-                                             clip's start in «إدلب» cost a re-run) — never from sound */
-        const ex = +(d - 0.28).toFixed(3), R = segments[k + 1], L = segments[k];
-        if (ex > 0.02 && srcDb(R.a, R.a + ex) < -40 && R.b - R.a > ex + 0.1) { R.a = fr(R.a + ex); fixed++; say(`pause ${d}s at ${t}s: ${ex}s of digital silence cut from the start of source ${R.a.toFixed(2)}`); continue; }
-        if (ex > 0.02 && srcDb(L.b - ex, L.b) < -40 && L.b - L.a > ex + 0.1) { L.b = fr(L.b - ex); fixed++; say(`pause ${d}s at ${t}s: ${ex}s of digital silence cut from the end of source ${L.b.toFixed(2)}`); continue; }
-        say(`pause ${d}s at ${t}s: pad budget used up — cut it with --rem (source ${segments[k].b.toFixed(2)}–${segments[k + 1].a.toFixed(2)})`); continue;
-      }
-      segments[k].b = +(segments[k].b - Math.max(0, gB)).toFixed(4); segments[k].sb = (segments[k].sb ?? 0) + Math.max(0, gB);
-      segments[k + 1].a = +(segments[k + 1].a + Math.max(0, gA)).toFixed(4); segments[k + 1].sa = (segments[k + 1].sa ?? 0) + Math.max(0, gA); fixed++;
-    }
-    say(`round ${round + 1}: ${pauses.length} pause(s) > 0.40 s, trimmed ${fixed}`);
-    writeMap();
-    if (!fixed) break;
-  }
-  { const jp = await run(PY, ["-I", "tools/join_polish.py", p]); say(jp.out.trim().split(String.fromCharCode(10)).slice(-2).join(" | ")); if (jp.code !== 0) { say("✘ join_polish — حافة بلا صمت"); finish(1); } segments = JSON.parse(fs.readFileSync(mapF, "utf8")).segments; await must("audio cut", "node", ["tools/cut_edl.mjs", "audio", src, mapF, wav]); }
-  const gate = process.env.SKIP_GATE === "1" ? { code: 1, out: "" } : await run("node", ["tools/audio_gate.mjs", p, "--cut", wav, "--map", mapF, "--tr", path.join(T, "tr_vad.json"), "--src16k", path.join(T, "a16k.wav"), "--audio", wav, ...(keepGate ? ["--keep", keepGate] : [])]);
+  const keepGate = segments.filter((g) => g.type && g.type !== "speech").map((g) => `${g.a}-${g.b}`).join(",");   // the clip/sound ranges of the plan (noise_scan exemption)
+  { const v0 = verifyCut({ segments: JSON.parse(fs.readFileSync(mapF, "utf8")).segments, words: tableWords });
+    if (v0.length) { for (const l of printViolations(v0)) say(l); say("✘ the plan breaks the cut rule (see above) — nothing was built"); finish(1); }
+    say(`plan ✔ ${segments.length} segments, no pause > rule, no cut inside a word (table: ${tableSrc})`); }
+  await must("audio cut", "node", ["tools/cut_edl.mjs", "audio", src, mapF, wav]);
+  const gate = process.env.SKIP_GATE === "1" ? { code: 1, out: "" } : await run("node", ["tools/audio_gate.mjs", p, "--cut", wav, "--map", mapF, "--tr", path.join(T, "tr_vad.json"), "--src16k", path.join(T, "a16k.wav"), "--audio", wav]);
   if (gate.code !== 0 && process.env.SKIP_GATE === "1") say("⚠ audio_gate متجاوَز (SKIP_GATE) — يُفحص كل مقطع بعد التقسيم");
   else if (gate.code !== 0) {
     /* (user 2026-11-15 «مرة واحدة نكتشف العيوب ما يعاد هذا الأمر مرة أخرى») the sounds the gate itself marks for deletion (noise_scan «cut»: a laugh, a stock
@@ -379,6 +311,7 @@ if (stage === "check") {
   }
   // the gallery's size and place of every element, as the engine reads them (user 2026-11-17: a change in the gallery reaches every video without a request)
   await step("gallery_geo", "node", ["tools/gallery_geo.mjs"], /gallery_geo/);
+  await step("el_names", "node", ["tools/el.mjs", "names"], /el names|✘/);   // every element has one Arabic name, written under the screen in the Studio (user 2026-11-17)
   await step("studio_drag_lint", "node", ["tools/studio_drag_lint.mjs"], /studio_drag_lint|^s+src/);
   await step("typecheck", "node", ["node_modules/typescript/bin/tsc", "-p", "."], /error TS/);
   // every video of the montage path reaches the render as a <VSlot> on the GPU (R-RENDER-GPU.2, user 2026-11-12: new elements use the new system)

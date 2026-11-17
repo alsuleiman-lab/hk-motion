@@ -31,16 +31,27 @@ import crypto from "node:crypto";
   // the gate proof must belong to the CURRENT files: re-hash everything the gate hashed (tools/audio_gate.mjs)
   let proof = null; try { proof = JSON.parse(fs.readFileSync(`.tmp/gates/${gateName}.audio.ok`, "utf8")); } catch { /* none / old format */ }
   const sha = (p) => { try { return crypto.createHash("sha256").update(fs.readFileSync(p)).digest("hex"); } catch { return null; } };
-  const stale = proof?.files ? Object.entries(proof.files).filter(([p, h]) => sha(p) !== h).map(([p]) => p) : ["(صيغة قديمة: أعد تشغيل audio_gate)"];
-  add(gateName !== "" && proof !== null && stale.length === 0, gateName ? (stale.length ? `بوابة الصوت لـ${gateName} قديمة، تغيّرت: ${stale.join("، ")} — أعد تشغيل audio_gate` : `بوابة الصوت (audio_gate) نجحت لـ${gateName} وتطابق الملفات الحالية`) : "مرّر --name <المشروع> بعد تشغيل tools/audio_gate.mjs: بوابة الصوت إلزامية");
+  let stale = proof?.files ? Object.entries(proof.files).filter(([p, h]) => sha(p) !== h).map(([p]) => p) : ["(صيغة قديمة)"];
+  if (gateName && stale.length) {   /* (2026-11-16 cut model) the gate re-runs itself on the current files; its own report says what failed and where */
+    let args = null; try { args = JSON.parse(fs.readFileSync(`.tmp/${gateName}/gate_args.json`, "utf8")); } catch { /* never ran with saved args */ }
+    if (args) {
+      console.log(`ℹ تغيّر بعد بوابة الصوت: ${stale.join("، ")} — أعيد تشغيلها الآن`);
+      const r = spawnSync("node", ["tools/audio_gate.mjs", ...args], { encoding: "utf8", maxBuffer: 1 << 26 });
+      for (const l of (r.stdout || "").trim().split(/\r?\n/).filter((x) => /^[✔✘ℹ]/.test(x) || /^✘ \[/.test(x))) console.log("   " + l);
+      try { proof = JSON.parse(fs.readFileSync(`.tmp/gates/${gateName}.audio.ok`, "utf8")); } catch { proof = null; }
+      stale = r.status === 0 && proof?.files ? Object.entries(proof.files).filter(([p, h]) => sha(p) !== h).map(([p]) => p) : ["(فشلت إعادة التشغيل: التفاصيل أعلاه)"];
+    }
+  }
+  add(gateName !== "" && proof !== null && stale.length === 0, gateName ? (stale.length ? `بوابة الصوت لـ${gateName} لم تنجح على الملفات الحالية: ${stale.join("، ")}` : `بوابة الصوت (audio_gate) نجحت لـ${gateName} على الملفات الحالية`) : "بلا --name لا يُعرف المشروع: أضف --name <المشروع>");
 }
 {
   // judder gate (tools/judder_check.mjs, user 2026-10-26): the rendered file must have passed the frame-by-frame comparison with its source, and be the SAME file (size) that passed
-  let j = null; try { j = JSON.parse(fs.readFileSync(`.tmp/gates/${gateName}.judder.ok`, "utf8")); } catch { /* none */ }
-  const size = (() => { try { return fs.statSync(file).size; } catch { return -1; } })();
-  const jSize = bumper && bumper.size === size ? bumper.originalSize : size;   // البوابة نجحت على الملف قبل الفاصل
-  const hit = j?.files ? Object.entries(j.files).find(([p, s]) => (s === jSize || s === size) && s > 0) : null;   /* the gate may have run on the original (before the bumper) or on the final file */
-  add(gateName !== "" && !!hit, hit ? `بوابة الارتجاف (judder_check) نجحت لهذا الملف` : "بوابة الارتجاف لم تنجح لهذا الملف: node tools/judder_check.mjs <الناتج> --src <القص المنعَّم> --offset <إطار> --name <المشروع> (إلزامي)");
+  const { contentId } = await import("./cut_model.mjs");
+  const ids = [contentId(file)]; if (bumper?.originalId) ids.push(bumper.originalId);   // the gate may have run on the file before the bumper was added
+  const hitId = ids.find((id) => fs.existsSync(`.tmp/gates/judder/${id}.json`));
+  let legacy = null; if (!hitId) { try { const j = JSON.parse(fs.readFileSync(`.tmp/gates/${gateName}.judder.ok`, "utf8")); const size = fs.statSync(file).size; const jSize = bumper && bumper.size === size ? bumper.originalSize : size; legacy = j?.files ? Object.entries(j.files).find(([, s2]) => (s2 === jSize || s2 === size) && s2 > 0) : null; } catch { /* none */ } }
+  const rec = hitId ? JSON.parse(fs.readFileSync(`.tmp/gates/judder/${hitId}.json`, "utf8")) : null;
+  add(!!(rec || legacy), rec ? `بوابة الارتجاف نجحت لهذا الملف بعينه (${rec.share}٪ متطابقة، الحد ${rec.min}٪)` : legacy ? "بوابة الارتجاف نجحت لهذا الملف (سجل قديم بالحجم)" : "بوابة الارتجاف لم تُشغَّل على هذا الملف بعينه: node tools/judder_check.mjs <الناتج> --src <القص المنعَّم> --offset <إطار> --name <المشروع>");
 }
 if (v) {
   const [n, d] = v.r_frame_rate.split("/").map(Number);
@@ -48,6 +59,15 @@ if (v) {
 }
 if (!hasAudio) { add(false, "لا مسار صوت"); process.exit(1); }
 
+let planMap = null; try { planMap = JSON.parse(fs.readFileSync(`public/${gateName}_map.json`, "utf8")); } catch { /* none */ }
+if (gateName && planMap?.model === "cut_model") {
+  const { verifyCut, projectInputs, printViolations } = await import("./cut_model.mjs");
+  const { words, source } = projectInputs(gateName);
+  const b = bumper ? { at: bumper.position === "end" ? Infinity : (bumper.at ?? 0), seconds: bumper.seconds, end: bumper.position === "end" } : null;
+  const vio = verifyCut({ segments: planMap.segments, words, file, bumper: b ? { ...b, seconds: b.end ? b.seconds : b.seconds } : null });
+  add(vio.length === 0, vio.length ? `القص في هذا الملف يخالف القاعدة في ${vio.length} موضعاً:\n${printViolations(vio).map((l) => "   " + l).join("\n")}` : `لا سكتة بين كلمتين فوق الحد ولا قطع داخل كلمة، والملف يطابق خطة القص (المقياس الواحد، الجدول: ${source})`);
+} else {
+  console.log("ℹ لا خطة قص بالنموذج لهذا الملف (كرتون أو مشروع قديم): يُقاس الصمت في الملف");
 const sil = run("ffmpeg", ["-hide_banner", "-i", file, "-af", `silencedetect=noise=${db}dB:d=${maxGap}`, "-f", "null", "-"]).stderr;
 const starts = [...sil.matchAll(/silence_start: ([\d.]+)/g)].map((m) => Number(m[1]));
 const durs = [...sil.matchAll(/silence_duration: ([\d.]+)/g)].map((m) => Number(m[1]));
@@ -58,6 +78,7 @@ const bAt = typeof bumper?.at === "number" ? bumper.at : 0, bEnd = bumper?.posit
 const gaps = starts.map((s, i) => ({ s, d: durs[i] ?? dur - s })).map((g) => { if (!bumper) return g; const a = bAt - (bEnd ? 0.6 : 0), b = bAt + bumper.seconds; if (g.s >= a && g.s < b) { const e = g.s + g.d; return { s: b, d: e - b }; } return g; }).filter((g) => g.d > maxGap);
 add(gaps.length === 0, gaps.length ? `سكتات > ${maxGap}ث: ${gaps.map((g) => `${g.s.toFixed(2)}→${(g.s + g.d).toFixed(2)} (${g.d.toFixed(2)}ث)`).join("، ")}` : `لا سكتة > ${maxGap}ث`);
 
+}
 const vol = run("ffmpeg", ["-hide_banner", "-i", file, "-af", "volumedetect", "-f", "null", "-"]).stderr;
 const max = Number(vol.match(/max_volume: (-?[\d.]+) dB/)?.[1]);
 const mean = Number(vol.match(/mean_volume: (-?[\d.]+) dB/)?.[1]);

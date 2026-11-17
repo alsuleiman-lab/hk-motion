@@ -1,0 +1,9 @@
+{
+ "_about": "THE cut rule — one place, read by tools/cut_model.mjs (plan + the single check used by stage cut, audio_gate and final_review). Seconds.",
+ "maxGap": 0.40,
+ "keepGap": 0.28,
+ "padBefore": 0.08,
+ "padAfter": 0.10,
+ "fps": 30,
+ "fileTolerance": 0.15
+}

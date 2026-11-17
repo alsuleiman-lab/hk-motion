@@ -5,6 +5,7 @@
 // يكتب .tmp/gates/<name>.bumper.json (ليعرف final_review أن أول 5ث فاصل: لا فحص سكتات فيها، والحجم الأصلي لبوابة الارتجاف).
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
+import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 
@@ -19,6 +20,7 @@ const gate = path.join(root, ".tmp", "gates", `${name}.bumper.json`);
 const probe = JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate", "-of", "json", file]).toString());
 const v = probe.streams.find((s) => s.codec_type === "video"), hasA = probe.streams.some((s) => s.codec_type === "audio");
 const size = fs.statSync(file).size;
+const originalId = (() => { try { const c = crypto.createHash("sha256"); c.update(fs.readFileSync(file)); return c.digest("hex"); } catch { return null; } })();   // content id before the bumper (per-file gates)
 if (!v || !hasA) { console.error("[bumper] الملف بلا فيديو أو صوت: تُرك كما هو"); process.exit(0); }
 /** الريلز والتعليق الصامت (الطولي القصير): الفاصل في آخر المقطع لا في أوله (أمر 2026-11-15، يخرب الهوك)؛ الطولي الكامل (نسخة حلقة كاملة) والعرضي في أولهما */
 const isShortPortrait = () => { try { if (JSON.parse(fs.readFileSync(path.join(root, "data", "specs", `${name}.json`), "utf8")).kind === "reel") return true; } catch { /* no spec */ } return fs.existsSync(path.join(root, "public", "silent", name, "config.json")); };
@@ -64,5 +66,5 @@ moveFile(file, path.join(keep, path.basename(file)));
 moveFile(tmp, file);
 data.last = pick.id; fs.writeFileSync(mf, JSON.stringify(data, null, 2) + "\n");
 fs.mkdirSync(path.dirname(gate), { recursive: true });
-fs.writeFileSync(gate, JSON.stringify({ id: pick.id, title: pick.title, seconds: SEC, originalSize: size, size: fs.statSync(file).size, at: END ? +mainDur.toFixed(3) : AT, position: END ? "end" : "start", date: new Date().toISOString() }));
+fs.writeFileSync(gate, JSON.stringify({ id: pick.id, title: pick.title, seconds: SEC, originalSize: size, originalId, size: fs.statSync(file).size, at: END ? +mainDur.toFixed(3) : AT, position: END ? "end" : "start", date: new Date().toISOString() }));
 console.log(`[bumper] أُضيف فاصل «${pick.title}» (${SEC}ث) ${END ? "في آخر" : AT > 0 ? `عند ${AT}ث من` : "في أول"} ${path.basename(file)}`);

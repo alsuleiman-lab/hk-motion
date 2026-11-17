@@ -16,6 +16,11 @@ const cut = arg("cut"), map = arg("map"), tr = arg("tr"), src16 = arg("src16k"),
 const PY = process.env.PY ?? "S:/AI_Tools/ComfyUI_windows_portable/python_embeded/python.exe";
 const run = (args) => spawnSync(PY, args, { encoding: "utf8", maxBuffer: 1 << 26, env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
 let ok = true;
+/* (2026-11-16, cut model) the plan carries its own clip/sound ranges (tools/cut_model.mjs) — nobody passes them by hand */
+let planMap = null; try { planMap = JSON.parse(fs.readFileSync(map, "utf8")); } catch { /* none */ }
+const planTyped = (planMap?.segments ?? []).filter((g) => g.type && g.type !== "speech").map((g) => [g.a, g.b]);
+// the gate's own arguments, so final_review can re-run it by itself when a file changed (no «stale, run it again» left to anyone)
+try { fs.mkdirSync(`.tmp/${name}`, { recursive: true }); fs.writeFileSync(`.tmp/${name}/gate_args.json`, JSON.stringify(process.argv.slice(2))); } catch { /* best effort */ }
 const rep = (good, msg) => { if (!good) ok = false; console.log(`${good ? "✔" : "✘"} ${msg}`); };
 
 fs.mkdirSync(".tmp/gates", { recursive: true });
@@ -23,7 +28,7 @@ const nsOut = `.tmp/gates/${name}.noise.json`;
 const ns = run(["tools/noise_scan.py", src16, tr, nsOut, "--map", map]);
 let nsj = { cut: [], review: [] }; try { nsj = JSON.parse(fs.readFileSync(nsOut, "utf8")); } catch { /* keep empty */ }
 { /* a stock-phrase hit INSIDE a range the user ordered kept whole (the shown clip's own continuous sound, --keep) is the clip's breath/pause misheard by Whisper: it stays, printed never silent */
-  const kr = (arg("keep", "") || "").split(",").filter(Boolean).map((r) => r.split("-").map(Number));
+  const kr = [...(arg("keep", "") || "").split(",").filter(Boolean).map((r) => r.split("-").map(Number)), ...planTyped];
   const inK = (r) => kr.some(([x, y]) => r[0] >= x - 0.05 && r[1] <= y + 0.05);
   const ex = nsj.cut.filter(inK);
   if (ex.length) { console.log(`ℹ أصوات داخل مقطع معروض أُبقي كاملاً بأمر المستخدم (لا تُحذف): ${ex.map((r) => `[${r[0]}-${r[1]} «${r[2]}»]`).join(" ")}`); nsj.cut = nsj.cut.filter((r) => !inK(r)); }
@@ -40,10 +45,19 @@ rep(ns.status === 0 && nsj.cut.length === 0, `أصوات غير كلامية ل�
 const jc = run(["tools/join_click_scan.py", audio, map, "--ratio", "5"]);
 const bad = (jc.stdout.match(/flagged clicks: (\d+)/) ?? [])[1];
 rep(jc.status === 0 && Number(bad) === 0, `نقرات عند وصلات القص: ${bad ?? "?"} ${jc.stdout.split("\n")[1] ?? ""}`);
-/* (2026-11-12) a join must sit in a pause: voiced sound on both sides = a word cut mid-way («بنا… بنارس») */
-{ const jw = run(["-I", "tools/join_word_scan.py", audio, map]); rep(jw.status === 0, (jw.stdout || "").trim().split("\n").slice(0, 4).join(" | ") || "join_word_scan لم يعمل"); }
+/* (2026-11-16) with a cut-model plan the word table already guarantees no cut inside a word (verifyCut below): the two energy scans are a second
+   measure of the same thing and are skipped; they stay for old VAD-built maps. (2026-11-12) a join must sit in a pause: voiced sound on both sides = a word cut mid-way («بنا… بنارس») */
+if (planMap?.model !== "cut_model") { const jw = run(["-I", "tools/join_word_scan.py", audio, map]); rep(jw.status === 0, (jw.stdout || "").trim().split("\n").slice(0, 4).join(" | ") || "join_word_scan لم يعمل"); }
 /* (2026-11-13) every map edge must sit in real silence of the SOURCE (a leftover onset of a deleted word / a clipped word = ✘); join_polish moves the edges there first */
-{ const je = run(["-I", "tools/join_edge_scan.py", src16, map]); rep(je.status === 0, (je.stdout || "").trim().split(String.fromCharCode(10)).slice(0, 6).join(" | ") || "join_edge_scan لم يعمل"); }
+if (planMap?.model !== "cut_model") { const je = run(["-I", "tools/join_edge_scan.py", src16, map]); rep(je.status === 0, (je.stdout || "").trim().split(String.fromCharCode(10)).slice(0, 6).join(" | ") || "join_edge_scan لم يعمل"); }
+if (planMap?.model === "cut_model") {
+  // THE single check (tools/cut_model.mjs verifyCut): gaps between consecutive kept words in the output timeline, cuts inside a word, and this audio file vs the plan
+  const { verifyCut, projectInputs, printViolations } = await import("./cut_model.mjs");
+  const { words, source } = projectInputs(name);
+  const v = verifyCut({ segments: planMap.segments, words, file: audio });
+  rep(v.length === 0, v.length ? `القص يخالف القاعدة في ${v.length} موضعاً:\n${printViolations(v).join("\n")}` : `القص يطابق القاعدة: لا سكتة بين كلمتين فوق الحد ولا قطع داخل كلمة، والملف يطابق الخطة (الجدول: ${source})`);
+} else {
+  console.log("ℹ لا خطة قص بالنموذج لهذا الصوت (كرتون أو مشروع قديم): يُقاس الصمت في الملف");
 // ONE fixed rule for everything, NO exceptions (user 2026-10-22): no silence > 0.40 s anywhere — also inside other people's clip windows. Every pause is checked by time and length.
 const pc = run(["tools/pause_check.py", audio, "0.40"]);
 let pauses = null; try { pauses = JSON.parse((pc.stdout.split(String.fromCharCode(10))[1] ?? "[]").trim()); } catch { /* unparsable -> fail below */ }
@@ -74,6 +88,7 @@ if (silentOk && Array.isArray(pauses)) {
   pauses = pauses.filter((p) => !exempt.includes(p));
 }
 rep(pc.status === 0 && Array.isArray(pauses) && pauses.length === 0, `سكتات > 0.40ث: ${pauses ? pauses.length : "؟ (تعذّر القراءة)"}${pauses && pauses.length ? " " + pauses.slice(0, 12).map(([s, d]) => `[${s}ث ×${d}]`).join(" ") : ""} (المسموح 0 دون استثناء)`);
+}
 if (echoIv) {   // echo reduction must never make things worse: no negative/ghost correlations, remaining echo small
   const ec = run(["tools/echo_check.py", cut, audio, map, ...echoIv.split(/\s+/)]);
   const worst = Number((ec.stdout.match(/worst remaining\/ghost correlation: ([\d.]+)/) ?? [])[1] ?? 9);

@@ -156,7 +156,7 @@ export type MontageSpec = {
   shake?: { from: number; to: number }[];
   /** windows where the source recording has a baked-in split (clip left | him right): landscape = the reply model `layout` behind a curtain (default "dossier" = الملف, user 2026-10-30;
    *  blocks | dossier, src/DebateLayouts.tsx;); portrait = his slice + the clip as a tilted card at his shoulder (x/w are source px) */
-  splits?: { from: number; to: number; clip: { x: number; w: number; y?: number; h?: number }; sheikh: { x: number; w: number }; clipName?: string; mainSrc?: string /* a whole added clip in HIS window (the pair: the recorded clip beside an added clip) */; mainAspect?: number; clipAspect?: number; clipSrc?: string /* a whole added clip (public/ path, 16:9, silent) shown in the answered-clip window instead of the recording column */; clipUrl?: string; faceX?: number; blur?: number; layout?: DebateLayoutName; card?: { left: number; top: number; rot: number; innerH: number } }[];
+  splits?: { from: number; to: number; clip: { x: number; w: number; y?: number; h?: number }; sheikh: { x: number; w: number }; clipName?: string; mainSrc?: string /* a whole added clip in HIS window (the pair: the recorded clip beside an added clip) */; mainAspect?: number; clipAspect?: number; clipSrc?: string /* a whole added clip (public/ path, 16:9, silent) shown in the answered-clip window instead of the recording column */; clipUrl?: string; faceX?: number; blur?: number; layout?: DebateLayoutName; card?: { left: number; top: number; rot: number; innerH: number }; page?: boolean /* a shown PAGE (book/document): in a reel the page is drawn very large in the lower zone and his video shrinks to the top (user 2026-11-17) */ }[];
   /** an audio message added after his video: plays `src` from `from` s (+ voice card with a waveform and cycling photos) */
   tail?: { from: number; to: number; src: string; label: string; photos: string[] };
   /** light sound effects at transitions / element entries (user 2026-11-06: light, varied, not loud, not many): src under public/sfx, at = seconds on the cut timeline, vol relative to speech (≤ 0.06) */
@@ -404,7 +404,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
       const apart = tphotoApart(it), W0 = L ? LANDSCAPE.W : 1080, dxg = (L ? it.land?.dx : it.dx) ?? 0, kg = (L ? it.land?.k : it.k) ?? 1, cx0 = W0 / 2, EDGE = 40;   /* the gallery's offset moves the whole item: the right-hand photo is mirrored against it */
       return <React.Fragment key={i}>{all.map((p, j) => <TornPhoto key={j} at={p.at} until={it.until ?? it.at + 6} x={apart ? (j === 0 ? cx0 + (W0 - EDGE - kg * w - dxg - cx0) / kg : cx0 + (EDGE - dxg - cx0) / kg) : x0 + (n - 1 - j) * (w + 24)} y={y0} w={w} h={h} src={p.src} name={p.name} pos={it.pos} />)}{it.shoe ? <ShoePrint at={it.at + 0.9} until={it.until ?? it.at + 6} x={x0} y={y0} w={w} h={h} /> : null}</React.Fragment>;
     }
-    case "scraps": return <WordScraps key={i} at={it.at} until={it.until} y={L ? ov.y ?? 845 : it.y ?? 1330} text={it.text} times={it.times} size={L ? ov.size ?? 50 : it.size ?? 36} />;   {/* 60 % of the former 84 / 60 (user 2026-10-31) */}
+    case "scraps": return <WordScraps key={i} at={it.at} until={it.until} y={L ? ov.y ?? 845 : it.y ?? 1330} x={L ? (ov.x as number | undefined) : undefined} w={L ? (ov.w as number | undefined) : undefined} text={it.text} times={it.times} size={L ? ov.size ?? 50 : it.size ?? 36} />;   {/* 60 % of the former 84 / 60 (user 2026-10-31) */}
     case "clock": { const size = L ? ov.size ?? 360 : it.size ?? 300; return <Only key={i} from={it.at} to={it.until}><div style={{ position: "absolute", left: L ? ov.x ?? 140 : it.x ?? 60, top: L ? ov.y ?? 300 : it.y ?? 1330 }}><Clock at={it.at} size={size} /></div></Only>; }
     case "arc": {
       // landscape (user 2026-10-31): one picture on each side of him (right-hand one first), the dotted line passes under his beard
@@ -428,6 +428,8 @@ type Split = NonNullable<MontageSpec["splits"]>[number];
 const CARD_H = 800;
 /** the answered clip in portrait (user 2026-11-16: «بلا اسم المقطع، إطار ورقة مقصوصة الأطراف بلزقة كالعرضي، وكبّره قليلاً»): the source-pixel column [x, x+w) of the cut inside a hand-torn paper mount with a piece of tape, like the landscape mount (DebateLayouts TornWindow); no caption under it */
 const CARD_PAD = 18;
+/** (user 2026-11-17: «لما أعرض صفحة تكبرها جداً وتصغر صورتي، يعني تعكس») a shown page in a REEL: his video shrinks to the top (PAGE_S) and the page fills the lower zone */
+export const PAGE_S = 0.42, PAGE_TOP = 812, PAGE_CARD = { left: 96, top: 836, rot: -1.2, innerH: 1000 };
 const CropPolaroid: React.FC<{ cut: string; x: number; w: number; y?: number; h?: number; name?: string; left: number; top: number; rot: number; innerH?: number; blur?: number; aspect?: number; t0?: number }> = ({ cut, x, w, left, top, rot, innerH = CARD_H, blur, y = 0, h = 1080, aspect, t0 }) => {
   const k = innerH / h, iw = aspect ? Math.round(innerH * aspect) : Math.round(w * k), pw = iw + CARD_PAD * 2, ph = innerH + CARD_PAD * 2;
   const hole = `linear-gradient(#000 0 0) 0 0/100% 100% no-repeat, linear-gradient(#000 0 0) ${CARD_PAD}px ${CARD_PAD}px/${iw}px ${innerH}px no-repeat`;
@@ -516,7 +518,7 @@ const PortraitClipCard: React.FC<{ cut: string; sp: Split }> = ({ cut, sp }) => 
   }
     return (
     <Only from={sp.from} to={sp.to}>
-      <CropPolaroid aspect={sp.clipSrc ? sp.clipAspect ?? 16 / 9 : undefined} cut={sp.clipSrc ?? cut} x={sp.clip.x} w={sp.clip.w} y={sp.clip.y} h={sp.clip.h} name={sp.clipName ?? "المقطع المردود عليه"} left={sp.card?.left ?? 30} top={sp.card?.top ?? 1320} rot={sp.card?.rot ?? -2} innerH={sp.card?.innerH ?? 450} blur={sp.blur} t0={sp.clipSrc ? sp.from : undefined} />
+      <CropPolaroid aspect={sp.clipSrc ? sp.clipAspect ?? 16 / 9 : undefined} cut={sp.clipSrc ?? cut} x={sp.clip.x} w={sp.clip.w} y={sp.clip.y} h={sp.clip.h} name={sp.clipName ?? "المقطع المردود عليه"} left={sp.page ? sp.card?.left ?? PAGE_CARD.left : sp.card?.left ?? 30} top={sp.page ? sp.card?.top ?? PAGE_CARD.top : sp.card?.top ?? 1320} rot={sp.page ? sp.card?.rot ?? PAGE_CARD.rot : sp.card?.rot ?? -2} innerH={sp.page ? sp.card?.innerH ?? PAGE_CARD.innerH : sp.card?.innerH ?? 450} blur={sp.blur} t0={sp.clipSrc ? sp.from : undefined} />
     </Only>
   );
 };
@@ -782,7 +784,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutA
   /* the user's choice (2026-11-12, «B»): the clip fills the frame lightly blurred behind him, a tilted paper card of the same clip on its subject top-left,
      he slid right at 66 % — the default for every portrait background-clip isolation; the experiment's inputProps or the spec may override it */
   const portIso = (((getRemotionEnvironment().isPlayer ? {} : getInputProps()) as { portIso?: PortIso }).portIso ?? (spec as { portIso?: PortIso }).portIso ?? PORT_ISO_DEFAULT) as PortIso | undefined;
-  const bgUnder = (w: { from: number; to: number }) => spec.items.some((x) => x.t === "bgclip" && (x as { from: number }).from < w.to && (x as { to: number }).to > w.from);   /* the B layout only where a background clip is behind him */
+  const bgUnder = (w: { from: number; to: number }) => spec.items.some((x) => (x.t === "bgclip" || (x.t === "pmap" && (x as { iso?: boolean }).iso)) && (x as { from: number }).from < w.to && (x as { to: number }).to > w.from);   /* (user 2026-11-17) a map behind him in portrait also needs the room: his isolated cut-out shrinks to the bottom like over a background clip */   /* the B layout only where a background clip is behind him */
   const bgclips = mine("bgclip"), hclips = mine("hclip"), pulses = mine("zoomblend"), horrors = mine("horror");
   const hasFx = pulses.length > 0 || horrors.length > 0;
   const wrapStage = (kids: React.ReactNode) => hasFx ? <FxStage pulses={pulses} horrors={horrors}>{kids}</FxStage> : <>{kids}</>;   // an element, not a component type: the videos inside never remount
@@ -795,6 +797,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutA
   const body = o === "land"
     ? (spec.cut ? <LandFootage cut={spec.cut} zooms={spec.zooms} splits={spec.splits} shifts={spec.shifts} behind={behindGaps.length ? behindNodes : undefined} gaps={behindGaps} pips={spec.items.filter((x) => x.t === "pick" && x.el === "PipSource" && x.only !== "port").map((x) => ({ at: (x as { at: number }).at, until: pickUntil(x as PickItem) }))} /> : null)
     : (spec.cut ? <SheikhLayers cut={spec.cut} cams={spec.cams ?? [{ from: 0, to: 9999, cx: 990 }]} zooms={spec.zooms} drops={(spec.psplits ?? []).filter((w) => w.dy)} /> : null);
+  const effPs: NonNullable<MontageSpec["psplits"]> = [...(spec.psplits ?? []), ...(o === "port" && spec.kind === "reel" ? (spec.splits ?? []).filter((sp) => sp.page).map((sp) => ({ from: sp.from, to: sp.to, s: PAGE_S, top: PAGE_TOP, panel: "warm" as const })) : [])];   /* a shown page in a reel: the same split window the engine uses for a big element (user 2026-11-17) */
   return (
     <HybridHost>
     <AbsoluteFill style={{ background: hyBg(BRAND.base) }}>
@@ -803,8 +806,8 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutA
       {o === "port" || !spec.cut ? (HY ? <HybridBg><WarmBase /></HybridBg> : <WarmBase />) : null}
       {/* the base's stars drift with the frame (KhBg): the GPU renderer renders this background's parts apart and its compositor drifts the stars (2026-11-12) */}
       {wrapStage(<>
-      <Sequence from={0} durationInFrames={spec.tail ? Math.round(spec.tail.from * 30) : spec.frames}>{(() => { const b2 = o === "port" && spec.psplits?.length ? <PortSplit windows={spec.psplits}>{body}</PortSplit> : body; return spec.shake?.length ? <HandheldShake windows={spec.shake} amp={6} rot={0.4}>{b2}</HandheldShake> : b2; })()}</Sequence>
-      {o === "port" && spec.psplits?.some((w) => !w.dy) ? <PortPanel windows={spec.psplits.filter((w) => !w.dy)} /> : null}
+      <Sequence from={0} durationInFrames={spec.tail ? Math.round(spec.tail.from * 30) : spec.frames}>{(() => { const b2 = o === "port" && effPs.length ? <PortSplit windows={effPs}>{body}</PortSplit> : body; return spec.shake?.length ? <HandheldShake windows={spec.shake} amp={6} rot={0.4}>{b2}</HandheldShake> : b2; })()}</Sequence>
+      {o === "port" && effPs.some((w) => !w.dy) ? <PortPanel windows={effPs.filter((w) => !w.dy)} /> : null}
       {o === "port" ? (spec.splits ?? []).map((sp, i) => spec.cut ? <PortraitClipCard key={i} cut={spec.cut} sp={cover && cover.style !== "kit" ? { ...sp, from: Math.max(sp.from, (cover.style === "pro" ? THUMBPRO_END : PAPER_COVER_END) / 30) } : sp} /> : null) : null}
       {/* a curtain at BOTH the entry and the exit of every baked split (rule 41; user 2026-10-30: «خطأ فادح أن تظهر الشاشة المقسومة بدون المؤثر الخاص»); none at the very start (the cover covers it) and one per shared edge */}
       {o === "land" ? [...new Set((spec.splits ?? []).flatMap((sp) => [sp.from, sp.to]).filter((t) => t > 0.5))].map((t) => <Curtain key={"cs" + t} at={t} />) : null}

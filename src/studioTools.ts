@@ -438,32 +438,50 @@ const installMarks = () => {
 /**
  * ELEMENT NAMES UNDER THE SCREEN (user 2026-11-17: «اجعل كل عنصر في المعرض له اسم، وهذا الاسم يظهر في ريموشن تحت الشاشة… عشان لما اطلب تعديله اعرف ايش اطلب»).
  * The montage engine publishes the Arabic names of the elements on screen at the current frame (window.__elNow, src/elementNames.ts); this writes them in a strip
- * under each screen: under the portrait and the landscape screens of a «-Both» composition, under the canvas otherwise. Studio-only, never breaks the Studio.
+ * in a row of its own at the foot of the viewer (the viewer shrinks above it): one part under each screen of a «-Both» composition, the whole row otherwise.
+ * Selectable text, to copy. Studio-only, never breaks the Studio.
  */
 const installElementNames = () => {
-  const w = window as unknown as { __elNames?: { timer?: number; boxes?: HTMLElement[] }; __elNow?: Partial<Record<"port" | "land", string[]>> };
+  const w = window as unknown as { __elNames?: { timer?: number; row?: HTMLElement }; __elNow?: Partial<Record<"port" | "land", string[]>> };
   if (w.__elNames?.timer) window.clearInterval(w.__elNames.timer);
-  w.__elNames?.boxes?.forEach((b) => b.remove());
-  const mk = () => { const b = document.createElement("div"); b.style.cssText = "position:fixed;z-index:2147482900;display:none;box-sizing:border-box;padding:3px 8px;direction:rtl;text-align:center;font:600 12px Tahoma,Arial,sans-serif;color:#fff;background:rgba(12,16,24,.88);border:1px solid rgba(255,255,255,.18);border-radius:6px;pointer-events:auto;user-select:text;white-space:normal;line-height:1.5"; document.body.appendChild(b); return b; };
-  const boxes = [mk(), mk()]; w.__elNames = { boxes };
+  w.__elNames?.row?.remove();
+  /* its OWN row of the Studio's layout (user 2026-11-17: «يأخذ مساحته الخاصة مثل مكان التوقيتات والأزرار… واجعله قابلاً للنسخ»): a strip at the foot of the
+     viewer column, so the viewer shrinks above it instead of being covered; plain selectable text (select + Ctrl+C) */
+  const row = document.createElement("div");
+  row.id = "__el_names_row";
+  row.style.cssText = "flex:0 0 32px;height:32px;position:relative;display:none;box-sizing:border-box;border-top:1px solid rgba(255,255,255,.12);background:#1f2428;direction:rtl;font:600 13px Tahoma,Arial,sans-serif;color:#e8e8e8;overflow:hidden;user-select:text;-webkit-user-select:text;cursor:text";
+  const cell = () => { const c = document.createElement("div"); c.style.cssText = "position:absolute;top:0;height:31px;line-height:31px;padding:0 8px;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;user-select:text;-webkit-user-select:text"; row.appendChild(c); return c; };
+  const cells = [cell(), cell()];
+  w.__elNames = { row };
   const text = (names?: string[]) => { if (!names?.length) return "لا عنصر من المعرض الآن"; const c = new Map<string, number>(); for (const n of names) c.set(n, (c.get(n) ?? 0) + 1); return "مستخدم: " + [...c].map(([n, k]) => (k > 1 ? n + " ×" + k : n)).join(" · "); };
-  const put = (b: HTMLElement, r: DOMRect | null, s: string, below: boolean) => {
-    if (!r || r.width < 40) { if (b.style.display !== "none") b.style.display = "none"; return; }
-    const top = below ? Math.min(window.innerHeight - 24, Math.round(r.bottom + 4)) : Math.round(r.bottom - 26);
-    const bw = Math.max(r.width, Math.min(520, s.length * 7 + 24)), bl = Math.max(4, Math.min(window.innerWidth - bw - 4, r.left + (r.width - bw) / 2));   // a narrow portrait screen: the strip is wider than it, centred, one line
-    b.style.left = Math.round(bl) + "px"; b.style.width = Math.round(bw) + "px"; b.style.top = top + "px";
-    if (b.textContent !== s) b.textContent = s; if (b.style.display !== "block") b.style.display = "block";
+  const set = (c: HTMLElement, s: string, left: number, width: number, top = 0, h = 31) => {
+    c.style.top = top + "px"; c.style.height = h + "px"; c.style.lineHeight = h + "px";
+    if (c.textContent !== s && !(window.getSelection()?.toString() && c.contains(window.getSelection()?.anchorNode ?? null))) { c.textContent = s; c.title = s; }   // never replaced under a selection being copied
+    c.style.left = Math.round(left) + "px"; c.style.width = Math.max(40, Math.round(width)) + "px"; c.style.display = "block";
+  };
+  /** the Studio's viewer column (tabs + canvas): the closest column-flex ancestor of the canvas that also holds the tabs */
+  const column = (): HTMLElement | null => {
+    const cc = document.querySelector<HTMLElement>(".remotion-studio-composition-container");
+    for (let n = cc?.parentElement ?? null; n && n !== document.body; n = n.parentElement) if (getComputedStyle(n).flexDirection === "column" && n.querySelector(".__remotion-canvas-tab")) return n;
+    return null;
   };
   const tick = () => {
     try {
-      const now = w.__elNow ?? {}, P = document.getElementById("__both_port"), L = document.getElementById("__both_land");
-      if (P && L) { put(boxes[0], P.getBoundingClientRect(), text(now.port), true); put(boxes[1], L.getBoundingClientRect(), text(now.land), true); return; }
-      const o = now.land ? "land" : now.port ? "port" : null;
-      const cont = document.querySelector<HTMLElement>(".remotion-studio-composition-container");
-      if (!o || !cont) { boxes.forEach((b) => { if (b.style.display !== "none") b.style.display = "none"; }); return; }
-      const cr = cont.getBoundingClientRect(), ar = cont.parentElement?.getBoundingClientRect();
-      put(boxes[0], cr, text(now[o]), !!ar && cr.bottom + 30 <= ar.bottom);   // under the frame when the viewer has room, else over its lower edge
-      if (boxes[1].style.display !== "none") boxes[1].style.display = "none";
+      const now = w.__elNow ?? {}, col = column(), any = !!(now.port || now.land);
+      if (!col || !any) { if (row.style.display !== "none") row.style.display = "none"; return; }
+      if (row.parentElement !== col || col.lastElementChild !== row) col.appendChild(row);
+      if (row.style.display !== "block") row.style.display = "block";
+      const rr = row.getBoundingClientRect(), P = document.getElementById("__both_port"), L = document.getElementById("__both_land");
+      if (P && L) {   // the two-screen preview: one full line per screen
+        if (row.style.height !== "56px") { row.style.height = "56px"; row.style.flexBasis = "56px"; }
+        set(cells[0], "طولي — " + text(now.port), 0, rr.width, 1, 27);
+        set(cells[1], "عرضي — " + text(now.land), 0, rr.width, 28, 27);
+        return;
+      }
+      if (row.style.height !== "32px") { row.style.height = "32px"; row.style.flexBasis = "32px"; }
+      const o = now.land ? "land" : "port";
+      set(cells[0], text(now[o]), 0, rr.width);
+      cells[1].style.display = "none";
     } catch { /* never break the Studio */ }
   };
   w.__elNames.timer = window.setInterval(tick, 250);

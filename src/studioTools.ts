@@ -450,7 +450,8 @@ const installElementNames = () => {
   const put = (b: HTMLElement, r: DOMRect | null, s: string, below: boolean) => {
     if (!r || r.width < 40) { if (b.style.display !== "none") b.style.display = "none"; return; }
     const top = below ? Math.min(window.innerHeight - 24, Math.round(r.bottom + 4)) : Math.round(r.bottom - 26);
-    b.style.left = Math.round(r.left) + "px"; b.style.width = Math.round(r.width) + "px"; b.style.top = top + "px";
+    const bw = Math.max(r.width, Math.min(520, s.length * 7 + 24)), bl = Math.max(4, Math.min(window.innerWidth - bw - 4, r.left + (r.width - bw) / 2));   // a narrow portrait screen: the strip is wider than it, centred, one line
+    b.style.left = Math.round(bl) + "px"; b.style.width = Math.round(bw) + "px"; b.style.top = top + "px";
     if (b.textContent !== s) b.textContent = s; if (b.style.display !== "block") b.style.display = "block";
   };
   const tick = () => {

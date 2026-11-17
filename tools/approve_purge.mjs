@@ -18,6 +18,8 @@ const key = project.toLowerCase();
 if (key.length < 4) { console.log(`⚠ «${project}» أقصر من 4 أحرف: لا حذف آلي للكود`); process.exit(0); }
 const SHARED = new Set(["Root.tsx", "ReelsComps.tsx", "MontageSpec.tsx", "index.ts", "compositionTitles.ts", "compositionDates.ts"]);
 const say = (s) => console.log((dry ? "[تجربة] " : "") + s);
+// 0) the publishing package (YouTube text, mentioned episodes, answers, cover) is kept in data/publish_queue/<p>/ BEFORE anything is deleted (2026-11-17)
+if (!dry) { const r = spawnSync("node", ["tools/publish_queue.mjs", "save", project], { encoding: "utf8" }); process.stdout.write(r.stdout || ""); if (r.status !== 0) { console.log("✘ تعذّر حفظ حزمة النشر — لا مسح قبلها\n" + (r.stderr || "")); process.exit(1); } }
 const rd = (f) => fs.readFileSync(f, "utf8");
 const wr = (f, s) => { if (!dry) fs.writeFileSync(f, s); };
 const del = (f) => { if (!dry) fs.rmSync(f, { recursive: true, force: true }); };

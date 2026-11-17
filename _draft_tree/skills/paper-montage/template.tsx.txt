@@ -1,0 +1,66 @@
+// قالب المونتاج الورقي (من «لا نقاش بين مقلد ومستدل»). انسخه إلى src/<Name>.tsx وعدّل SCENES والصوت والعنوان.
+import React from "react";
+import { AbsoluteFill, Audio, Img, Sequence, staticFile, useCurrentFrame } from "remotion";
+import { CollageAssemble, kufiF } from "./MG";
+export const KH_FPS = 30;
+export const KH_FRAMES = 418; // = مدة voice_cut × 30
+const W = 1080, H = 1920;
+const TITLE = "العنوان", NAME = "اسم المتحدث";
+const img = (src: string) => <Img src={staticFile(src)} style={{ width: "100%", height: "100%", objectFit: "contain" }} />;
+
+/** رجل ظل أسود بلا وجه؛ big = عمامة ضخمة للقائد */
+const Man: React.FC<{ big?: boolean }> = ({ big }) => (
+  <svg viewBox="0 0 300 440" style={{ width: "100%", height: "100%", overflow: "visible" }}>
+    <path d="M86 190 Q156 150 226 190 L252 402 L60 402 Z" fill="#111" />
+    <ellipse cx="112" cy="410" rx="38" ry="12" fill="#111" /><ellipse cx="200" cy="410" rx="38" ry="12" fill="#111" />
+    <circle cx="156" cy="150" r="34" fill="#111" />
+    {big ? (
+      <g>
+        <circle cx="156" cy="100" r="92" fill="#f3ead3" stroke="#111" strokeWidth="7" />
+        <path d="M80 70 Q156 20 232 70 M70 100 Q156 50 242 100 M76 132 Q156 84 236 132 M110 40 Q156 80 202 40" fill="none" stroke="#111" strokeWidth="6" opacity=".8" />
+      </g>
+    ) : (
+      <g>
+        <circle cx="156" cy="116" r="44" fill="#f3ead3" stroke="#111" strokeWidth="5" />
+        <path d="M118 104 Q156 78 194 104 M116 128 Q156 104 196 128" fill="none" stroke="#111" strokeWidth="4" opacity=".8" />
+      </g>
+    )}
+  </svg>
+);
+
+type Pc = { at: number; node: React.ReactNode; cx: number; cy: number; w: number; ar: number; rot?: number; from?: "left" | "right" | "top" | "bottom" };
+// from/to بالثواني بعد قطع السكتات؛ at = زمن ظهور القطعة داخل المشهد (عند نطق كلمتها)؛ cx,cy,w كسور من الإطار؛ ar = العرض/الارتفاع
+const SCENES: { from: number; to: number; bg: string; pieces: Pc[] }[] = [
+  { from: 0, to: 4, bg: "#c8553d", pieces: [
+    { at: 0.5, node: img("<proj>/scales.png"), cx: 0.5, cy: 0.36, w: 0.78, ar: 1.3, from: "top" },
+    { at: 1.5, node: <Man />, cx: 0.27, cy: 0.74, w: 0.36, ar: 0.68, rot: -3, from: "left" }] },
+];
+
+const Scene: React.FC<{ s: (typeof SCENES)[number] }> = ({ s }) => (
+  <CollageAssemble w={W} h={H} bg={s.bg} step={2} pieces={s.pieces.map((p) => {
+    const w = p.w * W, h = w / p.ar;
+    return { at: p.at, x: p.cx * W - w / 2, y: p.cy * H - h / 2, w, h, rot: p.rot ?? 0, from: p.from ?? "right", cutout: true, node: p.node };
+  })} />
+);
+const NameTag: React.FC = () => {
+  const f = useCurrentFrame(), k = Math.min(1, Math.max(0, (f - 12) / 10));
+  return <div style={{ position: "absolute", left: 50, bottom: 90, transform: `rotate(-2deg) translateY(${(1 - k) * 60}px)`, opacity: k, background: "#f3ead3", padding: "12px 30px", boxShadow: "0 10px 22px rgba(0,0,0,.35)", fontFamily: kufiF, fontSize: 44, color: "#2a2118", direction: "rtl", borderRadius: 4 }}>{NAME}</div>;
+};
+const Cover: React.FC = () => (
+  <AbsoluteFill style={{ background: "#c8553d", alignItems: "center", justifyContent: "center", direction: "rtl" }}>
+    <div style={{ background: "#f3ead3", padding: "40px 60px", maxWidth: W * 0.84, textAlign: "center", fontFamily: kufiF, color: "#2a2118", boxShadow: "0 14px 30px rgba(0,0,0,.4)", transform: "rotate(-1.5deg)" }}>
+      <div style={{ fontSize: 100, lineHeight: 1.3 }}>{TITLE}</div>
+      <div style={{ fontSize: 52, marginTop: 24, color: "#c8553d" }}>{NAME}</div>
+    </div>
+  </AbsoluteFill>
+);
+export const PaperPortrait: React.FC = () => (
+  <AbsoluteFill style={{ background: "#c8553d" }}>
+    <Audio src={staticFile("<proj>/voice_cut.wav")} />
+    {SCENES.map((s, i) => (
+      <Sequence key={i} from={Math.round(s.from * KH_FPS)} durationInFrames={Math.round((s.to - s.from) * KH_FPS)}><Scene s={s} /></Sequence>
+    ))}
+    <NameTag />
+    <Sequence from={0} durationInFrames={3}><Cover /></Sequence>
+  </AbsoluteFill>
+);

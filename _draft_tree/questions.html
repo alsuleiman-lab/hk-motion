@@ -1,0 +1,256 @@
+<title>أسئلة شجرة العمل</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@500;700;800&family=Almarai:wght@400;700&display=swap">
+<style>
+/* لوح المراجعة: عمود واحد للقراءة، بطاقة لكل سؤال، شريط تقدّم ثابت أعلاه */
+:root{
+  --bg:#f3f0ea; --paper:#fffdf8; --ink:#2a2420; --muted:#6f655b; --line:#e2dbcf;
+  --accent:#8a4b2a; --accent-soft:#f1e3d6; --ok:#2f6b4a; --ok-soft:#dcefe3;
+  --display:"Noto Kufi Arabic","Segoe UI",Tahoma,sans-serif; --body:"Almarai","Segoe UI",Tahoma,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1c1916; --paper:#26221e; --ink:#efe8de; --muted:#b3a797; --line:#3a332c;
+  --accent:#e0a47a; --accent-soft:#3a2b22; --ok:#8fd1a8; --ok-soft:#1f3328; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1c1916; --paper:#26221e; --ink:#efe8de; --muted:#b3a797; --line:#3a332c;
+  --accent:#e0a47a; --accent-soft:#3a2b22; --ok:#8fd1a8; --ok-soft:#1f3328; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.75;margin:0}
+.wrap{max-width:820px;margin:0 auto;padding-block:20px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header h1{font-family:var(--display);font-weight:800;font-size:1.7rem;margin:6px 0 4px;text-wrap:balance}
+header p{color:var(--muted);margin:0 0 14px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px;border-bottom:1px solid var(--line);margin-bottom:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.meter{flex:1;min-width:160px;height:8px;background:var(--line);border-radius:6px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.count{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.95rem}
+.status{font-size:.9rem;color:var(--muted)}
+section.group{margin-top:26px}
+section.group h2{font-family:var(--display);font-size:1.15rem;margin:0 0 10px;color:var(--accent)}
+.q{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+.q.done{border-color:var(--ok)}
+.q h3{font-family:var(--display);font-weight:700;font-size:1.02rem;margin:0 0 6px;text-wrap:balance}
+.q .ctx{color:var(--muted);font-size:.93rem;margin:0 0 10px}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opts label{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border:1px solid var(--line);border-radius:9px;cursor:pointer}
+.opts label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.opts input{margin-top:6px;accent-color:var(--accent)}
+.opts .rec{font-size:.8rem;color:var(--accent);font-weight:700;margin-inline-start:6px}
+textarea{width:100%;min-height:56px;margin-top:10px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:.95rem;resize:vertical}
+.row{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+button{font-family:var(--display);font-weight:700;font-size:.95rem;border:0;border-radius:9px;padding:9px 18px;background:var(--accent);color:var(--paper);cursor:pointer}
+button:focus-visible,label:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.saved{color:var(--ok);font-size:.9rem}
+.note{background:var(--ok-soft);border-radius:10px;padding:10px 14px;margin:10px 0 0;font-size:.95rem}
+details{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 16px;margin-bottom:14px}
+summary{cursor:pointer;font-family:var(--display);font-weight:700}
+pre.tree{overflow-x:auto;font-size:.82rem;line-height:1.6;white-space:pre;direction:rtl}
+@media (prefers-reduced-motion:reduce){.meter i{transition:none}}
+</style>
+
+<div class="wrap">
+<header>
+  <h1>أسئلة شجرة العمل</h1>
+  <p>اختر جواباً لكل سؤال، واكتب ملاحظة إن شئت، ثم «احفظ». كل جواب يصلني فوراً وأعدّل المسوّدة به. الخيار المعلَّم «المستحسن» هو رأيي.</p>
+</header>
+<div class="bar"><div class="meter"><i id="meter"></i></div><span class="count" id="count">٠ من ٠</span><span class="status" id="status">جارٍ الاتصال…</span></div>
+
+<details><summary>شجرة العمليات المختصرة (للرجوع إليها)</summary>
+<pre class="tree">٠ الموجّه ← ١ الأسئلة الأولى + التجهيز ← ٢ التفريغ (مرة واحدة، أقوى نموذج، بالمتحدثين)
+← ٣ الاستخراج قبل القص: كتل «مونتاج» بمراسيها + «عفواً/أعيد» + الكلمات الحساسة
+← ٤ القص (نموذج القص الواحد) ← ٥ الاستخراج بعد القص: أسماء، آيات، أحاديث، أخبار، حلقات سابقة، أقسام الفيديو
+← ٦ الهوية: لون، فاصل، شريط الحلقة ← ٧ الغلاف ← ٨ الخطة والبناء من المعرض
+← ٩ الفحص السريع ← ١٠ روابط المراجعة ← ١١ الرندر بالطابور ← ١٢ الاعتماد والنشر
+وفي أي وقت: قص جزء محدد بين كلمتين.</pre></details>
+
+<div id="groups"></div>
+
+<section class="group"><h2>ملاحظات عامة</h2>
+  <div class="q" id="q-general"><h3>أي شيء تريد تغييره في الشجرة أو المهارات</h3>
+    <textarea id="t-general" placeholder="اكتب هنا"></textarea>
+    <div class="row"><button type="button" data-save="general">احفظ</button><span class="saved" id="s-general"></span></div>
+  </div>
+</section>
+</div>
+
+<script>
+const GROUPS = [
+ { title: "التفريغ والقص", items: [
+  { id:"asr_order", q:"ترتيب التفريغ والقص", ctx:"النموذج الذي يفرّق الكلام عن غيره هو نفسه نموذج التفريغ، فالتفريغ مرة واحدة يكفي للقص ولتوقيت كل شيء بعده.", opts:[
+    ["once_before","تفريغ واحد بأقوى نموذج على الأصل قبل القص، ثم تُنقل كلماته إلى القص بلا تفريغ ثانٍ",1],
+    ["cut_first","قص بكاشف الكلام أولاً، ثم تفريغ واحد على الناتج المقصوص"]]},
+  { id:"segcut_word", q:"قص جزء بطلبك: إذا وقع الحدّ الذي تعطيني إياه داخل كلمة", ctx:"القاعدة الثابتة: لا يُقص نصف كلمة أبداً.", opts:[
+    ["nearest","أنقله إلى أقرب فراغ بين كلمتين، وأذكر لك الكلمتين حول الوصلة",1],
+    ["drop_word","تُحذف الكلمة التي وقع فيها الحد كاملة"],
+    ["keep_word","تبقى الكلمة التي وقع فيها الحد كاملة"]]},
+  { id:"montage_doubt", q:"كلمة «مونتاج» مشكوك فيها في التفريغ (كُتبت «منتج» مثلاً)", ctx:"أحكم أولاً بالسياق: هل الكلام موجّه للمونتير أم للجمهور؟", opts:[
+    ["page","ما يبقى مشكوكاً فيه بعد السياق أضعه في صفحة الأسئلة بمقطعه",1],
+    ["context","أحكم بالسياق وحده ولا أسألك"]]}
+ ]},
+ { title: "الكلمات الحساسة", items: [
+  { id:"sens_list", q:"قائمة الكلمات التي تُصفَّر", ctx:"داعش ودواعش وتنظيم الدولة، القاعدة وتنظيم القاعدة، إرهاب، تفجير ومتفجرات، انتحار وانتحاري، قتل ومقتل وذبح ومجزرة.", opts:[
+    ["ok","القائمة صحيحة كما هي",1],
+    ["edit","أضيف أو أحذف (اكتب في الملاحظة)"]]},
+  { id:"sens_level", q:"مستوى الصافرة", ctx:"تغطي نصف الكلمة، والأصل مكتوم تحتها.", opts:[
+    ["soft","هادئة جداً، أدنى من الكلام بوضوح",1],
+    ["mid","متوسطة"],
+    ["current","كما هي الآن"],
+    ["mute","كتم نصف الكلمة بلا نغمة"]]},
+  { id:"sens_general", q:"كلمتا «القاعدة» و«الدولة» لهما معنى عام", opts:[
+    ["only_org","تُصفَّران فقط حين يكون المعنى التنظيم، والمشكوك فيه أسألك عنه",1],
+    ["always","تُصفَّران دائماً"]]}
+ ]},
+ { title: "الأسئلة الأولى والرفع", items: [
+  { id:"dest_ask", q:"وجهة الطولي والريل في الأسئلة الأولى", ctx:"الغالب: الطولي إلى «انستا وفيس» والريل إلى «الكل».", opts:[
+    ["ask_default","أسألك كل مرة والغالب محدد مسبقاً فتنقر فقط",1],
+    ["no_ask","لا أسأل، وأرفع دائماً إلى الغالب"]]},
+  { id:"yt_when", q:"موعد يوتيوب إن اخترت الجدولة", opts:[
+    ["first","تكتب اليوم والساعة مع الأسئلة الأولى",1],
+    ["approval","أسألك عن اليوم والساعة عند الاعتماد"]]},
+  { id:"playlist", q:"قائمة التشغيل في يوتيوب", opts:[
+    ["match","أضيفه إلى قائمة موجودة في القناة تطابق موضوعه، وإن لم توجد أذكر لك",1],
+    ["create","أنشئ قائمة جديدة إن لم توجد"],
+    ["none","لا قوائم تشغيل"]]}
+ ]},
+ { title: "أقسام الفيديو", items: [
+  { id:"sections_count", q:"عدد أقسام الفيديو", opts:[
+    ["rule","قاعدة بالمدة: حتى 5 دقائق ثلاثة أقسام، ومن 5 إلى 10 أربعة أو خمسة، وفوق 10 من ستة إلى ثمانية",1],
+    ["ask","أسألك عن العدد في الأسئلة الأولى لكل فيديو"],
+    ["you","تذكره أنت متى شئت، وإلا القاعدة بالمدة"]]},
+  { id:"sections_place", q:"متى يظهر خط الأقسام في أول الفيديو", opts:[
+    ["after_hook","بعد الهوك مباشرة",1],
+    ["after_bismillah","بعد التحية أو «بسم الله» الأولى"],
+    ["start","في أول ثوانٍ من الفيديو"]]},
+  { id:"sections_reel", q:"الريل: هل له أقسام؟", opts:[
+    ["no","لا، الأقسام للحلقة العرضية والطولي الكامل فقط",1],
+    ["yes","نعم كالحلقة"]]}
+ ]},
+ { title: "الفاصل والغلاف", items: [
+  { id:"bumper_others", q:"الفاصل في التعليق الصامت والدروس والبثوث", ctx:"الحلقة: قبل أول تحية وإلا في الآخر. الريل: في آخره. الكرتون: لا. الموشن: بطلبك فقط.", opts:[
+    ["end","في آخرها، كالريل",1],
+    ["like_episode","مثل الحلقة: قبل أول تحية وإلا في الآخر"],
+    ["none","بلا فاصل"]]},
+  { id:"cover_lessons", q:"غلاف الدروس", opts:[
+    ["self","أصممه بنفسي مثل البث",1],
+    ["gpt","ChatGPT مثل الحلقات"]]},
+  { id:"cover_stream_reels", q:"غلاف الريلز المقتطعة من البثوث", opts:[
+    ["gpt","ChatGPT مثل كل الريلز",1],
+    ["self","أصممه بنفسي مثل البث"]]},
+  { id:"cover_cartoon", q:"الكرتون", ctx:"في المهارة الحالية للكرتون غلاف مرسوم من عالم القصة، وقلت الآن إن الكرتون بلا غلاف.", opts:[
+    ["none","بلا غلاف، وأحذف قاعدة الغلاف المرسوم",1],
+    ["drawn","يبقى غلاف مرسوم من عالم القصة"]]}
+ ]},
+ { title: "الفحص والرندر والتثبيت", items: [
+  { id:"check_mode", q:"الفحص", opts:[
+    ["once_plus_changed","كل مهارة تفحص ناتجها فوراً، والفحص الكامل مرة قبل الرابط، وبعدها ما تغيّر فقط",1],
+    ["full_each","الفحص الكامل بعد كل تعديل"]]},
+  { id:"render_perm", q:"إذن الرندر", opts:[
+    ["separate","أطلب إذنك بعد رابط المراجعة دائماً (كما الآن)",1],
+    ["after_ok","موافقتك على المراجعة إذن بالرندر، فأضعه في الطابور فوراً"]]},
+  { id:"install", q:"بعد إجاباتك", opts:[
+    ["install","أعدّل المسوّدة بها وأثبّتها مكان القواعد والمهارات الحالية، والقديم إلى الأرشيف",1],
+    ["review_first","أعدّلها وأعرضها عليك مرة أخرى قبل التثبيت"]]}
+ ]}
+];
+const EXTRA = [
+  { id:"prefs_fate", q:"ملف التفصيل (الأرقام والجداول والأسماء الثابتة)", ctx:"المقارنة وجدت أن أرشفته تُضيع جداول مهمة: الأسماء الثابتة، مناطق الشاشة، طرق الآية والحديث، حدود المؤثرات.", opts:[
+    ["into_skills","تُنقل بنوده إلى المهارات المعنية، ثم يُؤرشف",1],
+    ["keep_ref","يبقى مرجعاً للبحث بجانب الشجرة"],
+    ["archive","يُؤرشف كما هو"]]},
+  { id:"checklist_fate", q:"قائمة المراجعة النهائية (24 بنداً)", opts:[
+    ["into_check","تصير جزءاً من مهارة الفحص (قبل الرابط) ومهارة الرندر (بعده)",1],
+    ["gates_only","يُكتفى بالبوابات الآلية"],
+    ["visual_only","قائمة مختصرة بالبنود البصرية وحدها"]]},
+  { id:"drift_check", q:"التحقق من التوقيت بعد القص", ctx:"اليوم يُفرَّغ صوت القص مرة للتحقق فقط (هل الكلمات المنقولة تطابق الصوت؟). هذا تفريغ ثانٍ وإن لم يُبنَ عليه.", opts:[
+    ["align_check","يُستبدل بفحص محاذاة على الصوت بلا تفريغ ثانٍ",1],
+    ["keep","يبقى تفريغ التحقق كما هو"],
+    ["drop","يُلغى ويُكتفى بنقل الكلمات"]]},
+  { id:"cover_others", q:"غلاف التعليق الصامت والمونتاج الورقي والإعلان والموشن", opts:[
+    ["mixed","التعليق الصامت والورقي ChatGPT، والإعلان أصممه، والموشن بلا غلاف إلا بطلبك",1],
+    ["self_all","كلها أصممها بنفسي"],
+    ["ask","أسألك كل مرة"]]},
+  { id:"bumper_paper_ad", q:"الفاصل في المونتاج الورقي والإعلان", opts:[
+    ["paper_yes_ad_no","الورقي كفيديوهاتك، والإعلان بلا فاصل إلا بطلبك",1],
+    ["none","كلاهما بلا فاصل"],
+    ["both","كلاهما بالفاصل"]]},
+  { id:"dest_others", q:"وجهة رفع التعليق الصامت والمونتاج الورقي والإعلان", opts:[
+    ["ask_first","تُسأل في أول العمل مع العنوان",1],
+    ["all","درايف «الكل» دائماً"],
+    ["at_approval","تُسأل عند الاعتماد"]]},
+  { id:"motion_upload", q:"متى أسألك «أرفع الموشن أنا أم أنت؟»", opts:[
+    ["first","في أول العمل",1],
+    ["approval","عند الاعتماد"]]},
+  { id:"tunnel_scope", q:"النفق حين تكون خارج البيت", opts:[
+    ["both","يعرض الاستوديو للمراجعة ومجلد «جاهز» للمشاهدة",1],
+    ["ready_only","يعرض مجلد «جاهز» فقط (كما الآن)"]]}
+];
+
+const groupsEl = document.getElementById("groups");
+const all = [...GROUPS, ...(EXTRA.length ? [{ title: "من مقارنة النسخ", items: EXTRA }] : [])];
+const total = all.reduce((n, g) => n + g.items.length, 0);
+for (const g of all) {
+  const sec = document.createElement("section"); sec.className = "group";
+  const h = document.createElement("h2"); h.textContent = g.title; sec.appendChild(h);
+  for (const it of g.items) {
+    const card = document.createElement("div"); card.className = "q"; card.id = "q-" + it.id;
+    const h3 = document.createElement("h3"); h3.textContent = it.q; card.appendChild(h3);
+    if (it.ctx) { const p = document.createElement("p"); p.className = "ctx"; p.textContent = it.ctx; card.appendChild(p); }
+    const opts = document.createElement("div"); opts.className = "opts";
+    for (const [val, label, rec] of it.opts) {
+      const l = document.createElement("label");
+      const r = document.createElement("input"); r.type = "radio"; r.name = it.id; r.value = val; r.id = it.id + "-" + val;
+      const s = document.createElement("span"); s.textContent = label;
+      if (rec) { const b = document.createElement("span"); b.className = "rec"; b.textContent = "المستحسن"; s.appendChild(b); }
+      l.append(r, s); opts.appendChild(l);
+    }
+    card.appendChild(opts);
+    const ta = document.createElement("textarea"); ta.id = "t-" + it.id; ta.placeholder = "ملاحظة (اختياري)"; card.appendChild(ta);
+    const row = document.createElement("div"); row.className = "row";
+    const btn = document.createElement("button"); btn.type = "button"; btn.textContent = "احفظ"; btn.dataset.save = it.id;
+    const sv = document.createElement("span"); sv.className = "saved"; sv.id = "s-" + it.id;
+    row.append(btn, sv); card.appendChild(row); sec.appendChild(card);
+  }
+  groupsEl.appendChild(sec);
+}
+
+const answered = new Set();
+const ar = (n) => String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[d]);
+const paint = () => { document.getElementById("count").textContent = ar(answered.size) + " من " + ar(total); document.getElementById("meter").style.width = (total ? answered.size / total * 100 : 0) + "%"; };
+paint();
+const status = (t) => { document.getElementById("status").textContent = t; };
+let db = null;
+const timer = setTimeout(() => { if (!db) status("تعذّر الاتصال: افتح الصفحة وأنت مسجَّل في حسابك"); }, 10000);
+
+function show(id, data) {
+  if (!data) return;
+  if (data.choice) { const r = document.getElementById(id + "-" + data.choice); if (r) r.checked = true; }
+  const ta = document.getElementById("t-" + id); if (ta && typeof data.note === "string" && document.activeElement !== ta) ta.value = data.note;
+  const card = document.getElementById("q-" + id); if (card) card.classList.add("done");
+  const sv = document.getElementById("s-" + id); if (sv) sv.textContent = "محفوظ ✓";
+  if (id !== "general" && (data.choice || data.note)) answered.add(id);
+  paint();
+}
+
+(async () => {
+  try {
+    db = await claude.use("db");
+    clearTimeout(timer);
+    if (!db) { status("الحفظ غير متاح هنا: افتح الصفحة من حسابك"); return; }
+    status("متصل");
+    db.collection("answers").onSnapshot((snap) => { for (const d of snap.docs) show(d.id, d.data()); }, () => status("انقطع الاتصال: أعد فتح الصفحة"));
+  } catch { status("تعذّر الاتصال"); }
+})();
+
+document.addEventListener("click", async (e) => {
+  const id = e.target?.dataset?.save; if (!id) return;
+  if (!db) { status("الحفظ غير متاح: افتح الصفحة من حسابك"); return; }
+  const r = document.querySelector('input[name="' + id + '"]:checked');
+  const note = (document.getElementById("t-" + id)?.value || "").trim();
+  if (id !== "general" && !r && !note) { document.getElementById("s-" + id).textContent = "اختر جواباً أو اكتب ملاحظة"; return; }
+  const sv = document.getElementById("s-" + id); sv.textContent = "جارٍ الحفظ…";
+  try {
+    await db.doc("answers/" + id).set({ choice: r ? r.value : "", note, at: new Date().toISOString() });
+    sv.textContent = "محفوظ ✓";
+  } catch (err) { sv.textContent = "لم يُحفظ: " + (err?.code === "not_granted" ? "لا صلاحية كتابة" : "أعد المحاولة"); }
+});
+</script>

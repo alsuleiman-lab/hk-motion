@@ -16,7 +16,21 @@ const sec = (x) => (/^f\d+/.test(x) ? Number(x.slice(1)) / 30 : Number(x));
 // --src sa sb: REPLACE the span with that stretch of the ORIGINAL recording (a word the cut clipped: keep its true start)
 const si = process.argv.indexOf("--src"), SA = si > 0 ? Number(process.argv[si + 1]) : null, SBraw = si > 0 ? Number(process.argv[si + 2]) : null;
 const fL = SA != null ? Math.round((SBraw - SA) * 30) : 0, SB = SA != null ? SA + fL / 30 : null, L = fL / 30;
-const fA = Math.round(sec(a0) * 30), fB = Math.round(sec(b0) * 30), A = fA / 30, B = fB / 30, D = B - A - L;
+/* --snap-words (segment-cut skill, 2026-11-17: «تأكد من بداية الكلمات ونهاياتها، لا تقص نصف كلمة»): a bound inside a word moves out of it —
+   A to the middle of the gap BEFORE that word, B to the middle of the gap AFTER it — and the words around the join are printed */
+let sa = sec(a0), sb = sec(b0);
+if (process.argv.includes("--snap-words")) {
+  const wf = path.join(".tmp", p, "cut_words.json");
+  if (!fs.existsSync(wf)) { console.error("✘ --snap-words يحتاج .tmp/<p>/cut_words.json"); process.exit(1); }
+  const raw = JSON.parse(fs.readFileSync(wf, "utf8")), Wd = (raw.words ?? raw).map((w) => ({ s: +(w.s ?? w.start), e: +(w.e ?? w.end ?? (w.s ?? w.start) + 0.2), w: String(w.w ?? w.word) })).sort((x, y) => x.s - y.s);
+  const inW = (t) => Wd.findIndex((w) => t > w.s - 0.03 && t < w.e + 0.03);
+  let i = inW(sa); if (i >= 0) { const pe = i > 0 ? Wd[i - 1].e : Math.max(0, Wd[i].s - 0.2); sa = (pe + Wd[i].s) / 2; }
+  let j = inW(sb); if (j >= 0) { const ns = j < Wd.length - 1 ? Wd[j + 1].s : Wd[j].e + 0.2; sb = (Wd[j].e + ns) / 2; }
+  const before = Wd.filter((w) => w.e <= sa + 0.03).slice(-3).map((w) => w.w).join(" "), after = Wd.filter((w) => w.s >= sb - 0.03).slice(0, 3).map((w) => w.w).join(" ");
+  const gone = Wd.filter((w) => w.s >= sa - 0.03 && w.e <= sb + 0.03).map((w) => w.w).join(" ");
+  console.log(`cut_block: الحدّان على فراغ بين كلمتين ${sa.toFixed(3)}–${sb.toFixed(3)}ث\n  قبل الوصلة: «${before}»\n  المحذوف: «${gone}»\n  بعد الوصلة: «${after}»`);
+}
+const fA = Math.round(sa * 30), fB = Math.round(sb * 30), A = fA / 30, B = fB / 30, D = B - A - L;
 if (!(fB > fA)) { console.error("✘ B must be after A"); process.exit(2); }
 const T = path.join(".tmp", p), specF = path.join("data", "specs", `${p}.json`), frozenF = path.join(T, "spec_frozen.json");
 /* PREVENTION (user 2026-11-12, frame 3722: «بقايا كلمة… ما بدي علاج بدي منع»): a cut point must lie in REAL silence, and the audio that follows the join must not

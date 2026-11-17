@@ -4,8 +4,12 @@ usage: python tools/bleep_words.py <project> <out.wav> [--sample a-b,c-d]   (أ�
 import json, re, sys, wave
 import numpy as np
 
-PATTERN = r"إره|ارهاب|إرها|داعش|دواعش|تفجير|تفجّر|انتحاري|انتحارية|متفجر|مجزر|ودعش|وإعش"   # (تهجئات Whisper لـ«وداعش») # أضف هنا ما يماثلها (مجزرة: تعليمة المستخدم 2026-10-29)
-SR, FREQ, GAIN, FADE = 48000, 880, 0.16, 0.012
+# (2026-11-17) the list and the level live in ONE table: data/sensitive_words.json (roots, misheard forms, two-word phrases, tone, level)
+T = json.load(open("data/sensitive_words.json", encoding="utf-8"))
+PATTERN = "|".join(map(re.escape, T["roots"] + T.get("forms", [])))
+PHRASES = [tuple(x) for x in T.get("phrases", [])]
+PART = tuple(T.get("part", [0.25, 0.75]))
+SR, FREQ, GAIN, FADE = 48000, float(T.get("tone_hz", 880)), 10 ** (float(T.get("gain_db", -16)) / 20), 0.012
 
 p, out = sys.argv[1], sys.argv[2]
 sample = None
@@ -27,15 +31,19 @@ def to_cut(t):
     return near["n"] if abs(t - near["a"]) <= 0.15 else None
 
 ranges = []
+nz = lambda s: re.sub(r"[ً-ْٰـ]", "", s).replace("أ", "ا").replace("إ", "ا").replace("آ", "ا").strip(".,،؟?!")
+prev = ""
 for x in words:
     t = (x.get("word") or x.get("w")).strip()
     s, e = x.get("start", x.get("s")), x.get("end", x.get("e"))
     forced = any(lo <= s <= hi for lo, hi in only)   # --word a-b: a word the user asked to bleep at that exact source time
-    if not re.search(PATTERN, t) and not forced:
+    phrase = any(nz(prev).endswith(nz(a)) and nz(t).endswith(nz(b)) for a, b in PHRASES)
+    prev = t
+    if not re.search(PATTERN, t) and not forced and not phrase:
         continue
     lead = 2 if t.startswith("ال") else 0
     cs = s + (e - s) * lead / len(t)
-    a, b = cs + (e - cs) * 0.25, cs + (e - cs) * 0.75
+    a, b = cs + (e - cs) * PART[0], cs + (e - cs) * PART[1]
     ca, cb = to_cut(a), to_cut(b)
     print(f"src {s:7.2f}-{e:7.2f} -> cut {ca}-{cb}" if ca is not None else f"src {s:7.2f} outside the cut")
     if ca is not None and cb is not None:
@@ -65,3 +73,12 @@ with wave.open(out, "wb") as f:
     f.setnchannels(ch); f.setsampwidth(2); f.setframerate(SR)
     f.writeframes((np.clip(y, -1, 1) * 32767).astype(np.int16).tobytes())
 print(f"wrote {out} {len(y)/SR:.1f}s, {len(ranges)} spots")
+# measured gate (2026-11-17): the beep must sit BELOW his speech level, never louder — the difference is printed, exit 1 when the beep is louder
+mono = x.mean(axis=1)
+fr = mono[: len(mono) // 960 * 960].reshape(-1, 960)
+rms = 20 * np.log10(np.sqrt((fr ** 2).mean(axis=1)) + 1e-9)
+speech = float(np.median(rms[rms > -40])) if (rms > -40).any() else -20.0
+beep = 20 * np.log10(GAIN / np.sqrt(2))
+print(f"level: speech {speech:.1f} dBFS, beep {beep:.1f} dBFS, difference {beep - speech:+.1f} dB")
+if ranges and beep > speech:
+    print("FAIL: the beep is louder than his speech — lower gain_db in data/sensitive_words.json"); sys.exit(1)

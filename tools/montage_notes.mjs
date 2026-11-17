@@ -5,6 +5,8 @@
 //   node tools/montage_notes.mjs add <project> "<text>" --at <source sec>   → where he said it in the ORIGINAL recording (requirements.mjs matches its editor-talk stretches to notes)
 //   node tools/montage_notes.mjs plan <project> <n> "type@cutSec,…"      → the elements this order becomes (pmap, peek, date, bgclip, behind, pic…); requirements.mjs --check fails until the spec has them
 //   node tools/montage_notes.mjs check <project>                              → exit 1 while any note is still open (use it before saying «انتهيت»)
+//   … add <project> "<text>" --at <sec> --anchor "<the words he said where it applies>"   (2026-11-17) the anchor phrase survives the cut:
+//   node tools/montage_notes.mjs anchor <project>                             → finds each anchor in .tmp/<p>/cut_words.json and stores at_cut (cut seconds); exit 1 when one is not found
 import fs from "node:fs";
 import path from "node:path";
 
@@ -20,7 +22,27 @@ const save = () => {
 };
 if (cmd === "add") {
   if (!a) { console.error("نص التعليمة مطلوب"); process.exit(2); }
-  const n = notes.length + 1, ai = process.argv.indexOf("--at"); notes.push({ n, text: a, state: "open", at: new Date().toISOString(), ...(ai > 0 ? { at_src: Number(process.argv[ai + 1]) } : {}) }); save(); console.log(`أُضيفت التعليمة ${n}`);
+  const n = notes.length + 1, ai = process.argv.indexOf("--at"), an = process.argv.indexOf("--anchor");
+  notes.push({ n, text: a, state: "open", at: new Date().toISOString(), ...(ai > 0 ? { at_src: Number(process.argv[ai + 1]) } : {}), ...(an > 0 ? { anchor: process.argv[an + 1] } : {}) }); save(); console.log(`أُضيفت التعليمة ${n}`);
+} else if (cmd === "anchor") {
+  const wf = path.join(".tmp", project, "cut_words.json");
+  if (!fs.existsSync(wf)) { console.error("✘ لا كلمات بعد القص بعد (cut_words.json)"); process.exit(1); }
+  const raw = JSON.parse(fs.readFileSync(wf, "utf8")), W = (raw.words ?? raw).map((w) => ({ s: +(w.s ?? w.start), w: String(w.w ?? w.word) }));
+  const nz = (s) => String(s).replace(/[ً-ْٰـ]/g, "").replace(/[إأآٱ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/[^\p{L}\p{N}]/gu, "");
+  const ws = W.map((w) => nz(w.w));
+  let bad = 0;
+  for (const n of notes.filter((x) => x.anchor)) {
+    const q = String(n.anchor).split(/\s+/).map(nz).filter(Boolean);
+    let best = null;   /* the start of the longest run of the anchor's words in order (≥ 60 % of them), nearest to the source time when known */
+    for (let i = 0; i < ws.length; i++) {
+      if (ws[i] !== q[0] && !(q[1] && ws[i] === q[1])) continue;
+      let k = 0, j = i; for (const t of q) { if (ws[j] === t) { k++; j++; } else if (ws[j + 1] === t) { k++; j += 2; } }
+      if (k / q.length >= 0.6 && (!best || k > best.k)) best = { i, k };
+    }
+    if (best) { n.at_cut = +W[best.i].s.toFixed(2); console.log(`✔ ${n.n}: «${n.anchor}» عند ${n.at_cut}ث بعد القص`); }
+    else { bad++; console.log(`✘ ${n.n}: لم أجد «${n.anchor}» في كلمات ما بعد القص`); }
+  }
+  save(); process.exit(bad ? 1 : 0);
 } else if (cmd === "done") {
   const n = notes.find((x) => x.n === Number(a));
   if (!n) { console.error("رقم غير موجود"); process.exit(2); }

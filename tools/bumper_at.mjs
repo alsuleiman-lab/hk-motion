@@ -36,7 +36,8 @@ if (hit > 0) {
   } catch (e) { console.error("bumper_at: تعذّر قياس الصوت", e.message); }
 }
 /* (user 2026-11-16, «يممممنع وضع الفاصل في أول الفيديو يا غبي») NEVER at second 0: with no opening greeting after the video's start the bumper goes at the END (end:true → BUMPER_POSITION=end) */
-const END_AT = at2 < 1, AT = END_AT ? +(spec.frames / 30).toFixed(2) : +at2.toFixed(2);
+/* (user 2026-11-17) a reel: the bumper is ALWAYS at the end */
+const END_AT = at2 < 1 || spec.kind === "reel", AT = END_AT ? +(spec.frames / 30).toFixed(2) : +at2.toFixed(2);
 /* --write: spec.bumper = { id (random among public/fawasel, kept once chosen), at } — Studio shows it there and the render inserts the SAME one (2026-11-12) */
 if (process.argv.includes("--write") || process.argv.includes("--id")) {
   const f = `data/specs/${p}.json`, sp2 = JSON.parse(fs.readFileSync(f, "utf8")), ids = Object.keys(JSON.parse(fs.readFileSync("public/fawasel/manifest.json", "utf8")).items ?? {}).length ? Object.keys(JSON.parse(fs.readFileSync("public/fawasel/manifest.json", "utf8")).items) : ["press", "shelf", "wall", "notebook", "tear"];

@@ -114,6 +114,7 @@ if (stage === "prep") {
   const sheetArgs = (gpu) => ["-v", "error", "-y", ...(gpu ? ["-hwaccel", "cuda", "-hwaccel_output_format", "cuda"] : ["-threads", "4"]), "-i", src, "-vf", gpu ? "fps=1/6,scale_cuda=320:-2,hwdownload,format=nv12,tile=8x8" : "fps=1/6,scale=320:-1,tile=8x8", "-frames:v", "1", path.join(T, "sheet.jpg")];
   const sheet = audioOnly ? Promise.resolve() : run("ffmpeg", sheetArgs(true)).then((r) => (r.code === 0 ? r : must("contact sheet", "ffmpeg", sheetArgs(false))));
   await must("VAD", PY, ["tools/vad_segments.py", a16, path.join(T, "vad.json"), "--padstart", "100", "--padend", "180", "--minsil", "150"]);
+  if (opt("asr-device", "cuda") !== "cuda") { say("✘ التفريغ بأقوى نموذج فقط (large-v3 float16 على كرت الشاشة): --asr-device غير cuda ممنوع"); finish(1); }
   await must("per-VAD transcript", PY, ["tools/transcribe_vad_segments.py", a16, path.join(T, "vad.json"), path.join(T, "tr_vad.json"), "--device", opt("asr-device", "cuda"), "--threads", opt("asr-threads", "4")]);
   await sheet;
   await srcWin;
@@ -319,6 +320,7 @@ if (stage === "check") {
   await step("video_lint", "node", ["tools/gpu/video_lint.mjs"], /video_lint|^\s+src\//);
   // one colour identity (src/brand.ts, user 2026-10-27): the montage's spec carries no colours of its own
   await step("rules_lint", "node", ["tools/rules_lint.mjs"], /^✘|✔ rules_lint/);
+  await step("asr_audit", "node", ["tools/asr_audit.mjs"], /^✘|✔ asr_audit/);   // every transcription = the strongest model (large-v3 float16, GPU)
   await step("element_usage", "node", ["tools/element_usage.mjs", "check"], /^✘|✔ element_usage/);   // the user's «متى تستخدمه» texts are synced and binding (2026-11-02)
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("brand_audit", "node", ["tools/brand_audit.mjs", "--strict", path.join("data", "specs", `${p}.json`)], /outside the identity|brand OK/);
   await step("mg_usage_audit", "node", ["tools/mg_usage_audit.mjs", fs.existsSync(path.join("data", "specs", `${p}.json`)) && !file.endsWith(".json") ? path.join("data", "specs", `${p}.json`) : file, "--minutes", minutes], /PASS|FAIL|kinds|نوع/i);

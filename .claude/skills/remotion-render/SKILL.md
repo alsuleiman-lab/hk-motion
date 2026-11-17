@@ -114,54 +114,20 @@ version: 4.0.535
 - **رندر واحد فعلاً:** قفل الرندر لا يكفي؛ أتأكد أنه لا `gpu_render.mjs` آخر يعمل (ذاكرة الكرت 24 GB تمتلئ فيظهر `Decode Error occurred for picture` و«no painted frame with marker» وينهار الرندر)؛ `render_project.sh` ينتظر خلو الكرت مرتين متتاليتين قبل كل اتجاه، ومهلة انتظار الرسم في `electron_worker.cjs` صارت دقيقة.
 - **الأوامر الطويلة:** `run_in_background` على الأمر نفسه؛ `nohup … &` داخل أداة الأوامر يموت بإنهاء الصدفة فيبدو الرندر «اكتمل» وهو لم يبدأ.
 
-## General rendering strategy
-
-Render a video using:
-
-```
-npx remotion render
-```
-
-Full list of options: https://www.remotion.dev/docs/cli/render.md
-
-Render a still using:
-
-```
-npx remotion still
-```
-
-Full list of options: https://www.remotion.dev/docs/cli/still.md
-
-To render several frames as images in one call, use `render --frames`:
-
-```
-npx remotion render [composition-id] out/frames --frames=0,30,90 --image-format=png
-```
-
-See https://www.remotion.dev/docs/cli/render.md#--frames for more options.
-
-## Transparent videos
-
-See [Transparent videos](./transparent-videos.md) for rendering out a video with transparency.
-
 ## Workspace rendering rules
 
-For this Remotion workspace, read `PREFERENCES.md` and `WORKFLOW_CHECKLIST.md` before rendering. Follow the montage skill for authorization: final renders require explicit permission, except the separate lessons-and-streams workflow (after its first project is approved). Use the project's render scripts and output directly to the selected `جاهز` folder.
+For this Remotion workspace, follow `MONTAGE_BRIEF.md` §11 (binding) and `WORKFLOW_CHECKLIST.md` before rendering. Follow the montage skill for authorization: final renders require explicit permission, except the separate lessons-and-streams workflow (after its first project is approved). Use the project's render scripts and output directly to the selected `جاهز` folder.
 
 - The host uses an NVIDIA RTX 3090. Use `-hwaccel cuda` for supported input codecs. Prefer NVENC for delivery: preview H.264 uses `h264_nvenc -preset p4 -cq 23`; final H.264 uses `h264_nvenc -preset p7 -rc vbr -cq 19 -b:v 0`. Use HEVC or AV1 NVENC only when the available encoder supports that codec.
-- Remotion Node renders through `tools/render_chunked.mjs` pass `videoBitrate` (default `16M`, override with `RENDER_BITRATE`); hardware encoding without it yields ≈2 Mbps. Measure the final file with `ffprobe -show_entries stream=bit_rate` (must be ≥ 10 Mbps, target ≈ 16 Mbps) and delete `render_work/chunked_<id>` before a re-render so old low-bitrate parts are not reused (R-RENDER-QUALITY.1).
+- Measure the final file with `ffprobe -show_entries stream=bit_rate`: it must be ≥ 14 Mbps; below 14 it is re-rendered.
 - When streams need no filters or re-encoding, use `-c copy`. For alpha output, CPU encoding is allowed: `prores_ks` with `yuva444p10le`, or `libvpx-vp9` with `yuva420p`.
 - CPU-bound FFmpeg operations, including alpha encoding and software filters, use `-threads 4`. Launch long conversions at below-normal priority. Use `scale_cuda` only for simple scaling with CUDA output frames.
 - For Node API renders, pass `ffmpegOverride: nvencOverride` from `tools/nvenc.mjs` and `concurrency: 3`; `remotion.config.ts` does not configure the Node API. CLI renders use the project config (currently concurrency 6; reduce to 4 if the machine stutters).
-- Before shell work, run `source tools/env.sh`; work on S and export the final video directly to G (user order 2026-10-21; the lessons-and-streams path keeps its own folder rules). After each operation, run `node tools/clean_temp.mjs`. Follow `PREFERENCES.md` for render order (landscape before portrait, sequentially).
-
-## المراقب الآلي الدائم (2026-10-21)
+- Before shell work, run `source tools/env.sh`; work on S and export the final video only to جاهز (`C:\Users\mshms\Videos\جاهز`; lessons, streams and cartoons in their sub-folders, `MONTAGE_BRIEF.md` §11.3). After each operation, run `node tools/clean_temp.mjs`. Render order: landscape before portrait, sequentially (`MONTAGE_BRIEF.md` §11.1).
 
 ## ONE render at a time (user order 2026-10-22)
-Never run two renders at the same time (two videos, two orientations, or a video and its cover). Render strictly in sequence; if the user asks for parallel renders by mistake, warn them and decline. Check that no other render process is alive first, and kill a stopped batch's whole process tree. `tools/render_final.mjs` refuses to start while `.tmp/render.lock` holds a live PID; any new render script must use the same lock. Keep `.agents/skills/remotion-render/SKILL.md` in sync.
+Never run two renders at the same time (two videos, two orientations, or a video and its cover). Render strictly in sequence; if the user asks for parallel renders by mistake, warn them and decline. Check that no other render process is alive first, and kill a stopped batch's whole process tree. `tools/gpu_render.mjs` refuses to start while `.tmp/render.lock` holds a live PID (`tools/render_lock.mjs`); any new render script must use the same lock.
 
-## من مهارات Remotion الرسمية (remotion-dev/skills، منسوخة 2026-10-22؛ لم تُنسخ مهارتهم `remotion-render` حتى لا تحل محل هذه)
-- **عدة لقطات بنداء واحد:** `npx remotion render <id> out/frames --frames=0,30,90 --image-format=png` (حزمة واحدة، وتوازٍ داخلي) — أسرع من تشغيل `still` لكل إطار.
-- لقطة واحدة: `npx remotion still <id> out.png --frame=N`؛ وللفيديو الشفاف انظر `transparent-videos.md` الرسمي (في المستودع المنسوخ `scratch/ext_repos/remotion-skills/skills/remotion-render/`).
-- **صور المعاينة السريعة عندنا:** `node tools/stills.mjs <id> <outDir> name:frame …` (متصفح واحد مشترك + حزمة مخزَّنة + أصول بالروابط الصلبة؛ التوازي أبطأ عندنا فالافتراضي إطار بعد إطار).
+## اللقطات الثابتة
+- **عبر `stills.mjs` وحده:** `node tools/stills.mjs <id> <outDir> name:frame …` (متصفح واحد مشترك + حزمة مخزَّنة + أصول بالروابط الصلبة؛ التوازي أبطأ عندنا فالافتراضي إطار بعد إطار).
 

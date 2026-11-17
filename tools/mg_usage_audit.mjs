@@ -1,7 +1,7 @@
 // Audit: did the montage actually USE the motion-kit pieces, and with variety? (user order 2026-10-20: mandatory, varied, as many as fit)
 //   node tools/mg_usage_audit.mjs src/<Composition>.tsx [--minutes 8]
 // Scans the file (and the src files it imports from ./) for JSX uses of the kit components. FAILS (exit 1) if distinct kit kinds < needed
-// (max(4, ceil(minutes*0.8)), capped at 10) or any single kind is used more than 3 times. Run it before saying «انتهيتُ».
+// (max(4, ceil(minutes*0.8)), capped at 9) or any single kind is used more than 3 times. Run it before saying «انتهيتُ».
 import fs from "node:fs";
 import path from "node:path";
 

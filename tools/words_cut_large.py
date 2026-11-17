@@ -7,7 +7,7 @@ from faster_whisper import WhisperModel
 p = sys.argv[1]; T = f".tmp/{p}"
 subprocess.run(["ffmpeg","-v","error","-y","-i",f"public/{p}_cut.mp4","-vn","-ac","1","-ar","16000",f"{T}/cut16k.wav"],check=True)
 m = WhisperModel("large-v3", device="cuda", compute_type="float16", local_files_only=True)
-segs,_ = m.transcribe(f"{T}/cut16k.wav", language="ar", word_timestamps=True, vad_filter=True, beam_size=5, condition_on_previous_text=False)
+segs,_ = m.transcribe(f"{T}/cut16k.wav", language="ar", word_timestamps=True, vad_filter=True, beam_size=8, best_of=5, temperature=[0.0, 0.2], condition_on_previous_text=False)
 W=[]; L=[]
 for s in segs:
     L.append(f"[{s.start:.1f}-{s.end:.1f}] {s.text.strip()}")

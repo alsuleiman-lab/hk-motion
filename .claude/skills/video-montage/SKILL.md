@@ -36,7 +36,7 @@ description: سلسلة مونتاج حلقة الشيخ محمد بن شمس ا
 | 2 | الأوامر وقائمة المهام (`context`) | `montage-orders` | §5 §6 | تعليمات مسجّلة بزمنها، كتلة «مونتاج» و«عفواً» محذوفة، `requirements.md` |
 | 3 | الأصول (`assets`) | `workflow-plan.md` 1ج + `pixabay-search` + `source-display` + `collage-broll-local` | §8.1–§8.6 | `.tmp/<p>/assets.md`، وما تعذّر يُعلَم به المستخدم |
 | 4 | الغلاف (`cover`) | `thumbnail-design` | §11.4 | يُراجع بصرياً قبل البناء |
-| 5 | الخطة (`plan`) | `workflow-plan.md` + `gallery-placement` | §8.8 §9 | `plan.json` (كل بند باسم مهارته) + `data/specs/<p>.json` يجتاز `coverage_check` |
+| 5 | الخطة (`plan`) | `workflow-plan.md` + `gallery-placement` | §8.8 §9 | `.tmp/<p>/plan.json` (بنود الحارس بـ`montage_guard plan-add`، كل بند باسم مهارته) + الخطة المقروءة `.tmp/<p>/plan.md` (قالب `workflow-plan.md`) + `data/specs/<p>.json` يجتاز `coverage_check` |
 | 6 | الهوك (`hook`) | `gallery-placement` §1 | §8.8 | أول 30ث (عرضي وطولي كامل) أو 10–15ث للريل، جدول ✔/✘ |
 | 7 | البناء (`build`) | `gallery-placement` · `source-display` · `collage-broll-local` | §9 | كل بند في الخطة عنصرٌ أُضيف باسمه ومتغيراته (`el.mjs add`، «نموذج العمل بالعناصر» أعلاه) للاتجاهين معاً، ثم `stage check` (PASSED) |
 | 8 | المراجعة (`review`) | هذا الملف + `WORKFLOW_CHECKLIST.md` | §10 | تقرير الحارس + المراجع بعين جديدة + الرابط |
@@ -51,10 +51,11 @@ description: سلسلة مونتاج حلقة الشيخ محمد بن شمس ا
 
 ## المراجعة (المرحلة 8)
 1. لكل بند: `montage_guard plan-done <p> <id> --evidence "…" [--skill <المستعملة>]` (لقطة أو نتيجة أداة).
-2. `node tools/stage.mjs check <p> <Comp> --file src/<X>.tsx --minutes <m>` بعد **آخر** تعديل (typecheck + `mg_usage_audit` + `coverage_check` + `face_fast`؛ `face_check`/`frame_audit` للتركيبات القديمة)، و`audio_gate` و`final_review.mjs` و`montage_notes.mjs check`، وتُسجَّل `--gate` في التقرير؛ ثم `WORKFLOW_CHECKLIST.md` بنداً بنداً.
+2. `node tools/stage.mjs check <p> <Comp> --file src/<X>.tsx --minutes <m>` بعد **آخر** تعديل (typecheck + `mg_usage_audit` + `coverage_check` + `face_fast`؛ `face_check`/`frame_audit` للتركيبات القديمة)، و`audio_gate` و`montage_notes.mjs check`، وتُسجَّل `--gate` في التقرير؛ ثم بنود `WORKFLOW_CHECKLIST.md` 1–20 بنداً بنداً.
 3. `node tools/montage_guard.mjs check <p>` ينجح.
 4. **مراجع بعين جديدة:** وكيل فرعي يُعطى `plan.json` وبوابات المهارات المستعملة واللقطات، ويجيب لكل بند: «نُفِّذ وفق مهارته؟ نعم/لا/غير واضح + السبب».
-5. المعاينة والرابط بعد التأكد أنه يعمل، ومعه فحص الارتجاف العشوائي من وسط الفيديو يعمل في الخلفية (يطلقه `stage.mjs check`) وتُذكر نتيجته حين ينتهي؛ لا رندر نهائي قبل إذن صريح؛ ثم «✅ انتهيتُ من المونتاج» + الرابط، ثم «هل تعتمده؟».
+5. المعاينة والرابط بعد التأكد أنه يعمل، ومعه فحص الارتجاف العشوائي من وسط الفيديو يعمل في الخلفية (يطلقه `stage.mjs check`) وتُذكر نتيجته حين ينتهي؛ رسالة المراجعة = رابط Studio وحده بلا «انتهيت»؛ لا رندر نهائي قبل إذن صريح.
+6. **بعد الرندر:** الملف في «جاهز»، و`node tools/final_review.mjs <الملف المرندر> --name <p>` ينجح، وبنود `WORKFLOW_CHECKLIST.md` 21 فما بعد؛ ثم «✅ انتهيتُ من المونتاج» + رابط المشاهدة، ثم «هل تعتمده؟».
 
 ## بوابات المهارات (يقرؤها المراجع)
 - **video-cutting:** لا سكتة > 0.4ث؛ بوابة الصوت نجحت؛ لا بداية كلمة مقصوصة (`onset_check.py` صفر)؛ لا قص لكلامه أو مقاطعه بلا إذن.

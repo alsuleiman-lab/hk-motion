@@ -21,7 +21,7 @@ if (!fs.existsSync(path.join(BK, "HEAD"))) {
   console.log("created", BK);
 }
 // the code and the rules, not the media (public/, models/, scratch/, render_work/ … stay out)
-git("add", "-A", "--", "src", "tools", "data", ".claude", ".agents", "rules_registry", "CLAUDE.md", "AGENTS.md", "PREFERENCES.md", "MONTAGE_BRIEF.md", "WORKFLOW_CHECKLIST.md", "STYLE_REFERENCES.md", "package.json", "package-lock.json", "tsconfig.json", "remotion.config.ts", "eslint.config.mjs", ".gitignore", "skills-lock.json", "effects_catalog.html");
+git("add", "-A", "--", "src", "tools", "data", ".claude", "rules_registry", "CLAUDE.md", "AGENTS.md", "PREFERENCES.md", "MONTAGE_BRIEF.md", "WORKFLOW_CHECKLIST.md", "STYLE_REFERENCES.md", "package.json", "package-lock.json", "tsconfig.json", "remotion.config.ts", "eslint.config.mjs", ".gitignore", "skills-lock.json", "effects_catalog.html");
 const staged = git("diff", "--cached", "--name-only").out.split("\n").filter(Boolean);
 console.log(`${staged.length} changed file(s)`);
 if (dry) process.exit(0);

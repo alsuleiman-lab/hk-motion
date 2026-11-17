@@ -11,6 +11,8 @@ src, vadf, out = sys.argv[1:4]
 a = sys.argv[4:]
 MERGE = float(a[a.index("--merge")+1]) if "--merge" in a else 0.3
 DEVICE = a[a.index("--device")+1] if "--device" in a else "cuda"
+# STRONGEST MODEL ONLY (user 2026-11-17): large-v3 at float16 on the GPU. A CPU/int8 decode is a weaker model and is refused, never used as a silent fallback.
+if DEVICE != "cuda": raise SystemExit("✘ التفريغ بأقوى نموذج فقط: large-v3 float16 على كرت الشاشة؛ ممنوع المعالج أو الدقة المنخفضة")
 THREADS = min(4, max(1, int(a[a.index("--threads")+1]))) if "--threads" in a else 4
 audio = decode_audio(src, sampling_rate=16000)
 sp = json.load(open(vadf))["speech"]
@@ -18,7 +20,7 @@ segs = []
 for s, e in sp:
     if segs and s - segs[-1][1] < MERGE: segs[-1][1] = e
     else: segs.append([s, e])
-m = WhisperModel("large-v3", device=DEVICE, compute_type="int8" if DEVICE == "cpu" else "float16", cpu_threads=THREADS, num_workers=1)
+m = WhisperModel("large-v3", device=DEVICE, compute_type="float16", cpu_threads=THREADS, num_workers=1)
 res = []
 for i, (s, e) in enumerate(segs):
     s0, e0 = max(0, s - 0.15), min(len(audio)/16000, e + 0.15)

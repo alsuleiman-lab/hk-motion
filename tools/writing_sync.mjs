@@ -43,9 +43,9 @@ for (const [i, it] of spec.items.entries()) {
   else if (it.t === "rows") for (const [n, r] of it.rows.entries()) check(`rows#${i}.${n}`, r.label, r.at, it.to, (v) => { r.at = v; }, it.only);
   else if (it.t === "note") {
     check(`note#${i}`, it.title, it.at, it.until, (v) => { it.at = v; }, it.only);
-    /* أمر المستخدم 2026-11-13: بطاقة الحديث تبقى ثانية على الأقل بعد انتهاء كتابتها (بدء الكتابة at+0.25، كل حرف بما فيه «» يُحسب) */
+    /* أمر المستخدم 2026-11-13، موحَّد 2026-11-17 مع القواعد العامة («تبقى ثانية ونصفاً بعد اكتمالها»): بطاقة الحديث تبقى 1.5ث على الأقل بعد انتهاء كتابتها (بدء الكتابة at+0.25، كل حرف بما فيه «» يُحسب) */
     const typeEnd = it.at + 0.25 + [...it.title].length / (it.cps ?? Math.max(10, Math.round([...it.title].length / Math.max(2, it.until - it.at - 1.2))));
-    if (it.until - typeEnd < 1.0) { bad++; console.log(`  ✘ note#${i} ${mm(it.at)} — تنتهي كتابتها ${typeEnd.toFixed(1)}ث وتزول ${it.until}ث (تبقى ${(it.until - typeEnd).toFixed(1)}ث، المطلوب ثانية على الأقل): «${String(it.title).slice(0, 40)}»`); }
+    if (it.until - typeEnd < 1.5) { bad++; console.log(`  ✘ note#${i} ${mm(it.at)} — تنتهي كتابتها ${typeEnd.toFixed(1)}ث وتزول ${it.until}ث (تبقى ${(it.until - typeEnd).toFixed(1)}ث، المطلوب ثانية ونصف على الأقل): «${String(it.title).slice(0, 40)}»`); }
   }
 }
 if (fix) { spec.items = spec.items.filter((_, i) => !drop.has(i)); dropped = drop.size; fs.writeFileSync(specF, JSON.stringify(spec, null, 1)); }

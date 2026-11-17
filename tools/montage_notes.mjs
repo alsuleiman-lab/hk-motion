@@ -3,7 +3,7 @@
 //   node tools/montage_notes.mjs list <project>                               → prints all notes with their state
 //   node tools/montage_notes.mjs done <project> <n> ["how it was executed"]  → marks note n as executed (with the evidence)
 //   node tools/montage_notes.mjs add <project> "<text>" --at <source sec>   → where he said it in the ORIGINAL recording (requirements.mjs matches its editor-talk stretches to notes)
-//   node tools/montage_notes.mjs plan <project> <n> "type@cutSec,…"      → the elements this order becomes (pmap, peek, date, bgclip, behind, pic…); requirements.mjs --check fails until the spec has them
+//   node tools/montage_notes.mjs plan <project> <n> "type@cutSec,…"   (also cut:<word>, none:<reason>, proc:<processing with no element: blur, echo, beep — 2026-11-17>)      → the elements this order becomes (pmap, peek, date, bgclip, behind, pic…); requirements.mjs --check fails until the spec has them
 //   node tools/montage_notes.mjs check <project>                              → exit 1 while any note is still open (use it before saying «انتهيت»)
 //   … add <project> "<text>" --at <sec> --anchor "<the words he said where it applies>"   (2026-11-17) the anchor phrase survives the cut:
 //   node tools/montage_notes.mjs anchor <project>                             → finds each anchor in .tmp/<p>/cut_words.json and stores at_cut (cut seconds); exit 1 when one is not found
@@ -55,8 +55,8 @@ if (cmd === "add") {
   const n = notes.find((x) => x.n === Number(a));
   if (!n || !b) { console.error('usage: plan <project> <n> "type@sec,type@sec"'); process.exit(2); }
   // "type@sec" = an element of that type on screen at sec;  "cut:<word>" = the word must be gone from the final audio;  "none:<reason>" = nothing to show (silent order), the reason is shown to the user
-  n.plan = b.split(",").map((x) => { x = x.trim(); if (/^(cut|none):/.test(x)) { const [type, ...r] = x.split(":"); return { type, arg: r.join(":").trim() }; } const [type, at] = x.split("@"); return { type, at: Number(at) }; });
-  if (n.plan.some((x) => !x.type || (x.arg == null && !Number.isFinite(x.at)) || (x.arg != null && x.arg.length < 2))) { console.error("✘ خطة غير صالحة: type@ثانية أو cut:كلمة أو none:سبب"); process.exit(2); }
+  n.plan = b.split(",").map((x) => { x = x.trim(); if (/^(cut|none|proc):/.test(x)) { const [type, ...r] = x.split(":"); return { type, arg: r.join(":").trim() }; } const [type, at] = x.split("@"); return { type, at: Number(at) }; });
+  if (n.plan.some((x) => !x.type || (x.arg == null && !Number.isFinite(x.at)) || (x.arg != null && x.arg.length < 2))) { console.error("✘ خطة غير صالحة: type@ثانية أو cut:كلمة أو none:سبب أو proc:معالجة (طمس، صدى، صافرة)"); process.exit(2); }
   save(); console.log(`خطة التعليمة ${n.n}: ${n.plan.map((x) => x.type + (x.arg != null ? ":" + x.arg : "@" + x.at)).join("، ")}`);
 } else if (cmd === "reopen") {
   const n = notes.find((x) => x.n === Number(a));

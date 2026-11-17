@@ -83,6 +83,14 @@ const vol = run("ffmpeg", ["-hide_banner", "-i", file, "-af", "volumedetect", "-
 const max = Number(vol.match(/max_volume: (-?[\d.]+) dB/)?.[1]);
 const mean = Number(vol.match(/mean_volume: (-?[\d.]+) dB/)?.[1]);
 add(Number.isFinite(max) && max < -0.1, `قمة الصوت ${max} dB (المتوسط ${mean} dB)${max >= -0.1 ? " — قمة 0 dB: أخفّض أو أستمع" : ""}`);
+/* (2026-11-17, umawi reel) a corrupt audio tail at the very end of a render (peak +2 dB) was heard as a click at the bumper: the last 0.6 s must not peak above
+   the body of the file nor near 0 dB. Fix in the engine; this gate catches it on every final file. */
+{
+  const tail = run("ffmpeg", ["-hide_banner", "-sseof", "-0.6", "-i", file, "-af", "volumedetect", "-f", "null", "-"]).stderr;
+  const tmax = Number(tail.match(/max_volume: (-?[\d.]+) dB/)?.[1]);
+  const okTail = !Number.isFinite(tmax) || (tmax < -1 && !(Number.isFinite(max) && tmax > max - 0.05 && tmax > -3));
+  add(okTail, `ذيل الصوت (آخر 0.6ث) قمته ${Number.isFinite(tmax) ? tmax : "؟"} dB${okTail ? "" : " — ذيل تالف يُسمع نقرة: أصلح الصوت ثم أعد إلحاق الفاصل"}`);
+}
 
 console.log("\nلا يزال عليك يدوياً: الوجه واللحية (face_check)، التلعثم بتفريغ الناتج، الصور والمصادر، الخلفيات.");
 const allOk = results.every(Boolean);

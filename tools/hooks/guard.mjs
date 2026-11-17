@@ -113,14 +113,16 @@ if (mode === "pre") {
       // (2026-11-16, user: «تأكد أنه سيقرأ كل القواعد وينفذها ويمشي على قائمة مهام ويسجل تعليماتي») + the router and the orders/task-list skill
       const p = m[1], MUST = { "القواعد_العامة.md": /القواعد_العامة\.md$/, "شجرة_العمليات.md": /شجرة_العمليات\.md$/, "critical-rules.md": /video-montage\/critical-rules\.md$/, "workflow-plan.md": /video-montage\/workflow-plan\.md$/, "router/SKILL.md": /skills\/router\/SKILL\.md$/, "montage-orders/SKILL.md": /skills\/montage-orders\/SKILL\.md$/ };
       try {
-        let start = -1; const readAt = {};
+        // (2026-11-17) rules read in the same user turn BEFORE the first command naming the project count: the video starts at that user message
+        let start = -1, lastUser = -1; const readAt = {};
         fs.readFileSync(input.transcript_path, "utf8").split("\n").forEach((line, i) => {
+          if (start < 0 && line.includes('"type":"user"') && !line.includes('"tool_result"')) lastUser = i;
           if (!line.includes('"tool_use"')) return;
           let j; try { j = JSON.parse(line); } catch { return; }
           for (const b of j.message?.content ?? []) {
             if (b.type !== "tool_use") continue;
             const s = JSON.stringify(b.input ?? {});
-            if (start < 0 && s.includes(p)) start = i;
+            if (start < 0 && s.includes(p)) start = Math.max(0, lastUser);
             const cmd = norm(b.input?.command ?? "");
             // a whole-file read: the Read tool, or cat / Get-Content aimed at the file itself (a grep over it is not a read)
             for (const [k, re] of Object.entries(MUST)) if ((b.name === "Read" && re.test(norm(b.input?.file_path ?? ""))) || new RegExp(`(^|[;&|]\\s*)(cat|Get-Content)\\s+["']?[^\\s"';&|]*${k.replace(".", "\\.")}["']?\\s*($|[;&])`).test(cmd)) readAt[k] = i;

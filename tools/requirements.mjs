@@ -219,7 +219,7 @@ function check(rows) {
     if (r.kind === "order") {
       if (!r.plan?.length) { miss.push(`التعليمة ${r.n} بلا خطة تنفيذ («${r.text.slice(0, 50)}…») — montage_notes plan ${p} ${r.n} "type@sec,…"`); continue; }
       const fw = (read(path.join(T, "drift_fresh.json"), []) ?? []).map((w) => bare(w.w));
-      for (const x of r.plan) if (x.type === "none") continue; else if (x.type === "cut") { const ph = norm(x.arg).split(" ").map(bare); if (fw.some((_, i) => ph.every((y, j) => fw[i + j] === y))) miss.push(`التعليمة ${r.n}: «${x.arg}» ما زالت مسموعة في الصوت النهائي`); } else if (!has([x.type], x.at - 0.5, x.at + 0.5) && !(x.type === "behind" && behind.some(([a, b]) => a <= x.at && b >= x.at))) miss.push(`التعليمة ${r.n}: لا «${x.type}» عند ${mm(x.at)}`);
+      for (const x of r.plan) if (x.type === "none" || x.type === "proc") continue; else if (x.type === "cut") { const ph = norm(x.arg).split(" ").map(bare); if (fw.some((_, i) => ph.every((y, j) => fw[i + j] === y))) miss.push(`التعليمة ${r.n}: «${x.arg}» ما زالت مسموعة في الصوت النهائي`); } else if (!has([x.type], x.at - 0.5, x.at + 0.5) && !(x.type === "behind" && behind.some(([a, b]) => a <= x.at && b >= x.at))) miss.push(`التعليمة ${r.n}: لا «${x.type}» عند ${mm(x.at)}`);
       continue;
     }
     if (skip.has(`${r.text}@${Math.round(r.t)}`) || [...skip].some((s) => s.split("@")[0] === r.text && Math.abs(Number(s.split("@")[1]) - r.t) < 3)) continue;

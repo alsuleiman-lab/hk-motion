@@ -42,7 +42,8 @@
     "VerseWall",
     "VerseMihrab",
     "VerseCine",
-    "Battery"
+    "Battery",
+    "CitationTag"
   ],
   "itemTypes": [
     "neon",

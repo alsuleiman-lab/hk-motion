@@ -184,10 +184,6 @@ his isolated cut-out shrunk into a corner (user 2026-10-29, the paper map): the 
 `part` (hybrid / GPU render, 2026-11-12): a full-screen VIDEO is split in two — "video" = the clip as a <VSlot> (decoded on the GPU, drawn by the compositor; placed outside <UnderHim> it lies just under his cut-out), "graphics" = everything else (the marker), 
 `props:` src: string; from: number; to: number; origin?: string; marker?: { x: number; y: number; w: number; h: number; at: number }; box?: { x: number; y: number; w: number; h: number; rot?: number; plain?: boolean }; part?: "video" | "graphics"
 
-### `CitationTag`
-the citation tag: book, volume, page on a small identity label with a pin, swinging in from the corner of the source
-`props:` at: number; until?: number; x: number; y: number; book: string; part?: string; page?: string
-
 ### `ArticleMock`
 demo page content for the browser frame (an article laid out in the identity)
 `props:` w: number; img: string; title: string

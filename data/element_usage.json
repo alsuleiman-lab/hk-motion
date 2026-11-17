@@ -82,11 +82,6 @@
    "fromUser": false,
    "mark": "keep"
   },
-  "CitationTag": {
-   "when": "اسم الكتاب والجزء والصفحة على وسم صغير بدبوس يتأرجح عند زاوية المصدر.",
-   "fromUser": false,
-   "mark": "drop"
-  },
   "NewsClip": {
    "when": "للخبر: لقطة الخبر الحقيقية مقصوصة بحافة ممزقة، العنوان فوقها والمصدر تحتها، مثبتة بشريط لاصق، تدخل بحركة إيقاف الحركة.",
    "fromUser": false,
@@ -494,6 +489,11 @@
    "mark": "drop"
   },
   "DimLayer": {
+   "when": "",
+   "fromUser": false,
+   "mark": "drop"
+  },
+  "CitationTag": {
    "when": "",
    "fromUser": false,
    "mark": "drop"

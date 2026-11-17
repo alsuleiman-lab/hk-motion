@@ -118,8 +118,8 @@ export const CommentCard: React.FC<Box & { name: string; avatar: string; text: s
   );
 };
 
-/** a page of a book or document: the page image, a band in the accent sweeps over the quoted line (`line` = y and height in page px at width w), and the citation tag pins to the corner */
-export const BookPage: React.FC<Box & { h: number; src: string; line: { y: number; h: number }; book: string; part?: string; page?: string }> = ({ h, src, line, book, part, page, ...b }) => {
+/** a page of a book or document: the page image, a band in the accent sweeps over the quoted line (`line` = y and height in page px at width w) (the pinned citation tag was cancelled by the user, 2026-11-17) */
+export const BookPage: React.FC<Box & { h: number; src: string; line: { y: number; h: number }; book: string; part?: string; page?: string }> = ({ h, src, line, ...b }) => {
   const t = useT(b.at), sweep = ease((t - 0.8) / 0.7);
   return (
     <>
@@ -130,23 +130,10 @@ export const BookPage: React.FC<Box & { h: number; src: string; line: { y: numbe
           <div style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, background: `rgba(0,0,0,${0.22 * sweep})`, clipPath: `polygon(0 0, 100% 0, 100% ${line.y}px, 0 ${line.y}px, 0 ${line.y + line.h}px, 100% ${line.y + line.h}px, 100% 100%, 0 100%)` }} />
         </div>
       </Card>
-      <CitationTag at={b.at + 1.2} until={b.until} x={b.x - 30} y={b.y + h - 70} book={book} part={part} page={page} />
     </>
   );
 };
 
-/** the citation tag: book, volume, page on a small identity label with a pin, swinging in from the corner of the source */
-export const CitationTag: React.FC<{ at: number; until?: number; x: number; y: number; book: string; part?: string; page?: string }> = ({ at, until, x, y, book, part, page }) => {
-  const t = useT(0), sp = useSp(at, 9, 120), out = until === undefined ? 1 : clamp((until - t) / 0.3);
-  if (t < at || out <= 0) return null;
-  return (
-    <div style={{ position: "absolute", left: x, top: y, transformOrigin: "24px 0", transform: `rotate(${(1 - sp) * 22 - 4}deg)`, opacity: Math.min(1, sp * 2) * out, direction: "rtl", display: "flex", alignItems: "stretch", boxShadow: shadow, borderRadius: 12, overflow: "hidden" }}>
-      <div style={{ background: BRAND.navy, color: BRAND.card, fontFamily: kufiF, fontSize: 24, padding: "8px 18px 12px" }}>{book}</div>
-      {part || page ? <div style={{ background: BRAND.card, color: BRAND.ink, fontFamily: "Almarai", fontWeight: 800, fontSize: 22, padding: "10px 16px", display: "flex", gap: 12 }}>{part ? <span>الجزء {part}</span> : null}{page ? <span style={{ color: BRAND.accent }}>ص {page}</span> : null}</div> : null}
-      <i style={{ position: "absolute", left: 16, top: -8, width: 16, height: 16, borderRadius: 8, background: BRAND.mark, boxShadow: "0 2px 4px rgba(0,0,0,.4)" }} />
-    </div>
-  );
-};
 
 /** demo page content for the browser frame (an article laid out in the identity) */
 export const ArticleMock: React.FC<{ w: number; img: string; title: string }> = ({ w, img, title }) => (

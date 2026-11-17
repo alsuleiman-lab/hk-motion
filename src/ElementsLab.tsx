@@ -33,7 +33,7 @@ import { HadithQuote, HadithBooks, HadithIsnad } from "./HadithKit";
 
 import { BRAND, applyBrand } from "./brand";
 import type { BrandName } from "./brand";
-import { BrowserFrame, VideoFrame, PostCard, CommentCard, BookPage, CitationTag, ArticleMock } from "./SourceFrames";
+import { BrowserFrame, VideoFrame, PostCard, CommentCard, BookPage, ArticleMock } from "./SourceFrames";
 import { NewsClip, TornNote, WordScraps, TornPhoto, PaperGrain } from "./PaperKit";
 import { DebateDossier, DebateBlocks } from "./DebateLayouts";
 import { GALLERY_CUT, GALLERY_MATTE } from "./galleryCut";
@@ -76,7 +76,6 @@ const SPEC_E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   PostCard: { node: <PostCard at={0.1} x={560} y={250} w={800} name="محمد بن شمس الدين" handle="@MShmsDin" avatar="cover_sheikh_25_sq.jpg" text="هذا نص المنشور كما كتبه صاحبه نعرضه هنا بخط الهوية وألوانها" mark={["نص", "المنشور"]} date="12 أكتوبر 2026" /> },
   CommentCard: { node: <CommentCard at={0.1} x={520} y={380} w={880} name="أحد المشاهدين" avatar="broll/wall1.jpg" text="لماذا لا تذكرون المصدر الذي نقلتم منه هذا الكلام؟" likes={1240} underline={[3, 5]} /> },
   BookPage: { node: <BookPage at={0.1} x={660} y={50} w={620} h={940} src="books/bukhari2.jpg" line={{ y: 330, h: 70 }} book="صحيح البخاري" part="1" page="45" until={9} /> },
-  CitationTag: { node: <CitationTag at={0.2} x={740} y={480} book="صحيح مسلم" part="2" page="118" /> },
   NewsClip: { node: <NewsClip at={0.1} x={560} y={110} w={800} h={520} src="people/azharCourt.jpg" headline="عنوان الخبر في الصحيفة" source="اسم الصحيفة، 2026" /> },
   TornNote: { node: <TornNote at={0.1} x={560} y={430} w={800} text="العبارة المهمة هنا" underline={1} /> },
   WordScraps: { node: <WordScraps at={0.1} text="كلام مهم من كلامه" /> },

@@ -78,7 +78,7 @@ const IN = (s) => new Set(s.split(/s+/));
 // which gallery elements each kind of the grid (data/layout_grids.json "kinds") stands for — names shown inside the slots of the grid tab
 const KIND_ELEMENTS = {
   key: IN("Word BlurRise TornNote WordScraps TypeBox TimelineCounter"),
-  photo: IN("PinnedPhoto PopCard TornPhoto NewsClip PhotoFrame Clock RewriteWindow BrowserFrame PostCard CommentCard VideoFrame SakugaMove SpotlightCard CollageAssemble BrushX Marker NoteCard Stamp GlowCounter Bars Strike EllipseMark CitationTag"),
+  photo: IN("PinnedPhoto PopCard TornPhoto NewsClip PhotoFrame Clock RewriteWindow BrowserFrame PostCard CommentCard VideoFrame SakugaMove SpotlightCard CollageAssemble BrushX Marker NoteCard Stamp GlowCounter Bars Strike EllipseMark"),
   list: IN("StatRow"), solo: IN("NameCard1 NameCard3 Subscribe"), source: IN("BookPage"),
   exclusive: IN("VerseWords ReelVerseFull PaperMap BgFullImage TimelineTravel PanelToCanvas DashArc"),
   ignore: IN("Sources PaperCover TitleBar CornerTags"),

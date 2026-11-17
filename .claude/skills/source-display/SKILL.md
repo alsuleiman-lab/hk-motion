@@ -5,7 +5,7 @@ description: عرض المصادر في المونتاج (القواعد «sourc
 
 # عرض المصادر
 
-> القواعد: المصادر والأخبار «extraction»، المقاطع وB-roll «source-display»، الأسماء والصور «extraction». هنا طريقة العرض فقط. الإطارات من `src/SourceFrames.tsx` (`BrowserFrame` للموقع، `VideoFrame` للمقطع، `PostCard` للمنشور، `CommentCard` للتعليق، `BookPage` لصفحة الكتاب مع تظليل السطر، `CitationTag` لوسم المرجع).
+> القواعد: المصادر والأخبار «extraction»، المقاطع وB-roll «source-display»، الأسماء والصور «extraction». هنا طريقة العرض فقط. الإطارات من `src/SourceFrames.tsx` (`BrowserFrame` للموقع، `VideoFrame` للمقطع، `PostCard` للمنشور، `CommentCard` للتعليق، `BookPage` لصفحة الكتاب مع تظليل السطر؛ وسم المرجع أُلغي 2026-11-17).
 
 ## 0) المشترك لكل مصدر
 - **متى:** كل نافذة في `.tmp/<المشروع>/sources.json` (من `tools/source_windows.mjs` داخل `stage.mjs prep`؛ `side` جهة المصدر، `width` عرض صندوقه، `cut` زمنه بعد القص) = الشيخ يعرض مصدراً؛ تُخطَّط هنا دون انتظار تنبيه المستخدم.

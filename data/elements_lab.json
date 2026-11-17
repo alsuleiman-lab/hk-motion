@@ -275,22 +275,6 @@
   "orient": "both"
  },
  {
-  "id": "CitationTag",
-  "ar": "وسم المرجع",
-  "kit": "SourceFrames",
-  "group": "الهوية الثابتة",
-  "where": "اسم الكتاب والجزء والصفحة على وسم صغير بدبوس يتأرجح عند زاوية المصدر.",
-  "note": "",
-  "still": 60,
-  "section": "text",
-  "mode": "full",
-  "slot": {
-   "land": "left",
-   "port": "band"
-  },
-  "orient": "both"
- },
- {
   "id": "NewsClip",
   "ar": "قصاصة صحيفة",
   "kit": "PaperKit",

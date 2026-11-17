@@ -30,7 +30,7 @@ description: الموجّه — أول مهارة تُقرأ عند أي طلب 
 | §4 | التفريغ (بالكلمات، والمتحدثون) | `stage.mjs prep` و`cut` (`transcript.txt`، `speakers.txt`) |
 | §5 | أوامر «مونتاج…انتهى مونتاج» و«عفواً/أعيد» | `montage-orders` §1–§2 |
 | §6 | قائمة مهام الفيديو `.tmp/<p>/tasks.md` (`tasks.mjs`) | `montage-orders` §3 (مداخلها: `requirements.md`، `montage_notes.mjs`، `montage_guard`) |
-| §7 | الهوية: نمط لوني عشوائي + فاصل عشوائي | `src/brand.ts` (حقل `brand`)؛ `node tools/pick_bumper.mjs pick` |
+| §7 | الهوية: نمط لوني عشوائي + فاصل عشوائي (الكرتون بلا فاصل) | `src/brand.ts` (حقل `brand`)؛ `node tools/pick_bumper.mjs pick` |
 | §8.1 | الأسماء: صور وخرائط | `video-montage/workflow-plan.md` 1ج (`fetch_images.mjs`) |
 | §8.2–§8.3 | القرآن والحديث | `verse_scan.mjs`، `verse_audit.mjs`؛ `critical-rules.md` ج |
 | §8.4 | B-roll ومقاطع يوتيوب | `pixabay-search`، `source-display` |

@@ -303,7 +303,7 @@ logProgress(`DONE ${out}`);
 // opening bumper (same rule as hybrid_any): a full render gets a random paper bumper; partial ranges / bumpers / --no-bumper skip it
 {
   const partial = start !== 0 || end < composition.durationInFrames - 1;   /* an --end equal to the last frame is still a full render */
-  if (!partial && !compId.startsWith("Fasel-") && !process.argv.includes("--no-bumper")) {
+  if (!partial && !compId.startsWith("Fasel-") && !/^(Stick|Dodo)-/.test(compId) && !process.argv.includes("--no-bumper")) {
     /* render_job.sh sets BUMPER_AT (seconds: before his first greeting, tools/bumper_at.mjs) and BUMPER_ID (the bumper chosen for this project); BUMPER_POSITION=end is read by prepend_bumper itself — same arguments as hybrid_any */
     spawnSync("node", ["tools/prepend_bumper.mjs", out, "--name", String(arg("name", path.basename(out, path.extname(out)))),
       ...(Number(process.env.BUMPER_AT) > 0 ? ["--at", String(process.env.BUMPER_AT)] : []), ...(process.env.BUMPER_ID ? ["--id", process.env.BUMPER_ID] : [])], { cwd: root, stdio: "inherit" });

@@ -220,7 +220,7 @@ logProgress(`DONE ${out}`);
 // فاصل الافتتاح (صارم، 2026-11-11): الرندر الكامل (عرضي أو طولي) لأي مونتاج يأخذ فاصلاً ورقياً عشوائياً في أوله (يُتخطّى للأجزاء/المدى الجزئي/الفواصل نفسها/--no-bumper)
 {
   const partial = (PART !== "") || Number(arg("start", 0)) !== 0 || arg("end", null) !== null;
-  if (!partial && !compId.startsWith("Fasel-") && !process.argv.includes("--no-bumper")) {
+  if (!partial && !compId.startsWith("Fasel-") && !/^(Stick|Dodo)-/.test(compId) && !process.argv.includes("--no-bumper")) {
     spawnSync("node", ["tools/prepend_bumper.mjs", out, "--name", String(arg("name", path.basename(out, path.extname(out)))), ...(Number(process.env.BUMPER_AT) > 0 ? ["--at", String(process.env.BUMPER_AT)] : []), ...(process.env.BUMPER_ID ? ["--id", process.env.BUMPER_ID] : [])], { cwd: root, stdio: "inherit" });   /* the bumper goes before his first greeting (tools/bumper_at.mjs) */
   }
 }

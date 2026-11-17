@@ -1,5 +1,5 @@
 {
- "stamped": "2026-11-17T11:21:14.434Z",
+ "stamped": "2026-11-17T11:39:54.063Z",
  "files": {
   "القواعد_العامة.md": "f47a4cf6bb2cf3ddc9ee5ed05a5472ce725c11fb",
   "شجرة_العمليات.md": "4aff381a2ca67a6ea3ca0d9907017d8cf0481aa5",
@@ -29,6 +29,6 @@
   ".claude/skills/transcription/SKILL.md": "be866ad10b7a7fed464d834447b8589e5d53724c",
   ".claude/skills/video-cutting/SKILL.md": "0585d8192d25345ed87c0985105be717ac5c9314",
   ".claude/skills/video-montage/SKILL.md": "abbc1f9625e7af217ad96c4cefaf79f2e0a62ada",
-  ".claude/skills/video-sections/SKILL.md": "0e9ba8884d21ed4e7b9f4c8cd1f18bfd8d0f3369"
+  ".claude/skills/video-sections/SKILL.md": "23fd2946e870ef82abd552f547da27766e265a70"
  }
 }

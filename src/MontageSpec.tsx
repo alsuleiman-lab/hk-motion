@@ -29,7 +29,7 @@ import { TornNote, NewsClip, TornPhoto, WordScraps, DateCalendar, Tape, tornClip
 import { BRAND, applyBrand } from "./brand";
 import { PIP, pipK } from "./PickKit";
 import { ShoePrint } from "./ShoePrint";
-import { PICK_ALL as PICK_KIT, PICK_ALL_FULL_FRAME as PICK_FULL_FRAME, LeftShade, PICK_XY, PICK_NOSPLIT, pickPortBoard } from "./PickKit2";
+import { PICK_ALL as PICK_KIT, railPortDrop, PICK_ALL_FULL_FRAME as PICK_FULL_FRAME, LeftShade, PICK_XY, PICK_NOSPLIT, pickPortBoard } from "./PickKit2";
 import type { PickAllName as PickName } from "./PickKit2";
 import type { BrandName } from "./brand";
 import { MaskedVideo } from "./MaskedVideo";
@@ -171,7 +171,7 @@ export type MontageSpec = {
    *  graphics replace the clip; portrait = no entry needed (put his slice centre in `cams`) */
   solos?: { from: number; to: number; sheikh: { x: number; w: number }; scale?: number; align?: "right"; center?: { from: number; to: number }[] }[];
   /** portrait split screen (user 2026-10-29: «عند الشجرة والعناصر الكبيرة استخدم تقسيم الشاشة»): inside each window his video shrinks to the top (scale `s`, pinned at the top centre) and the lower part of the frame is a backdrop panel for the big element (`parchment` for the family tree) */
-  psplits?: { from: number; to: number; s?: number; top?: number; panel?: "warm" | "parchment" }[];
+  psplits?: { from: number; to: number; s?: number; top?: number; panel?: "warm" | "parchment"; dy?: number }[];   /* dy (2026-11-17): his video slides DOWN by dy px (the sections rail above his head), no panel */
   /** landscape split screen: his frame slides right by `dx` px between from and to (eased 0.4 s) so a left-hand panel (family tree) gets half the screen */
   shifts?: { from: number; to: number; dx: number; feather?: number }[];
   /** windows (cut seconds) where he is drawn over the full-screen pictures and the clip card (needs `matte`) */
@@ -475,8 +475,8 @@ const SoloLand: React.FC<{ cut: string; sp: NonNullable<MontageSpec["solos"]>[nu
 const PortSplit: React.FC<{ windows: NonNullable<MontageSpec["psplits"]>; children: React.ReactNode }> = ({ windows, children }) => {
   const t = useT(0);
   const w = windows.find((q) => t >= q.from - 0.01 && t <= q.to + 0.4);
-  const k = w ? Math.min(clamp((t - w.from) / 0.4), clamp((w.to + 0.4 - t) / 0.4)) : 0, sc = 1 + ((w?.s ?? 0.66) - 1) * k;
-  return <AbsoluteFill style={{ transform: `scale(${sc})`, transformOrigin: "50% 0%" }}>{children}</AbsoluteFill>;
+  const k = w ? Math.min(clamp((t - w.from) / 0.4), clamp((w.to + 0.4 - t) / 0.4)) : 0, sc = 1 + ((w?.s ?? 0.66) - 1) * k, dy = (w?.dy ?? 0) * k;
+  return <AbsoluteFill style={{ transform: `${dy ? `translateY(${dy}px) ` : ""}scale(${sc})`, transformOrigin: "50% 0%" }}>{children}</AbsoluteFill>;
 };
 /** the backdrop under the big element: from `top` down, the base (or parchment) and a rule line that slides in */
 const PortPanel: React.FC<{ windows: NonNullable<MontageSpec["psplits"]>; top?: number }> = ({ windows, top = 936 }) => {
@@ -756,7 +756,9 @@ const withPortZones = (spec0: MontageSpec): MontageSpec => {
   w.sort((a, b) => a.from - b.from);
   const m: { from: number; to: number }[] = [];
   for (const x of w) { const l = m[m.length - 1]; if (l && x.from <= l.to + 0.6) l.to = Math.max(l.to, x.to); else m.push({ ...x }); }
-  return m.length ? { ...spec, psplits: [...(spec.psplits ?? []), ...m.map((x) => ({ ...x, ...SPLITZ }))] } : spec;
+  /* the sections rail (2026-11-17): his video drops under the band above his head while it shows */
+  const drops = spec.items.filter((it): it is PickItem => it.t === "pick" && (it as PickItem).el === "SectionsRail" && it.only !== "land").map((it) => ({ from: it.at - 0.35, to: pickUntil(it), s: 1, dy: railPortDrop(((it as unknown as { sections?: unknown[] }).sections ?? []).length) }));
+  return m.length || drops.length ? { ...spec, psplits: [...(spec.psplits ?? []), ...m.map((x) => ({ ...x, ...SPLITZ })), ...drops] } : spec;
 };
 const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutAudio?: boolean }> = ({ spec: raw, muted, noCutAudio }) => {
   /* (2026-11-17) a `galleryRef` spec carries only codes, content and timing: size and place come from the gallery now (src/galleryRef.ts) */
@@ -802,7 +804,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutA
       {/* the base's stars drift with the frame (KhBg): the GPU renderer renders this background's parts apart and its compositor drifts the stars (2026-11-12) */}
       {wrapStage(<>
       <Sequence from={0} durationInFrames={spec.tail ? Math.round(spec.tail.from * 30) : spec.frames}>{(() => { const b2 = o === "port" && spec.psplits?.length ? <PortSplit windows={spec.psplits}>{body}</PortSplit> : body; return spec.shake?.length ? <HandheldShake windows={spec.shake} amp={6} rot={0.4}>{b2}</HandheldShake> : b2; })()}</Sequence>
-      {o === "port" && spec.psplits?.length ? <PortPanel windows={spec.psplits} /> : null}
+      {o === "port" && spec.psplits?.some((w) => !w.dy) ? <PortPanel windows={spec.psplits.filter((w) => !w.dy)} /> : null}
       {o === "port" ? (spec.splits ?? []).map((sp, i) => spec.cut ? <PortraitClipCard key={i} cut={spec.cut} sp={cover && cover.style !== "kit" ? { ...sp, from: Math.max(sp.from, (cover.style === "pro" ? THUMBPRO_END : PAPER_COVER_END) / 30) } : sp} /> : null) : null}
       {/* a curtain at BOTH the entry and the exit of every baked split (rule 41; user 2026-10-30: «خطأ فادح أن تظهر الشاشة المقسومة بدون المؤثر الخاص»); none at the very start (the cover covers it) and one per shared edge */}
       {o === "land" ? [...new Set((spec.splits ?? []).flatMap((sp) => [sp.from, sp.to]).filter((t) => t > 0.5))].map((t) => <Curtain key={"cs" + t} at={t} />) : null}

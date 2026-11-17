@@ -195,17 +195,24 @@ export const BottomShade: React.FC<{ at: number; until: number }> = ({ at, until
 /** 36 · خط الأقسام (user 2026-11-17: «على اليمين خط طولي وفيه نقاط والأقسام عندها وخلفه ظل أسود متدرج»; in the first seconds of the video):
  *  a black gradient shade slides in from the right edge, a vertical rail draws down near the right edge, a dot lands on it for every section and the
  *  section's title appears beside its dot (right-aligned, all titles one fitted font). `current` (optional) lights one section. Whole frame, both orientations. */
+/** PORTRAIT (user 2026-11-17: «فوق رأسي لكن الفيديو الخاص بي يكون نازل قليلاً عنه»): the rail sits in a band ABOVE his head and his video slides down by
+ *  railPortDrop(n) while it shows (spec psplits window {s: 1, dy}, added by the engine; the gallery does the same) — the band never covers his face */
+export const railPortBand = (n: number) => { const gap = Math.max(46, Math.min(80, 640 / Math.max(1, n))), top = 110; return { top, gap, bottom: top + gap * (Math.max(1, n) - 1) }; };
+const PORT_HEAD_TOP = 60;   /* his head's top in the portrait frame (cams crop of the 1080×1920 slice) */
+export const railPortDrop = (n: number) => Math.max(0, Math.round(railPortBand(n).bottom + 90 - PORT_HEAD_TOP));
 export const SectionsRail: React.FC<{ at: number; until: number; sections: { title: string; at?: number }[]; current?: number; W?: number; H?: number }> = ({ at, until, sections, current, W: W0, H: H0 }) => {
   const { k } = useK(); const vc = useVideoConfig(), W = W0 ?? vc.width, H = H0 ?? vc.height, port = H > W;
-  /* never on his face or beard: landscape titles end left at x ≥ 1150 (gallery face zone 811–1121); portrait = the elements band 1150–1840 under his face */
-  const n = Math.max(1, sections.length), top = port ? 1150 : H * 0.12, bot = port ? 1840 : H * 0.88, span = bot - top, gap = n > 1 ? span / (n - 1) : 0;
+  /* never on his face or beard: landscape titles end left at x ≥ 1150 (gallery face zone 811–1121); portrait = the band above his head (his video drops under it) */
+  const n = Math.max(1, sections.length), pb = railPortBand(n), top = port ? pb.top : H * 0.12, bot = port ? pb.bottom : H * 0.88, span = bot - top, gap = n > 1 ? span / (n - 1) : 0;
   const railX = W - (port ? 60 : 80), lineK = ease(k(at + 0.15, 0.6, until)), stag = Math.min(0.3, 1.4 / n);
   const font = Math.round(Math.max(24, Math.min(port ? 46 : 50, (n > 1 ? gap : 80) * 0.55)));
-  const FG = fitGroup(sections.map((s) => s.title), { font, minFont: Math.max(20, Math.round(font * 0.7)), minW: 80, maxW: port ? W * 0.78 : railX - 34 - 1150, padX: 10, padY: 4, maxLines: 1 });
+  const FG = fitGroup(sections.map((s) => s.title), { font, minFont: Math.max(20, Math.round(font * 0.7)), minW: 80, maxW: port ? W * 0.82 : railX - 34 - 1150, padX: 10, padY: 4, maxLines: 1 });
   const shade = ease(k(at, 0.45, until));
   return (
     <div style={abs({ left: 0, top: 0, width: W, height: H, pointerEvents: "none" })}>
-      <div style={abs({ right: 0, top: port ? top - 120 : 0, width: W * (port ? 0.95 : 0.5), height: port ? span + 240 : H, background: "linear-gradient(to left, rgba(0,0,0,.88), rgba(0,0,0,.6) 45%, rgba(0,0,0,0))", ...(port ? { WebkitMaskImage: "linear-gradient(to bottom, transparent, #000 140px, #000 calc(100% - 60px), transparent)", maskImage: "linear-gradient(to bottom, transparent, #000 140px, #000 calc(100% - 60px), transparent)" } : {}), opacity: shade > 0 ? 1 : 0, transform: `translateX(${(1 - shade) * 100}%)` })} />
+      {port
+        ? <div style={abs({ left: 0, top: 0, width: W, height: bot + 170, background: "linear-gradient(to bottom, rgba(0,0,0,.88), rgba(0,0,0,.6) 70%, rgba(0,0,0,0))", opacity: shade > 0 ? 1 : 0, transform: `translateY(${-(1 - shade) * 100}%)` })} />
+        : <div style={abs({ right: 0, top: 0, width: W * 0.5, height: H, background: "linear-gradient(to left, rgba(0,0,0,.88), rgba(0,0,0,.6) 45%, rgba(0,0,0,0))", opacity: shade > 0 ? 1 : 0, transform: `translateX(${(1 - shade) * 100}%)` })} />}
       <div style={abs({ left: railX - 3, top, width: 6, height: span * lineK, borderRadius: 3, background: BRAND.light })} />
       {sections.map((s, i) => {
         const y = top + i * gap, ka = s.at ?? at + 0.35 + i * stag, kk = k(ka, 0.3, until), on = current === i, f = FG[i];

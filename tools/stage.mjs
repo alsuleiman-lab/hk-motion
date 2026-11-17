@@ -311,7 +311,8 @@ if (stage === "check") {
   }
   // the gallery's size and place of every element, as the engine reads them (user 2026-11-17: a change in the gallery reaches every video without a request)
   await step("gallery_geo", "node", ["tools/gallery_geo.mjs"], /gallery_geo/);
-  await step("el_names", "node", ["tools/el.mjs", "names"], /el names|✘/);   // every element has one Arabic name, written under the screen in the Studio (user 2026-11-17)
+  // (user 2026-11-17) the names are the gallery keeper's job, never the montage agent's: reported only, never a failed check
+  await run("node", ["tools/el.mjs", "names", "--warn"]);
   await step("studio_drag_lint", "node", ["tools/studio_drag_lint.mjs"], /studio_drag_lint|^s+src/);
   await step("typecheck", "node", ["node_modules/typescript/bin/tsc", "-p", "."], /error TS/);
   // every video of the montage path reaches the render as a <VSlot> on the GPU (R-RENDER-GPU.2, user 2026-11-12: new elements use the new system)

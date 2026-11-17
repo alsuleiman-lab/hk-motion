@@ -79,7 +79,7 @@ if (cmd === "list") {
   const none = els.filter((e) => !ar(e)).map((e) => e.code), dup = [...by].filter(([, c]) => c.length > 1);
   if (none.length) console.log(`✘ بلا اسم: ${none.join("، ")} → أضفه في data/element_names.json`);
   for (const [n, c] of dup) console.log(`✘ الاسم «${n}» لأكثر من عنصر: ${c.join("، ")}`);
-  console.log(none.length || dup.length ? "✘ el names" : `✔ el names: ${els.length} عنصراً لكل واحد اسم لا يتكرر`); process.exit(none.length || dup.length ? 1 : 0);
+  console.log(none.length || dup.length ? "✘ el names" : `✔ el names: ${els.length} عنصراً لكل واحد اسم لا يتكرر`); process.exit(none.length || dup.length ? (args.includes("--warn") ? 0 : 1) : 0);
 } else if (cmd === "add") {
   const [p, code, ...rest] = args, f = specPath(p), e = find(catalog(), code);
   if (!e) { console.error(`✘ لا عنصر بهذا الاسم: ${code} (node tools/el.mjs list)`); process.exit(2); }

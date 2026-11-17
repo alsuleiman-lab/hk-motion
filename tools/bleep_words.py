@@ -32,18 +32,27 @@ def to_cut(t):
 
 ranges = []
 nz = lambda s: re.sub(r"[ً-ْٰـ]", "", s).replace("أ", "ا").replace("إ", "ا").replace("آ", "ا").strip(".,،؟?!")
-prev = ""
+def half(t, s, e):
+    lead = 2 if t.startswith("ال") else 0
+    cs = s + (e - s) * lead / len(t)
+    return cs + (e - cs) * PART[0], cs + (e - cs) * PART[1]
+
+prev = None
 for x in words:
     t = (x.get("word") or x.get("w")).strip()
     s, e = x.get("start", x.get("s")), x.get("end", x.get("e"))
     forced = any(lo <= s <= hi for lo, hi in only)   # --word a-b: a word the user asked to bleep at that exact source time
-    phrase = any(nz(prev).endswith(nz(a)) and nz(t).endswith(nz(b)) for a, b in PHRASES)
-    prev = t
+    # (user answer 2026-11-17) «تنظيم القاعدة» = BOTH words bleeped; «القاعدة» or «الدولة» alone = never
+    phrase = prev is not None and any(nz(prev[0]).endswith(nz(a)) and nz(t).endswith(nz(b)) for a, b in PHRASES)
+    if phrase:
+        pa, pb = half(*prev)
+        ca, cb = to_cut(pa), to_cut(pb)
+        if ca is not None and cb is not None:
+            ranges.append((ca, cb))
+    prev = (t, s, e)
     if not re.search(PATTERN, t) and not forced and not phrase:
         continue
-    lead = 2 if t.startswith("ال") else 0
-    cs = s + (e - s) * lead / len(t)
-    a, b = cs + (e - cs) * PART[0], cs + (e - cs) * PART[1]
+    a, b = half(t, s, e)
     ca, cb = to_cut(a), to_cut(b)
     print(f"src {s:7.2f}-{e:7.2f} -> cut {ca}-{cb}" if ca is not None else f"src {s:7.2f} outside the cut")
     if ca is not None and cb is not None:
@@ -80,5 +89,6 @@ rms = 20 * np.log10(np.sqrt((fr ** 2).mean(axis=1)) + 1e-9)
 speech = float(np.median(rms[rms > -40])) if (rms > -40).any() else -20.0
 beep = 20 * np.log10(GAIN / np.sqrt(2))
 print(f"level: speech {speech:.1f} dBFS, beep {beep:.1f} dBFS, difference {beep - speech:+.1f} dB")
-if ranges and beep > speech:
-    print("FAIL: the beep is louder than his speech — lower gain_db in data/sensitive_words.json"); sys.exit(1)
+MARGIN = float(T.get("below_speech_db", 0))   # (user answer 2026-11-17 «هادئة جداً، أدنى من الكلام بوضوح») the beep must sit this far below his speech
+if ranges and beep > speech - MARGIN:
+    print(f"FAIL: the beep is not {MARGIN:.0f} dB below his speech — lower gain_db in data/sensitive_words.json"); sys.exit(1)

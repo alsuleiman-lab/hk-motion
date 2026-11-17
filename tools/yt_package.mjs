@@ -20,9 +20,14 @@ const errs = [], L = [`# حزمة يوتيوب — ${opt("--title") ?? p}`, ""];
 
 // chapters
 const S = rd(`.tmp/${p}/sections.json`, []).map((x) => ({ title: x.title, t: fin(x.at) })).sort((a, b) => a.t - b.t);
+/* how many sections: the user's table by final duration (data/sections_rule.json, 2026-11-17) — `--count` prints it only */
+const rows = rd("data/sections_rule.json", { rows: [] }).rows, mins = total / 60;
+const want = [...rows].reverse().find((r) => mins >= r.from)?.count ?? 3;
+if (process.argv.includes("--count")) { console.log(`${mins.toFixed(1)} دقيقة ← ${want} قسماً`); process.exit(0); }
 if (S.length) {
   S[0].t = 0;
   if (S.length < 3) errs.push("الفصول أقل من ثلاثة (يوتيوب لا يعرضها)");
+  if (S.length !== want) errs.push(`الأقسام ${S.length} والجدول يطلب ${want} لمدة ${mins.toFixed(1)} دقيقة`);
   S.forEach((x, i) => { const end = i + 1 < S.length ? S[i + 1].t : total; if (end - x.t < 10) errs.push(`الفصل «${x.title}» أقصر من 10 ثوانٍ`); });
   L.push("## الفصول (تُلصق في الوصف)", ...S.map((x) => `${mm(x.t)} ${x.title}`), "");
 } else L.push("## الفصول", "(لا أقسام بعد: مهارة video-sections)", "");
@@ -38,7 +43,7 @@ if (cards.length) L.push("## مقاطع ذُكرت في الفيديو (للوص
 L.push("## شاشة النهاية", `قالب «فيديو واحد، اشتراك واحد»؛ الفيديو: ${cards[0] ? `${cards[0].title} — ${cards[0].url}` : "«الأحدث رفعاً»"}`, "");
 const ch = opt("--channel") ?? "main", q = opt("--title") ?? "";
 const pl = q ? spawnSync("node", ["tools/playlists_fetch.mjs", "match", q, "--channel", ch], { encoding: "utf8" }) : null;
-L.push("## قائمة التشغيل", pl?.status === 0 ? pl.stdout.trim().split(/\r?\n/)[0].replace(/^\d+\s+/, "") : "(لا قائمة مطابقة: تُذكر للمستخدم)", "");
+L.push("## قائمة التشغيل", pl?.status === 0 ? pl.stdout.trim().split(/\r?\n/)[0].replace(/^\d+\s+/, "") : "لم أجد قائمة", "");
 
 fs.mkdirSync("data/youtube", { recursive: true });
 fs.writeFileSync(`data/youtube/${p}_package.md`, L.join("\n"));

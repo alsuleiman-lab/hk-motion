@@ -98,6 +98,8 @@ const toText = (words) => {
 };
 
 if (stage === "prep") {
+  // the task list binds from the first step (rules §6; user 2026-11-16 «ياخذ قائمة مهام يمشي عليها وما يتجاوزها»): prep registers the montage itself, so the hooks hold the spec until `ready`
+  { const g = await run("node", ["tools/montage_guard.mjs", "start", p]); say(g.code === 0 ? `tasks: «${p}» مسجَّل — لا مواصفة قبل اكتمال مراحل ما قبل البناء (montage_guard ready)` : `⚠ montage_guard start: ${g.out.trim().split(/\r?\n/).pop()}`); }
   const video = rest.find((a) => !a.startsWith("--"));
   if (!video || !fs.existsSync(video)) { say(`✘ video not found: ${video}`); finish(1); }
   const audioOnly = rest.includes("--audio-only");
@@ -134,7 +136,7 @@ if (stage === "prep") {
   }
   } else say("speaker roles: review the narrator and story dialogue from the audio/transcript");
   // «عفواً/أعيد» and stumbles (rules §5, skill montage-orders): the spots are listed now; I judge each from its context and pass the wrong attempts as --rem to stage cut
-  { const rs = await run("node", ["tools/redo_scan.mjs", p]); fs.writeFileSync(path.join(T, "redo.txt"), rs.out); say(`retakes: ${(rs.out.match(/اقتراح --rem/g) ?? []).length} spot(s) → ${path.join(T, "redo.txt")} (judge each from its context → --rem for stage cut)`); }
+  { const rs = await run("node", ["tools/redo_scan.mjs", p]); fs.writeFileSync(path.join(T, "redo.txt"), rs.out); const os = await run("node", ["tools/orders_scan.mjs", p]); say(os.out.trim().split(/\r?\n/).pop()); say(`retakes: ${(rs.out.match(/اقتراح --rem/g) ?? []).length} spot(s) → ${path.join(T, "redo.txt")} (judge each from its context → --rem for stage cut)`); }
   say(`read: ${path.join(T, "transcript.txt")}${audioOnly ? " (audio-only source)" : `  (contact sheet: ${path.join(T, "sheet.jpg")})`}`);
   finish(0);
 }

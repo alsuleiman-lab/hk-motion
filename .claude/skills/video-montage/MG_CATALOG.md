@@ -15,7 +15,7 @@ Paper desk background: dot grid, paper noise, red squiggles, corner crop marks, 
 `props:` dark?: boolean; tag?: string
 
 ### `Chip`
-Orange kinetic caption chip (the reference changes its words every ~1 s with a small pop).
+Orange kinetic key-phrase chip (the reference changes its words every ~1 s with a small pop).
 `props:` phrases: { text: string; at: number; color?: string }[]; x: number; y: number; size?: number; at?: number; dur?: number
 
 ### `Typewriter`
@@ -100,7 +100,7 @@ A list panel (put it on the RIGHT) with rows; when the speaker names the chosen 
 
 ### `PhoneChips`
 A calm product hero for anything shown on a phone (an app, a notification, a chat, a website on mobile): (rings are OPTIONAL and OFF by default — the effect has NO background of its own, the video's background shows; pass rings=[4 colours] only if asked) conce
-`props:` at: number; cx?: number; cy?: number; w?: number; h?: number; dur?: number; scroll?: number; screen?: React.ReactNode; notch?: boolean; chips?: { text: string; side: "left" | "right"; at: number; dy?: number }[]; rings?: string[]; accent?: string
+`props:` at: number; cx?: number; cy?: number; w?: number; h?: number; dur?: number; scroll?: number; screen?: React.ReactNode; notch?: boolean; chips?: { text: string; side: "left" | "right"; at: number; dy?: number }[]; rings?: string[]; accent?: string; /** (2026-11-12, GPU renderer) a VIDEO on the screen: "below" = rings, body, bezel …
 
 ### `SakugaMove`
 One of the ways a SOURCE CARD (a clip/screenshot/page) can move on screen — best when a source stays > 10 s, but fine for shorter ones too. Phase 1 «على 3»: the card updates only every 3rd frame (≈10 fps flip-book stutter), each step ≥ 30 px, with a ±5° swing,
@@ -179,8 +179,8 @@ his isolated cut-out shrunk into a corner (user 2026-10-29, the paper map): the 
 `props:` at: number; x: number; y: number; children: React.ReactNode
 
 ### `FullImage`
-a source picture FILLS the 1080×1920 frame for a frame range (user 2026-10-23: manuscript full-screen) with a slow push and an optional self-drawing marker; sits in the BASE layers (outside <Gfx>) because it deliberately replaces him for those seconds. Put it 
-`props:` src: string; from: number; to: number; origin?: string; marker?: { x: number; y: number; w: number; h: number; at: number }; box?: { x: number; y: number; w: number; h: number; rot?: number; plain?: boolean }
+`part` (hybrid / GPU render, 2026-11-12): a full-screen VIDEO is split in two — "video" = the clip as a <VSlot> (decoded on the GPU, drawn by the compositor; placed outside <UnderHim> it lies just under his cut-out), "graphics" = everything else (the marker), 
+`props:` src: string; from: number; to: number; origin?: string; marker?: { x: number; y: number; w: number; h: number; at: number }; box?: { x: number; y: number; w: number; h: number; rot?: number; plain?: boolean }; part?: "video" | "graphics"
 
 ### `CitationTag`
 the citation tag: book, volume, page on a small identity label with a pin, swinging in from the corner of the source
@@ -202,7 +202,7 @@ a newspaper clipping of a real news screenshot: torn edges, the headline above i
 a torn note for the key phrase: cream paper strip with ragged ends, the phrase in Zain, one word underlined by hand in BRAND.mark
 `props:` at: number; until?: number; x: number; y: number; w: number; text: string; size?: number; underline?: number; rot?: number
 
-### `WordScraps` (العرضي؛ وفي الطولي والريلز نادراً)
+### `WordScraps`
 a title made of torn paper scraps, one word per scrap (Arabic letters keep their joins), each arriving in stop-motion with its own tilt and stock
 `props:` at: number; until?: number; x?: number; y?: number; text: string; size?: number; gap?: number; times?: number[]
 
@@ -216,15 +216,12 @@ paper grain over a paper scene (multiply, faint), so cut-outs and cards read as 
 
 ### `DateCalendar`
 (بلا وصف: مكوّن أساسي)
-`props:` at: number; until?: number; x: number; y: number; w: number; text: string; sub?: string
+`props:` at: number; until?: number; x: number; y: number; w: number; text: string; sub?: string; from?: number
 
 ### `PaperTear`
 (بلا وصف: مكوّن أساسي)
 `props:` sheet: React.ReactNode; from?: number; to?: number; peak?: number; direction?: Dir; roughness?: number
 
 ### `SculptedBlocks07`
-the pasted call shape: <SculptedBlocks07 mainSrc guestSrc title /> (paths relative to public/, or staticFile URLs)
+(user order 2026-11-16, «كبّر فيديو المردود عليه وصغّر بطاقة الشيخ»: a deliberate rule break) the shown clip large on the left, his mount small on the right */ const DebateDossierBig: React.FC<Props> = (p) => <DebateDossier {...p} big />; const DebateDossierPa
 `props:` mainSrc: string; guestSrc: string; title?: string
-
-- **صورة طالعة من الزاوية `peek` (في المعرض: PeekCorner، 2026-11-11):** `{ t: "peek", src: "<p>/peek_x.png", ar: الارتفاع÷العرض, at, until, corner: "bl", say?: "عادي" }` — رأس وكتفان بلا خلفية (قصّ RVM على الصورة الثابتة) تطلع مائلة من الزاوية السفلية اليسرى ثم تنزل؛ `say` فقاعة كلام ورقية من رأسه.
-- **الخريطة الورقية `pmap` (أطلس، 2026-11-11):** تغطي الوطن العربي وجنوب آسيا ووسطها؛ في العرضي `landCenter`/`landSpan` يضعان البلد المظلَّل في الجانب الخالي، ومعها نافذة `behind` بإزاحة `dx` إن كان البلد في الوسط.

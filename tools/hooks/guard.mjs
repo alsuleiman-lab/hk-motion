@@ -87,6 +87,16 @@ if (mode === "pre") {
     let size = 0; try { size = fs.statSync(ti.file_path).size; } catch { /* new file */ }
     if (size > 6 * 1024) deny(`الملف ${rel(ti.file_path)} موجود (${Math.round(size / 1024)} KB): عدّله بـEdit في المواضع المتغيّرة، ولا تُعِد كتابته كاملاً.`);
   }
+  // SPEC GATE (2026-11-16): the build is now the spec, not a src/ file — the montage's spec (spec_draft or a new data/specs/<p>.json) waits for the same
+  // pre-build stages (questions, cut, context with the user's orders, assets, cover, plan): the task list is walked in order and cannot be skipped.
+  {
+    const c = String(ti.command ?? "");
+    const sm = c.match(/spec_draft\.mjs\s+["']?([A-Za-z0-9_-]+)/) ?? (tool === "Write" && !fs.existsSync(ti.file_path ?? "") ? rel(ti.file_path ?? "").match(/^data\/specs\/([A-Za-z0-9_-]+)\.json$/) : null);
+    if (sm && activeProjects().some((x) => x.toLowerCase() === sm[1].toLowerCase()) && !/--out\s/.test(c)) {
+      const g = guard("ready", sm[1]);
+      if (!g.ok) deny(`المونتاج «${sm[1]}»: لا مواصفة قبل أن تكتمل مراحل ما قبل البناء في قائمة المهام (الأسئلة، القص، تعليمات المستخدم، الأصول، الغلاف، الخطة). شغّل: node tools/montage_guard.mjs ready ${sm[1]}\n${g.out.split("\n").slice(-12).join("\n")}`);
+    }
+  }
   if (tool === "Write") {
     const f = ti.file_path, p = projectOf(rel(f ?? ""));
     if (p && f && /^src\/[^/]+\.tsx?$/.test(rel(f)) && !fs.existsSync(f)) {
@@ -100,7 +110,8 @@ if (mode === "pre") {
     const c = String(ti.command ?? "");
     const m = c.match(/stage\.mjs\s+(?:cut|check)\s+["']?([A-Za-z0-9_-]+)/) ?? (tool === "Write" ? rel(ti.file_path ?? "").match(/^data\/specs\/([A-Za-z0-9_-]+)\.json$/) : null);
     if (m && input.transcript_path) {
-      const p = m[1], MUST = { "MONTAGE_BRIEF.md": /MONTAGE_BRIEF\.md$/, "critical-rules.md": /video-montage\/critical-rules\.md$/, "workflow-plan.md": /video-montage\/workflow-plan\.md$/ };
+      // (2026-11-16, user: «تأكد أنه سيقرأ كل القواعد وينفذها ويمشي على قائمة مهام ويسجل تعليماتي») + the router and the orders/task-list skill
+      const p = m[1], MUST = { "MONTAGE_BRIEF.md": /MONTAGE_BRIEF\.md$/, "critical-rules.md": /video-montage\/critical-rules\.md$/, "workflow-plan.md": /video-montage\/workflow-plan\.md$/, "router/SKILL.md": /skills\/router\/SKILL\.md$/, "montage-orders/SKILL.md": /skills\/montage-orders\/SKILL\.md$/ };
       try {
         let start = -1; const readAt = {};
         fs.readFileSync(input.transcript_path, "utf8").split("\n").forEach((line, i) => {

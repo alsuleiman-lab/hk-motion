@@ -5,7 +5,7 @@ description: الموجّه — أول مهارة تُقرأ عند أي طلب 
 
 # الموجّه
 
-> قبل أي فيديو: `MONTAGE_BRIEF.md` (القواعد §0–§11). كل مرحلة مهارة صغيرة تعمل وحدها؛ اقرأها حين تصلها فقط.
+> قبل أي فيديو: `MONTAGE_BRIEF.md` (القواعد §0–§11) ثم هذا الملف ثم مهارة السلسلة و`montage-orders`. كل مرحلة مهارة صغيرة تعمل وحدها؛ اقرأها حين تصلها فقط.
 
 ## 1) الطلب ← السلسلة
 | الطلب | السلسلة (المهارة الأولى) |
@@ -29,14 +29,14 @@ description: الموجّه — أول مهارة تُقرأ عند أي طلب 
 | §3 | قص السكتات والتلعثم + بوابة الصوت | `video-cutting`؛ `node tools/stage.mjs cut` |
 | §4 | التفريغ (بالكلمات، والمتحدثون) | `stage.mjs prep` و`cut` (`transcript.txt`، `speakers.txt`) |
 | §5 | أوامر «مونتاج…انتهى مونتاج» و«عفواً/أعيد» | `montage-orders` §1–§2 |
-| §6 | قائمة مهام الفيديو (سجل المطلوب) | `montage-orders` §3 (`requirements.md`، `montage_notes.mjs`) |
+| §6 | قائمة مهام الفيديو `.tmp/<p>/tasks.md` (`tasks.mjs`) | `montage-orders` §3 (مداخلها: `requirements.md`، `montage_notes.mjs`، `montage_guard`) |
 | §7 | الهوية: نمط لوني عشوائي + فاصل عشوائي | `src/brand.ts` (حقل `brand`)؛ `node tools/pick_bumper.mjs pick` |
 | §8.1 | الأسماء: صور وخرائط | `video-montage/workflow-plan.md` 1ج (`fetch_images.mjs`) |
 | §8.2–§8.3 | القرآن والحديث | `verse_scan.mjs`، `verse_audit.mjs`؛ `critical-rules.md` ج |
 | §8.4 | B-roll ومقاطع يوتيوب | `pixabay-search`، `source-display` |
-| §8.5 | صور مصممة | `collage-broll-local` (`comfy_still.mjs`) |
+| §8.5 | صور مصممة (رسم كود من المعرض أولاً، ثم المولَّدة) | `gallery-placement`، ثم `collage-broll-local` (`comfy_still.mjs`) |
 | §8.6 | الأخبار والمصادر | `source-display` |
-| §8.7 | العداد | `gallery-placement` §4 |
+| §8.7 | شريط الحلقة والعدّاد | تلقائي في المحرّك (`TitleBar` + `episode_date.mjs`) |
 | §8.8 | توزيع العناصر من المعرض + الهوك | `gallery-placement` |
 | §9 | البناء | السلسلة + `motion-graphics` (`spec_draft.mjs`) |
 | §10 | الفحص | `node tools/stage.mjs check …` + `WORKFLOW_CHECKLIST.md` |

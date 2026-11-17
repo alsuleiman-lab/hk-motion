@@ -70,7 +70,7 @@ export const PaperBg: React.FC<{ dark?: boolean; tag?: string }> = ({ dark, tag 
   );
 };
 
-/** Orange kinetic caption chip (the reference changes its words every ~1 s with a small pop). */
+/** Orange kinetic key-phrase chip (the reference changes its words every ~1 s with a small pop). */
 export const Chip: React.FC<{ phrases: { text: string; at: number; color?: string }[]; x: number; y: number; size?: number; at?: number; dur?: number }> = ({ phrases, x, y, size = 54, at, dur }) => {
   const t = useT();
   const idx = Math.max(0, phrases.filter((p) => p.at <= t).length - 1);

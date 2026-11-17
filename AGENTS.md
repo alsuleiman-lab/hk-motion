@@ -14,7 +14,7 @@
   - `lessons-and-streams`: الدروس والبثوث (كلود).
   - `silent-reaction`: التعليق الصامت (طولي فقط).
   - `paper-montage`: المونتاج الورقي (صوت + قصاصات، طولي).
-  - `cartoon-animation` و`papermotion`: الكرتون.
+  - `cartoon-animation`: الكرتون (ومحرك القصاصات في `references/papermotion.md`).
   - `advertising-video`: الإعلان.
-  - `pixabay-search`، `collage-broll-local`، `gbro-collage-broll`: B-roll والقصاصات.
+  - `pixabay-search`، `collage-broll-local`: B-roll والقصاصات.
 - **الحاسم:** لا موسيقى، لا نساء، لا عنصر قبل نطقه، لا تغطية لوجهه ولحيته، العمل على S والتصدير MP4 إلى `C:\Users\mshms\Videos\جاهز` وحده، ولا رندر دون إذن.

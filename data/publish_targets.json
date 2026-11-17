@@ -42,5 +42,6 @@
   }
  },
  "okru": "https://ok.ru/video/manager",
- "_rule": "Never create, rename or move a Drive folder: the user's publishing automation depends on these exact folders. A folder not found = ask him for its link."
+ "_rule": "Never create, rename or move a Drive folder: the user's publishing automation depends on these exact folders. A folder not found = ask him for its link.",
+ "_account": "Drive = the approved account internetarchiveservice@gmail.com only (Chrome u/2). Never open or search another Google account's Drive."
 }

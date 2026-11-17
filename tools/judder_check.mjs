@@ -64,6 +64,10 @@ const avoid = opt("avoid", "").split(",").filter(Boolean).map((r) => r.split("-"
 if (!process.argv.includes("--no-auto-avoid") && !process.argv.includes("--at") && fs.existsSync(`data/specs/${name.replace(/_probe$/, "")}.json`)) {
   const fw = spawnSync(process.execPath, ["tools/free_windows.mjs", name.replace(/_probe$/, ""), "--spans"], { encoding: "utf8" });
   const spans = (fw.stdout || "").trim().split(/\s+/).filter(Boolean).map((x) => x.split("-").map(Number));
+  /* the moment an element ENTERS or LEAVES changes the pixels of the face region while the motion itself is fine (the user's finding: after it entered, the frames matched the source exactly):
+     every item of the spec keeps its entry [at − 0.3, at + 1.2] and exit [until − 0.3, until + 0.8] out of the measured windows */
+  try { const sp = JSON.parse(fs.readFileSync(`data/specs/${name.replace(/_probe$/, "")}.json`, "utf8")), off0 = offset / fps;
+    for (const it of sp.items ?? []) { const a0 = it.at ?? it.from ?? (it.times ? it.times[0] : null), b0 = it.until ?? it.to ?? (it.dur != null && a0 != null ? a0 + it.dur : null); if (a0 == null) continue; avoid.push([a0 - 0.3 + off0, a0 + 1.2 + off0]); if (b0 != null) avoid.push([b0 - 0.3 + off0, b0 + 0.8 + off0]); } } catch { /* no spec items */ }
   if (spans.length) { let last = 0; const off = offset / fps; for (const [a, b] of spans) { if (a > last) avoid.push([last + off, a + off]); last = b; } avoid.push([last + off, 1e9]); console.log(`[judder] clear stretches from the spec: ${spans.length} — windows only there`); }
 }
 const dur = Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", out], { encoding: "utf8" }).stdout);
@@ -74,6 +78,7 @@ const pick = [];
 const at = opt("at", "");   // --at <output second>: one window starting exactly there (used by judder_probe.mjs on a 10-second clip)
 if (at !== "") pick.push(Number(at));
 else for (let k = 1; k <= nW; k++) { let s = (dur * k) / (nW + 1); for (let g = 0; g < 400 && (bad(s, s + len / fps + 0.5) || s * fps - offset < 5); g++) s += 0.5; if (s + len / fps < dur - 4) pick.push(+s.toFixed(3)); }
+if (!pick.length) { console.log("✘ الارتجاف: لا نافذة صالحة للقياس في هذا الملف (كل مقاطعه تدخلها عناصر أو أقصر من " + (len / fps).toFixed(1) + "ث): قلّل --len أو --windows، أو أضف --no-auto-avoid ثم افحص إطارات النوافذ بالعين"); process.exit(3); }
 let agree = 0, total = 0, dup = 0;
 for (const s of pick) {
   const a = steps(raw(out, s, len, crop)), b = steps(raw(src, s - offset / fps, len, srcCrop.length === 4 ? srcCrop : crop));

@@ -33,6 +33,10 @@ if (!lib.length) { console.error(`✘ no books in ${DB} — run: node tools/hadi
 // score = share of his distinctive words found in the hadith, plus a bonus for his word pairs kept in order
 // score = the best run of ~10 consecutive words of his speech (his commentary around the narration does not dilute it): share of its words in the hadith
 // + a bonus for its word pairs kept in order. A short quote is scored whole.
+// a transcription slip is one letter («أفلح» heard as «أثلح»): a word of 4+ letters also counts as present when a variant one letter away is in the hadith
+const AR = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي";
+const variants = (w) => { const v = new Set([w]); if (w.length < 4) return v; for (let i = 0; i < w.length; i++) { v.add(w.slice(0, i) + w.slice(i + 1)); for (const c of AR) { v.add(w.slice(0, i) + c + w.slice(i + 1)); v.add(w.slice(0, i) + c + w.slice(i)); } } return v; };
+const present = (h, w) => { for (const x of variants(w)) if (h.t.has(x)) return true; return false; };
 const search = (said, n) => {
   const q = toks(said); if (!q.length) return [];
   const W = Math.min(10, q.length), wins = [];
@@ -41,7 +45,7 @@ const search = (said, n) => {
   return lib.map((h) => {
     const hn = norm(h.text).split(" ").map((w) => w.replace(/^(و|ف)(?=...)/, "")).join(" ");
     let score = 0;
-    for (const w of wins) { const hit = w.filter((x) => h.t.has(x)).length / w.length; let pairs = 0; for (let i = 0; i + 1 < w.length; i++) if (hn.includes(w[i] + " " + w[i + 1])) pairs++; score = Math.max(score, hit + (pairs / Math.max(1, w.length - 1)) * 0.5); }
+    for (const w of wins) { const hit = w.filter((x) => present(h, x)).length / w.length; let pairs = 0; for (let i = 0; i + 1 < w.length; i++) if (hn.includes(w[i] + " " + w[i + 1])) pairs++; score = Math.max(score, hit + (pairs / Math.max(1, w.length - 1)) * 0.5); }
     return { ...h, score };
   }).sort((a, b) => b.score - a.score).slice(0, n);
 };

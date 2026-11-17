@@ -178,9 +178,9 @@ if (stage === "cut") {
     segments = rest;
     say(`move ${mv.a}–${mv.b} → before source ${mv.t} (${moved.length} segment(s))`);
   }
-  const renumber = () => { for (let i = segments.length - 1; i > 0; i--) if (Math.abs(segments[i].a - segments[i - 1].b) < 0.01) { segments[i - 1].b = segments[i].b; segments.splice(i, 1); }   /* contiguous pieces are one segment: no phantom join for the gate */
+  const renumber = () => { for (let i = segments.length - 1; i > 0; i--) if (Math.abs(segments[i].a - segments[i - 1].b) < 0.01 && segments[i].type === segments[i - 1].type) { segments[i - 1].b = segments[i].b; segments.splice(i, 1); }   /* contiguous pieces are one segment: no phantom join for the gate */
     let n = 0; for (const g of segments) { g.n = +n.toFixed(3); n += g.b - g.a; } return n; };
-  const writeMap = () => { const n = renumber(); fs.writeFileSync(mapF, JSON.stringify({ segments, duration: +n.toFixed(3) }, null, 1)); return n; };
+  const writeMap = () => { const n = renumber(); fs.writeFileSync(mapF, JSON.stringify({ segments, duration: +n.toFixed(3), model: "cut_model" }, null, 1)); return n; };
   writeMap();
   const keepGate = segments.filter((g) => g.type && g.type !== "speech").map((g) => `${g.a}-${g.b}`).join(",");   // the clip/sound ranges of the plan (noise_scan exemption)
   { const v0 = verifyCut({ segments: JSON.parse(fs.readFileSync(mapF, "utf8")).segments, words: tableWords });

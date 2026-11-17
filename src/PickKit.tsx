@@ -58,9 +58,9 @@ export const InkQuote: React.FC<Base & { w?: number; size?: number; lines: { tex
   const cur = lines.map((l, i) => clamp((t - l.at) / Math.max(0.5, l.text.length * 0.06))).map((u, i) => [u, i] as const).find(([u]) => u > 0 && u < 1);
   return (
     <div style={abs({ left: x, top: y, width: w })}>
-      <div style={abs({ right: -10, top: -size * 1.35, fontFamily: naskhF, fontSize: size * 2.2, lineHeight: 1, color: BRAND.accent, ...pop(k(at, 0.4, until), 0.3) })}>❝</div>
+      <div style={abs({ right: 10, top: -size * 1.05, fontFamily: naskhF, fontSize: size * 2.2,   /* (gallery note 2026-11-17) the quote sign close to the text */ lineHeight: 1, color: BRAND.accent, ...pop(k(at, 0.4, until), 0.3) })}>❝</div>
       {lines.map((l, i) => { const u = Math.min(clamp((t - l.at) / Math.max(0.5, l.text.length * 0.06)), clamp((until - t) / 0.35));
-        return <div key={i} style={abs({ left: 0, width: w, top: tops[i], textAlign: "center", fontFamily: kufiF, fontWeight: 800, fontSize: fs0, lineHeight: 1.45, color: inkC ?? (i === lines.length - 1 && lines.length > 1 ? BRAND.accent : BRAND.card), textShadow: "0 4px 18px rgba(0,0,0,.55)", ...wipe(ease(u)) })}>{l.text}</div>; })}   {/* user 2026-11-14 (frame 9200): bolder Kufi so the quote reads at a glance */}
+        return <div key={i} style={abs({ left: 0, width: w, top: tops[i], textAlign: "center", fontFamily: kufiF, fontWeight: 800, fontSize: fs0, lineHeight: 1.45, color: inkC ?? BRAND.card, textShadow: "0 2px 0 rgba(0,0,0,.6), 0 4px 18px rgba(0,0,0,.7)"   /* (gallery note 2026-11-17) every line in the light card colour: the accent last line had poor contrast */, ...wipe(ease(u)) })}>{l.text}</div>; })}   {/* user 2026-11-14 (frame 9200): bolder Kufi so the quote reads at a glance */}
       {cur && t < until ? <div style={abs({ width: 28, height: 28, background: BRAND.accent, transform: "rotate(45deg)", boxShadow: `0 0 22px ${BRAND.accent}`, top: tops[cur[1]] + size * 0.6, left: w * (0.9 - 0.8 * cur[0]) })} /> : null}
       {source ? <div style={abs({ left: 0, width: w, top: total + 10, textAlign: "center", fontFamily: kufiF, fontSize: size * (srcK ?? 0.36), color: inkC ?? BRAND.light, ...wipe(ease(k(lines[lines.length - 1].at + 0.8, 0.4, until))) })}>{source}</div> : null}
     </div>
@@ -213,11 +213,11 @@ export const LineGrowth: React.FC<Base & { w?: number; h?: number; values: numbe
 };
 
 /** 10 · مخطط القرار — a conditional ruling: the case → a diamond question → «نعم» and «لا» each to its result */
-export const DecisionFlow: React.FC<Base & { start: string; q: string; qAt: number; yes: string; no: string; yesAt: number; noAt?: number; yesTag?: string; noTag?: string }> = ({ at, until, x, y, start, q, qAt, yes, no, yesAt, noAt, yesTag = "نعم", noTag = "لا" }) => {
+export const DecisionFlow: React.FC<Base & { start: string; q: string; qAt: number; yes: string; no: string; yesAt: number; noAt?: number; yesTag?: string; noTag?: string; s?: number; bare?: number }> = ({ at, until, x, y, start, q, qAt, yes, no, yesAt, noAt, yesTag = "نعم", noTag = "لا", s = 1, bare }) => {
   const { k } = useK(); const W = 980, kk = k(at, 0.4, until), dq = k(qAt, 0.35, until), ky = k(yesAt, 0.35, until), kn = k(noAt ?? yesAt + 0.25, 0.35, until);
   const box = (s: React.CSSProperties, bg: string, fg: string, txt: string, kx: number) => { const f = fitBox(txt, { font: 42, minFont: 26, minW: Number(s.width), maxW: Number(s.width) }); return <div style={abs({ ...s, borderRadius: 18, background: bg, display: "grid", placeItems: "center", textAlign: "center", padding: "0 16px", fontFamily: kufiF, fontSize: f.fs, lineHeight: 1.3, color: fg, ...pop(kx, 0.4) })}>{txt}</div>; };
   return (
-    <div style={abs({ left: x, top: y, width: W, height: 780, background: BRAND.base3, borderRadius: 22, ...pop(kk, 0.9) })}>
+    <div style={abs({ left: x, top: y, width: W, height: 780, background: bare ? undefined : BRAND.base3, borderRadius: 22, transformOrigin: "0 0", ...pop(kk, 0.9, s !== 1 ? "" : ""), ...(s !== 1 ? { transform: `scale(${s * (0.9 + 0.1 * back(kk))})` } : {}) })}>   {/* bare + s (gallery note 2026-11-17): over the dark gradient beside him, no panel */}
       <svg width={W} height={780} style={{ position: "absolute", inset: 0 }} fill="none" stroke={BRAND.light} strokeWidth={8} strokeLinecap="round">
         <path d="M490 170 V250" style={dash(80, k(at + 0.4, 0.35, until))} />
         <path d="M650 420 H810 V560" style={dash(300, k(yesAt - 0.4, 0.4, until))} />
@@ -277,14 +277,14 @@ export const Footnote: React.FC<Base & { w?: number; size?: number; before: stri
   const { k } = useK(); const u = ease(k(wordAt, 0.4, until)), n = k(noteAt, 0.45, until);
   return (
     <div style={abs({ left: x, top: y, width: w })}>
-      <div style={abs({ left: 0, width: w, top: 0, textAlign: "center", fontFamily: naskhF, fontSize: size, lineHeight: 1.5, color: BRAND.card, ...wipe(ease(k(at, 0.6, until))) })}>
-        {before} <span style={{ position: "relative", color: u > 0 ? BRAND.accent : BRAND.card }}>{word}<i style={{ position: "absolute", right: 0, left: 0, bottom: -6, height: 7, borderRadius: 4, background: BRAND.accent, transformOrigin: "100% 50%", transform: `scaleX(${u})` }} /></span> {after}
+      <div style={abs({ left: 0, width: w, top: 0, textAlign: "center", fontFamily: naskhF, fontSize: size, lineHeight: 1.5, color: BRAND.card, textShadow: "0 2px 0 rgba(0,0,0,.6), 0 4px 18px rgba(0,0,0,.75)", ...wipe(ease(k(at, 0.6, until))) })}>
+        {before} <span style={{ position: "relative", color: BRAND.card, fontWeight: u > 0 ? 700 : 400 }}>{word}<i style={{ position: "absolute", right: 0, left: 0, bottom: -6, height: 7, borderRadius: 4, background: BRAND.accent, transformOrigin: "100% 50%", transform: `scaleX(${u})` }} /></span> {after}
       </div>
       <div style={abs({ left: w / 2 - 3, top: size * 1.6, width: 6, height: 70 * ease(n), background: BRAND.accent })} />
-      <div style={abs({ left: w * 0.1, width: w * 0.8, top: size * 1.6 + 70, padding: "26px 34px", borderRadius: 14, background: BRAND.card, borderRight: `12px solid ${BRAND.accent}`, boxShadow: "0 20px 50px rgba(0,0,0,.45)", fontFamily: kufiF, fontSize: size * 0.58, lineHeight: 1.6, color: BRAND.ink, ...pop(n, 0.6) })}>
+      <div style={abs({ left: w * 0.1, width: w * 0.8, top: size * 1.6 + 70, padding: "26px 34px", borderRadius: 14, background: BRAND.card, borderRight: `12px solid ${BRAND.accent}`, boxShadow: "0 20px 50px rgba(0,0,0,.45)", fontFamily: kufiF, fontSize: size * 0.58, lineHeight: 1.6, color: BRAND.ink, direction: "rtl", textAlign: "right", ...pop(n, 0.6) })}>   {/* (gallery note 2026-11-17) right-to-left inside the box */}
         <b style={{ color: BRAND.accentDeep }}>{word}:</b> {meaning}
       </div>
-      {source ? <div style={abs({ left: w * 0.1, top: size * 1.6 + 70 + size * 2.6, fontFamily: kufiF, fontSize: size * 0.4, color: BRAND.light, ...wipe(ease(k(noteAt + 0.6, 0.4, until))) })}>{source}</div> : null}
+      {source ? <div style={abs({ left: w * 0.1, top: size * 1.6 + 70 + size * 2.6, fontFamily: kufiF, fontSize: size * 0.4, color: BRAND.card, textShadow: "0 2px 10px rgba(0,0,0,.8)", ...wipe(ease(k(noteAt + 0.6, 0.4, until))) })}>{source}</div> : null}
     </div>
   );
 };
@@ -341,8 +341,8 @@ export const GradeLadder: React.FC<Base & { grade: number; pointerAt: number; gr
   const { t, k } = useK(); const cols = [BRAND.green, BRAND.blue, BRAND.accent, BRAND.mark, BRAND.navyDeep], u = ease(clamp((t - pointerAt) / 1.2)), on = t > pointerAt + 1.2;
   return (
     <div style={abs({ left: x, top: y })}>
-      {grades.map((g, i) => <div key={i} style={abs({ left: 180, top: i * 140, width: 560, height: 110, borderRadius: 12, background: "rgba(255,255,255,.08)", borderRight: `16px solid ${cols[i % 5]}`, display: "flex", alignItems: "center", paddingRight: 40, fontFamily: kufiF, fontSize: 54, color: BRAND.card, boxShadow: on && i === grade ? `0 0 40px ${cols[i % 5]}` : "none", transform: on && i === grade ? "scale(1.06)" : "none", ...wipe(ease(k(at + i * 0.1, 0.35, until))) })}>{g}</div>)}
-      <div style={abs({ left: 20, top: grade * 140 * u, width: 140, height: 110, display: "grid", placeItems: "center", fontFamily: kufiF, fontSize: 90, color: BRAND.accent, visibility: t > pointerAt && t < until ? "visible" : "hidden" })}>◀</div>
+      {grades.map((g, i) => <div key={i} style={abs({ left: 0, top: i * 140,   /* (gallery note 2026-11-17) rows at the left, the pointer on their right */ width: 560, height: 110, borderRadius: 12, background: "rgba(255,255,255,.08)", borderRight: `16px solid ${cols[i % 5]}`, display: "flex", alignItems: "center", paddingRight: 40, fontFamily: kufiF, fontSize: 54, color: BRAND.card, boxShadow: on && i === grade ? `0 0 40px ${cols[i % 5]}` : "none", transform: on && i === grade ? "scale(1.06)" : "none", ...wipe(ease(k(at + i * 0.1, 0.35, until))) })}>{g}</div>)}
+      <div style={abs({ left: 580, top: grade * 140 * u, width: 140, height: 110, display: "grid", placeItems: "center", fontFamily: kufiF, fontSize: 90, color: BRAND.accent, visibility: t > pointerAt && t < until ? "visible" : "hidden" })}>◀</div>
     </div>
   );
 };
@@ -414,7 +414,7 @@ export const AlertFrame: React.FC<{ at: number; until: number; text?: string; ba
   return (
     <div style={abs({ left: 0, top: 0, width: W, height: H, pointerEvents: "none" })}>
       {corner(false, false)}{corner(true, false)}{corner(false, true)}{corner(true, true)}
-      <div style={abs({ left: W / 2 - 300, top: 40, width: 600, padding: 16, textAlign: "center", borderRadius: "0 0 18px 18px", background: RED, fontFamily: kufiF, fontSize: 52, color: "#fff", visibility: kb > 0 ? "visible" : "hidden", transform: `translateY(${(1 - kb) * -160}px)` })}>⚠ {text}</div>
+      <div style={abs({ left: W / 2 - 300, bottom: 40, width: 600, padding: 16, textAlign: "center", borderRadius: "18px 18px 0 0", background: RED, fontFamily: kufiF, fontSize: 52, color: "#fff", visibility: kb > 0 ? "visible" : "hidden", transform: `translateY(${(1 - kb) * 160}px)` })}>   {/* (gallery note 2026-11-17) the warning bar at the bottom */}⚠ {text}</div>
     </div>
   );
 };

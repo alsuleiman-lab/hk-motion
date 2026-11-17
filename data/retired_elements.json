@@ -41,7 +41,8 @@
     "VerseBeads",
     "VerseWall",
     "VerseMihrab",
-    "VerseCine"
+    "VerseCine",
+    "Battery"
   ],
   "itemTypes": [
     "neon",

@@ -49,7 +49,7 @@ const RULES = [
   { el: "CopiedMessages", re: /(طلب مني|طلبوا مني|سالني (كثير|ناس|بعض)|كثير من الاخوه سالوا|وصلتني رسائل|راسلني كثير)/g, why: "طلبات أو أسئلة كثيرة وصلته" },
   { el: "Iceberg", re: /(ظاهره|في الظاهر|ما خفي|ما وراء|تحت الشعار|ما يخفونه)/g, why: "ظاهر قليل ومخفي كثير" },
   { el: "CommentsFlood", re: /(التعليقات|في التعليقات|كتبوا لي|يعلقون|المعلقين)/g, why: "تعليقات الناس" },
-  { el: "Battery", also: ["FillGlasses"], re: /(يزيد وينقص|يزيد بالطاعه|ينقص بالمعصيه|ضعف الايمان|قوه الايمان|الهمه)/g, why: "شيء يزيد وينقص" },
+  { el: "FillGlasses", re: /(يزيد وينقص|يزيد بالطاعه|ينقص بالمعصيه|ضعف الايمان|قوه الايمان|الهمه)/g, why: "شيء يزيد وينقص (البطارية أُلغيت 2026-11-17)" },
   { el: "RootsTree", re: /(اصول|الاصل .{1,20} الفرع|جذور|جذر|ثمرات|ثمره)/g, why: "أصل وفروع" },
   { el: "StickyNotes", also: ["FlapBoard", "rows"], re: /(اولا .{1,200} ثانيا|الامر الاول|السبب الاول|الصفه الاولي|من اسباب)/g, why: "تعداد صفات أو أسباب" },
 ];
@@ -69,12 +69,11 @@ for (const r of RULES) {
 // misuse lint (user 2026-11-14/15): the battery is for a MEANING that rises, falls or charges (faith, energy, the electricity price, a charge…); a PERCENTAGE or a fraction of a value (30 %, a third of its value)
 // is the RingStat's. The claim wall's bricks take single short words (a phrase overflowed the frame).
 for (const [i, it] of items.entries()) {
-  if (it.t === "pick" && it.el === "Battery" && (it.steps ?? []).some((st) => /%|٪|ثلث|نصف|ربع|بالمئة|بالمائة/.test(st.label ?? ""))) { fails++; console.log(`✘ Battery#${i}: النسبة المئوية أو جزء من قيمة (ثلث، نصف، 30%) = RingStat؛ البطارية لمعنى يزيد وينقص ويُشحن (إيمان، سعر الكهرباء، شحن، طاقة)`); }
   if (it.t === "pick" && it.el === "ClaimWall" && (it.words ?? []).some((w) => w.length > 9 || /\s/.test(w))) { fails++; console.log(`✘ ClaimWall#${i}: كلمات الجدار كلمة قصيرة واحدة لكل لبنة (≤ 9 أحرف بلا فراغ)، لا عبارة تخرج من الإطار`); }
 }
 // drawn metaphors (user 2026-11-14: «كن مبدعاً أثناء الحلقات بإضافة المعاني والتعبير عنها بهذه الطريقة … دون أن يكون لذلك أصل عندنا وبدون أن تولّد صور»):
 // at least one per 2 minutes of the video (spec "skipMetaphors": "why" waives it)
-const METAPHORS = ["RootsTree", "Battery", "FillGlasses", "Iceberg", "ViciousCycle", "Crossroads", "ClaimWall", "NeverMeet", "MindMap", "DecisionFlow", "StickyNotes", "WordCloud"];
+const METAPHORS = ["RootsTree", "FillGlasses", "Iceberg", "ViciousCycle", "Crossroads", "ClaimWall", "NeverMeet", "MindMap", "DecisionFlow", "StickyNotes", "WordCloud"];
 const mins = (spec.frames ?? 0) / (spec.fps ?? 30) / 60, needM = Math.max(1, Math.ceil(mins / 2)), gotM = items.filter((it) => it.t === "pick" && METAPHORS.includes(it.el)).length;
 if (mins > 0.5) { if (gotM >= needM) console.log(`✔ المعاني المجسّدة: ${gotM} (المطلوب ${needM})`); else if (spec.skipMetaphors) console.log(`– المعاني المجسّدة: ${gotM} من ${needM}، معفى: ${spec.skipMetaphors}`); else { fails++; console.log(`✘ المعاني المجسّدة: ${gotM} من ${needM} — عبّر عن معاني كلامه برسوم مجسّدة (جذور، بطارية، كأس، جبل جليدي، دائرة، مفترق…)`); } }
 

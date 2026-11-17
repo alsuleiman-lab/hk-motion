@@ -7,6 +7,8 @@ description: سلسلة مونتاج حلقة الشيخ محمد بن شمس ا
 
 **دورك ترتيب لا حفظ.** امشِ على المراحل بالترتيب، واقرأ مهارة المرحلة حين تصلها فقط، وأنهِ كل مرحلة بتقرير موحّد. القواعد في `MONTAGE_BRIEF.md` بأقسامها (§0–§11)، والبحث عن بند في `PREFERENCES.md` بـ`Grep`. عند البدء: `MONTAGE_BRIEF.md` ← `router` ← هذا الملف + `critical-rules.md` (الحاسم في التنفيذ) + `workflow-plan.md` (الخطة) ← `montage-orders` (التعليمات والإعادات وقائمة المهام). دليل القطع: `MG_CATALOG.md` (مولَّد بـ`node tools/gen_quickref.mjs`). **كل مرحلة بأمر واحد** `node tools/stage.mjs prep|cut|check` (يطبع الخلاصة؛ السجل `.tmp/<p>/stage_*.log` عند الفشل وحده)، والملفات الموجودة تُعدَّل بـEdit.
 
+> **العناصر بالمرجع (أمر المستخدم 2026-11-17):** عنصر المونتاج = اسمه في المعرض + نصوصه وصوره وتوقيته فقط، يُضاف بـ`node tools/el.mjs add` (القائمة `el.mjs list`، والتفصيل `el.mjs show <الاسم>`). لا مقاس ولا مكان في المواصفة (`galleryRef`): المحرّك يأخذهما من المعرض لحظة العرض، فتعديل المعرض يصل كل فيديو جديد بلا طلب. التفصيل في `PREFERENCES.md` 9.1.
+
 ## المحرّك (القواعد الخمس، R-RENDER-GPU.1 و.2)
 1. **كل فيديو في التركيبة `<VSlot>`** (`src/hybrid/Slot.tsx`؛ `w`، `h`، `radius`، `vx/vy/vw/vh`، `startFrom`، `playbackRate`، `fx`، `matte`، `fit`، `grow={0}` لنافذة بلا إطار)؛ لا `OffthreadVideo` ولا `<Video>` ولا `RV` في مسار الرندر (النمط `{HY ? <VSlot/> : <القديم/>}` يبقى لـStudio). تأثير غير مدعوم يُضاف في المركِّبين (`tools/gpu_compositor.py` و`tools/hybrid_generic.py`) قبل استعماله.
 2. **ما تحت الفيديو:** `hyBg(لون)`، و`<HybridBg>` للخلفية الثابتة، و`<UnderHim>` تحت الشيخ المعزول، و`<HyLayer z>` مع `<VSlot z>` تحت فيديو بعينه (مثال `src/DebateLayouts.tsx`). غلاف التركيب في `Root.tsx` بلا خلفية معتمة عند `HY` (`critical-rules.md` البند 37).

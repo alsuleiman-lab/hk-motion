@@ -1,5 +1,9 @@
 import { z } from "zod";
 import { galleryPlace } from "./galleryPlace";
+import { resolveGalleryRef } from "./galleryRef";
+import type { GalleryGeo, Grids } from "./galleryRef";
+import galleryGeo from "../data/gallery_geo.json";
+import layoutGrids from "../data/layout_grids.json";
 import React from "react";
 import { AbsoluteFill, Audio, Img, Sequence, Video, continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig , getRemotionEnvironment, getInputProps } from "remotion";
 import { PaperTear } from "./PaperTear";
@@ -754,7 +758,8 @@ const withPortZones = (spec0: MontageSpec): MontageSpec => {
   return m.length ? { ...spec, psplits: [...(spec.psplits ?? []), ...m.map((x) => ({ ...x, ...SPLITZ }))] } : spec;
 };
 const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutAudio?: boolean }> = ({ spec: raw, muted, noCutAudio }) => {
-  const spec0 = withGallery(withHalfWays(withSpecTest(raw)));
+  /* (2026-11-17) a `galleryRef` spec carries only codes, content and timing: size and place come from the gallery now (src/galleryRef.ts) */
+  const spec0 = withGallery(withHalfWays(resolveGalleryRef(withSpecTest(raw), galleryGeo as unknown as GalleryGeo, layoutGrids as unknown as Grids)));
   for (const it of spec0.items) if (!APPROVED_TYPES.has(it.t)) throw new Error(`عنصر غير معتمد في المعرض: «${it.t}» في ${spec0.id} — المعتمد: ${[...APPROVED_TYPES].join("، ")}`);
   const f = useCurrentFrame();
   const { width, height } = useVideoConfig();

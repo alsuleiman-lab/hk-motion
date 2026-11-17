@@ -377,6 +377,8 @@ if (stage === "check") {
     if (fs.existsSync(sf) && fs.existsSync(path.join(T, "cut_words.json")))
       for (const o of orients) await step(`${norm ? "spec_normalize" : "spec_normalize --dry"} (${o === "land" ? "عرضي" : "طولي"})`, "node", ["tools/spec_normalize.mjs", sf, "--o", o, ...(norm ? [] : ["--dry"])], /spec_normalize|✘/);
   }
+  // the gallery's size and place of every element, as the engine reads them (user 2026-11-17: a change in the gallery reaches every video without a request)
+  await step("gallery_geo", "node", ["tools/gallery_geo.mjs"], /gallery_geo/);
   await step("studio_drag_lint", "node", ["tools/studio_drag_lint.mjs"], /studio_drag_lint|^s+src/);
   await step("typecheck", "node", ["node_modules/typescript/bin/tsc", "-p", "."], /error TS/);
   // every video of the montage path reaches the render as a <VSlot> on the GPU (R-RENDER-GPU.2, user 2026-11-12: new elements use the new system)

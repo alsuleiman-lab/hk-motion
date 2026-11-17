@@ -5,6 +5,8 @@
 //        .tmp/<p>/images.json (tools/fetch_images.mjs, optional). Writes data/specs/<p>.json, or .tmp/<p>/spec_draft.json when the spec exists (never overwrites).
 // Draft: cut = <p>_cut_s.mp4; splits from the source windows; cams (portrait 608-px slice) centred on HIS face per stretch (tools/face_track.py);
 // his name tag ≈ every 3 min and the subscribe reminder ≈ every 5 min, each at the next pause; one `pic` + `credit` per fetched picture at its first mention.
+// ELEMENTS BY REFERENCE (user 2026-11-17): the spec is `galleryRef` — each element = its gallery code + content + timing, NO size or place (they come from the gallery
+// at render time, so a gallery change reaches every video); add more with `node tools/el.mjs add <p> <code> …` (tools/el.mjs list = the codes and their fields).
 // BOTH ORIENTATIONS FROM THE START (user 2026-11-16: «نبني طولي وعرضي… ينسخه مع المعلومات اللازمة للحالين»): every item carries its portrait numbers AND its landscape numbers (`land`:
 // the name tag / subscribe at the grid's landscape slots, the picture cards at the gallery sample's size via tools/gallery_geometry.mjs --write), and the new spec is registered
 // at once as its three Studio compositions — طولي, عرضي and «الاثنان معاً» (tools/spec_register.mjs). `--kind reel` = portrait only (no name tag / subscribe, one composition).
@@ -52,8 +54,8 @@ const cams = edges.slice(0, -1).map((a, i) => ({ from: r2(a), to: i === edges.le
 for (const c of cams) { const sp = splits.find((x) => c.from >= x.from - 0.01 && Math.min(c.to, dur) <= x.to + 0.01); if (sp) c.cx = Math.round(sp.sheikh.x + sp.sheikh.w * 0.5); }
 
 const items = [];
-if (kind !== "reel") for (let t = 15; t < dur - 10; t += 180) items.push({ t: "nameTag", at: pauseAfter(t), x: 540, y: 1360, dur: 2.4, land: { x: 686, y: 800 } });
-if (kind !== "reel") for (let t = 100; t < dur - 15; t += 300) items.push({ t: "subscribe", at: pauseAfter(t), x: 540, y: 1400, dur: 3, land: { x: 410, y: 838 } });
+if (kind !== "reel") for (let t = 15; t < dur - 10; t += 180) items.push({ t: "nameTag", at: pauseAfter(t), dur: 2.4 });   // place: the gallery's (galleryRef)
+if (kind !== "reel") for (let t = 100; t < dur - 15; t += 300) items.push({ t: "subscribe", at: pauseAfter(t), dur: 3 });
 
 // pictures at their first mention (Arabic normalised: no diacritics, one alef, ة→ه, ى→ي)
 const norm = (s) => String(s).replace(/[\u064B-\u0652\u0640]/g, "").replace(/[إأآا]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\s+/g, " ").trim();
@@ -75,8 +77,7 @@ const missing = [];
 for (const im of images) {
   const at = firstMention([im.name, ...(im.said ?? [])]);
   if (at == null) { missing.push(im.name); continue; }
-  const h = Math.min(560, Math.round((420 * im.h) / im.w));
-  items.push({ t: "pic", src: im.file.replace(/^public\//, ""), at: r2(at), until: r2(at + 4), x: 40, y: 1380, w: 420, h });
+  items.push({ t: "pic", src: im.file.replace(/^public\//, ""), at: r2(at), until: r2(at + 4), ...(im.w && im.h ? { ratio: +(im.h / im.w).toFixed(4) } : {}) });   // size and place: the gallery's (galleryRef)
   items.push({ t: "credit", text: `${im.name} — ${im.via === "wikipedia" ? "ويكيبيديا" : "صور جوجل"}`, from: r2(at), to: r2(at + 4) });
 }
 items.sort((a, b) => (a.at ?? a.from) - (b.at ?? b.from));
@@ -93,7 +94,7 @@ items.sort((a, b) => (a.at ?? a.from) - (b.at ?? b.from));
 // the planned camera moves (tools/moves_plan.mjs, run by stage cut): push-ins + shake, reviewed in the plan
 const moves = read(path.join(T, "moves.json"), { zooms: [], shake: [] });
 const zooms = moves.zooms.map(({ from, to }) => ({ from, to })), shake = moves.shake.map(({ from, to }) => ({ from, to }));
-const spec = { id: p, title, ...(kind === "reel" ? { kind: "reel" } : { showTitleBar: true }), ...(recordingDate(p) ? { date: recordingDate(p) } : {}), brand: pickBrand(p), frames: Math.round(dur * FPS), cut: `${p}_cut_s.mp4`, cams, zooms, shake, ...(splits.length ? { splits } : {}), items };
+const spec = { id: p, title, ...(kind === "reel" ? { kind: "reel" } : { showTitleBar: true }), ...(recordingDate(p) ? { date: recordingDate(p) } : {}), brand: pickBrand(p), frames: Math.round(dur * FPS), cut: `${p}_cut_s.mp4`, cams, zooms, shake, ...(splits.length ? { splits } : {}), galleryRef: true, items };   // ELEMENTS BY REFERENCE (user 2026-11-17): codes + content + timing, size and place from the gallery (src/galleryRef.ts)
 let out = opt("out", path.join("data", "specs", `${p}.json`));
 if (!opt("out", null) && fs.existsSync(out)) out = path.join(T, "spec_draft.json");
 fs.mkdirSync(path.dirname(out), { recursive: true });
@@ -102,6 +103,6 @@ console.log(`draft → ${out}: ${(dur / 60).toFixed(1)} min · ${splits.length} 
 // both orientations: the picture cards get the gallery sample's portrait AND landscape geometry, then the three compositions are registered (only for the spec's own file, never a side draft)
 // places he names → a paper map at that second (rules §8.1, tools/names_scan.mjs); only for the spec's own file
 if (out === path.join("data", "specs", `${p}.json`)) { const n = spawnSync(process.execPath, ["tools/names_scan.mjs", p, "--write"], { encoding: "utf8", windowsHide: true }); console.log((n.stdout || n.stderr || "").trim()); }
-if (items.some((i) => ["pic"].includes(i.t))) { const g = spawnSync(process.execPath, ["tools/gallery_geometry.mjs", out, "--write"], { encoding: "utf8", windowsHide: true }); console.log((g.stdout || g.stderr || "").trim().split(String.fromCharCode(10)).slice(-1)[0]); }
+if (false) {   /* (2026-11-17) a galleryRef spec takes the gallery geometry at render time: nothing to copy */ const g = spawnSync(process.execPath, ["tools/gallery_geometry.mjs", out, "--write"], { encoding: "utf8", windowsHide: true }); console.log((g.stdout || g.stderr || "").trim().split(String.fromCharCode(10)).slice(-1)[0]); }
 if (out === path.join("data", "specs", `${p}.json`)) { const r = spawnSync(process.execPath, ["tools/spec_register.mjs", p, "--kind", kind, ...(opt("id", null) ? ["--id", opt("id", "")] : []), ...(opt("folder", null) ? ["--folder", opt("folder", "")] : []), ...(opt("forms", null) ? ["--forms", opt("forms", "")] : []), "--title", title], { encoding: "utf8", windowsHide: true }); console.log((r.stdout || r.stderr || "").trim()); }
 if (missing.length) console.log(`not mentioned in the cut (no pic placed): ${missing.join("، ")}`);

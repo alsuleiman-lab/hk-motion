@@ -46,8 +46,8 @@ for (let round = 0; round < 6; round++) {
   // 3) solo cards
   // landscape solo slot [390,840,1520,985]; the face/title zone starts at x≈986 on these recordings → name card 386–986 (x 686), subscribe 410–970
   const solo = { nameTag: o === "land" ? { x: 686, y: 800 } : null, subscribe: o === "land" ? { x: 410, y: 838 } : null };
-  if (spec0.kind !== "reel" && !s.items.some((i) => i.t === "nameTag")) { s.items.push({ t: "nameTag", at: dur > 25 ? 15 : 0.8, x: 540, y: 1393, dur: 3.13, land: { x: 686, y: 800 } }); ch++; }
-  if (spec0.kind !== "reel" && !s.items.some((i) => i.t === "subscribe") && dur >= 9 && !(o === "land" && dur < 60)) { s.items.push({ t: "subscribe", at: +Math.max(5, Math.min(40, dur - 4.5)).toFixed(2), x: 260, y: 1413, dur: 3.13, land: { x: 410, y: 838 } }); ch++; }
+  if (spec0.kind !== "reel" && !s.items.some((i) => i.t === "nameTag")) { s.items.push({ t: "nameTag", at: dur > 25 ? 15 : 0.8, ...(s.galleryRef ? {} : { x: 540, y: 1393 }), dur: 3.13, ...(s.galleryRef ? {} : { land: { x: 686, y: 800 } }) }); ch++; }   // galleryRef (2026-11-17): the place is the gallery's
+  if (spec0.kind !== "reel" && !s.items.some((i) => i.t === "subscribe") && dur >= 9 && !(o === "land" && dur < 60)) { s.items.push({ t: "subscribe", at: +Math.max(5, Math.min(40, dur - 4.5)).toFixed(2), ...(s.galleryRef ? {} : { x: 260, y: 1413 }), dur: 3.13, ...(s.galleryRef ? {} : { land: { x: 410, y: 838 } }) }); ch++; }
   for (const i of s.items) if (solo[i.t] && o === "land" && (i.land?.x !== solo[i.t].x || i.land?.y !== solo[i.t].y)) { i.land = { ...solo[i.t] }; ch++; }
   { // name card and subscribe never together: name card first, subscribe after it; no room (very short clip) → the subscribe card goes
     const nt = s.items.find((i) => i.t === "nameTag"), sb = s.items.find((i) => i.t === "subscribe");
@@ -102,7 +102,7 @@ for (let round = 0; round < 6; round++) {
 }
 gridW();
 // the grid's --write snaps the landscape solo cards back to the slot centre (over the face/title zone): put them back where the plain check accepts them
-if (o === "land") { const s = read(); let n = 0; for (const i of s.items) { const c = i.t === "nameTag" ? { x: 686, y: 800 } : i.t === "subscribe" ? { x: 410, y: 838 } : null; if (c && (i.land?.x !== c.x || i.land?.y !== c.y)) { i.land = c; n++; } } if (n) write(s); }
+if (o === "land" && !read().galleryRef) { const s = read(); let n = 0; for (const i of s.items) {   /* a galleryRef spec copies no place (2026-11-17) */ const c = i.t === "nameTag" ? { x: 686, y: 800 } : i.t === "subscribe" ? { x: 410, y: 838 } : null; if (c && (i.land?.x !== c.x || i.land?.y !== c.y)) { i.land = c; n++; } } if (n) write(s); }
 // the grid's --write resizes cards to its slots; the gallery size and place is the last word on every card (stage check verifies it)
 sh(`node tools/gallery_geometry.mjs ${f} --write`);
 const g = grid(), c = cov(), m = mg(), ws = sh(`node tools/writing_sync.mjs ${f}`);

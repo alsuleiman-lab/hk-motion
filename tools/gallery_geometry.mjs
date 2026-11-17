@@ -46,6 +46,8 @@ for (const [name, t] of Object.entries(typeOf)) {
 // PhotoFrame (pic) is drawn in the gallery as a node, not a spec item (src/ElementsLab.tsx): a 600-wide frame in the slot — landscape = the left column (engine default, no land geometry), portrait = centred under the beard
 sample.pic ??= { x: 240, w: 600, h: 400 };   // the gallery frame is 600 × 400, the picture covers it (cropped), whatever its own ratio
 const spec = JSON.parse(fs.readFileSync(specF, "utf8"));
+/* (2026-11-17) a galleryRef spec copies no geometry: the engine takes it from the gallery at render time (src/galleryRef.ts) — nothing to check or write */
+if (spec.galleryRef) { console.log("✔ gallery_geometry: المواصفة بالمرجع، المقاس والمكان من المعرض لحظة العرض"); process.exit(0); }
 const diffs = [];
 const PANEL = (() => { try { return JSON.parse(fs.readFileSync("data/layout_grids.json", "utf8")).land.half.slots.panel.rect; } catch { return null; } })();
 for (const it of spec.items ?? []) {

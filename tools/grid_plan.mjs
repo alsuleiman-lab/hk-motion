@@ -12,10 +12,19 @@ const specF = argv.find((a) => a.endsWith(".json"));
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1]; };
 if (!specF) { console.error("usage: node tools/grid_plan.mjs data/specs/<p>.json [--o port|land] [--write]"); process.exit(2); }
 const write = argv.includes("--write");
-const spec = JSON.parse(fs.readFileSync(specF, "utf8"));
+const raw = JSON.parse(fs.readFileSync(specF, "utf8"));
 const G = JSON.parse(fs.readFileSync(path.join("data", "layout_grids.json"), "utf8"));
+/* ELEMENTS BY REFERENCE (2026-11-17, src/galleryRef.ts): a galleryRef spec has no sizes or places; they are resolved here from the gallery exactly as the engine does,
+   and --write records only what belongs to THIS video: where his face is over time (face) and the NAME of the slot each element sits in (slot); the engine fits it there */
+const REF = !!raw.galleryRef;
+process.removeAllListeners("warning");   // node's notice about importing the .ts module
+const { resolveGalleryRef, CARD_TYPES } = await import("../src/galleryRef.ts");
+const GEO_T = REF ? JSON.parse(fs.readFileSync(path.join("data", "gallery_geo.json"), "utf8")) : null;
+let spec = REF ? resolveGalleryRef(raw, GEO_T, G) : raw;
 const kindOf = {}; for (const [k, ts] of Object.entries(G.kinds)) for (const t of ts) kindOf[t] = k;
 const zoneAt = faceZoner(spec);
+let refMoved = 0;
+const setSlot = (i, o, n) => { const it = raw.items[i]; if (!it || it.slot?.[o] === n) return; it.slot = { ...(it.slot ?? {}), [o]: n }; refMoved++; };
 // the landscape title bar (src/TitleBar.tsx): right 34, bottom 24, its width follows the title (380–900), ≈ 110 px with the credit line under it — nothing may sit under it
 const TITLE_BAR = [Math.round(1920 - 34 - Math.min(900, Math.max(380, String(spec.title ?? "").length * 14 + 180))), 1080 - 24 - 110, 1886, 1056];
 // each element belongs to ONE screen mode (user 2026-10-31; data/elements_lab.json `mode`): a half-screen element (his key word, the opponent's words)
@@ -142,6 +151,19 @@ function snap(it, o, r, box) {
   else if (k < 1 && ["pic", "crop", "flash", "news"].includes(it.t)) tgt.w = Math.round(w * k);
 }
 
+if (REF && write) {   // where his face is in THIS recording, per orientation, as [from, to, x0, y0, x1, y1] runs (10-px steps): a property of the video, not of an element
+  const dur = (raw.frames ?? 0) / 30, face = {};
+  for (const o of ["port", "land"]) {
+    const runs = [];
+    for (let t = 0; t < dur; t += 0.5) {
+      const q = zoneAt(t, o); if (!q) continue;
+      const r = q.map((v) => Math.round(v / 10) * 10), last = runs[runs.length - 1];
+      if (last && last[1] >= t - 0.01 && last.slice(2).every((v, j) => v === r[j])) last[1] = +(t + 0.5).toFixed(2); else runs.push([+t.toFixed(2), +(t + 0.5).toFixed(2), ...r]);
+    }
+    face[o] = runs;
+  }
+  if (JSON.stringify(face) !== JSON.stringify(raw.face)) { raw.face = face; refMoved++; spec = resolveGalleryRef(raw, GEO_T, G); }
+}
 const orients = opt("o", "") ? [opt("o", "")] : ["port", "land"];
 const md = [`# الشبكة — ${spec.id}`, ""];
 let bad = 0, moved = 0;
@@ -161,8 +183,9 @@ for (const o of orients) {
       rows.push(`| ${mm(a)}–${mm(b)} | ${mode} | كامل المحتوى | ${x.it.t}#${x.i} |`);
       if (x.k === "solo") {   // name card / subscribe: the whole content is theirs in time, their place is the grid's «solo» slot
         const r = rectOf(x.it, o), z = zoneOver(o, a, b), sl = Object.values(grid[mode]?.slots ?? {}).find((s) => s.kinds.includes("solo"));
+        if (REF && write) { const nm = Object.entries(grid[mode]?.slots ?? {}).find(([, s]) => s.kinds.includes("solo"))?.[0]; if (nm) setSlot(x.i, o, nm); }
         if (r && sl && write) { const box = trim(sl.rect, z); if (o === "land" && box[2] > TITLE_BAR[0] - 12 && box[3] > TITLE_BAR[1] - 8) box[3] = Math.min(box[3], TITLE_BAR[1] - 8);   /* (2026-11-15) a long title makes the title bar wide: the name/subscribe card keeps ABOVE it instead of under it */
-        if (r[0] < box[0] - 4 || r[1] < box[1] - 4 || r[2] > box[2] + 4 || r[3] > box[3] + 4) { snap(x.it, o, r, box); moved++; } }
+        if (!REF && (r[0] < box[0] - 4 || r[1] < box[1] - 4 || r[2] > box[2] + 4 || r[3] > box[3] + 4)) { snap(x.it, o, r, box); moved++; } }
         const r2 = rectOf(x.it, o);
         if (r2 && inter(r2, z) > FACE_TOL * area(r2)) fails.push(`${label}: فوق الوجه`);
       }
@@ -178,15 +201,21 @@ for (const o of orients) {
       free = slots.find(([n]) => n === want && !busy(n)) ?? (write ? slots.find(([n]) => n === other && !busy(n)) : undefined);
       if (free && free[0] !== want && write) { if (free[0] === "right") x.it.side = "right"; else delete x.it.side; }
     } else free = slots.find(([n]) => !busy(n));
-    const r = rectOf(x.it, o);
+    let r = rectOf(x.it, o);
+    if (REF && write && r && z && inter(r, z) > FACE_TOL * area(r) && CARD_TYPES.has(x.it.t)) {   // its gallery place covers his face here: the first free slot of its kind where it does not
+      const w = r[2] - r[0], h = r[3] - r[1];
+      const alt = slots.filter(([n]) => !busy(n)).map(([n, s]) => [n, s, [s.rect[0] + Math.max(0, s.rect[2] - s.rect[0] - w) / 2, s.rect[1], s.rect[0] + Math.max(0, s.rect[2] - s.rect[0] - w) / 2 + w, s.rect[1] + h]]).find(([, , q]) => inter(q, z) <= FACE_TOL * area(q));
+      if (alt) { const o0 = raw.items[x.i]; o0.slot = { ...(o0.slot ?? {}), [o]: alt[0] }; refMoved++; free = [alt[0], alt[1]]; spec = resolveGalleryRef(raw, GEO_T, G); x.it = spec.items[x.i]; r = rectOf(x.it, o); }
+    }
     if (r && z && inter(r, z) > FACE_TOL * area(r)) fails.push(   /* z is null where no face zone is defined (2026-11-12 crash) */`${label}: فوق الوجه (${r.map(Math.round).join(",")} ∩ ${z.map(Math.round).join(",")})`);
     if (!free) { fails.push(`${label}: لا خانة ${x.k} فارغة في وضع ${mode} — أخّره أو قدّمه`); continue; }
     const [name, slot] = free, box = trim(slot.rect, z);
+    if (REF && write && SNAP.has(x.it.t)) setSlot(x.i, o, name);   // the slot's NAME; the engine fits the element into it from the gallery's size
     (res[mode + name] ??= []).push([a, b]);
     rows.push(`| ${mm(a)}–${mm(b)} | ${mode} | ${name} [${box.map(Math.round).join(",")}] | ${x.it.t}#${x.i}${x.it.text ? " «" + String(x.it.text).slice(0, 30) + "»" : x.it.name ? " " + x.it.name : ""} |`);
     if (r && (r[0] < box[0] - 4 || r[1] < box[1] - 4 || r[2] > box[2] + 4 || r[3] > box[3] + 4)) {
       offGrid.push(`${label} → ${name}`);
-      if (write && SNAP.has(x.it.t)) { snap(x.it, o, r, box); moved++; }
+      if (write && SNAP.has(x.it.t) && !REF) { snap(x.it, o, r, box); moved++; }
     }
   }
   bad += fails.length;
@@ -203,6 +232,13 @@ for (const o of orients) for (const [i, it] of spec.items.entries()) {
 }
 const T = path.join(".tmp", spec.id); fs.mkdirSync(T, { recursive: true });
 fs.writeFileSync(path.join(T, "grid.md"), md.join("\n"));
-if (write && moved) { fs.writeFileSync(specF, JSON.stringify(spec, null, 1)); console.log(`نُقل ${moved} عنصراً إلى خاناته في ${specF}`); }
+if (write && moved && !REF) { fs.writeFileSync(specF, JSON.stringify(spec, null, 1)); console.log(`نُقل ${moved} عنصراً إلى خاناته في ${specF}`); }
+if (write && REF && refMoved) {   // the spec now names the slots and knows the face: judge the result exactly as the engine will draw it
+  fs.writeFileSync(specF, JSON.stringify(raw, null, 1));
+  console.log(`سُجّل ${refMoved} أمراً يخص هذا الفيديو (اسم الخانة أو مكان الوجه) في ${specF} — المقاسات والأماكن تبقى من المعرض`);
+  const { spawnSync } = await import("node:child_process");
+  const again = spawnSync(process.execPath, [import.meta.filename, specF, ...(opt("o", "") ? ["--o", opt("o", "")] : [])], { stdio: "inherit" });
+  process.exit(again.status ?? 1);
+}
 console.log(bad ? `FAILED (${bad}) → ${path.join(T, "grid.md")}` : `PASSED → ${path.join(T, "grid.md")}`);
 process.exit(bad ? 1 : 0);

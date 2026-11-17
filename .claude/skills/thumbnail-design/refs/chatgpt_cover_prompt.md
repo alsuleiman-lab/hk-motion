@@ -17,13 +17,15 @@ SUBJECT: the man must be the attached photo itself, cut out and pasted as a phot
 BACKGROUND: {TOPIC_SCENE}; calm, dark-warm, softly blurred depth, no plain black, no olive green. {TOPIC_SYMBOL} as a small torn-paper element in the {CORNER} corner.
 TEXT: ONLY ONE text element - a large ragged-edged kraft cardboard paper banner with a small piece of tape, containing exactly this Arabic title and nothing else, bold black Arabic font: {TITLE_AR} (write the title WITHOUT any quotation marks or guillemets; ChatGPT otherwise renders a stray » after it). Do NOT add any other text: no subtitle, no hook, no red strip, no signature, no name.
 STYLE: paper-collage torn edges, soft drop shadows, a few {SEASONAL_OR_TOPIC_BITS} overlapping the banner corners, rounded image corners, high contrast, readable at phone size.
-STRICT: no women and no other people anywhere (no crowds, no pedestrians); no names under pictures; keep all Arabic spelling exact.
+STRICT: no women and no invented people (no crowds, no pedestrians); the real people in the attached photo board (if any) are REQUIRED; no names under pictures; keep all Arabic spelling exact.
 {EXTRA_IMAGE_CLAUSE}
+{PEOPLE_CLAUSE}
 ```
 - **`{ASPECT}`:** عرضي `16:9 landscape (1920x1080)`؛ طولي كامل وريلز `9:16 portrait (1080x1920)`.
 - **`{POSITION}`:** عرضي: «Only scale him and place him chest-up, large, on the left third of the frame with a thin white torn-paper outline»؛ طولي/ريلز: «lower half of the frame, chest-up, large; the banner in the upper half; keep the top 15% and bottom 20% free of key text (platform UI)». **لا وضعية ولا تعبير.**
 - **الصورة المرفوعة (أمر المستخدم 2026-11-09 «الصور حصراً من مجلد الصور»):** حصراً من مجلد صوره الخاص `public/cov/sheikh_poses/` (= `S:AI_Toolscoverssheikh_poses`، عشر وضعيات)، أنسبها لنبرة الموضوع (جدّي ← `07_sheikh_brown_hands_clasped.png`)، تُنسخ أولاً إلى مجلد الجلسة المؤقت قبل `file_upload`؛ لا صورة من `sheikh_gallery` ولا من الفيديو. ويُكتب في البرومبت: ملامحه ووضعية جسده ويداه كما في الصورة تماماً، لا تعبير ولا وضعية جديدة.
 - **`{EXTRA_IMAGE_CLAUSE}`:** إن رُفعت لقطة من المردود عليه: «The second attached image is a frame from the video being answered: place it on a tilted cream paper card with its face exactly as is; keep any blur as is; do not reveal or redraw it.»
+- **`{PEOPLE_CLAUSE}` (إلزامي متى دارت الحلقة على أشخاص — أمر المستخدم 2026-11-17):** تُرفع لوحة واحدة فيها صورهم الحقيقية (أصنعها من صور عناصر الحلقة)، ويُكتب: «The attached photo board shows the real people this episode is about: paste ALL of them into the thumbnail as real photo cards, faces exactly as in the board (cut out, not redrawn), none missing.» وبعد التوليد أعدّ الوجوه، وأي وجه تغيّر ألصق فوقه صورته الأصلية. كان سطر «STRICT: no other people» يحذفهم ثلاث مرات.
 - **الخلفية والعلم يتغيران كل غلاف** ولا يُنسخان من غلاف سابق؛ لا أسماء بلا ذكر في المقطع.
 
 ## بعد التوليد

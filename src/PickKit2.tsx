@@ -1,4 +1,5 @@
 import React from "react";
+import { useVideoConfig } from "remotion";
 import { kufiF, naskhF, useT } from "./MG";
 import { BRAND } from "./brand";
 import { Pic } from "./EuKit";
@@ -191,7 +192,36 @@ export const BottomShade: React.FC<{ at: number; until: number }> = ({ at, until
   const t = useT(0), c = (x: number) => Math.max(0, Math.min(1, x)), e = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2), k = e(Math.min(c((t - at) / 0.5), c((until - t) / 0.4)));
   return <div style={{ position: "absolute", left: 0, top: 900, width: 1080, height: 1020, pointerEvents: "none", visibility: k > 0 ? "visible" : "hidden", clipPath: `inset(${(1 - k) * 100}% 0 0 0)`, background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.6) 35%, rgba(0,0,0,.82) 100%)" }} />;
 };
-export const PICK_KIT2 = { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, Battery, FillGlasses } as const;
+/** 36 · خط الأقسام (user 2026-11-17: «على اليمين خط طولي وفيه نقاط والأقسام عندها وخلفه ظل أسود متدرج»; in the first seconds of the video):
+ *  a black gradient shade slides in from the right edge, a vertical rail draws down near the right edge, a dot lands on it for every section and the
+ *  section's title appears beside its dot (right-aligned, all titles one fitted font). `current` (optional) lights one section. Whole frame, both orientations. */
+export const SectionsRail: React.FC<{ at: number; until: number; sections: { title: string; at?: number }[]; current?: number; W?: number; H?: number }> = ({ at, until, sections, current, W: W0, H: H0 }) => {
+  const { k } = useK(); const vc = useVideoConfig(), W = W0 ?? vc.width, H = H0 ?? vc.height, port = H > W;
+  /* never on his face or beard: landscape titles end left at x ≥ 1150 (gallery face zone 811–1121); portrait = the elements band 1150–1840 under his face */
+  const n = Math.max(1, sections.length), top = port ? 1150 : H * 0.12, bot = port ? 1840 : H * 0.88, span = bot - top, gap = n > 1 ? span / (n - 1) : 0;
+  const railX = W - (port ? 60 : 80), lineK = ease(k(at + 0.15, 0.6, until)), stag = Math.min(0.3, 1.4 / n);
+  const font = Math.round(Math.max(24, Math.min(port ? 46 : 50, (n > 1 ? gap : 80) * 0.55)));
+  const FG = fitGroup(sections.map((s) => s.title), { font, minFont: Math.max(20, Math.round(font * 0.7)), minW: 80, maxW: port ? W * 0.78 : railX - 34 - 1150, padX: 10, padY: 4, maxLines: 1 });
+  const shade = ease(k(at, 0.45, until));
+  return (
+    <div style={abs({ left: 0, top: 0, width: W, height: H, pointerEvents: "none" })}>
+      <div style={abs({ right: 0, top: port ? top - 120 : 0, width: W * (port ? 0.95 : 0.5), height: port ? span + 240 : H, background: "linear-gradient(to left, rgba(0,0,0,.88), rgba(0,0,0,.6) 45%, rgba(0,0,0,0))", ...(port ? { WebkitMaskImage: "linear-gradient(to bottom, transparent, #000 140px, #000 calc(100% - 60px), transparent)", maskImage: "linear-gradient(to bottom, transparent, #000 140px, #000 calc(100% - 60px), transparent)" } : {}), opacity: shade > 0 ? 1 : 0, transform: `translateX(${(1 - shade) * 100}%)` })} />
+      <div style={abs({ left: railX - 3, top, width: 6, height: span * lineK, borderRadius: 3, background: BRAND.light })} />
+      {sections.map((s, i) => {
+        const y = top + i * gap, ka = s.at ?? at + 0.35 + i * stag, kk = k(ka, 0.3, until), on = current === i, f = FG[i];
+        if (kk <= 0 || lineK * span < y - top - 1) return null;
+        return <React.Fragment key={i}>
+          <div style={abs({ left: railX - 15, top: y - 15, width: 30, height: 30, borderRadius: "50%", background: on ? BRAND.mark : BRAND.card, border: `4px solid ${BRAND.light}`, boxSizing: "border-box", transform: `scale(${0.3 + 0.7 * ease(kk)})`, boxShadow: on ? `0 0 18px ${BRAND.mark}` : "none" })} />
+          <div style={abs({ right: W - railX + 34, top: y - f.h / 2, height: f.h, display: "flex", alignItems: "center", gap: 14, fontFamily: kufiF, fontSize: f.fs, lineHeight: 1.3, color: on ? BRAND.card : "#fff", whiteSpace: "nowrap", direction: "rtl", clipPath: `inset(-20% 0 -20% ${(1 - ease(kk)) * 100}%)` })}>
+            <span style={{ color: BRAND.light, fontSize: f.fs * 0.8 }}>{arDigits(i + 1)}</span><span>{s.title}</span>
+          </div>
+        </React.Fragment>;
+      })}
+    </div>
+  );
+};
+
+export const PICK_KIT2 = { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, Battery, FillGlasses, SectionsRail } as const;
 /** every picked element (PickKit + PickKit2) by spec name */
 /** the gallery's own x,y of every picked element (src/ElementsLab.tsx): used when a spec item gives none, so a spec never invents a place (user 2026-11-14: «لابد أن تنتبه إلى أماكن العناصر»). StickyNotes carry their own per-note x,y. */
 export const PICK_XY: Record<string, [number, number]> = { MinuteTeaser: [150, 150], Battery: [110, 250], NoProof: [100, 200], FlapBoard: [80, 260], BigQuestion: [90, 150], NeverMeet: [110, 260], ThoughtBubble: [90, 170], RootsTree: [110, 120], Iceberg: [110, 130], Crossroads: [110, 150], MythFact: [90, 300], InkQuote: [90, 380], ChatThread: [110, 250], MindMap: [560, 560], RingStat: [560, 470], QACard: [160, 300], ViciousCycle: [560, 520], FillGlasses: [110, 220], DecisionFlow: [80, 150], Footnote: [90, 230], ClaimWall: [110, 300], CopiedMessages: [110, 150], WordCloud: [560, 480], CommentsFlood: [110, 150] };
@@ -213,7 +243,7 @@ export const pickPortBoard = (el: string): React.CSSProperties => {
 export const PICK_NOSPLIT: Record<string, Record<string, number>> = { RingStat: { x: 330, y: 470 }, MythFact: { x: 40, y: 300, w: 760, size: 40 }, ChatThread: { x: 40, y: 250, w: 580 }, FlapBoard: { x: 40, y: 260, w: 600, size: 44 }, Battery: { x: 108, y: 737, s: 0.7 }, BigQuestion: { x: 40, y: 250, w: 600, size: 330 } };   /* BigQuestion beside him with no split (user 2026-11-16) */   /* the user's red box, lower left (2026-11-15) */
 export const PICK_ALL = { ...PICK_KIT, ...PICK_KIT2 } as const;
 export type PickAllName = keyof typeof PICK_ALL;
-export const PICK_ALL_FULL_FRAME = new Set<string>([...PICK_FULL_FRAME, "BrushWipe"]);
+export const PICK_ALL_FULL_FRAME = new Set<string>([...PICK_FULL_FRAME, "BrushWipe", "SectionsRail"]);
 /** the drawn metaphors (user 2026-11-14: «كن مبدعاً … بإضافة المعاني والتعبير عنها بهذه الطريقة»): pick_triggers counts them per minute */
 export const METAPHOR_ELS = ["RootsTree", "Battery", "FillGlasses", "Iceberg", "ViciousCycle", "Crossroads", "ClaimWall", "NeverMeet", "MindMap", "DecisionFlow", "StickyNotes", "WordCloud"];
 void bounce;

@@ -13,7 +13,8 @@ const IDX = "data/channel/episodes.json", DIR = "data/episode_refs", FILE = `${D
 const norm = (s) => String(s ?? "").replace(/[ً-ٰٟـ]/g, "").replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/ؤ/g, "و").replace(/ئ/g, "ي").replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim().toLowerCase();
 const stripAl = (w) => w.replace(/^(وال|بال|كال|فال|لل|ال)/, "");
 const nthI = rest.indexOf("--nth"), nth = nthI >= 0 ? Number(rest[nthI + 1]) : 1;
-const arg = rest.filter((x, i) => x !== "--nth" && i !== nthI + 1 || nthI < 0 && x !== "--nth").join(" ").trim();
+const atI = rest.indexOf("--at");
+const arg = rest.filter((x, i) => !(nthI >= 0 && (i === nthI || i === nthI + 1)) && !(atI >= 0 && (i === atI || i === atI + 1))).join(" ").trim();
 
 function candidates(q, top = 5) {
   const { episodes } = JSON.parse(fs.readFileSync(IDX, "utf8"));
@@ -34,7 +35,9 @@ function thumb(id) {
 const load = () => { try { return JSON.parse(fs.readFileSync(FILE, "utf8")); } catch { return { slots: {} }; } };
 function put(ep, topic) {
   const data = load(); const old = data.slots[slot];
-  data.slots[slot] = { id: ep.id, title: ep.title, url: ep.url, kind: ep.kind, img: thumb(ep.id), topic: topic ?? old?.topic ?? "" };
+  /* --at <cut sec>: where he mentions it (2026-11-17) → a YouTube card at that moment of the final file (tools/yt_package.mjs) */
+  const ai = process.argv.indexOf("--at"), at = ai > 0 ? Number(process.argv[ai + 1]) : old?.at;
+  data.slots[slot] = { id: ep.id, title: ep.title, url: ep.url, kind: ep.kind, img: thumb(ep.id), topic: topic ?? old?.topic ?? "", ...(Number.isFinite(at) ? { at } : {}) };
   fs.mkdirSync(DIR, { recursive: true }); fs.writeFileSync(FILE, JSON.stringify(data, null, 1));
   console.log(`${old ? "بُدّلت" : "وُضعت"} «${slot}»: ${ep.title}\n  ${ep.url}\n  الصورة: ${data.slots[slot].img}${old ? `\n  (كانت: ${old.title})` : ""}`);
 }

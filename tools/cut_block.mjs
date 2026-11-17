@@ -24,8 +24,13 @@ if (process.argv.includes("--snap-words")) {
   if (!fs.existsSync(wf)) { console.error("✘ --snap-words يحتاج .tmp/<p>/cut_words.json"); process.exit(1); }
   const raw = JSON.parse(fs.readFileSync(wf, "utf8")), Wd = (raw.words ?? raw).map((w) => ({ s: +(w.s ?? w.start), e: +(w.e ?? w.end ?? (w.s ?? w.start) + 0.2), w: String(w.w ?? w.word) })).sort((x, y) => x.s - y.s);
   const inW = (t) => Wd.findIndex((w) => t > w.s - 0.03 && t < w.e + 0.03);
-  let i = inW(sa); if (i >= 0) { const pe = i > 0 ? Wd[i - 1].e : Math.max(0, Wd[i].s - 0.2); sa = (pe + Wd[i].s) / 2; }
-  let j = inW(sb); if (j >= 0) { const ns = j < Wd.length - 1 ? Wd[j + 1].s : Wd[j].e + 0.2; sb = (Wd[j].e + ns) / 2; }
+  /* (user answer 2026-11-17: «أقرب فراغ… راعِ السياق») a bound inside a word goes to the NEAREST gap (before or after that word);
+     --keep-word / --drop-word override per bound when the context needs it (the printed words are read before accepting the cut) */
+  const gapBefore = (k) => ((k > 0 ? Wd[k - 1].e : Math.max(0, Wd[k].s - 0.2)) + Wd[k].s) / 2, gapAfter = (k) => (Wd[k].e + (k < Wd.length - 1 ? Wd[k + 1].s : Wd[k].e + 0.2)) / 2;
+  const keep = process.argv.includes("--keep-word"), drop = process.argv.includes("--drop-word");
+  let i = inW(sa); if (i >= 0) sa = keep ? gapAfter(i) : drop ? gapBefore(i) : (sa - Wd[i].s <= Wd[i].e - sa ? gapBefore(i) : gapAfter(i));
+  let j = inW(sb); if (j >= 0) sb = keep ? gapBefore(j) : drop ? gapAfter(j) : (sb - Wd[j].s < Wd[j].e - sb ? gapBefore(j) : gapAfter(j));
+  if (!(sb > sa)) { console.error("✘ بعد الضبط على الكلمات لم يبقَ شيء بين الحدّين"); process.exit(1); }
   const before = Wd.filter((w) => w.e <= sa + 0.03).slice(-3).map((w) => w.w).join(" "), after = Wd.filter((w) => w.s >= sb - 0.03).slice(0, 3).map((w) => w.w).join(" ");
   const gone = Wd.filter((w) => w.s >= sa - 0.03 && w.e <= sb + 0.03).map((w) => w.w).join(" ");
   console.log(`cut_block: الحدّان على فراغ بين كلمتين ${sa.toFixed(3)}–${sb.toFixed(3)}ث\n  قبل الوصلة: «${before}»\n  المحذوف: «${gone}»\n  بعد الوصلة: «${after}»`);

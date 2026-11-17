@@ -22,7 +22,8 @@ const { resolveGalleryRef, CARD_TYPES } = await import("../src/galleryRef.ts");
 const GEO_T = REF ? JSON.parse(fs.readFileSync(path.join("data", "gallery_geo.json"), "utf8")) : null;
 let spec = REF ? resolveGalleryRef(raw, GEO_T, G) : raw;
 const kindOf = {}; for (const [k, ts] of Object.entries(G.kinds)) for (const t of ts) kindOf[t] = k;
-const zoneAt = faceZoner(spec);
+let zoneOf = null;   // built on first use: it needs PORT_ZONES (below) — his face in the ENGINE's portrait split windows is shrunk to s 0.5 like spec.psplits
+const zoneAt = (t, o) => (zoneOf ??= faceZoner({ ...spec, psplits: [...(spec.psplits ?? []), ...PORT_ZONES.map((w) => ({ from: w.from, to: w.to, s: w.rail ? 1 : 0.5, top: 960 }))] }))(t, o);
 let refMoved = 0;
 const setSlot = (i, o, n) => { const it = raw.items[i]; if (!it || it.slot?.[o] === n) return; it.slot = { ...(it.slot ?? {}), [o]: n }; refMoved++; };
 // the landscape title bar (src/TitleBar.tsx): right 34, bottom 24, its width follows the title (380–900), ≈ 110 px with the credit line under it — nothing may sit under it
@@ -36,8 +37,26 @@ const wrongMode = (it, o, mode) => { const m = LAB_MODE[ELEMENT_OF[it.t]]; if (!
 const mm = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const inW = (ws, t) => (ws ?? []).some((w) => t >= w.from && t < w.to);
 
+// (2026-11-17) the portrait split windows the ENGINE adds at render time (src/MontageSpec.tsx withPortZones): non-full-frame picks (until = pickUntil),
+// notes with phrases, noor/bigword verses, and the SectionsRail drop — the planner must see the same half-screen the engine draws, or it flags them «full»
+const PICK_FULL = new Set(["AlertFrame", "PipSource", "BrushWipe"]);   // = PICK_ALL_FULL_FRAME (src/PickKit2.tsx) minus SectionsRail, whose drop window also splits
+const pickLast = (it) => {
+  let m = it.at; const walk = (v, k) => { if (typeof v === "number" && (k === "at" || /At$/.test(k))) m = Math.max(m, v); else if (Array.isArray(v)) v.forEach((x) => walk(x, k)); else if (v && typeof v === "object") Object.entries(v).forEach(([kk, x]) => walk(x, kk)); };
+  Object.entries(it).forEach(([k, v]) => { if (k !== "until" && k !== "land") walk(v, k); });
+  if (it.typeAt != null && it.query) m = Math.max(m, it.typeAt + it.query.length / (it.cps ?? 12));
+  (it.lines ?? []).forEach((l) => { if (l && typeof l.at === "number" && typeof l.text === "string") m = Math.max(m, l.at + Math.max(0.5, l.text.length * 0.06)); });
+  return m + 0.8;
+};
+const PORT_ZONES = spec.items.flatMap((it) => {
+  if (it.only === "land") return [];
+  if (it.t === "pick" && !PICK_FULL.has(it.el)) return [{ from: it.at - 0.35, to: Math.max(it.until ?? it.at, pickLast(it) + 2), rail: it.el === "SectionsRail" }];
+  // withHalfWays gives every hadith without phrases auto phrases (unless way card) and every non-full verse a noor/bigword way, unless the item is portrait-only
+  if (it.t === "note" && (it.phrases?.length || (it.way !== "card" && it.only !== "port"))) return [{ from: (it.phrases?.[0]?.at ?? it.at) - 0.35, to: it.until }];
+  if (it.t === "verse" && !it.full && (it.way === "noor" || it.way === "bigword" || (!it.way && it.only !== "port")) && it.times?.length) return [{ from: it.times[0] - 0.35, to: it.until ?? it.times[it.times.length - 1] + 1.2 }];
+  return [];
+}).filter((w) => w.to > w.from);
 // three screen modes (user 2026-10-31): half = a source shown beside him (splits / psplits / his window shifted for a panel); iso = his background isolated with something behind him; full = the rest
-const modeAt = (t, o) => (inW(spec.splits, t) || (o === "port" && inW(spec.psplits, t)) || (o === "land" && (inW(spec.shifts, t) || (spec.behind ?? []).some((b) => b.dx !== undefined && t >= b.from && t < b.to))) ? "half"
+const modeAt = (t, o) => (inW(spec.splits, t) || (o === "port" && (inW(spec.psplits, t) || inW(PORT_ZONES, t))) || (o === "land" && (inW(spec.shifts, t) || (spec.behind ?? []).some((b) => b.dx !== undefined && t >= b.from && t < b.to))) ? "half"
   : (spec.behind ?? []).some((b) => b.dx === undefined && t >= b.from && t < b.to) ? "iso" : "full");
 
 const spanOf = (it) => {
@@ -82,6 +101,7 @@ const rectOf = (it, o) => {
       return [(Wd - w) / 2, y, (Wd + w) / 2, y + rows * size * 1.45 + (rows - 1) * gap];
     }
     case "verse": {   // the verse card (VerseWords): header + wrapped words; full:true = the full-screen box (exclusive)
+      if (!L && !it.full && (it.way === "noor" || it.way === "bigword" || (!it.way && it.only !== "port"))) return [0, 1135, 1080, 1920];   // portrait way-verse = the landscape panel drawn in the lower zone under his shrunk video (src/MontageSpec.tsx)
       const size = L ? ov.size ?? 38 : it.size ?? 44, x = L ? ov.x ?? 40 : it.x ?? 40, w = L ? ov.w ?? 600 : it.w ?? 1000, y = L ? ov.y ?? 150 : it.y ?? 1330;
       const fs1 = size * 1.12, wordW = 5 * fs1 * 0.52 + 14, per = Math.max(1, Math.floor((w - 72) / wordW)), lines = Math.max(1, Math.ceil(it.words.length / per));
       return [x, y, x + w, y + 22 + 34 + 14 + lines * fs1 * 1.9 + 30];

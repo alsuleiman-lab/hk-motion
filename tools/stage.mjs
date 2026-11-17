@@ -137,6 +137,11 @@ if (stage === "prep") {
     const mm = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
     fs.writeFileSync(path.join(T, "speakers.txt"), turns.map((t) => `[${t.s.toFixed(1)}–${t.e.toFixed(1)} ${mm(t.s)}] ${t.name}: ${t.text}`).join("\n") + "\n");
     const others = turns.filter((t) => t.name !== "sheikh");
+    /* (user 2026-11-17 «التفريغ يعطي المتكلمين أيضاً») the speaker of every word goes INTO the word table itself (field sp), one file for words and speakers */
+    { const wtf = path.join(T, "words_table.json");
+      if (fs.existsSync(wtf)) { const wt = JSON.parse(fs.readFileSync(wtf, "utf8")); let k = 0;
+        for (const w of wt.words ?? []) { const m = ((w.s ?? w.start) + (w.e ?? w.end ?? (w.s ?? w.start))) / 2, t = turns.find((x) => m >= x.s && m < x.e); if (t) { w.sp = t.name; k++; } }
+        fs.writeFileSync(wtf, JSON.stringify(wt)); say(`speakers → word table: ${k}/${(wt.words ?? []).length} words carry their speaker`); } }
     say(`speakers: ${Object.values(speakers).map((v) => `${v.name} ${v.talk_s}s`).join(", ")}${Object.values(speakers).some((v) => v.name === "sheikh") ? "" : " (⚠ sheikh not matched)"} · ${others.length} other-speaker turn(s) → ${path.join(T, "speakers.txt")}`);
   }
   } else say("speaker roles: review the narrator and story dialogue from the audio/transcript");

@@ -110,7 +110,7 @@ if (cmd === "stage") {
   // approval deletes the project's own files (name starts with the project key) in public/, .tmp/, .tmp/gates, render_work/ and tools/; code (src/, Root.tsx, titles) stays for the agent to remove and typecheck
   // safety: a key under 4 letters is only listed (too many shared names match), and a tool named in the rules or skills is shared, never deleted
   const walkMd = (d) => { let t = ""; try { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); t += e.isDirectory() ? walkMd(p) : e.name.endsWith(".md") ? fs.readFileSync(p, "utf8") : ""; } } catch { /* none */ } return t; };
-  const docs = key.length >= 4 ? ["PREFERENCES.md", "MONTAGE_BRIEF.md", "WORKFLOW_CHECKLIST.md", "AGENTS.md", "CLAUDE.md"].map((f) => { try { return fs.readFileSync(f, "utf8"); } catch { return ""; } }).join("\n") + walkMd(path.join(".claude", "skills")) : "";
+  const docs = key.length >= 4 ? ["القواعد_العامة.md", "شجرة_العمليات.md", "AGENTS.md", "CLAUDE.md"].map((f) => { try { return fs.readFileSync(f, "utf8"); } catch { return ""; } }).join("\n") + walkMd(path.join(".claude", "skills")) : "";
   let removed = 0;
   if (key.length >= 4) for (const d of ["public", ".tmp", path.join(".tmp", "gates"), "render_work", "tools"]) {
     try { for (const n of fs.readdirSync(d)) if (n.toLowerCase().startsWith(key) && !(d === "tools" && docs.includes(n)) && !/^(sheikh_gallery|broll_lib|fonts|sfx|collage)$/i.test(n)) { /* permanent libraries are never deleted */ fs.rmSync(path.join(d, n), { recursive: true, force: true }); removed++; } } catch { /* no such dir */ }
@@ -126,7 +126,7 @@ if (cmd === "stage") {
     try { fs.readFileSync(f, "utf8").split("\n").forEach((l, i) => { if (has(l) && !/Demo/.test(l)) left.push(`${f}:${i + 1}  ${l.trim().slice(0, 90)}`); }); } catch { /* none */ }
   }
   if (left.length) {
-    console.log(`\n✘ بقايا «${project}» في Remotion/المشروع (تُحذف نهائياً عند الاعتماد، PREFERENCES القسم 2):\n  ` + left.join("\n  "));
+    console.log(`\n✘ بقايا «${project}» في Remotion/المشروع (تُحذف نهائياً عند الاعتماد، مهارة approval):\n  ` + left.join("\n  "));
     console.log("\nاحذفها (التركيبة من Root.tsx والعنوان بـ node tools/set_title.mjs <المعرّف> --remove، والمكوّن، وpublic/…، و.tmp/…) ثم أعد: node tools/montage_guard.mjs end " + project + " ؛ ولا تقل «اكتمل الحذف» قبل أن ينجح.");
     process.exit(1);
   }

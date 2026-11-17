@@ -1,8 +1,34 @@
 {
- "stamped": "2026-11-17T11:06:47.125Z",
- "brief": "93588f5b71bc22023c2ef8e126799ae71a3162aa",
- "sources": {
-  "PREFERENCES.md": "ea46dfad07ed7b0343169110a3bf817adc845750",
-  "WORKFLOW_CHECKLIST.md": "9300fbb9bd0fee59a3df0c75721d864919a13dad"
+ "stamped": "2026-11-17T11:19:22.107Z",
+ "files": {
+  "القواعد_العامة.md": "f47a4cf6bb2cf3ddc9ee5ed05a5472ce725c11fb",
+  "شجرة_العمليات.md": "4aff381a2ca67a6ea3ca0d9907017d8cf0481aa5",
+  ".claude/skills/advertising-video/SKILL.md": "3870badec8ca5af95a13bcf6d834b329cf3627d0",
+  ".claude/skills/approval/SKILL.md": "1e563b810a57c6dc44c2971d6a198c76790d4da9",
+  ".claude/skills/cartoon-animation/SKILL.md": "2730f381007c40b3157f9121a455b634ffde6ffb",
+  ".claude/skills/checking/SKILL.md": "40bb726931109dfb6d1ad0cbcc93459f753c4223",
+  ".claude/skills/collage-broll-local/SKILL.md": "bc3c71e756bfe9f3fb9009f3ad5f4f9d4c6b9b1b",
+  ".claude/skills/delivery-links/SKILL.md": "9e0b43a9f799b270c22e6fee5cdebb73400b212a",
+  ".claude/skills/extraction/SKILL.md": "9c3ba2190627d05a65643b794609b4a20c07c627",
+  ".claude/skills/first-questions/SKILL.md": "545cee4f47d1a9357a4794318023024c7ac02f10",
+  ".claude/skills/gallery-placement/SKILL.md": "c70581878738579f5244eb1384b7d5fc4ba5a196",
+  ".claude/skills/identity/SKILL.md": "f1d687afd07b818b02a1c1867464f684f26606b2",
+  ".claude/skills/lessons-and-streams/SKILL.md": "7e9113dd8897b7e7a2a118cedf3ffca7a4089455",
+  ".claude/skills/montage-orders/SKILL.md": "87dc3456630d7ee5555bed789902d49c41d85b5c",
+  ".claude/skills/motion-graphics/SKILL.md": "a2f3021c9ee00a8e84fda300bea6f676afcf2885",
+  ".claude/skills/paper-montage/SKILL.md": "c996e9b18cd7652eaa74e373b93f5b3b96fd3a3c",
+  ".claude/skills/pixabay-search/SKILL.md": "4ccdd8efb3142012a7d811af62bc7fd29684f7e8",
+  ".claude/skills/publishing/SKILL.md": "a980efc4dc017536f5026ece49822d9ad214083e",
+  ".claude/skills/remotion-render/SKILL.md": "ba8523727ff4cdf2d64b652a51d651a0c27e3a64",
+  ".claude/skills/router/SKILL.md": "7d3b995f47b9b59a51bd0f7b69ad3d45efab6153",
+  ".claude/skills/segment-cut/SKILL.md": "25b3292dc78c1d6516736cf69f8c538940d4756d",
+  ".claude/skills/sensitive-words/SKILL.md": "489ca1a0ae4079669538096a2b32c8099e1ca038",
+  ".claude/skills/silent-reaction/SKILL.md": "d6aff35160c0a72ac8951553628ea32141a4cbf4",
+  ".claude/skills/source-display/SKILL.md": "e0996f1777533b304f6ee659e91921afba566a4d",
+  ".claude/skills/thumbnail-design/SKILL.md": "f7a1dedcb96d788ec9574dae9bbad5ca3ad9378a",
+  ".claude/skills/transcription/SKILL.md": "be866ad10b7a7fed464d834447b8589e5d53724c",
+  ".claude/skills/video-cutting/SKILL.md": "0585d8192d25345ed87c0985105be717ac5c9314",
+  ".claude/skills/video-montage/SKILL.md": "abbc1f9625e7af217ad96c4cefaf79f2e0a62ada",
+  ".claude/skills/video-sections/SKILL.md": "0e9ba8884d21ed4e7b9f4c8cd1f18bfd8d0f3369"
  }
 }

@@ -18,7 +18,7 @@ function walk(dir) {
     else if (ent.isFile() && /\.(?:md|html|mjs)$/.test(ent.name)) files.push(full);
   }
 }
-for (const f of ["PREFERENCES.md", "WORKFLOW_CHECKLIST.md", "AGENTS.md", "CLAUDE.md", "effects_catalog.html"]) {
+for (const f of ["القواعد_العامة.md", "شجرة_العمليات.md", "AGENTS.md", "CLAUDE.md", "effects_catalog.html"]) {
   if (fs.existsSync(path.join(ROOT, f))) files.push(path.join(ROOT, f));
 }
 walk(path.join(ROOT, ".claude", "skills"));
@@ -30,8 +30,9 @@ function check(label, condition, detail) {
   if (!condition) errors.push(`${label}: ${detail}`);
 }
 
-const prefs = read("PREFERENCES.md");
-const checklist = read("WORKFLOW_CHECKLIST.md");
+// (2026-11-17) the tree replaced PREFERENCES.md / MONTAGE_BRIEF.md / WORKFLOW_CHECKLIST.md: «prefs» = every rule text, «checklist» = the checking skill
+const prefs = files.filter((f) => /\.md$/.test(f)).map((f) => fs.readFileSync(f, "utf8")).join("\n");
+const checklist = read(".claude/skills/checking/SKILL.md");
 const cutting = readOpt(".claude/skills/video-cutting/SKILL.md");
 const hook = readOpt(".claude/skills/gallery-placement/SKILL.md");
 const sourceSkills = ["source-display"]
@@ -49,16 +50,16 @@ check("stale pause exception", !/سكتات?\s*>?\s*0\.45ث|أكبر من 0\.45�
   scan("src"); scan("tools");
   check("no retired elements", hits.length === 0, "A cancelled element is back in the code (" + hits.slice(0, 6).join(", ") + "): delete it and use the approved gallery element (data/retired_elements.json).");
 }
-check("quick isolation only", /العزل السريع/.test(prefs) && /العزل السريع/.test(read("MONTAGE_BRIEF.md")) && (!hook || /(لا عزل للخلفية إطلا|بلا أي عزل للخلفية)/.test(hook)) && !fs.existsSync(path.join(ROOT, ".claude/skills/background-isolation")) && !activeText.some(({ text }) => /background-isolation|عزل.{0,20}(اختياري|بطلب صريح|غير مفعّل افتراضياً)/.test(text)), "Only the quick isolation of PREFERENCES.md (user 2026-10-29): reel clip windows and windows where needed, no isolation skill, no isolated hook.");
+check("quick isolation only", /العزل السريع/.test(prefs) && /العزل السريع/.test(prefs) && (!hook || /(لا عزل للخلفية إطلا|بلا أي عزل للخلفية)/.test(hook)) && !fs.existsSync(path.join(ROOT, ".claude/skills/background-isolation")) && !activeText.some(({ text }) => /background-isolation|عزل.{0,20}(اختياري|بطلب صريح|غير مفعّل افتراضياً)/.test(text)), "Only the quick isolation of PREFERENCES.md (user 2026-10-29): reel clip windows and windows where needed, no isolation skill, no isolated hook.");
 check("legacy automatic isolation", !activeText.some(({ text }) => /عزل الخلفية مع شيء خلفه.{0,80}أول 5 ثوانٍ|عزل[^.]{0,60}مرة كل 3 دقائق/.test(text)), "An automatic isolation schedule remains outside the opt-in skill.");
 check("source display layout", !sourceSkills.some((text) => /لوحة المصدر.{0,100}بجانبها بفاصل|الشيخ في بطاقة \*\*بجانبها بفاصل/.test(text)), "A source skill still prescribes the old split-card layout.");
 check("hook non-isolation rules", !hook || /لو كُتم الصوت/.test(hook) && /ممنوع الحشو/.test(hook) && /--must/.test(hook) && /✔\/✘/.test(hook), "The hook must retain relevance, no-filler, source-search, and post-build review rules.");
 check("binding hooks installed", (() => { try { const s = read(".claude/settings.json"); return ["UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop"].every((h) => s.includes(h)) && s.includes("tools/hooks/guard.mjs") && fs.existsSync(path.join(ROOT, "tools/hooks/guard.mjs")); } catch { return false; } })(), "The four enforcement hooks (PREFERENCES.md section 0) must be wired in .claude/settings.json to tools/hooks/guard.mjs.");
 check("no stale instructions", spawnSync(process.execPath, [path.join(ROOT, "tools", "rules_lint.mjs")], { cwd: ROOT, encoding: "utf8", windowsHide: true }).status === 0, "A replaced instruction is still written somewhere: run node tools/rules_lint.mjs and fix each line (user 2026-10-29).");
-check("binding contract present", /^## 0\) عقد الالتزام/m.test(prefs) && /عقد الالتزام/.test(read("CLAUDE.md")) && /عقد الالتزام/.test(read("AGENTS.md")), "PREFERENCES.md section 0 and the pointers in CLAUDE.md and AGENTS.md must exist.");
+check("binding contract present", /عقد الالتزام/.test(read("القواعد_العامة.md")) && /عقد الالتزام/.test(read("CLAUDE.md")) && /عقد الالتزام/.test(read("AGENTS.md")), "The contract in القواعد_العامة.md and the pointers in CLAUDE.md and AGENTS.md must exist.");
 check(
   "audit inputs present",
-  ["PREFERENCES.md", "WORKFLOW_CHECKLIST.md", "MONTAGE_BRIEF.md", "CLAUDE.md", "AGENTS.md"].every((file) => fs.existsSync(path.join(ROOT, file))),
+  ["القواعد_العامة.md", "شجرة_العمليات.md", ".claude/skills/checking/SKILL.md", "CLAUDE.md", "AGENTS.md"].every((file) => fs.existsSync(path.join(ROOT, file))),
   "One or more required staged audit inputs are missing."
 );
 

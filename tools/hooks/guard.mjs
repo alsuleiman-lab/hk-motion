@@ -20,7 +20,7 @@ const emit = (obj) => { process.stdout.write(JSON.stringify(obj)); process.exit(
 
 /** files that ARE the rules: any change needs the user's yes (the agent cannot rewrite its own rules silently) */
 const RULE_FILES = [
-  /^PREFERENCES\.md$/, /^WORKFLOW_CHECKLIST\.md$/, /^CLAUDE\.md$/, /^AGENTS\.md$/, /^STYLE_REFERENCES\.md$/,
+  /^القواعد_العامة\.md$/, /^شجرة_العمليات\.md$/, /^CLAUDE\.md$/, /^AGENTS\.md$/, /^STYLE_REFERENCES\.md$/,
   /^\.claude\/skills\/(?!remotion-|lessons-and-streams|gbro-)[^/]+\/[^/]+\.md$/,
   /^rules_registry\/(?!proposals\/)[^/]+\.md$/,
   /^\.claude\/settings(\.local)?\.json$/, /^tools\/hooks\//,
@@ -31,7 +31,7 @@ const inner = (p) => rel(p).replace(WT, "");
 const inWorktree = (p) => WT.test(rel(p));
 const isRuleFile = (p) => RULE_FILES.some((re) => re.test(inner(p)));
 /** rules are READ only from the main folder (user order 2026-10-27: «لازم تكون ثابتة على الجهاز»): a worktree copy can be older than master */
-const READ_PINNED = (p) => isRuleFile(p) || /^MONTAGE_BRIEF\.md$/.test(inner(p));
+const READ_PINNED = (p) => isRuleFile(p) || /^(القواعد_العامة|شجرة_العمليات)\.md$/.test(inner(p));
 const mainPath = (p) => norm(ROOT) + "/" + inner(p);
 const deny = (reason) => emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } });
 const ask = (reason) => emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: reason } });
@@ -51,18 +51,18 @@ if (mode === "prompt") {
     else if (fs.existsSync(flag)) fs.rmSync(flag, { force: true });
   } catch { /* never block a prompt */ }
   const contract = [
-    "عقد الالتزام (MONTAGE_BRIEF.md §0 — ملزم، لا استثناء إلا بنص المستخدم في رسالته الحالية):",
-    "• القواعد ← `MONTAGE_BRIEF.md` (الملف الوحيد الملزم؛ تفصيله بالأرقام نفسها في `PREFERENCES.md`)، والتنفيذ ← المهارات بدءاً بـ`router`، والفحص ← `WORKFLOW_CHECKLIST.md`. لا تحِد عن بند منها ولا تؤوّله لصالح الاختصار.",
+    "عقد الالتزام (القواعد_العامة.md — ملزم، لا استثناء إلا بنص المستخدم في رسالته الحالية):",
+    "• القواعد ← `القواعد_العامة.md` ثم `شجرة_العمليات.md` (كل مرحلة بمهارتها، وتفصيل كل مهارة في `references/detail.md` بجانبها)، والتنفيذ ← المهارات بدءاً بـ`router`، والفحص ← مهارة `checking`. لا تحِد عن بند منها ولا تؤوّله لصالح الاختصار، ولا تقل «تمّ» إلا لمهمة أُنجزت كاملة بدليل.",
     "• إن تعارض طلب مع قاعدة: توقف واذكر البند ثم اسأل بالنقر؛ لا تتجاوز بصمت ولا تخترع استثناءً.",
-    "• لا «✅ انتهيتُ» قبل `tools/final_review.mjs` (الهوك يمنع الإعلان دونه) وقبل المراجعة النهائية بنداً بنداً.",
+    "• لا «✅ انتهيتُ» قبل `tools/final_review.mjs` (الهوك يمنع الإعلان دونه) وقبل قائمة المراجعة في مهارة `checking` بنداً بنداً.",
   ];
   const R = norm(ROOT);
-  contract.push(`• القواعد والمهارات تُقرأ من المجلد الرئيسي فقط: \`${R}/MONTAGE_BRIEF.md\` و\`${R}/PREFERENCES.md\` و\`${R}/.claude/skills/…\`، لا من نسخة الجلسة في \`.claude/worktrees/\` (قد تكون أقدم)، وأدوات \`tools/\` تُشغَّل من \`${R}\`.`);
+  contract.push(`• القواعد والمهارات تُقرأ من المجلد الرئيسي فقط: \`${R}/القواعد_العامة.md\` و\`${R}/شجرة_العمليات.md\` و\`${R}/.claude/skills/…\`، لا من نسخة الجلسة في \`.claude/worktrees/\` (قد تكون أقدم)، وأدوات \`tools/\` تُشغَّل من \`${R}\`.`);
   if (/مونتاج|فيديو|رندر|ريندر|غلاف|هوك|موشن|تعليق صامت|render|montage|hook/i.test(p)) {
-    // 2026-10-25 (user order): the brief replaces reading PREFERENCES.md in full (that read + the checklist + 4 skill files were ~60k tokens carried through every call)
-    contract.push("• هذا عمل فيديو: اقرأ (لكل فيديو من جديد، ولو قرأتها لفيديو سابق في الجلسة) `MONTAGE_BRIEF.md` (الملف الوحيد الملزم؛ تفصيل البند في `PREFERENCES.md` بـGrep عند الحاجة) ← مهارة `router` ← مهارات السلسلة (video-montage/critical-rules.md وworkflow-plan.md لكلمة «مونتاج»). قائمة الفحص في المراجعة النهائية. الأسئلة الأربعة بالنقر أول فعل (العنوان، B-roll، الصيغ، أين يُرفع العرضي)، ومعها `tools/stage.mjs prep` في الخلفية.");
+    // 2026-11-17 (user order): the tree replaced the brief — general rules → operations tree → router → each stage's skill when it is reached
+    contract.push("• هذا عمل فيديو: اقرأ (لكل فيديو من جديد، ولو قرأتها لفيديو سابق في الجلسة) `القواعد_العامة.md` ← `شجرة_العمليات.md` ← مهارة `router` ← مهارة كل مرحلة حين تصلها (ومعها `video-montage/critical-rules.md` و`workflow-plan.md`، و`montage-orders` لتعليمات «مونتاج» المنطوقة). الأسئلة الأولى بالنقر أول فعل (مهارة `first-questions`)، ومعها `tools/stage.mjs prep` في الخلفية.");
     const b = spawnSync("node", ["tools/brief_check.mjs"], { cwd: ROOT, encoding: "utf8" });
-    if (b.status !== 0) contract.push("• تنبيه: " + (b.stdout || "").trim() + " — حتى يُحدَّث الملخّص اقرأ الأقسام المتغيّرة من الأصل.");
+    if (b.status !== 0) contract.push("• تنبيه: " + (b.stdout || "").trim());
   }
   emit({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: contract.join("\n") } });
 }
@@ -111,7 +111,7 @@ if (mode === "pre") {
     const m = c.match(/stage\.mjs\s+(?:cut|check)\s+["']?([A-Za-z0-9_-]+)/) ?? (tool === "Write" ? rel(ti.file_path ?? "").match(/^data\/specs\/([A-Za-z0-9_-]+)\.json$/) : null);
     if (m && input.transcript_path) {
       // (2026-11-16, user: «تأكد أنه سيقرأ كل القواعد وينفذها ويمشي على قائمة مهام ويسجل تعليماتي») + the router and the orders/task-list skill
-      const p = m[1], MUST = { "MONTAGE_BRIEF.md": /MONTAGE_BRIEF\.md$/, "critical-rules.md": /video-montage\/critical-rules\.md$/, "workflow-plan.md": /video-montage\/workflow-plan\.md$/, "router/SKILL.md": /skills\/router\/SKILL\.md$/, "montage-orders/SKILL.md": /skills\/montage-orders\/SKILL\.md$/ };
+      const p = m[1], MUST = { "القواعد_العامة.md": /القواعد_العامة\.md$/, "شجرة_العمليات.md": /شجرة_العمليات\.md$/, "critical-rules.md": /video-montage\/critical-rules\.md$/, "workflow-plan.md": /video-montage\/workflow-plan\.md$/, "router/SKILL.md": /skills\/router\/SKILL\.md$/, "montage-orders/SKILL.md": /skills\/montage-orders\/SKILL\.md$/ };
       try {
         let start = -1; const readAt = {};
         fs.readFileSync(input.transcript_path, "utf8").split("\n").forEach((line, i) => {
@@ -157,7 +157,7 @@ if (mode === "pre") {
         const ids = [...fs.readFileSync(path.join(ROOT, "src", "Root.tsx"), "utf8").matchAll(new RegExp("<Composition[^>]*id=" + q + "([A-Za-z0-9_-]+)" + q, "g"))].map((m) => m[1]);
         const titles = fs.readFileSync(path.join(ROOT, "src", "compositionTitles.ts"), "utf8");
         const missing = ids.filter((id) => c.includes(id) && !titles.includes(q + id + q + ":"));
-        if (missing.length) deny("الرندر النهائي مرفوض: التركيبة " + missing.join("، ") + " بلا عنوان عربي في Remotion. نفّذ: node tools/set_title.mjs <المعرّف> " + q + "العنوان العربي" + q + " (إلزامي، PREFERENCES القسم 6).");
+        if (missing.length) deny("الرندر النهائي مرفوض: التركيبة " + missing.join("، ") + " بلا عنوان عربي في Remotion. نفّذ: node tools/set_title.mjs <المعرّف> " + q + "العنوان العربي" + q + " (إلزامي، مهارة remotion-render).");
       } catch { /* Root.tsx unreadable: do not block */ }
       const g = guard("check", p, "--stages", "questions,cut,context,assets,cover,plan,hook,build");
       const audio = fs.existsSync(path.join(ROOT, ".tmp", "gates", p + ".audio.ok"));

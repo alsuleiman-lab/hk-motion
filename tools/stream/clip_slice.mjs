@@ -36,15 +36,20 @@ const slice = (inF, outF, video) => {
     : pieces.map((_, i) => `[${i}:a]asetpts=PTS-STARTPTS[a${i}];`).join("") + pieces.map((_, i) => `[a${i}]`).join("") + `concat=n=${n}:v=0:a=1[a]`;
   sh("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", "-threads", "4", ...ins, "-filter_complex", fc, ...(video ? ["-map", "[v]", "-map", "[a]", "-c:v", "h264_nvenc", "-preset", "p7", "-rc", "vbr", "-cq", "19", "-b:v", "0", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-ar", "48000"] : ["-map", "[a]"]), outF]);
 };
-const parentVideo = ["cut_s", "cut"].map((s) => path.join("public", `${P}_${s}.mp4`)).find((f) => fs.existsSync(f));
+// SLICE_VIDEO: ملف القص الحالي للأب إن كان بإصدار جديد بعد قص جزء (المواصفة `cut`، يمرّره tools/reel_from_episode.mjs)
+const parentVideo = process.env.SLICE_VIDEO && fs.existsSync(process.env.SLICE_VIDEO) ? process.env.SLICE_VIDEO : ["cut_s", "cut"].map((s) => path.join("public", `${P}_${s}.mp4`)).find((f) => fs.existsSync(f));
 if (!parentVideo) { console.error(`✘ لا قص لـ${P} بعد`); process.exit(1); }
 const cutS = path.join("public", `${id}_cut_s.mp4`); slice(parentVideo, cutS, true);
 for (const s of ["cut", "src"]) { const f = path.join("public", `${id}_${s}.mp4`); try { fs.rmSync(f); } catch { /* new */ } try { fs.linkSync(cutS, f); } catch { fs.copyFileSync(cutS, f); } }
 fs.writeFileSync(path.join("public", `${id}_map.json`), JSON.stringify({ segments: [{ a: 0, b: D, n: 0 }], duration: D }));
-for (const [src, dst] of [["cut.wav", "cut.wav"], ["cut_clean.wav", "cut_clean.wav"], ["cut16k.wav", "cut16k.wav"]]) if (fs.existsSync(path.join(TP, src))) slice(path.join(TP, src), path.join(T, dst), false);
+// SLICE_AUDIO_CHECK=1: صوت للأب لا يطابق طول خريطته (قديم من قبل قص جزء) لا يُقتطع، فلا تنحرف الشريحة
+const parentD = rd(path.join("public", `${P}_map.json`)).duration;
+const staleWav = (f) => { if (process.env.SLICE_AUDIO_CHECK !== "1" || !parentD) return false; const r = spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], { encoding: "utf8", windowsHide: true }); const d = Number(String(r.stdout).trim()); if (Number.isFinite(d) && Math.abs(d - parentD) > 0.15) { console.log(`⚠ ${path.basename(f)} (${d.toFixed(2)}ث) لا يطابق خريطة ${P} (${parentD}ث): لم يُقتطع`); return true; } return false; };
+for (const [src, dst] of [["cut.wav", "cut.wav"], ["cut_clean.wav", "cut_clean.wav"], ["cut16k.wav", "cut16k.wav"]]) if (fs.existsSync(path.join(TP, src)) && !staleWav(path.join(TP, src))) slice(path.join(TP, src), path.join(T, dst), false);
 fs.copyFileSync(path.join(T, "cut16k.wav"), path.join(T, "a16k.wav"));
 // 3) الكلمات (زمن القص ← زمن المقطع)
 const cw0 = rd(path.join(TP, "cut_words.json")), cw = (cw0.words ?? cw0).map((w) => ({ w: w.w ?? w.word, s: +(w.s ?? w.start), e: +(w.e ?? w.end) })).map((w) => ({ ...w, c: toChild((w.s + w.e) / 2) })).filter((w) => w.c !== null).map((w) => { const s = toChild(Math.min(w.s, w.c + 0)) ?? w.s; const d = w.e - w.s; const cs = Math.max(0, +(w.c - d / 2).toFixed(3)); return { w: w.w, s: cs, e: +Math.min(D, cs + d).toFixed(3) }; });
+cw.sort((a, b) => a.s - b.s);   // نطاقات بترتيب المستخدم لا بالترتيب الزمني: الكلمات بزمن المقطع
 fs.writeFileSync(path.join(T, "cut_words.json"), JSON.stringify(cw, null, 1));
 for (const f of ["cut_words_large.json", "words.json", "words_vad.json"]) fs.writeFileSync(path.join(T, f), JSON.stringify(cw));
 fs.writeFileSync(path.join(T, "cut_transcript.txt"), cw.reduce((o, w, i) => { if (i % 12 === 0) o.push(`[${w.s.toFixed(1)}] `); o[o.length - 1] += w.w + " "; return o; }, []).join("\n") + "\n");
@@ -62,6 +67,7 @@ const srcToCut = (t) => { for (const g of map) if (t >= g.a - 1e-6 && t <= g.b +
 try {
   const sp = rd(path.join(TP, "speakers.json")), turns = [];
   for (const t of sp.turns) { const a = srcToCut(Math.max(t.s, 0)), b = srcToCut(t.e); const ca = a === null ? null : toChild(a), cb = b === null ? null : toChild(b); if (ca !== null && cb !== null && cb > ca) turns.push({ ...t, s: +ca.toFixed(2), e: +cb.toFixed(2) }); }
+  turns.sort((x, y) => x.s - y.s);
   fs.writeFileSync(path.join(T, "speakers.json"), JSON.stringify({ speakers: sp.speakers, turns }));
   fs.writeFileSync(path.join(T, "speakers.txt"), turns.map((t) => `[${t.s.toFixed(1)}–${t.e.toFixed(1)}] ${t.name}: ${t.text}`).join("\n") + "\n");
 } catch { /* لا تمييز للمتكلمين في البث */ }

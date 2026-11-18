@@ -36,11 +36,11 @@ const readJson = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8"))
 const MERGED = { hook: "gallery-placement", comparisons: "gallery-placement", "enumeration-and-flow": "gallery-placement", "timeline-and-numbers": "gallery-placement", "book-source-display": "source-display", "website-source-display": "source-display", "video-source-display": "source-display", "source-motions": "source-display", "collage-selection": "collage-broll-local" };
 const STAGES = [
   { id: "questions", skills: ["first-questions", "video-montage"], label: "الأسئلة بالنقر" },
-  { id: "cut", skills: ["video-cutting", "transcription", "sensitive-words", "segment-cut", "lessons-and-streams"], label: "التفريغ وتقطيع السكتات (+ بوابة الصوت)" },
+  { id: "cut", skills: ["video-cutting", "transcription", "sensitive-words", "segment-cut", "lessons-and-streams", "reel-from-episode"], label: "التفريغ وتقطيع السكتات (+ بوابة الصوت)" },
   { id: "context", skills: ["montage-orders", "extraction", "video-montage"], label: "فهم السياق (تعليماتك داخل الفيديو)" },
   { id: "assets", skills: ["extraction", "identity", "video-sections", "video-montage", "pixabay-search", "collage-broll-local"], label: "جدول الأصول: صور كل الأسماء" },
   { id: "cover", skills: ["thumbnail-design"], label: "الغلاف" },
-  { id: "plan", skills: ["video-montage", "gallery-placement", "cartoon-animation", "silent-reaction", "lessons-and-streams", "paper-montage", "advertising-video"], label: "الخطة (كل بند باسم مهارته)" },
+  { id: "plan", skills: ["video-montage", "gallery-placement", "cartoon-animation", "silent-reaction", "lessons-and-streams", "paper-montage", "advertising-video", "reel-from-episode"], label: "الخطة (كل بند باسم مهارته)" },
   { id: "hook", skills: ["gallery-placement"], label: "الهوك" },
   { id: "build", skills: ["motion-graphics", "gallery-placement", "source-display", "collage-broll-local", "paper-montage", "video-montage", "cartoon-animation", "silent-reaction", "lessons-and-streams", "advertising-video", "identity"], label: "بناء بقية الفيديو" },
   { id: "review", skills: ["checking", "video-montage", "delivery-links", "remotion-render"], label: "المراجعة والحارس" },

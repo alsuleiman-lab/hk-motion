@@ -761,6 +761,21 @@
   "orient": "both"
  },
  {
+  "id": "PaperMapMoves",
+  "ar": "خريطة تنتقل مع العلم",
+  "kit": "PortraitKit",
+  "group": "الخرائط",
+  "where": "★ ترسمها مرة واحدة وتحركها إذا ذكرت دولة مجاورة أو مدينة دون إعادة رسم، ولا حاجة لعرضها مرتين دون حاجة؛ علم الدولة على خريطتها، أما مع المدينة فبدون علم (أمر المستخدم 2026-11-18). في المواصفة: عنصر pmap واحد مع flag وحقل moves [{from, center, spanLat, highlight, flag, pts}].",
+  "note": "",
+  "section": "image",
+  "mode": "iso",
+  "slot": {
+   "land": "engine",
+   "port": "engine"
+  },
+  "orient": "both"
+ },
+ {
   "id": "HandheldShake",
   "ar": "اهتزاز كاميرا اليد",
   "kit": "MG",

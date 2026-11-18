@@ -140,6 +140,8 @@ const E: Record<string, { node: React.ReactNode; light?: boolean }> = {
   Word: { node: <Word text="كلمة مفتاحية" at={0.1} until={3} x={560} y={430} size={120} /> },
   CornerTags: { node: <CornerTags right={["الموضوع", "الحكم"]} left={["محمد بن شمس الدين"]} y={120} size={34} /> },
   DashArc: { node: <><PinnedPhoto at={0.1} x={1260} y={300} w={300} h={380} name="ابن عثيمين"><Real src="people/ibn_uthaymeen.jpg" pos="50% 15%" /></PinnedPhoto><PinnedPhoto at={0.5} x={360} y={300} w={300} h={380} name="أحمد الطيب"><Real src="broll/ahmed_el_tayeb.jpg" pos="50% 15%" /></PinnedPhoto><DashArc at={0.9} x1={1260} y1={420} x2={660} y2={420} lift={160} /></> },
+  /* (user 2026-11-18) one map that moves: Syria with its flag → Iraq (neighbour) with its flag → Damascus (a city: no flag), drawn once */
+  PaperMapMoves: { node: <PaperMap at={0.1} until={3} x={260} y={90} w={1400} h={900} atlas center={[38.6, 34.9]} spanLat={7} highlight={["SYR"]} flag moves={[{ from: 1.0, center: [43.6, 33.1], spanLat: 9, highlight: ["IRQ"], flag: true }, { from: 2.0, center: [36.3, 33.6], spanLat: 2.6, highlight: ["SYR"], flag: false, pts: [{ name: "دمشق", lon: 36.29, lat: 33.51, at: 2.2 }] }]} /> },
   PaperMap: { node: <PaperMap at={0.1} until={3} x={460} y={140} w={1000} h={800} center={[36, 38]} spanLat={10} highlight={["Syria"]} pts={[{ name: "دمشق", lon: 36.3, lat: 33.5, at: 0.3 }, { name: "حلب", lon: 37.2, lat: 36.2, at: 0.7 }]} legs={[{ from: [36.3, 33.5], to: [37.2, 36.2], at: 1.0, dur: 1, car: true }]} /> },
   HandheldShake: { node: <HandheldShake windows={[{ from: 0.2, to: 2.8 }]} amp={6} rot={0.4}><HyVideo src={staticFile(GALLERY_CUT)} muted style={{ width: 1920, height: 1080 }} /></HandheldShake> },
 };

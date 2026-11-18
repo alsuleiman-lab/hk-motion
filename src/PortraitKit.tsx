@@ -121,6 +121,7 @@ import { ASIA } from "./asiaMap";
 // the paper atlas draws the Arab region + South/Central Asia (India and its neighbours, 2026-11-11)
 const ATLAS_LAND: Record<string, number[][][][]> = { ...ASIA, ...LEVANT };
 import { BRAND } from "./brand";
+export type MapMove = { from: number; center?: [number, number]; spanLat?: number; highlight?: string[]; pts?: MapPt[]; flag?: boolean };
 export type MapPt = { name: string; lon: number; lat: number; at: number; down?: boolean };
 export type MapLeg = { from: [number, number]; to: [number, number]; at: number; dur?: number; car?: boolean };
 
@@ -137,10 +138,20 @@ const ATLAS_DX: Record<string, number> = { SYR: -1.1, LBN: 0.05, JOR: 0, IRQ: -0
 export const PaperMap: React.FC<{
   at: number; until: number; x: number; y: number; w: number; h: number; center: [number, number]; spanLat: number;
   highlight?: string[]; highlightAt?: Record<string, number>; geo?: "levant" | "world"; pts?: MapPt[]; legs?: MapLeg[]; carSrc?: string; carW?: number; atlas?: boolean;
-}> = ({ at, until, x, y, w, h, center, spanLat, highlight = ["SYR"], highlightAt, geo, pts = [], legs = [], carSrc = "collage/car.png", carW = 140, atlas = false }) => {
+  /** (user 2026-11-18, rules review: «ترسمها مرة واحدة وتحركها إذا ذكرت دولة مجاورة أو مدينة دون إعادة رسم… علم الدولة على خريطتها، أما مع المدينة فبدون علم»)
+   *  moves: later mentions of the same country, a neighbour or a city move THIS map (centre/span ease over 0.9 s); flag: the highlighted country's flag on its map */
+  moves?: MapMove[]; flag?: boolean;
+}> = ({ at, until, x, y, w, h, center: center0, spanLat: span0, highlight: hl0 = ["SYR"], highlightAt, geo, pts: pts0 = [], legs = [], carSrc = "collage/car.png", carW = 140, atlas = false, moves = [], flag: flag0 = false }) => {
   const { t, k } = useStop();
   if (t < at || t > until) return null;
   const pop = clamp((t - at) / 0.35);
+  let center = center0, spanLat = span0, highlight = hl0, pts = pts0, flag = flag0;
+  for (const m of [...moves].sort((a, b) => a.from - b.from)) {
+    if (t < m.from) break;
+    const e0 = clamp((t - m.from) / 0.9), e = e0 * e0 * (3 - 2 * e0), tc = m.center ?? center, ts = m.spanLat ?? spanLat;
+    center = [center[0] + (tc[0] - center[0]) * e, center[1] + (tc[1] - center[1]) * e]; spanLat = spanLat + (ts - spanLat) * e;
+    if (m.highlight) highlight = m.highlight; if (m.pts) pts = m.pts; flag = !!m.flag;
+  }
   const [clon, clat] = center, cosl = Math.cos((clat * Math.PI) / 180), pxPerLat = h / spanLat;
   const P = (lon: number, lat: number): [number, number] => [w / 2 + (lon - clon) * cosl * pxPerLat, h / 2 - (lat - clat) * pxPerLat];
   const path = (poly: number[][][]) => poly.map((ring) => "M" + ring.map(([lo, la]) => P(lo, la).map((v) => v.toFixed(1)).join(",")).join("L") + "Z").join("");
@@ -154,6 +165,16 @@ export const PaperMap: React.FC<{
   return (
     <div style={{ ...paperCard(x, y, w, h, pop, -2.5), opacity: Math.min(1, pop * 2.5) /* (user 2026-11-17, 4:42 of «اعتقالات الدعاة»: a dissolving map over his cut-out = double image) hard exit, no opacity transition */ }}>
       <Grain />
+      {flag && highlight[0] ? (() => {   /* the country's flag pinned on its own map (a city move has flag:false) */
+        const code = highlight[0], polys = (atlas ? ATLAS_LAND : geo === "world" ? WORLD : LEVANT)[code];
+        if (!polys) return null;
+        const big = polys.reduce((a, b) => (b[0].length > a[0].length ? b : a)), xs = big[0].map((q) => q[0]), ys = big[0].map((q) => q[1]);
+        const [fx, fy] = P((Math.min(...xs) + Math.max(...xs)) / 2 + (atlas ? ATLAS_DX[code] ?? 0 : 0), (Math.min(...ys) + Math.max(...ys)) / 2 + (atlas ? ATLAS_DY[code] ?? 0 : 0));
+        const fw = Math.round(Math.min(220, w * 0.16)), fh = Math.round(fw * 0.66), lift = atlas ? 70 : 0;
+        if (fx < 0 || fx > w || fy < 0 || fy > h) return null;   /* the country is off this view */
+        const fl = Math.max(14, Math.min(w - fw - 14, fx - fw / 2)), above = fy - lift - fh, ft = above >= 14 ? above : Math.min(h - fh - 14, fy + 44);   /* no room above its name → under it */
+        return <Img src={staticFile(`flags/${code}.png`)} style={{ position: "absolute", zIndex: 3, left: fl, top: ft, width: fw, height: fh, objectFit: "cover", border: "5px solid #fff6dc", boxShadow: "0 6px 14px rgba(40,24,8,.45)", transform: "rotate(-3deg)" }} />;
+      })() : null}
       <svg width={w} height={h} style={{ position: "absolute", left: 0, top: 0 }}>
         <defs>
           <filter id="rough" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="4" result="n" /><feDisplacementMap in="SourceGraphic" in2="n" scale="8" /></filter>

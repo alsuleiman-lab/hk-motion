@@ -303,10 +303,19 @@ logProgress(`DONE ${out}`);
 // opening bumper (same rule as hybrid_any): a full render gets a random paper bumper; partial ranges / bumpers / --no-bumper skip it
 {
   const partial = start !== 0 || end < composition.durationInFrames - 1;   /* an --end equal to the last frame is still a full render */
-  if (!partial && !compId.startsWith("Fasel-") && !/^(Stick|Dodo)-/.test(compId) && !process.argv.includes("--no-bumper")) {
+  /* (user 2026-11-18, rules review) the bumper comes from the montage: spec.bumper {id?, at?, position: start|end|none} of --spec <p> (else --name <p>) wins;
+     without it the env from render_job.sh (BUMPER_POSITION/AT/ID), else the legacy default with a warning; kinds paper/ad/explainer/cartoon → none */
+  const specId = [arg("spec", null), arg("name", null)].find((x) => x && x !== true);
+  let spec = null; try { spec = specId ? JSON.parse(fs.readFileSync(path.join(root, "data/specs", `${specId}.json`), "utf8")) : null; } catch { /* no spec */ }
+  const sb = spec?.bumper && ["start", "end", "none"].includes(spec.bumper.position) ? spec.bumper : null;
+  const bEnv = { BUMPER_POSITION: process.env.BUMPER_POSITION ?? "", BUMPER_AT: process.env.BUMPER_AT ?? "", BUMPER_ID: process.env.BUMPER_ID ?? "" };
+  if (sb) { bEnv.BUMPER_POSITION = sb.position; if (sb.at != null) bEnv.BUMPER_AT = String(sb.at); if (sb.id) bEnv.BUMPER_ID = String(sb.id); if (sb.position === "end") bEnv.BUMPER_AT = ""; }
+  else if (!bEnv.BUMPER_POSITION) { if (spec) log("no spec.bumper — legacy default"); if (["paper", "ad", "explainer", "cartoon"].includes(spec?.kind)) bEnv.BUMPER_POSITION = "none"; }
+  if (bEnv.BUMPER_POSITION === "none" && !partial) log("bumper: none (spec.bumper / kind) — no bumper added");
+  if (!partial && bEnv.BUMPER_POSITION !== "none" && !compId.startsWith("Fasel-") && !/^(Stick|Dodo)-/.test(compId) && !process.argv.includes("--no-bumper")) {
     /* render_job.sh sets BUMPER_AT (seconds: before his first greeting, tools/bumper_at.mjs) and BUMPER_ID (the bumper chosen for this project); BUMPER_POSITION=end is read by prepend_bumper itself — same arguments as hybrid_any */
     spawnSync("node", ["tools/prepend_bumper.mjs", out, "--name", String(arg("name", path.basename(out, path.extname(out)))),
-      ...(Number(process.env.BUMPER_AT) > 0 ? ["--at", String(process.env.BUMPER_AT)] : []), ...(process.env.BUMPER_ID ? ["--id", process.env.BUMPER_ID] : [])], { cwd: root, stdio: "inherit" });
+      ...(Number(bEnv.BUMPER_AT) > 0 ? ["--at", String(bEnv.BUMPER_AT)] : []), ...(bEnv.BUMPER_ID ? ["--id", bEnv.BUMPER_ID] : [])], { cwd: root, stdio: "inherit", env: { ...process.env, ...bEnv } });
   }
 }
 process.exit(0);

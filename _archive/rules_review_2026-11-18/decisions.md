@@ -1,0 +1,89 @@
+# قرارات مراجعة القواعد والمهارات — 2026-11-18 (أجوبة المستخدم على صفحة المراجعة)
+
+How to apply (for the agents doing the edits):
+- Apply each decision to the files named, BOTH in the SKILL.md (one short line) and in its `references/detail.md` (the full text). Create `references/detail.md` if missing.
+- The Arabic in «…» is the user's own wording or the rule to write; keep it in Arabic.
+- Every sentence you REPLACE or DELETE goes into `_archive/rules_review_2026-11-18/replaced_<your-group>.md`, quoting the file, the old text and the new text.
+- Do not touch items marked PENDING or TOOL.
+- Newest decision wins over any older dated text. Date the new lines «(أمر المستخدم 2026-11-18)».
+- Edit only the files of your group. Keep each file's line endings as they are.
+
+## A. Decided by the user (rule text)
+- **d1 (checking + tree + delivery-links):** «رابط المراجعة يُرسل بعد انتهاء المونتاج، ولا ينتظر الفحوص» (the long check runs after the link in the background). Remove the contrary lines «لا رابط مراجعة قبل نجاحه / الفحص الكامل قبل الرابط».
+- **d2 (general rules + remotion-render + lessons-and-streams):** the lessons and streams render automatically without permission, everything else needs permission. Write it as a dated exception in `القواعد_العامة.md`.
+- **d3 (critical-rules 18 + tree reel line + extraction + gallery-placement):** the verse in the reel and the full portrait is a split screen: his video on top, the gold panel in the landscape style under it. A full-screen verse card stays only as a reserve element in the gallery, used only on an explicit request. Remove «الريل ملء الشاشة (full:true)» and «الطولي الكامل بطاقة verse» as defaults.
+- **p1 (critical-rules 30 + gallery-placement + motion-graphics):** «الأصل أن البيرول، فيديوهات وصوراً وخرائط، كلها بمقاس 16:9 عرضي، يوضع من الكتفين إلى أعلى بحيث يبقى الرأس في المنتصف. وإن احتجنا مساحة، نعم يُصغَّر فيديوه، ونستعمل تقسيم الشاشة: نصف له ونصف للبيرول أو الخريطة» (2026-11-18). This replaces the absolute «الصور لا تُصغّر الشيخ أبداً» for wide B-roll, pictures and maps. Keep: person photos (tphoto, scholar) and news in the lower band are not stated to shrink him; do not invent more.
+- **p2 (critical-rules + video-montage detail + general rules line on the face):** «لا بأس أن يمسّ العنصرُ النصفَ الأسفل من اللحية من أسفل»; the face and the upper half of the beard are never covered. Replace «ولو مسّت اللحية» and the 0.6 tolerance wording with this.
+- **p3 (source-display + video-montage detail + critical-rules 34أ):** the approved portrait or reel clip layout: «لا يُصغَّر الشيخ بل يؤخذ إلى جانب، ويُعرض المقطع بجانب رأسه، فتكون أطرافه خلف رأسه وكتفيه وزواياه تحت كتفيه، وهذه قاعدة ثابتة؛ ويجوز أن تخرج زاوية من زواياه خارج الشاشة». Mark the old PORT_ISO_DEFAULT layout (clip fills the frame behind him, him 66% at the right) as legacy.
+- **p4 (source-display):** a book or document page in a reel is enlarged in the lower area and his video shrinks (approved). In the full portrait it is a tilted card beside his head.
+- **p5:** one source for the portrait writing band: `data/layout_grids.json`. Delete the repeated numbers.
+- **w1 (critical-rules 25):** «كل كتابة جملة واحدة كاملة المعنى مختارة بالسياق ≤ 7 كلمات، وإلا فلا كتابة».
+- **w2 (gallery-placement + video-montage detail):** two forms. (1) A conditional or consequence form («إذا ذهبت إلى السوق فعليك أن تنتبه»، «إن قلتَ الخمر حرام فعليك ألا تشربها») goes to the rows or conditions element. (2) A dialogue form («قلنا لهم كذا فقالوا كذا، إن قالوا كذا نقول كذا») goes to the messages conversation (ChatThread).
+- **w3 (critical-rules 22):** a previous episode is always the gallery's search bar (SearchBar) plus `episode_ref pick`. Remove the «بطاقة الحلقة scholar w:420» wording.
+- **w4 (general rules one-element line + gallery-placement + element_priority note):** «لا تعارض بين عزل الخلفية والكتابة في مكانها، ولا بين العزل والصور في مساحة الصور. الممنوع أن يكون عنصران في المساحة نفسها في الوقت نفسه». The areas are: writing (bottom), right, left (landscape); and in portrait, the bottom area and the video/isolation area. So "one element at a time" applies per area. TOOL: element_slots per area is pending; write the rule now.
+- **w5:** one value, 1.5 s, for every element's hold after its last part. TOOL: PICK_HOLD in code is pending.
+- **w6 (motion-graphics + gallery-placement + collage-broll-local):** an abstract meaning gets a generated picture («يتم توليده»).
+- **w7 (motion-graphics):** «إذا أُزيل العنصر من المعرض يُزال من المهارات، وإذا بقي في المعرض يبقى ولو احتياطياً». Remove the retired TrAccentWipe, TrDoors, GlowCaption and Battery (check `data/retired_elements.json`); keep whatever the gallery still has.
+- **w8:** MorphContent exits on a hard cut.
+- **w9:** apply the proposal: a face zoom about every two minutes, one value.
+- **w10:** list the seven no-split elements as in the code (PICK_NOSPLIT).
+- **w12 (critical-rules transitions line):** «التلاشي مسموح عند عزل الخلفية في حال لم تُصغَّر صورته» (exception to the no-dissolve rule). Plus a still at each map or big-picture exit is in the review list.
+- **w13 (gallery-placement + detail):** «عند التعارض يُختار العنصر البصري الأهم» (writing is dropped, never delayed).
+- **w15:** 0.2 s between two writings in the same slot, in every format.
+- **s1 (source-display):** «التقسيم يكون في الحالات التي اخترنا لها تقسيماً في المعرض» (not an automatic default). The page is shown whole first, then the marks.
+- **s2 (pixabay-search + critical-rules 32):** «الطمس للنساء فقط». B-roll with men or hands may be used; a woman is blurred or not used.
+- **s3 (pixabay-search):** the candidate questions go on an HTML page after the montage is finished; no question during the montage.
+- **s4 (pixabay-search + gallery-placement + extraction):** «لكل مذكور صورة، لكن البلدان خرائط، وللمعاني صور مولّدة».
+- **s5 (collage-broll-local):** no conflict. «لا نساء» means a real photo of a woman without blur. A drawn silhouette in a long robe is allowed.
+- **s6:** no text inside a collage.
+- **s7 (extraction):** apply the proposal: early imams get a random symbolic picture from the folder (no search); contemporaries get their real photo.
+- **s8:** check a news screenshot for generated or fake pictures before showing it.
+- **s9:** the image tools check that a person photo has a face, wait and retry on "too many requests", and always log the source (rule now; TOOL pending).
+- **s10:** «عمّان» (the Jordanian capital) versus «عُمان» (the country) is told apart by context (Jordan nearby). Add it to extraction.
+- **c2:** the ChatGPT cover always goes in a new chat.
+- **c3:** fix the garbled poses-folder path in the cover prompt to `S:\AI_Tools\covers\sheikh_poses`.
+- **t1:** delete the merge of the post-cut transcription; it is for checking times only.
+- **t2:** delete «880Hz −16dB» and refer to the sensitive-words table.
+- **t3:** remove «كلمة مونتاج مشكوك فيها» from the questions page; it is decided by context.
+- **t5 (first-questions detail):** «أنبّه المستخدم ليرسل لي ما أضيفه» (I do not add anything myself).
+- **t6:** cut order = audio gate → bleep → audio cleaning → build.
+- **t7:** the cut values live only in `data/cut_rules.json`; elsewhere name them only.
+- **t8:** one diarization tool; its output is the speaker field in `words_table.json`.
+- **t9:** Studio frames after the bumper are +150; segment-cut subtracts it (rule now; TOOL pending).
+- **t10:** remove the repeated words; add «الدولة الإسلامية» and «فجّر» to `data/sensitive_words.json` if missing.
+- **t11 (montage-orders):** «التنبيه لك يكون بكلمة "عفواً" أو "عفواً سأعيد" أو "مونتاج"». A rhetorical repetition without these words is not a retake.
+- **t12:** «أفوان» is not a correction marker when the context is «أفواه» or «أفغان».
+- **t13:** an echo on one phrase is a spec field over a range, applied in the final audio mix (rule now; TOOL pending).
+- **t14:** `cut_words` comes from `words_table.json` through the cut plan, never from an old words file.
+- **t16:** replace the old stage chain in montage-orders detail with the tree order.
+- **q2:** the questions gate says «أجوبة الصيغ المختارة»; checking says the same.
+- **q3:** questions page:
+  - an alert on each new answer;
+  - the stage check refuses an unapplied answer;
+  - the tool starts its own server and tests the link before sending it;
+  - the page saves notes by itself (done 2026-11-18).
+- **q4:** add the explainer-motion skill to the tree and to the AGENTS.md list.
+- **q5:** image fetching, the cover and hadith verification start in the background right after transcription.
+- **q7:** remove the non-existent «investigative-osint-reel»; fix the section pointer in montage-orders and complete its cut sentence.
+- **r1 (approval + lessons-and-streams):** «مسح المصادر، ثم الرفع، ثم مسح الناتج» (after verifying each destination).
+- **r2 (approval + publishing):** the user may waive ok.ru in his current message. «الرفع إلى أوك يبدأ بعد الاعتماد مباشرة».
+- **r3 (publishing + lessons-and-streams):** «لا قطع، رفع عادي»: the file server with the helper window and the file names. On ok.ru, all files go up together (select all) when there are many.
+- **r4:** I close every tab I open, including the one opened to wake the extension.
+- **r5 (identity + remotion-render + paper-montage + advertising + explainer):** «الفاصل يُضاف في المونتاج في مواضعه، ولا علاقة لطابور الرندر به». TOOL pending: move it out of render_job.
+- **r6 (remotion-render + delivery):** «وسم القناة يُضاف في المونتاج» (in the title or spec), and the cartoon has none. TOOL pending.
+- **r7:** move review items 21–24 from remotion-render to checking.
+- **r9:** checklist: «كل كتابة جملة كاملة مختارة بالسياق، وفحص التزامن نجح».
+- **r10:** fix the broken pointers: «القواعد §11» → the identity skill (bumper), the missing detail files, and the missing sfx folder → `tools/paper_sfx.py`.
+- **r11:** mark the direct render commands as "fallback or engine test only".
+- **r13:** delete the CLI concurrency sentence. «رندر كرت الشاشة هو المعتمد الآن».
+- **r14 (PENDING note was empty → apply proposal?):** NOT decided; leave it.
+- **r16:** tags up to 470 characters.
+- **r17:** explainer-motion: each duplicate unified to the newest value; delete «أسأل قبل التثبيت».
+- **r18:** silent-reaction uses our brand colors (`src/brand.ts`). Merge the two recordings lists, and add the render queue and final_review.
+- **r19:** add a gate and an upload destination to advertising-video, and publishing rows for advertising and paper montage (destination: ask the user at the start, as the skill says).
+- **r20:** cartoon transcription uses large-v3 only; medium is an optional cross-check.
+- **r21:** never leave a stage to a helper without following its result before rendering.
+- **r22:** one line to the user before any long upload or tool chain.
+
+## B. PENDING (waiting for the user's explanation answer; do not touch)
+w11 (maps), w14 (element ids), t4 (orphan fragments), t15 (cut: plan type), q1 (old projects question), r12 (Studio link), r15 (paper montage + his video), c1 (covers style and signature), r8 (first-minute gap: 3 s or none), r14 (advertising captions), q6 (new reel-from-episode skill: will be built separately).

@@ -137,7 +137,7 @@ A white browser-like window (tiny top bar with a red tab) holding ONE rewrite st
 `props:` x: number; y: number; w: number; h?: number; oldText: string; newText: string; oldAt: number; strikeAt: number; newAt: number; extra?: string; rot?: number; until?: number; accent?: string
 
 ### `RV`
-render from pre-extracted JPEG frames (inputProps {"frames":true}; public/fr/<video name>/f_%06d.jpg, file number = composition frame; تفصيل المهارة المعنية (`references/detail.md`) R-RENDER-SPEED.4): no video decoding, exact frame
+render from pre-extracted JPEG frames (inputProps {"frames":true}; public/fr/<video name>/f_%06d.jpg, file number = composition frame; مهارة الرندر `remotion-render` (R-RENDER-SPEED).4): no video decoding, exact frame
 `props:` src: string; style: React.CSSProperties
 
 ### `Only`

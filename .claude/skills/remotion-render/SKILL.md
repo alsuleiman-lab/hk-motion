@@ -1,6 +1,6 @@
 ---
 name: remotion-render
-description: رندر وتصدير فيديوهات هذا المشروع على كرت الشاشة (القواعد §11)؛ tools/gpu_render.mjs وطابور الرندر، عرضي ثم طولي، رندر واحد في وقت واحد، بإذن صريح. (Export a Remotion video)
+description: رندر وتصدير فيديوهات هذا المشروع على كرت الشاشة (المرحلة ١١ في شجرة العمليات)؛ tools/gpu_render.mjs وطابور الرندر، عرضي ثم طولي، رندر واحد في وقت واحد، بإذن صريح (عدا الدروس والبثوث). (Export a Remotion video)
 version: 4.0.535
 ---
 
@@ -8,11 +8,13 @@ version: 4.0.535
 
 > **إذن الرندر منفصل** (جواب المستخدم 2026-11-17): بعد رابط المراجعة أطلب إذنه بالرندر دائماً، وموافقته على المراجعة ليست إذناً.
 
-- **بإذن صريح فقط** (عدا الدروس والبثوث بعد اعتماد أول مشروع). «رندر» = الآن، بلا تعديل أدوات أثناءه. أقيس مساحة القرص قبله (≥ 25 غيغا بعد الذروة).
-- **عبر طابور الرندر دائماً:** `node tools/render_queue.mjs add --spec <المشروع> --comp <التركيبة> --orient L|R --dest "<المجلد>" [--title "…"] [--bumper end|start]` ثم `node tools/render_queue.mjs run` (عامل واحد يرفض الثاني). الطابور يفحص قبول المهمة (التغطية والشبكة والتنويع)، ويرندر على كرت الشاشة، ويلحق الفاصل في موضعه، ويفحص الارتجاف على الملف، وينسخ إلى «جاهز». العرضي ثم الطولي، رندر واحد في وقت واحد.
+- **بإذن صريح فقط**، والاستثناء المؤرخ: الدروس والبثوث تُرندر تلقائياً بلا إذن (أمر المستخدم 2026-11-18). «رندر» = الآن، بلا تعديل أدوات أثناءه. أقيس مساحة القرص قبله (≥ 25 غيغا بعد الذروة).
+- **عبر طابور الرندر دائماً:** `node tools/render_queue.mjs add --spec <المشروع> --comp <التركيبة> --orient L|R --dest "<المجلد>" [--title "…"]` ثم `node tools/render_queue.mjs run` (عامل واحد يرفض الثاني). الطابور يفحص قبول المهمة (التغطية والشبكة والتنويع)، ويرندر على كرت الشاشة، ويفحص الارتجاف على الملف، وينسخ إلى «جاهز». العرضي ثم الطولي، رندر واحد في وقت واحد.
+- **الفاصل والوسم (أمر المستخدم 2026-11-18):** «الفاصل يُضاف في المونتاج في مواضعه، ولا علاقة لطابور الرندر به» (مهارة `identity`)؛ و«وسم القناة يُضاف في المونتاج» في العنوان أو المواصفة، والكرتون بلا وسم. (نقلهما من أدوات الطابور معلَّق.)
+- **لا مرحلة لمساعد بلا متابعة (أمر المستخدم 2026-11-18):** لا تُترك مرحلة لمساعد (وكيل فرعي) دون متابعة نتيجتها بنفسي قبل الرندر.
 - **بعد كل ملف:** `node tools/final_review.mjs <الملف> --name <المشروع>` (المقياس الواحد للقص، بوابة الصوت على الملفات الحالية، الارتجاف لهذا الملف بعينه، قمة الصوت) ونظرة على إطار من أول تقسيم شاشة ومن المنتصف. عندها فقط «✅ انتهيتُ من المونتاج» + رابط المشاهدة، ثم «هل تعتمده؟» بالنقر.
 - الفشل يُشخَّص ويُصلَح ويُعاد، لا يُتوقف عنده. إن قال إنه سينام: السبات بعد خلو الطابور والجلسات.
-- **بوابة المهارة:** تمّ = كل صيغة مختارة في «جاهز» باسمها الصحيح (`<العنوان> #محمد_بن_شمس_الدين`، والعرضي يزيد «-» في آخره) والفحص النهائي نجح عليها.
+- **بوابة المهارة:** تمّ = كل صيغة مختارة في «جاهز» باسمها الصحيح (`<العنوان> #محمد_بن_شمس_الدين`، والعرضي يزيد «-» في آخره، والكرتون بلا وسم) والفحص النهائي نجح عليها، وبنود ما بعد الرندر (21–24 في مهارة `checking`) مُرّ عليها.
 
 > ما يلي التفاصيل التقنية للمحرّك (منسوخة من المهارة الحالية).
 
@@ -70,7 +72,7 @@ version: 4.0.535
 3. **المساحة.** `df -h /s`: يجب أن تبقى المساحة الحرة على S ≥ 25 GB **بعد** ذروة الرندر.
    - الذروة نحو 8 GB لفيديو 14 دقيقة (الحزمة، والفيديو قبل الصوت، والناتج، والفاصل)، ونحو 4 GB لفيديو 6 دقائق؛
    - إن لم تكفِ فلا تبدأ، وأخبر المستخدم بما يشغل المساحة، ولا تحذف إلا ملفاتك أو بإذنه.
-4. **الأمر (العرضي أولاً ثم الطولي، بالتتابع):**
+4. **الأمر المباشر: احتياط أو اختبار للمحرّك فقط** (أمر المستخدم 2026-11-18؛ المسار المعتمد طابور الرندر أعلاه). العرضي أولاً ثم الطولي، بالتتابع:
    ```bash
    source tools/env.sh
    under=$(node tools/window_frames.mjs <المشروع> under L)    # و R للطولي
@@ -129,13 +131,13 @@ version: 4.0.535
 
 ## Workspace rendering rules
 
-For this Remotion workspace, follow `القواعد_العامة.md` و`شجرة_العمليات.md` §11 (binding) and قائمة المراجعة في مهارة `checking` before rendering. Follow the montage skill for authorization: final renders require explicit permission, except the separate lessons-and-streams workflow (after its first project is approved). Use the project's render scripts and output directly to the selected `جاهز` folder.
+For this Remotion workspace, follow `القواعد_العامة.md` و`شجرة_العمليات.md` §11 (binding) and قائمة المراجعة في مهارة `checking` before rendering. Authorization: final renders require explicit permission, except lessons and streams, which render automatically without permission (dated exception, user order 2026-11-18). Use the project's render scripts and output directly to the selected `جاهز` folder.
 
 - The host uses an NVIDIA RTX 3090. Use `-hwaccel cuda` for supported input codecs. Prefer NVENC for delivery: preview H.264 uses `h264_nvenc -preset p4 -cq 23`; final H.264 uses `h264_nvenc -preset p7 -rc vbr -cq 19 -b:v 0`. Use HEVC or AV1 NVENC only when the available encoder supports that codec.
 - Measure the final file with `ffprobe -show_entries stream=bit_rate`: it must be ≥ 14 Mbps; below 14 it is re-rendered.
 - When streams need no filters or re-encoding, use `-c copy`. For alpha output, CPU encoding is allowed: `prores_ks` with `yuva444p10le`, or `libvpx-vp9` with `yuva420p`.
 - CPU-bound FFmpeg operations, including alpha encoding and software filters, use `-threads 4`. Launch long conversions at below-normal priority. Use `scale_cuda` only for simple scaling with CUDA output frames.
-- For Node API renders, pass `ffmpegOverride: nvencOverride` from `tools/nvenc.mjs` and `concurrency: 3`; `remotion.config.ts` does not configure the Node API. CLI renders use the project config (currently concurrency 6; reduce to 4 if the machine stutters).
+- For Node API renders, pass `ffmpegOverride: nvencOverride` from `tools/nvenc.mjs` and `concurrency: 3`; `remotion.config.ts` does not configure the Node API. «رندر كرت الشاشة هو المعتمد الآن» (user order 2026-11-18).
 - Before shell work, run `source tools/env.sh`; work on S and export the final video only to جاهز (`C:\Users\mshms\Videos\جاهز`; lessons, streams and cartoons in their sub-folders, مهارة `remotion-render`). After each operation, run `node tools/clean_temp.mjs`. Render order: landscape before portrait, sequentially (مهارة `remotion-render`).
 
 ## ONE render at a time (user order 2026-10-22)
@@ -148,11 +150,8 @@ Never run two renders at the same time (two videos, two orientations, or a video
 كل تفصيل هذه المهارة (الأرقام والجداول والأسماء الثابتة) في `references/detail.md` بجانبها، ملزم مثلها؛ يُبحث فيه بـGrep عند الحاجة.
 
 ## المراجعة بعد الرندر (قبل الاعتماد)
-21. ✔ («remotion-render») الرندر بإذن، على المحرّك الجديد، بعد عيّنة ارتجاف؛ وبعده نظرة على إطار من أول تقسيم شاشة ومن المنتصف، ولا مقاطع سوداء، ومعدل البتات ≥ 14 Mbps؛ و`node tools/final_review.mjs <الملف المرندر> --name <p>` نجح (لا سكتة > 0.40ث، الفاصل، المدة).
-22. ✔ («identity») الفاصل في موضعه (قبل أول تحية بعد البداية، أو في آخر الفيديو)، لا عند الثانية 0، وذكرتُ موضعه.
-23. ✔ («remotion-render») الملف MP4 في «جاهز» باسمه الصحيح (العرضي بـ«-»)، مدته وإطاراته صحيحة.
-24. ✔ («approval») الغلاف العرضي والطولي موجودان ونُظرا بالعين؛ حزمة يوتيوب جاهزة؛ ثم «✅ انتهيتُ من المونتاج» + رابط المشاهدة ثم «هل تعتمده؟».
+البنود 21–24 نُقلت إلى قائمة المراجعة في مهارة `checking` (أمر المستخدم 2026-11-18).
 
 **إضافات 2026-11-17 (تفصيلها في `references/detail.md`):**
-- العنوان يُعطى للطابور بلا وسم القناة ولا شرطة؛ يضيفهما الطابور.
+- وسم القناة يُضاف في المونتاج في العنوان أو المواصفة، لا في الطابور؛ والكرتون بلا وسم (أمر المستخدم 2026-11-18).
 - بعد أي إصلاح للصوت يُعاد إلحاق الفاصل.

@@ -9,5 +9,5 @@
   - المحتوى: `extraction` (الأسماء والآيات والأحاديث والأخبار والحلقات المذكورة)، `video-sections`، `identity` (النمط والفاصل وشريط الحلقة)، `thumbnail-design`.
   - البناء: `video-montage`، `gallery-placement`، `source-display`، `motion-graphics`، `pixabay-search`، `collage-broll-local`.
   - التسليم: `checking` (وفيها قائمة المراجعة)، `delivery-links`، `remotion-render`، `approval`، `publishing`.
-  - أنواع خاصة: `lessons-and-streams`، `silent-reaction`، `paper-montage`، `cartoon-animation`، `advertising-video`.
-- **الحاسم:** لا موسيقى، لا نساء، لا عنصر قبل نطقه، عنصر واحد في كل وقت، لا تغطية لوجهه ولحيته، العمل على S والتصدير MP4 إلى `C:\Users\mshms\Videos\جاهز` وحده، ولا رندر دون إذن.
+  - أنواع خاصة: `lessons-and-streams`، `silent-reaction`، `paper-montage`، `cartoon-animation`، `advertising-video`، `explainer-motion` (الموشن التوضيحي من صوت، مسار مستقل).
+- **الحاسم:** لا موسيقى، لا نساء، لا عنصر قبل نطقه، عنصر واحد في كل مساحة في كل وقت، لا تغطية لوجهه ولا للنصف الأعلى من لحيته، العمل على S والتصدير MP4 إلى `C:\Users\mshms\Videos\جاهز` وحده، ولا رندر دون إذن (عدا الدروس والبثوث: آلياً، أمر المستخدم 2026-11-18).

@@ -23,10 +23,12 @@ STRICT: no women and no invented people (no crowds, no pedestrians); the real pe
 ```
 - **`{ASPECT}`:** عرضي `16:9 landscape (1920x1080)`؛ طولي كامل وريلز `9:16 portrait (1080x1920)`.
 - **`{POSITION}`:** عرضي: «Only scale him and place him chest-up, large, on the left third of the frame with a thin white torn-paper outline»؛ طولي/ريلز: «lower half of the frame, chest-up, large; the banner in the upper half; keep the top 15% and bottom 20% free of key text (platform UI)». **لا وضعية ولا تعبير.**
-- **الصورة المرفوعة (أمر المستخدم 2026-11-09 «الصور حصراً من مجلد الصور»):** حصراً من مجلد صوره الخاص `public/cov/sheikh_poses/` (= `S:AI_Toolscoverssheikh_poses`، عشر وضعيات)، أنسبها لنبرة الموضوع (جدّي ← `07_sheikh_brown_hands_clasped.png`)، تُنسخ أولاً إلى مجلد الجلسة المؤقت قبل `file_upload`؛ لا صورة من `sheikh_gallery` ولا من الفيديو. ويُكتب في البرومبت: ملامحه ووضعية جسده ويداه كما في الصورة تماماً، لا تعبير ولا وضعية جديدة.
+- **الصورة المرفوعة (أمر المستخدم 2026-11-09 «الصور حصراً من مجلد الصور»):** حصراً من مجلد صوره الخاص `S:\AI_Tools\covers\sheikh_poses` (عشر وضعيات)، أنسبها لنبرة الموضوع (جدّي ← `07_sheikh_brown_hands_clasped.png`)، تُنسخ أولاً إلى مجلد الجلسة المؤقت قبل `file_upload`؛ لا صورة من `sheikh_gallery` ولا من الفيديو. ويُكتب في البرومبت: ملامحه ووضعية جسده ويداه كما في الصورة تماماً، لا تعبير ولا وضعية جديدة.
 - **`{EXTRA_IMAGE_CLAUSE}`:** إن رُفعت لقطة من المردود عليه: «The second attached image is a frame from the video being answered: place it on a tilted cream paper card with its face exactly as is; keep any blur as is; do not reveal or redraw it.»
 - **`{PEOPLE_CLAUSE}` (إلزامي متى دارت الحلقة على أشخاص — أمر المستخدم 2026-11-17):** تُرفع لوحة واحدة فيها صورهم الحقيقية (أصنعها من صور عناصر الحلقة)، ويُكتب: «The attached photo board shows the real people this episode is about: paste ALL of them into the thumbnail as real photo cards, faces exactly as in the board (cut out, not redrawn), none missing.» وبعد التوليد أعدّ الوجوه، وأي وجه تغيّر ألصق فوقه صورته الأصلية. كان سطر «STRICT: no other people» يحذفهم ثلاث مرات.
 - **الخلفية والعلم يتغيران كل غلاف** ولا يُنسخان من غلاف سابق؛ لا أسماء بلا ذكر في المقطع.
+
+**محادثة جديدة (أمر المستخدم 2026-11-18):** كل غلاف يُرسل في محادثة ChatGPT جديدة دائماً.
 
 ## بعد التوليد
 نفس إجراءات `SKILL.md` (فحص الوجه بالحجم الكامل، تنزيل إلى `public/<المشروع>/cover_gpt.png`، `thumb_mobile.mjs`، إغلاق التبويب).

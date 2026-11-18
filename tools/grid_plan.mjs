@@ -220,7 +220,7 @@ for (const o of orients) {
       const want = x.it.side === "right" ? "right" : "left", other = want === "right" ? "left" : "right";
       free = slots.find(([n]) => n === want && !busy(n)) ?? (write ? slots.find(([n]) => n === other && !busy(n)) : undefined);
       if (free && free[0] !== want && write) { if (free[0] === "right") x.it.side = "right"; else delete x.it.side; }
-    } else free = slots.find(([n]) => !busy(n));
+    } else { const want = x.it.side; free = (want ? slots.find(([n]) => n === want && !busy(n)) : undefined) ?? slots.find(([n]) => !busy(n)); }   /* (user 2026-11-18) a picture with a side («side»: the person he points to with that hand) keeps it */
     let r = rectOf(x.it, o);
     if (REF && write && r && z && inter(r, z) > FACE_TOL * area(r) && CARD_TYPES.has(x.it.t)) {   // its gallery place covers his face here: the first free slot of its kind where it does not
       const w = r[2] - r[0], h = r[3] - r[1];

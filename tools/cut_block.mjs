@@ -80,6 +80,11 @@ const shift = (it) => {
   if (it.matte?.start != null && it.matte.start >= B) it.matte = { ...it.matte, start: +(it.matte.start - D).toFixed(3) };
   if (Array.isArray(it.pts)) it.pts = it.pts.map((q) => (typeof q.at === "number" ? { ...q, at: mv(q.at) } : q));
   if (Array.isArray(it.also)) it.also = it.also.map((q) => (typeof q.at === "number" ? { ...q, at: mv(q.at) } : q));
+  /* (2026-11-18) every other time inside the item moves too: keys "at"/"…At" at any depth (rows, title, roots, branches, stages, phrases, msgs, textAt,
+     trunkAt, flipAt…) — only the top-level times were shifted, so a card's rows and a tree's roots stayed at the old seconds after a segment cut */
+  const deep = (o, top) => { if (Array.isArray(o)) { o.forEach((x) => deep(x, false)); return; } if (!o || typeof o !== "object") return;
+    for (const [k, v] of Object.entries(o)) { if (typeof v === "number" && (k === "at" || /At$/.test(k)) && !(top && ["at", "oldAt", "newAt"].includes(k))) o[k] = mv(v); else if (v && typeof v === "object" && k !== "matte" && k !== "land") deep(v, false); } };
+  for (const [k, v] of Object.entries(it)) { if (k === "pts" || k === "also" || k === "times" || k === "matte" || k === "land") continue; if (typeof v === "number" && /At$/.test(k) && !["oldAt", "newAt"].includes(k)) it[k] = mv(v); else if (v && typeof v === "object") deep(v, false); }
   return it;
 };
 const apply = (s) => {

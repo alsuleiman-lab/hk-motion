@@ -4,6 +4,11 @@
 // population ≥ 150 000 (Arab and Muslim countries ≥ 40 000), minus a stop list of everyday words. Mentions within 6 s share one map; the map stays ≥ 1.5 s after the
 // last name (rules §9.5) and at least 4 s. Never over an existing map / full-screen item. People are not guessed here: their pictures come from tools/fetch_images.mjs
 // (names listed in the plan) and spec_draft places each at its first spoken second.
+// ONE MAP PER COUNTRY (user 2026-11-18, rules review): a country gets one pmap item per video, at its first meaningful mention; later mentions of the same country,
+// its neighbours or its cities become `moves` on that same item ({from,to,center,spanLat,highlight,highlightAt,pts,flag?}: the map shows again in that window and pans/zooms
+// there), never a new item. `flag:true` (item or move) when the country itself is named; a city alone gets no flag. Nothing automatic inside the hook (first 30 s of an
+// episode or full portrait, first 12 s of a reel). Old items (no moves / no flag) stay as they are.
+// «عمان/عمّان» = the city of Amman (JOR) when «الأردن/أردني» is said within 30 s before or after it, otherwise Oman (OMN) (user 2026-11-18, rules review).
 import fs from "node:fs";
 import path from "node:path";
 
@@ -38,7 +43,7 @@ const ATLAS = new Set(["TUR", "SYR", "SAU", "LBN", "JOR", "ISR", "PSX", "IRQ", "
 const places = new Map(); // key → {name, kind, iso3, lon, lat}
 for (const [forms, iso3, [lon, lat]] of COUNTRIES) for (const f of forms) places.set(key(f), { name: forms[0], kind: "country", iso3, lon, lat });
 // Cities: a chosen list (the open gazetteer turned everyday words into cities: «رياض، دين، أنه»). Names keep their article: «الرياض» never matches «رياض».
-// Left out on purpose: names that are everyday words or another place (عمّان = عُمان، قم، مشهد، المدينة alone، بدر، أحد، تونس/الجزائر city = country).
+// Left out on purpose: names that are everyday words or another place (قم، مشهد، المدينة alone، بدر، أحد، تونس/الجزائر city = country). عمّان: resolved by context below.
 const CITIES = `دمشق 36.29 33.51 SYR|حلب 37.16 36.2 SYR|حمص 36.72 34.73 SYR|حماه 36.75 35.13 SYR|اللاذقيه 35.78 35.52 SYR|طرطوس 35.89 34.89 SYR|ادلب 36.63 35.93 SYR|دير الزور 40.14 35.33 SYR|الرقه 39.01 35.95 SYR|درعا 36.1 32.62 SYR|السويداء 36.57 32.71 SYR|القامشلي 41.23 37.05 SYR|الحسكه 40.75 36.5 SYR|جبله 35.93 35.36 SYR|منبج 37.95 36.53 SYR|الغوطه 36.4 33.5 SYR|داريا 36.24 33.46 SYR|دوما 36.4 33.57 SYR|عفرين 36.87 36.51 SYR|سراقب 36.8 35.86 SYR|معره النعمان 36.67 35.65 SYR
 |بغداد 44.36 33.31 IRQ|البصره 47.78 30.51 IRQ|الموصل 43.13 36.34 IRQ|الكوفه 44.4 32.03 IRQ|النجف 44.33 32 IRQ|كربلاء 44.02 32.62 IRQ|سامراء 43.87 34.2 IRQ|الفلوجه 43.78 33.35 IRQ|اربيل 44.01 36.19 IRQ|كركوك 44.39 35.47 IRQ|تكريت 43.68 34.6 IRQ|الرمادي 43.3 33.42 IRQ
 |بيروت 35.5 33.89 LBN|طرابلس 35.84 34.44 LBN|صيدا 35.37 33.56 LBN|الضاحيه 35.51 33.85 LBN|الزرقاء 36.09 32.07 JOR|اربد 35.85 32.56 JOR
@@ -63,38 +68,74 @@ const forms = (w) => {
 };
 const maxLen = Math.max(...[...places.keys(), ...cities.keys()].map((k) => k.split(" ").length));
 const raw = words.map((w) => norm(w.w)), nw = raw.map(bare);
+// «عمان» alone: Amman (JOR) when Jordan is named within 30 s, else Oman (user 2026-11-18, rules review). «أردنا» (we wanted) is not Jordan.
+const AMMAN = { name: "عمّان", kind: "city", iso3: "JOR", lon: 35.93, lat: 31.95 };
+const isJordan = (t) => /^اردن(ي|يه|يين|يون)?$/.test(t);
+const jordanNear = (t) => words.some((w, j) => Math.abs(w.s - t) <= 30 && isJordan(nw[j]));
 const hits = [];
 for (let i = 0; i < nw.length; i++) for (let n = Math.min(maxLen, 3); n >= 1; n--) {
   const tail = raw.slice(i + 1, i + n).join(" ");
-  const pl = forms(raw[i]).map((f) => cities.get((f + (tail ? " " + tail : "")).trim())).find(Boolean) ?? places.get(nw.slice(i, i + n).join(" "));
+  let pl = forms(raw[i]).map((f) => cities.get((f + (tail ? " " + tail : "")).trim())).find(Boolean) ?? places.get(nw.slice(i, i + n).join(" "));
+  if (pl && pl.iso3 === "OMN" && n === 1 && nw[i] === "عمان" && jordanNear(words[i].s)) pl = AMMAN;
   if (pl) { hits.push({ ...pl, said: words.slice(i, i + n).map((w) => w.w).join(" "), at: +words[i].s.toFixed(2) }); i += n - 1; break; }
 }
-// group: mentions within 6 s → one map
-const groups = [];
-for (const h of hits) { const g = groups.at(-1); if (g && h.at - g.at.at(-1) <= 6) { g.hits.push(h); g.at.push(h.at); } else groups.push({ hits: [h], at: [h.at] }); }
-fs.writeFileSync(path.join(T, "names.json"), JSON.stringify({ places: hits, maps: groups.length }, null, 1));
-console.log(`names: ${hits.length} place mention(s) in ${groups.length} map(s)`);
-for (const g of groups) console.log(`  ${g.at[0].toFixed(1)} s  ${g.hits.map((h) => h.said + (h.kind === "city" ? "" : " (بلد)")).join("، ")}`);
+// group: mentions within 6 s → one window
+const grouped = (hs) => { const out = []; for (const h of hs) { const g = out.at(-1); if (g && h.at - g.at.at(-1) <= 6) { g.hits.push(h); g.at.push(h.at); } else out.push({ hits: [h], at: [h.at] }); } return out; };
+const groups = grouped(hits);
+
+// land neighbours (both directions) for «its neighbours → a move on the same map» (user 2026-11-18, rules review)
+const NB = new Map();
+for (const row of ("SYR:TUR,IRQ,JOR,LBN,ISR,PSX IRQ:TUR,IRN,KWT,SAU,JOR LBN:ISR JOR:SAU,ISR,PSX PSX:ISR,EGY ISR:EGY EGY:LBY,SDN SAU:KWT,QAT,ARE,OMN,YEM YEM:OMN OMN:ARE "
+  + "TUR:IRN,GRC,CYP IRN:AFG,PAK,TKM SDN:LBY,TCD,ETH,ERI LBY:TCD,DZA ETH:ERI AFG:PAK,TKM,UZB,TJK,CHN PAK:IND,CHN IND:CHN,NPL,BGD,MMR,LKA BGD:MMR CHN:NPL,MMR,MNG,KAZ,KGZ,TJK "
+  + "UZB:TKM,TJK,KGZ,KAZ TKM:KAZ TJK:KGZ KGZ:KAZ MMR:THA GBR:IRL FRA:ESP,BEL,LUX,DEU,CHE,ITA DEU:DNK,NLD,BEL,LUX,CHE,AUT,POL,CZE ITA:CHE,AUT ESP:PRT CHE:AUT SWE:NOR NLD:BEL "
+  + "BEL:LUX AUT:CZE POL:CZE GRC:CYP").split(" ")) {
+  const [a, bs] = row.split(":");
+  for (const b of bs.split(",")) { for (const [x, y] of [[a, b], [b, a]]) { if (!NB.has(x)) NB.set(x, new Set()); NB.get(x).add(y); } }
+}
+const view = (hs) => {
+  const codes = [...new Set(hs.map((h) => h.iso3).filter(Boolean))];
+  const pts = hs.filter((h) => h.kind === "city").map((h) => ({ name: h.said.replace(/^(و|ف)?(ب|ل)?/, ""), lon: +h.lon.toFixed(2), lat: +h.lat.toFixed(2), at: h.at }));
+  const all = hs.map((h) => [h.lon, h.lat]), lons = all.map((a) => a[0]), lats = all.map((a) => a[1]);
+  const center = [+((Math.min(...lons) + Math.max(...lons)) / 2).toFixed(1), +((Math.min(...lats) + Math.max(...lats)) / 2).toFixed(1)];
+  const spanLat = +Math.min(60, Math.max(8, (Math.max(...lats) - Math.min(...lats)) * 1.8, (Math.max(...lons) - Math.min(...lons)) * 1.1)).toFixed(1);
+  return { codes, pts, center, spanLat, highlightAt: Object.fromEntries(codes.map((c) => [c, hs.find((h) => h.iso3 === c).at])), flag: hs.some((h) => h.kind === "country") };
+};
+
+// the plan: which window opens a country's map, which ones are moves on it (spec optional: without it, no busy windows and the episode hook of 30 s)
+const specF = path.join("data", "specs", `${p}.json`), spec = read(specF, null);
+const HOOK = spec?.kind === "reel" ? 12 : 30;   // nothing automatic inside the hook (user 2026-11-18, rules review)
+const mapItems = (spec?.items ?? []).filter((it) => it.t === "pmap");
+const covers = (it) => new Set([...(it.highlight ?? []), ...(it.moves ?? []).flatMap((m) => m.highlight ?? [])]);
+const busy = (spec?.items ?? []).filter((it) => ["pmap", "full", "verse", "hadith"].includes(it.t))
+  .flatMap((it) => [[it.from ?? it.at, it.to ?? it.until ?? (it.at ?? 0) + 5], ...(it.moves ?? []).map((m) => [m.from, m.to])]);
+const plan = [];
+let inHook = 0, skipped = 0;
+for (const g of grouped(hits.filter((h) => { if (h.at < HOOK) { inHook++; return false; } return true; }))) {
+  const from = +(g.at[0] - 0.1).toFixed(2), to = +Math.max(g.at.at(-1) + 1.5, from + 4).toFixed(2);
+  if (busy.some(([a, b]) => from < b && to > a)) { skipped++; continue; }
+  const v = view(g.hits);
+  const same = mapItems.find((it) => v.codes.some((c) => covers(it).has(c)));
+  const near = same ?? mapItems.find((it) => v.codes.some((c) => [...covers(it)].some((k) => NB.get(c)?.has(k))));
+  if (near) {
+    const move = { from, to, center: v.center, spanLat: v.spanLat, highlight: v.codes, highlightAt: v.highlightAt, pts: v.pts, ...(v.flag ? { flag: true } : {}) };
+    (near.moves ??= []).push(move);
+    if (near.atlas && !v.codes.every((c) => ATLAS.has(c))) { delete near.atlas; near.geo = "world"; }   // the move needs a country outside the atlas: the same map in world drawing
+    plan.push({ at: g.at[0], kind: "move", on: (near.highlight ?? []).join(","), g });
+  } else {
+    const item = { t: "pmap", from, to, center: v.center, spanLat: v.spanLat, landCenter: v.center, landSpan: v.spanLat,   /* size and place: the gallery's (galleryRef specs, user 2026-11-17) */
+      highlight: v.codes, highlightAt: v.highlightAt, ...(v.codes.every((c) => ATLAS.has(c)) ? { atlas: true } : { geo: "world" }), pts: v.pts, ...(v.flag ? { flag: true } : {}), auto: "names_scan" };
+    mapItems.push(item); plan.push({ at: g.at[0], kind: "map", item, g });
+  }
+  busy.push([from, to]);
+}
+fs.writeFileSync(path.join(T, "names.json"), JSON.stringify({ places: hits, maps: plan.filter((x) => x.kind === "map").length, moves: plan.filter((x) => x.kind === "move").length, hook: HOOK }, null, 1));
+console.log(`names: ${hits.length} place mention(s) → ${plan.filter((x) => x.kind === "map").length} map(s) + ${plan.filter((x) => x.kind === "move").length} move(s)${inHook ? ` · ${inHook} in the first ${HOOK} s (hook: nothing automatic)` : ""}${skipped ? ` · ${skipped} window(s) skipped: another map / full-screen item there` : ""}`);
+for (const x of plan) console.log(`  ${x.at.toFixed(1)} s  ${x.kind === "map" ? "map " : `move on ${x.on}:`} ${x.g.hits.map((h) => h.said + (h.kind === "city" ? "" : " (بلد)")).join("، ")}`);
 
 if (rest.includes("--write")) {
-  const specF = path.join("data", "specs", `${p}.json`), spec = read(specF, null);
   if (!spec) { console.error(`✘ ${specF} missing`); process.exit(2); }
-  const busy = (spec.items ?? []).filter((it) => ["pmap", "full", "verse", "hadith"].includes(it.t)).map((it) => [it.from ?? it.at, it.to ?? it.until ?? (it.at ?? 0) + 5]);
-  let added = 0;
-  for (const g of groups) {
-    const from = +(g.at[0] - 0.1).toFixed(2), to = +Math.max(g.at.at(-1) + 1.5, from + 4).toFixed(2);
-    if (busy.some(([a, b]) => from < b && to > a)) continue;
-    const codes = [...new Set(g.hits.map((h) => h.iso3).filter(Boolean))];
-    const pts = g.hits.filter((h) => h.kind === "city").map((h) => ({ name: h.said.replace(/^(و|ف)?(ب|ل)?/, ""), lon: +h.lon.toFixed(2), lat: +h.lat.toFixed(2), at: h.at }));
-    const all = g.hits.map((h) => [h.lon, h.lat]), lons = all.map((a) => a[0]), lats = all.map((a) => a[1]);
-    const center = [+((Math.min(...lons) + Math.max(...lons)) / 2).toFixed(1), +((Math.min(...lats) + Math.max(...lats)) / 2).toFixed(1)];
-    const spanLat = +Math.min(60, Math.max(8, (Math.max(...lats) - Math.min(...lats)) * 1.8, (Math.max(...lons) - Math.min(...lons)) * 1.1)).toFixed(1);
-    const atlas = codes.every((c) => ATLAS.has(c));
-    spec.items.push({ t: "pmap", from, to, center, spanLat, landCenter: center, landSpan: spanLat,   /* size and place: the gallery's (galleryRef specs, user 2026-11-17) */
-      highlight: codes, highlightAt: Object.fromEntries(codes.map((c) => [c, g.hits.find((h) => h.iso3 === c).at])), ...(atlas ? { atlas: true } : { geo: "world" }), pts, auto: "names_scan" });
-    busy.push([from, to]); added++;
-  }
+  for (const x of plan) if (x.kind === "map") spec.items.push(x.item);   // moves were added to their items in place (old or new)
   spec.items.sort((a, b) => (a.at ?? a.from) - (b.at ?? b.from));
   fs.writeFileSync(specF, JSON.stringify(spec, null, 1));
-  console.log(`✔ ${added} map(s) added to ${specF}${groups.length - added ? ` (${groups.length - added} skipped: another map / full-screen item there)` : ""}`);
+  console.log(`✔ ${plan.filter((x) => x.kind === "map").length} map(s) + ${plan.filter((x) => x.kind === "move").length} move(s) written to ${specF}`);
 }

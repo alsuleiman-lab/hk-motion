@@ -54,7 +54,8 @@ const cams = edges.slice(0, -1).map((a, i) => ({ from: r2(a), to: i === edges.le
 for (const c of cams) { const sp = splits.find((x) => c.from >= x.from - 0.01 && Math.min(c.to, dur) <= x.to + 0.01); if (sp) c.cx = Math.round(sp.sheikh.x + sp.sheikh.w * 0.5); }
 
 const items = [];
-if (kind !== "reel") for (let t = 15; t < dur - 10; t += 180) items.push({ t: "nameTag", at: pauseAfter(t), dur: 2.4 });   // place: the gallery's (galleryRef)
+const HOOK = kind === "reel" ? 12 : 30;   // nothing automatic inside the hook: first 30 s of an episode / full portrait, 12 s of a reel (user 2026-11-18, rules review)
+if (kind !== "reel") for (let t = HOOK; t < dur - 10; t += 180) items.push({ t: "nameTag", at: pauseAfter(t), dur: 2.4 });   // place: the gallery's (galleryRef); first one after the hook (was 15 s; user 2026-11-18, rules review)
 if (kind !== "reel") for (let t = 100; t < dur - 15; t += 300) items.push({ t: "subscribe", at: pauseAfter(t), dur: 3 });
 
 // pictures at their first mention (Arabic normalised: no diacritics, one alef, ة→ه, ى→ي)
@@ -83,11 +84,12 @@ for (const im of images) {
 items.sort((a, b) => (a.at ?? a.from) - (b.at ?? b.from));
 
 // every verse he recites (tools/verse_scan.mjs, run by stage cut) → a verse item at its words' seconds (rules §8.2): portrait card in the zone, landscape way left to
-// the engine (random approved way), reels full screen; the card stays 1.5 s after the last word. verse_audit in stage check reports any misrecitation to the user.
+// the engine (random approved way); reels: the split screen with the gold panel, full screen only on the user's explicit request (`userFull:true` set by hand; user
+// 2026-11-18, rules review, d3); the card stays 1.5 s after the last word. verse_audit in stage check reports any misrecitation to the user.
 for (const v of read(path.join(T, "verses.json"), [])) {
   if (!v.inCut || !v.cut?.length) continue;
   const last = v.cut.at(-1);
-  items.push({ t: "verse", words: v.words, times: v.cut.map(r2), title: v.name, refText: v.ref, at: r2(v.cut[0] - 0.05), until: r2(last + 1.5), aya: v.aya, ...(kind === "reel" ? { full: true } : {}) });   // size and place: the gallery's (galleryRef)
+  items.push({ t: "verse", words: v.words, times: v.cut.map(r2), title: v.name, refText: v.ref, at: r2(v.cut[0] - 0.05), until: r2(last + 1.5), aya: v.aya });   // size and place: the gallery's (galleryRef); no `full:true` on reels any more (user 2026-11-18, rules review, d3)
 }
 items.sort((a, b) => (a.at ?? a.from) - (b.at ?? b.from));
 
@@ -101,7 +103,8 @@ fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, JSON.stringify(spec, null, 1));
 console.log(`draft → ${out}: ${(dur / 60).toFixed(1)} min · ${splits.length} split(s) · ${cams.length} cam stretch(es) · ${items.filter((i) => i.t === "nameTag").length} name tags · ${items.filter((i) => i.t === "subscribe").length} subscribe · ${items.filter((i) => i.t === "pic").length} pictures · ${zooms.length} push-ins · ${shake.length} shakes`);
 // both orientations: the picture cards get the gallery sample's portrait AND landscape geometry, then the three compositions are registered (only for the spec's own file, never a side draft)
-// places he names → a paper map at that second (rules §8.1, tools/names_scan.mjs); only for the spec's own file
+// places he names → a paper map at that second (rules §8.1, tools/names_scan.mjs); only for the spec's own file. One map per country, later mentions / neighbours /
+// cities = `moves` on it, `flag:true` on a named country, nothing in the hook — all decided in names_scan from spec.kind (user 2026-11-18, rules review)
 if (out === path.join("data", "specs", `${p}.json`)) { const n = spawnSync(process.execPath, ["tools/names_scan.mjs", p, "--write"], { encoding: "utf8", windowsHide: true }); console.log((n.stdout || n.stderr || "").trim()); }
 if (false) {   /* (2026-11-17) a galleryRef spec takes the gallery geometry at render time: nothing to copy */ const g = spawnSync(process.execPath, ["tools/gallery_geometry.mjs", out, "--write"], { encoding: "utf8", windowsHide: true }); console.log((g.stdout || g.stderr || "").trim().split(String.fromCharCode(10)).slice(-1)[0]); }
 if (out === path.join("data", "specs", `${p}.json`)) { const r = spawnSync(process.execPath, ["tools/spec_register.mjs", p, "--kind", kind, ...(opt("id", null) ? ["--id", opt("id", "")] : []), ...(opt("folder", null) ? ["--folder", opt("folder", "")] : []), ...(opt("forms", null) ? ["--forms", opt("forms", "")] : []), "--title", title], { encoding: "utf8", windowsHide: true }); console.log((r.stdout || r.stderr || "").trim()); }

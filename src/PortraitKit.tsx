@@ -147,20 +147,26 @@ export const PaperMap: React.FC<{
    *  full: the map fills the whole frame (no tilt, no frame, no zoom-in, hard cut); default = it covers the frame from 0,0.
    *  focus: where the centre lands, as fractions of the frame; default full landscape = the free side beside him [0.24, 0.5], full portrait = above his shoulders [0.5, 0.3] */
   full?: boolean; focus?: [number, number];
-}> = ({ at, until, x, y, w, h, center: center0, spanLat: span0, highlight: hl0 = ["SYR"], highlightAt, geo, pts: pts0 = [], legs = [], carSrc = "collage/car.png", carW = 140, atlas = false, moves = [], flag: flag0 = false, full: full0, focus: focus0 }) => {
+  /** (user 2026-11-18: «تعرض خريطة كبيرة جداً، ثم يصير زوم على خريطة الدولة المعنية، وأثناء الزوم تتلون بلون العلم… لا تكتب اسم الدولة فوق العلم»)
+   *  zoomFrom: the span it opens with (a very large map), zooming to spanLat from zoomAt for zoomDur s; default on a full map = max(4 × span, 55); 0 = no opening zoom.
+   *  The flag fills the country WHILE the map zooms (and while a move travels), and the flagged country has no name on it. */
+  zoomFrom?: number; zoomAt?: number; zoomDur?: number;
+}> = ({ at, until, x, y, w, h, center: center0, spanLat: span0, highlight: hl0 = ["SYR"], highlightAt, geo, pts: pts0 = [], legs = [], carSrc = "collage/car.png", carW = 140, atlas = false, moves = [], flag: flag0 = false, full: full0, focus: focus0, zoomFrom: zf0, zoomAt = 0.3, zoomDur = 1.2 }) => {
   const { t, k } = useStop();
   if (t < at || t > until) return null;
   const pop = clamp((t - at) / 0.35);
-  let center = center0, spanLat = span0, highlight = hl0, pts = pts0, flag = flag0;
+  const full = full0 ?? (x <= 0 && y <= 0 && (w >= 1900 || h >= 1900)), zoomFrom = zf0 ?? (full ? Math.max(span0 * 4, 55) : 0);
+  const z0 = clamp((t - at - zoomAt) / zoomDur), ze = zoomFrom > span0 ? z0 * z0 * (3 - 2 * z0) : 1;
+  let center = center0, spanLat = zoomFrom > span0 ? Math.exp(Math.log(zoomFrom) + (Math.log(span0) - Math.log(zoomFrom)) * ze) : span0, highlight = hl0, pts = pts0, flag = flag0, flagP = ze;   /* zoom in log space: an even camera move */
   for (const m of [...moves].sort((a, b) => a.from - b.from)) {
     if (t < m.from) break;
     const e0 = clamp((t - m.from) / 0.9), e = e0 * e0 * (3 - 2 * e0), tc = m.center ?? center, ts = m.spanLat ?? spanLat;
-    center = [center[0] + (tc[0] - center[0]) * e, center[1] + (tc[1] - center[1]) * e]; spanLat = spanLat + (ts - spanLat) * e;
-    if (m.highlight) highlight = m.highlight; if (m.pts) pts = m.pts; flag = !!m.flag;
+    center = [center[0] + (tc[0] - center[0]) * e, center[1] + (tc[1] - center[1]) * e]; spanLat = Math.exp(Math.log(spanLat) + (Math.log(ts) - Math.log(spanLat)) * e);
+    if (m.highlight) highlight = m.highlight; if (m.pts) pts = m.pts; flag = !!m.flag; flagP = e;
   }
   const [clon, clat] = center, cosl = Math.cos((clat * Math.PI) / 180), pxPerLat = h / spanLat;
   const flagCode = flag && highlight[0] && (!highlightAt || t >= (highlightAt[highlight[0]] ?? 0)) ? highlight[0] : null;   /* the named country is filled with its flag; a city move has flag:false */
-  const full = full0 ?? (x <= 0 && y <= 0 && (w >= 1900 || h >= 1900)), focus = focus0 ?? (full ? (w > h ? [0.24, 0.5] : [0.5, 0.3]) : [0.5, 0.5]);
+  const focus = focus0 ?? (full ? (w > h ? [0.24, 0.5] : [0.5, 0.3]) : [0.5, 0.5]);
   const P = (lon: number, lat: number): [number, number] => [w * focus[0] + (lon - clon) * cosl * pxPerLat, h * focus[1] - (lat - clat) * pxPerLat];
   const lonL = clon - (w * focus[0]) / (cosl * pxPerLat) - 2, lonR = clon + (w * (1 - focus[0])) / (cosl * pxPerLat) + 2, latT = clat + (h * focus[1]) / pxPerLat + 2, latB = clat - (h * (1 - focus[1])) / pxPerLat - 2;
   const seen = (c: string) => { const b = ATLAS_BOX[c]; return !b || (b[2] >= lonL && b[0] <= lonR && b[3] >= latB && b[1] <= latT); };
@@ -177,7 +183,7 @@ export const PaperMap: React.FC<{
       <Grain />
       <svg width={w} height={h} style={{ position: "absolute", left: 0, top: 0 }}>
         <defs>
-          {flagCode ? (() => { const pp = ((atlas ? ATLAS_LAND : geo === "world" ? WORLD : LEVANT)[flagCode] ?? []).flat(2).map(([lo, la]) => P(lo, la)); if (!pp.length) return null;
+          {flagCode ? (() => { const ps = (atlas ? ATLAS_LAND : geo === "world" ? WORLD : LEVANT)[flagCode] ?? [], pp = (ps.length ? ps.reduce((m, q) => (q[0].length > m[0].length ? q : m))[0] : []).map(([lo, la]) => P(lo, la));   /* the flag spans the main land, not far islands */ if (!pp.length) return null;
             const xs = pp.map((q) => q[0]), ys = pp.map((q) => q[1]), x0 = Math.min(...xs), y0 = Math.min(...ys), fw = Math.max(...xs) - x0, fh = Math.max(...ys) - y0;
             return <pattern id={`flagfill-${flagCode}`} patternUnits="userSpaceOnUse" x={x0} y={y0} width={fw} height={fh}><image href={staticFile(`flags/${flagCode}.png`)} x={0} y={0} width={fw} height={fh} preserveAspectRatio="none" /></pattern>; })() : null}
           <filter id="rough" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="4" result="n" /><feDisplacementMap in="SourceGraphic" in2="n" scale="8" /></filter>
@@ -189,18 +195,21 @@ export const PaperMap: React.FC<{
           <g>
             <rect x={0} y={0} width={w} height={h} fill="#8fb0c2" />
             <rect x={0} y={0} width={w} height={h} fill="url(#seaglow)" />
-            {Object.entries(ATLAS_LAND).filter(([code]) => seen(code)).map(([code, polys]) => { const on = highlight.includes(code) && (!highlightAt || t >= (highlightAt[code] ?? 0)); return polys.map((poly, i) => <path key={code + i} d={path(poly)} fill={on && code === flagCode ? `url(#flagfill-${code})` : on ? (code === "LBN" ? "#f3d27a" : "#e9b765") : "#e7dcc2"} stroke={on ? "#4a2f17" : "#8a7352"} strokeWidth={on ? 3.4 : 1.6} strokeLinejoin="round" />); })}
+            {Object.entries(ATLAS_LAND).filter(([code]) => seen(code)).map(([code, polys]) => { const on = highlight.includes(code) && (!highlightAt || t >= (highlightAt[code] ?? 0)); return polys.map((poly, i) => <path key={code + i} d={path(poly)} fill={on ? (code === "LBN" ? "#f3d27a" : "#e9b765") : "#e7dcc2"} stroke={on ? "#4a2f17" : "#8a7352"} strokeWidth={on ? 3.4 : 1.6} strokeLinejoin="round" />); })}
+            {flagCode && flagP > 0 ? (ATLAS_LAND[flagCode] ?? []).map((poly, i) => <path key={"fl" + i} d={path(poly)} fill={`url(#flagfill-${flagCode})`} opacity={flagP} stroke="#4a2f17" strokeWidth={3.4} strokeLinejoin="round" />) : null}
             {Object.entries(ATLAS_LAND).filter(([code]) => seen(code)).map(([code, polys]) => {
-              const name = ATLAS_NAMES[code]; if (!name) return null;
+              const name = ATLAS_NAMES[code]; if (!name || (code === flagCode && flagP > 0)) return null;   /* no name over the flag (user 2026-11-18) */
               const big = polys.reduce((a, b) => (b[0].length > a[0].length ? b : a)), xs = big[0].map((q) => q[0]), ys = big[0].map((q) => q[1]);
               const [lx, ly] = P((Math.min(...xs) + Math.max(...xs)) / 2 + (ATLAS_DX[code] ?? 0), (Math.min(...ys) + Math.max(...ys)) / 2 + (ATLAS_DY[code] ?? 0)), on = highlight.includes(code);
               if (lx < 20 || lx > w - 20 || ly < 20 || ly > h - 20) return null;
+              const [ax] = P(Math.min(...xs), 0), [bx] = P(Math.max(...xs), 0);
+              if ((bx - ax) * 0.9 < name.length * (on ? 58 : 34) * 0.55) return null;   /* (2026-11-18) a name only where its country is wide enough on screen: the very large opening map has no crammed labels */
               return <text key={"nm" + code} x={lx} y={ly} textAnchor="middle" fontFamily={kufiF} fontWeight={800} fontSize={on ? 58 : 34} fill={on ? "#3a220d" : "#6e5a3a"} stroke={on ? "#fff6dc" : "#f1e8d2"} strokeWidth={on ? 7 : 5} paintOrder="stroke" direction="rtl">{name}</text>;
             })}
             {full ? null : <rect x={6} y={6} width={w - 12} height={h - 12} fill="none" stroke="#4a2f17" strokeWidth={5} />}
           </g>
         ) : (
-          <>{Object.entries(geo === "world" ? WORLD : LEVANT).map(([code, polys]) => polys.map((poly, i) => <path key={code + i} d={path(poly)} fill={code === flagCode ? `url(#flagfill-${code})` : highlight.includes(code) && (!highlightAt || t >= (highlightAt[code] ?? 0)) ? "#f4ead2" : "#dcc296"} stroke={highlight.includes(code) ? "#fffaf0" : "#efe0bf"} strokeWidth={highlight.includes(code) ? 5 : 3} />))}</>
+          <>{Object.entries(geo === "world" ? WORLD : LEVANT).map(([code, polys]) => polys.map((poly, i) => <path key={code + i} d={path(poly)} fill={code === flagCode && flagP > 0.5 ? `url(#flagfill-${code})` : highlight.includes(code) && (!highlightAt || t >= (highlightAt[code] ?? 0)) ? "#f4ead2" : "#dcc296"} stroke={highlight.includes(code) ? "#fffaf0" : "#efe0bf"} strokeWidth={highlight.includes(code) ? 5 : 3} />))}</>
         )}
         </g></g>
         {car.map((c, i) => c ? Array.from({ length: 16 }, (_, j) => {

@@ -3,6 +3,8 @@
 // 1) Wikipedia (ar, then en through the language link when ar has no picture or a small one): ONE batched API call per 50 names
 // 2) names still without a picture → Google Images through SerpAPI (key SERPAPI_API_KEY in .env, never printed): the FIRST result that is
 //    ≥ --min px, not from a stock/AI site and whose title does not name a woman
+//    → when Google is not available (no key, or the plan's searches ran out), the same ordinary search a browser does, no key and no credit
+//      (user 2026-11-18: «ابحث عن خدمات بديلة أو استخدم البحث العادي من خلال متصفح»): DuckDuckGo images (photos only, with sizes), then Bing images
 // Writes public/<p>/img_<n>.<ext>, .tmp/<p>/images.json ({name, file, via, page, title, w, h, license, author}) and .tmp/<p>/images_sheet.jpg for one look; prints what is missing.
 // (user 2026-11-18, rules review, s9):
 //   - every request has a timeout (--timeout s, default 30); "429" / "too many requests" → wait (Retry-After, else 5 s, 15 s) and retry, 3 tries in all;
@@ -144,18 +146,41 @@ const BAD_WORD = /\b(woman|women|girl|lady|female|actress|wife)\b|امرأة|ن�
 const SOCIAL = /youtube\.com|youtu\.be|ytimg|facebook\.com|fbsbx|instagram\.com|twitter\.com|\/\/x\.com|tiktok\.com|threads\.net|t\.me\//i;
 let serpNote = "", serpDead = false;
 const googleCands = async (n) => {
-  if (serpDead) return [];
-  if (!env.SERPAPI_API_KEY) { serpNote = "SERPAPI_API_KEY missing in .env — Google step skipped"; serpDead = true; return []; }
+  if (serpDead) return webCands(n);
+  if (!env.SERPAPI_API_KEY) { serpNote = "SERPAPI_API_KEY missing in .env — ordinary web search used"; serpDead = true; return webCands(n); }
   const u = new URL("https://serpapi.com/search.json");
   // tbs itp:photo = photographs only (no drawings/clipart); social posts are often designed cards with text → used only when nothing else qualifies
   for (const [k2, v] of Object.entries({ engine: "google_images", q: n, hl: "ar", tbs: "itp:photo", api_key: env.SERPAPI_API_KEY })) u.searchParams.set(k2, v);
-  let j; try { j = await (await get(u)).json(); } catch { return []; }
-  if (j.error) { serpNote = `SerpAPI: ${j.error}`; serpDead = true; return []; }
+  let j; try { j = await (await get(u)).json(); } catch { return webCands(n); }
+  if (j.error) { serpNote = `SerpAPI: ${j.error} — ordinary web search used`; serpDead = true; return webCands(n); }
   const ok = (j.images_results ?? []).filter((r) => (r.original_width ?? 0) >= MIN && !BAD_SITE.test(`${r.link} ${r.source}`) && !BAD_WORD.test(r.title ?? ""));
   return [...ok.filter((r) => !SOCIAL.test(`${r.link} ${r.source}`)), ...ok.filter((r) => SOCIAL.test(`${r.link} ${r.source}`))]
     .map((hit) => ({ via: "google", page: hit.link, url: hit.original, thumb: hit.thumbnail, w: hit.original_width, h: hit.original_height, title: hit.title,
       license: "unknown (Google Images result — check the page)", author: strip(hit.source) || new URL(hit.link).host }));
 };
+
+// 2b) the ordinary search a browser does (no key, no credit): DuckDuckGo images, then Bing images; same filters as Google
+const BROWSER = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", "Accept-Language": "ar,en;q=0.8" };
+const keep = (rs) => { const ok = rs.filter((r) => (r.w === 0 || r.w >= MIN) && !BAD_SITE.test(`${r.page} ${r.url}`) && !BAD_WORD.test(r.title ?? "")); return [...ok.filter((r) => !SOCIAL.test(`${r.page} ${r.url}`)), ...ok.filter((r) => SOCIAL.test(`${r.page} ${r.url}`))]; };
+const webCands = async (n) => {
+  try {
+    const h = await (await get(`https://duckduckgo.com/?q=${encodeURIComponent(n)}&iax=images&ia=images`, { headers: BROWSER })).text();
+    const vqd = (h.match(/vqd=["']?([\d-]+)["']?/) || [])[1];
+    if (vqd) {
+      const j = await (await get(`https://duckduckgo.com/i.js?l=wt-wt&o=json&q=${encodeURIComponent(n)}&vqd=${vqd}&f=,,,type:photo,,&p=1`, { headers: { ...BROWSER, Referer: "https://duckduckgo.com/" } })).json();
+      const c = keep((j.results ?? []).map((r) => ({ via: "duckduckgo", page: r.url, url: r.image, thumb: r.thumbnail, w: r.width ?? 0, h: r.height ?? 0, title: r.title,
+        license: "unknown (web search result — check the page)", author: (() => { try { return new URL(r.url).host; } catch { return "unknown"; } })() })).filter((r) => r.w > 0));
+      if (c.length) return c;
+    }
+  } catch (e) { console.log(`  ⚠ DuckDuckGo search failed: ${e.message}`); }
+  try {
+    const h = await (await get(`https://www.bing.com/images/async?q=${encodeURIComponent(n)}&first=0&count=35&qft=+filterui:photo-photo&mmasync=1`, { headers: BROWSER })).text();
+    const ms = [...h.matchAll(/ m="([^"]+)"/g)].map((m) => { try { return JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, "&")); } catch { return null; } }).filter((m) => m?.murl);
+    return keep(ms.map((m) => ({ via: "bing", page: m.purl, url: m.murl, thumb: m.turl, w: 0, h: 0, title: m.t ?? "",   /* Bing gives no size: measured after the download */
+      license: "unknown (web search result — check the page)", author: (() => { try { return new URL(m.purl).host; } catch { return "unknown"; } })() })));
+  } catch (e) { console.log(`  ⚠ Bing search failed: ${e.message}`); return []; }
+};
+const sizeOf = (file) => { const r = spawnSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", file], { encoding: "utf8", windowsHide: true }); const [w, h] = String(r.stdout ?? "").trim().split(",").map(Number); return { w: w || 0, h: h || 0 }; };
 
 // 3) download (original, else the thumbnail), keep jpg/png/webp, convert anything else to jpg; a person picture without a face → the next candidate
 const list = [], noFace = [], unchecked = [];
@@ -184,6 +209,7 @@ for (const n of names) {
     if (c >= cands.length && !asked) { asked = true; cands.push(...await googleCands(n)); }
     const f = cands[c]; if (!f) break;
     const got = await download(f, k + 1); if (!got) continue;
+    if (!f.w || got.src !== f.url) { Object.assign(f, sizeOf(got.file)); if (f.w < Math.min(MIN, 500)) { fs.rmSync(got.file, { force: true }); continue; } }   /* Bing (no size) or a thumbnail instead of the original: the real size, after the download */
     if (person[n]) {
       const nf = faces(got.file);
       if (nf === null) unchecked.push(n);
@@ -217,7 +243,7 @@ if (list.length) {
   spawnSync("ffmpeg", ["-v", "error", "-y", ...ins, "-filter_complex", list.length > 1 ? fc : fc.replace("[v0]", "[o]"), "-map", "[o]", "-frames:v", "1", sheet]);
 }
 const missing = names.filter((n) => !list.find((x) => x.name === n));
-console.log(`${list.length}/${names.length} pictures in ${((Date.now() - t0) / 1000).toFixed(1)} s (wikipedia ${list.filter((x) => x.via === "wikipedia").length}, google ${list.filter((x) => x.via === "google").length}) → ${path.join(T, "images.json")}${list.length ? `  sheet: ${sheet}` : ""}`);
+console.log(`${list.length}/${names.length} pictures in ${((Date.now() - t0) / 1000).toFixed(1)} s (wikipedia ${list.filter((x) => x.via === "wikipedia").length}, google ${list.filter((x) => x.via === "google").length}, web ${list.filter((x) => x.via === "duckduckgo" || x.via === "bing").length}) → ${path.join(T, "images.json")}${list.length ? `  sheet: ${sheet}` : ""}`);
 list.forEach((x, i) => console.log(`  ${i + 1}. ${x.name} — ${x.via} ${x.w}×${x.h} → ${x.file}`));
 if (missing.length) console.log(`missing: ${missing.join("، ")}`);
 if (serpNote) console.log(serpNote);

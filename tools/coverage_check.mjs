@@ -183,7 +183,7 @@ if (gaps.length) fails++;
 }
 
 // 2b) first minute: never empty (attraction window) — gaps above FIRST_GAP seconds fail
-const FIRST_LEN = Math.min(60, dur), FIRST_GAP = Number(opt("first-gap", 3));   /* (user 2026-11-17: «القاعدة تقول ٣ ثواني وليس ثلث، وعليك أن تجد ما تملأ به») */
+const FIRST_LEN = Math.min(60, dur), FIRST_GAP = Number(opt("first-gap", 1));   /* (user 2026-11-18 on the review page: «لا فراغ أطول من 1 ثوانٍ، وأجد ما أملؤه به») */   /* (user 2026-11-17: «القاعدة تقول ٣ ثواني وليس ثلث، وعليك أن تجد ما تملأ به») */
 const fgaps = [];
 { let e = 0; for (const [a, b] of spans) { if (a >= FIRST_LEN) break; if (a - e > FIRST_GAP) fgaps.push([e, a]); e = Math.max(e, b); } if (e < FIRST_LEN && FIRST_LEN - e > FIRST_GAP) fgaps.push([e, FIRST_LEN]); }
 console.log(fgaps.length ? `✘ الدقيقة الأولى فيها لحظات بلا عنصر (> ${FIRST_GAP} ث): ${fgaps.map(([a, b]) => `${a.toFixed(1)}–${b.toFixed(1)} ث`).join("، ")}` : `✔ الدقيقة الأولى بلا فراغ`);

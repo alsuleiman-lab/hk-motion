@@ -429,7 +429,12 @@ if (stage === "check") {
     if (fs.existsSync(src)) {
       const { spawn: _spawn } = await import("node:child_process");
       const log = fs.openSync(path.join(T, "probe.log"), "w");
-      _spawn(process.execPath, ["tools/judder_probe.mjs", comp, "--src", src, "--offset", "0", "--name", p, "--random"], { detached: true, stdio: ["ignore", log, log], windowsHide: true }).unref();
+      /* (2026-11-18, reel of «مذيع يقتل أطفاله») a portrait composition is compared on his face strip, as tools/render_job.sh does (crop 250,300,580,700 vs the
+         source strip at the longest camera's cx − 163); without it the portrait frame was matched to the landscape source and measured 0 steps (a false ✘) */
+      const portrait = sp.kind === "reel" || (!/-L$/.test(comp) && rest.includes("port"));
+      const cm = (sp.cams || []).map((c) => ({ cx: c.cx, d: Math.min(c.to, (sp.frames ?? 0) / 30) - c.from })).sort((x, y) => y.d - x.d)[0];
+      const cropArgs = portrait ? ["--crop", "250,300,580,700", "--src-crop", `${Math.round((cm?.cx ?? 940) - 163)},169,326,394`] : [];
+      _spawn(process.execPath, ["tools/judder_probe.mjs", comp, "--src", src, "--offset", "0", "--name", p, "--random", ...cropArgs], { detached: true, stdio: ["ignore", log, log], windowsHide: true }).unref();
       say(`judder probe: random 10 s from the middle rendering in the background → ${path.join(T, "probe.log")} (✔/✘ at its end; send the preview link now, report the result when it ends)`);
     } else say(`– judder probe skipped: no cut file ${src}`);
   }

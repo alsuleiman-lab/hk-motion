@@ -213,9 +213,14 @@ if (stage === "cut") {
     say(`✘ audio_gate — ${gate.out.trim().split("\n").slice(-6).join(" | ")}`); say("fix with --rem (source seconds) and re-run this stage; nothing was built"); finish(1);
   }
   say("audio_gate ✔");
-  // VOICE CLEAN-UP (user 2026-11-13, picked by ear: «الشبكة الصغيرة لإزالة الضجيج» = RNNoise, tools/audio_clean.mjs): his voice only, after the gate, before any sfx/bumper mix
+  /* SENSITIVE WORDS (rule order, user 2026-11-18: gate → bleep → clean → build; review 2026-11-18 found bleep_words.py was never called by the pipeline):
+     half of each sensitive word (data/sensitive_words.json) under a soft tone; the tool fails if the beep is not quieter than his speech */
+  const wavBleep = wav.replace(/.wav$/i, "_bleep.wav");
+  await must("sensitive-word bleep", "python", ["-I", "tools/bleep_words.py", p, wavBleep]);
+  say("bleep ✔ (sensitive words)");
+  // VOICE CLEAN-UP (user 2026-11-13, picked by ear: «الشبكة الصغيرة لإزالة الضجيج» = RNNoise, tools/audio_clean.mjs): his voice only, after the gate and the bleep, before any sfx/bumper mix
   const wavClean = wav.replace(/.wav$/i, "_clean.wav");
-  await must("voice clean-up", "node", ["tools/audio_clean.mjs", wav, wavClean]);
+  await must("voice clean-up", "node", ["tools/audio_clean.mjs", wavBleep, wavClean]);
   say("voice clean-up ✔ (RNNoise)");
   if (prepConfig.audioOnly) {
     const audioAsset = path.join("public", p, `voice_${Date.now()}.wav`);

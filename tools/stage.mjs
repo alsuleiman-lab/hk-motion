@@ -158,6 +158,9 @@ if (stage === "prep") {
   } else say("speaker roles: review the narrator and story dialogue from the audio/transcript");
   // «عفواً/أعيد» and stumbles (rules §5, skill montage-orders): the spots are listed now; I judge each from its context and pass the wrong attempts as --rem to stage cut
   { const rs = await run("node", ["tools/redo_scan.mjs", p]); fs.writeFileSync(path.join(T, "redo.txt"), rs.out); const os = await run("node", ["tools/orders_scan.mjs", p]); say(os.out.trim().split(/\r?\n/).pop()); say(`retakes: ${(rs.out.match(/اقتراح --rem/g) ?? []).length} spot(s) → ${path.join(T, "redo.txt")} (judge each from its context → --rem for stage cut)`); }
+  // (user 2026-11-18, spoken order: «لما يكون الصوت من أذن وحدة أعمله من الجهتين … دائماً») the clip sound (computer track) on both sides, every recording that has it;
+  // music removal is added only when he asks for it in the recording (montage-orders): node tools/clip_audio_fix.mjs <p> --music, before stage cut
+  if (!audioOnly) { const ca = await run("node", ["tools/clip_audio_fix.mjs", p]); say((ca.out || "").trim().split(String.fromCharCode(10)).pop() || "clip audio: skipped"); }
   say(`read: ${path.join(T, "transcript.txt")}${audioOnly ? " (audio-only source)" : `  (contact sheet: ${path.join(T, "sheet.jpg")})`}`);
   finish(0);
 }

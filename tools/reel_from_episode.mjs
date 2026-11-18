@@ -19,7 +19,8 @@ if (!P || P.startsWith("--")) { console.error("usage: node tools/reel_from_episo
 const rd = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return d; } };
 const T = path.join(".tmp", P);
 const tg = String(opt("target") ?? "60-90").split("-").map(Number);
-const [tMin, tMax] = tg.length > 1 ? tg : [Math.round(tg[0] * 0.85), tg[0]], tMid = (tMin + tMax) / 2;
+const SL = await import("./short_limit.mjs"), BUDGET = SL.contentBudget();   /* (2026-11-18) the reel + its bumper ≤ the Shorts limit: the story never asks for more than the budget */
+const [tMin, tMax0] = tg.length > 1 ? tg : [Math.round(tg[0] * 0.85), tg[0]], tMax = Math.min(tMax0, BUDGET - 4), tMid = (tMin + tMax) / 2;   // 4 s spare for an end stamp or freeze
 
 // ── الأرقام (تفصيلها في .claude/skills/reel-from-episode/references/detail.md) ──
 const RULES = rd(path.join("data", "cut_rules.json"), {});
@@ -300,6 +301,7 @@ if (opt("ranges")) {
   chosen = saved.parts.map((p) => rangeObj(p.from, p.to, { n: p.n, kind: p.kind }));
 } else { console.error("✘ القصة أولاً: --story-only، ثم البناء بـ--approved (اعتمدها كما هي) أو --ranges (بترتيب المستخدم)"); process.exit(2); }
 
+{ const sum = chosen.reduce((a, r) => a + r.dur, 0); if (sum > BUDGET - 4) { console.error(`✘ الريل ${sum.toFixed(1)}ث والحد ${BUDGET - 4}ث (حد القصير ${SL.SHORT_MAX}ث − الفاصل ${SL.bumperSeconds()}ث − 4ث احتياطاً لختم أو تجميد في آخره): احذف ${(sum - BUDGET + 4).toFixed(1)}ث على الأقل`); process.exit(1); } }
 const issues = checkRanges(chosen);
 if (issues.length) { console.log("⚠ مخالفات السياق:"); issues.forEach((x) => console.log("  " + x)); if (!has("as-is")) { console.error("✘ لم يُبنَ الريل: أصلح الأمدية أو مرّر --as-is بنص المستخدم"); process.exit(1); } }
 const id = opt("out") ?? `${P}-reel`;

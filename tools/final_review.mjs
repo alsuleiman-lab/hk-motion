@@ -23,6 +23,8 @@ const add = (ok, msg) => { results.push(ok); console.log(`${ok ? "✔" : "✘"} 
 
 /* (2026-11-12) the opening bumper must sit right before his first greeting (tools/bumper_at.mjs), not at 0 when the video opens with a clip or a hook */
 if (gateName && bumper && bumper.position !== "end") { try { const want = Number(spawnSync("node", ["tools/bumper_at.mjs", gateName], { encoding: "utf8" }).stdout.trim()); add(Math.abs((bumper.at ?? 0) - want) <= 0.6, `فاصل الافتتاح عند ${(bumper.at ?? 0).toFixed(2)}ث${Math.abs((bumper.at ?? 0) - want) <= 0.6 ? " = قبل أول تحية" : ` والمطلوب ${want.toFixed(2)}ث (قبل «بسم الله/السلام عليكم»)`}`); } catch { /* no words */ } }
+/* (2026-11-18) a short portrait video (reel, silent reaction; or any portrait file just over 3:00) must be <= the Shorts limit WITH its bumper */
+{ const SL = await import("./short_limit.mjs"); const portraitV = v && Number(v.height) > Number(v.width); const short = (gateName && SL.isShort(gateName)) || (portraitV && dur > SL.SHORT_MAX && dur <= 240); if (short) add(dur <= SL.SHORT_MAX, `طول القصير ${dur.toFixed(2)}ث والحد ${SL.SHORT_MAX}ث (الفاصل داخله)${dur > SL.SHORT_MAX ? " — لن يكون Short على يوتيوب: قصّر ثم أعد" : ""}`); }
 add(dur > minSec && dur > 0, `المدة ${dur.toFixed(2)}ث${bumper ? ` (منها فاصل الافتتاح «${bumper.title}» ${bumper.seconds}ث)` : ""}`);
 // the audio gate (tools/audio_gate.mjs) is MANDATORY for every montage (user order 2026-10-21)
 import fs from "node:fs";

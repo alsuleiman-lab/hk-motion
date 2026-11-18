@@ -9,6 +9,7 @@
 import { align as alignScraps } from "./lib/scraps_times.mjs";
 import fs from "node:fs";
 import path from "node:path";
+const SL = await import("./short_limit.mjs");
 
 const argv = process.argv.slice(2);
 const specF = argv.find((a) => a.endsWith(".json"));
@@ -50,7 +51,8 @@ let fails = 0;
     const al = alignScraps(it.text, it.at, it.until, words);
     al.forEach((x, i) => { if (x != null && Math.abs(it.times[i] - x) > 0.25) errs.push(`قصاصة «${it.text.split(" ")[i]}» عند ${it.times[i]}ث وتُنطق عند ${x}ث`); });
   }
-  if (spec.kind === "reel" && dur > 180) errs.push(`ريلز طوله ${mm(dur)} (الحد 3:00)`);
+  /* (2026-11-18) the bumper is glued on AFTER this check: the reel's length + the bumper must fit the Shorts limit (tools/short_limit.mjs) */
+  if (spec.kind === "reel" && dur > SL.contentBudget()) errs.push(`ريل طوله ${mm(dur)} ومعه الفاصل ${SL.bumperSeconds()}ث = ${mm(dur + SL.bumperSeconds())} فوق حد القصير ${mm(SL.SHORT_MAX)}: يُحذف ${(dur - SL.contentBudget()).toFixed(1)}ث على الأقل (قص جزء)`);
   if ((spec.behind ?? []).some((w) => !(w.matte ?? spec.matte))) errs.push("نوافذ behind بلا matte (node tools/matte_cache.mjs get …)");
   const pal = fs.readFileSync(path.join("src", "brand.ts"), "utf8").match(/BrandName = ([^;]+);/)?.[1] ?? "";
   if (spec.brand && !pal.includes(String.fromCharCode(34) + spec.brand + String.fromCharCode(34))) errs.push(`نمط لوني غير معروف «${spec.brand}» (${pal})`);
@@ -116,7 +118,7 @@ if (missing.length) fails++;
       if (skipR.has(`${r.name}@${Math.round(at)}`)) continue;
       const ok = items.some((it) => {
         if (!r.types.includes("*") && !r.types.includes(it.t)) return false;
-        if (r.srcPrefix && !String(it.src ?? "").startsWith(r.srcPrefix)) return false;
+        if (r.srcPrefix && !String(it.src ?? it.img ?? "").startsWith(r.srcPrefix)) return false;   /* (2026-11-18) the previous-episode SearchBar carries the thumbnail in `img` */
         const s = span(it); return s && s[0] <= at + (r.after ?? 6) && s[1] >= at - (r.before ?? 3);
       });
       if (!ok) miss.push(`${r.name} عند ${mm(at)} (${Math.round(at)}s)`);

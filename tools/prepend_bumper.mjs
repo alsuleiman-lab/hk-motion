@@ -36,12 +36,14 @@ if (!ok.length) { console.error("[bumper] لا فاصل مرندَر في public
 let pick = arg("id", "") ? ok.find((x) => x.id === arg("id", "")) : null;
 if (!pick) { const pool = ok.length > 1 ? ok.filter((x) => x.id !== data.last) : ok; pick = pool[Math.floor(Math.random() * pool.length)]; }
 const bumper = path.join(dir, fileOf(pick)), SEC = pick.seconds ?? 5;
+/* (2026-11-18, «مذيع يقتل أطفاله» reel published at 3:01.6 as a normal video) a short portrait video + its bumper must fit the Shorts limit: refuse before gluing */
+if (END && portrait && isShortPortrait()) { const { SHORT_MAX } = await import("./short_limit.mjs"); if (mainDur + SEC > SHORT_MAX) { console.error(`[bumper] ✘ ${path.basename(file)} طوله ${mainDur.toFixed(2)}ث ومعه الفاصل ${SEC}ث = ${(mainDur + SEC).toFixed(2)}ث فوق حد القصير ${SHORT_MAX}ث: قصّر الريل ${(mainDur + SEC - SHORT_MAX).toFixed(1)}ث على الأقل ثم أعد الرندر`); process.exit(1); } }
 const [fn, fd] = v.r_frame_rate.split("/").map(Number), FPS = +(fn / fd).toFixed(3);
 const tmp = file.replace(/\.mp4$/i, "") + ".bumper_tmp.mp4";
 try { os.setPriority(0, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch { /* ignore */ }
 const bPrep = [
   `[0:v]trim=0:${SEC},setpts=PTS-STARTPTS,scale=${v.width}:${v.height}:flags=lanczos,fps=${FPS},format=yuv420p,setsar=1[bv]`,
-  `[0:a]aresample=48000,aformat=channel_layouts=stereo,apad=whole_dur=${SEC},atrim=0:${SEC},asetpts=PTS-STARTPTS[ba]`,
+  `[0:a]aresample=48000,aformat=channel_layouts=stereo,alimiter=limit=0.708:level=disabled,apad=whole_dur=${SEC},atrim=0:${SEC},asetpts=PTS-STARTPTS[ba]`,
 ];
 const fc = (AT > 0 && !END ? [
   ...bPrep,

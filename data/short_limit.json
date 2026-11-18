@@ -1,0 +1,4 @@
+{
+ "maxTotal": 179,
+ "why": "Shorts on YouTube are at most 3:00 for the WHOLE file. The bumper is glued on at render AFTER every spec check, so a reel's spec length + the bumper must stay <= maxTotal (1 s margin for encoder rounding). Lesson of «مذيع يقتل أطفاله» reel 2026-11-18: spec 176.5 s passed the 180 s check, + 5 s bumper = 181.6 s, published as a normal video, not a Short."
+}

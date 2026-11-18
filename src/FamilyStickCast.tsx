@@ -1,7 +1,7 @@
 import React from 'react';
-import {AbsoluteFill,getInputProps,useCurrentFrame,useVideoConfig} from 'remotion';
+import {AbsoluteFill,getInputProps,useCurrentFrame,useVideoConfig, getRemotionEnvironment } from 'remotion';
 import {cast,characterMarkup,palette,type Motion,type Expression} from '../cartoon_projects/family_stick/rig';
-const Gfx:React.FC<{children:React.ReactNode}>=({children})=>(getInputProps() as {hideGfx?:boolean}).hideGfx?null:<>{children}</>;
+const Gfx:React.FC<{children:React.ReactNode}>=({children})=>((getRemotionEnvironment().isPlayer ? {} : getInputProps()) as {hideGfx?:boolean}).hideGfx?null:<>{children}</>;
 export const FamilyStickCast:React.FC<{motion?:Motion;expression?:Expression}>=({motion,expression})=>{
  const frame=useCurrentFrame(),{fps}=useVideoConfig(),t=frame/fps;
  const moves:Motion[]=['wave','explain','point','wave','wave','listen','idle'];

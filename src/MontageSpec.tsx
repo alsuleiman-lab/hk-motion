@@ -762,7 +762,7 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec; muted?: boolean }> =
  *  (gpu_render --props / stills.mjs --props) — the spec files are never touched while a queue may be rendering from them. Absent: no effect. */
 type SpecTest = { items?: SpecItem[]; psplits?: NonNullable<MontageSpec["psplits"]>; dropBehind?: number[]; dropCut?: boolean };
 const withSpecTest = (s: MontageSpec): MontageSpec => {
-  const x = (getInputProps() as { specTest?: SpecTest }).specTest;
+  const x = ((getRemotionEnvironment().isPlayer ? {} : getInputProps()) as { specTest?: SpecTest }).specTest;   /* (2026-11-18) the gallery Player forbids getInputProps(): it blanked every spec-driven gallery scene */
   if (!x) return s;
   return { ...s, ...(x.dropCut ? { cut: undefined } : {}), items: [...s.items, ...(x.items ?? [])], psplits: [...(s.psplits ?? []), ...(x.psplits ?? [])], behind: (s.behind ?? []).filter((_, i) => !(x.dropBehind ?? []).includes(i)) };
 };

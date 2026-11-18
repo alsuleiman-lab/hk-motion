@@ -1,10 +1,10 @@
 import React from 'react';
-import {getInputProps, useCurrentFrame} from 'remotion';
+import {getInputProps, useCurrentFrame, getRemotionEnvironment } from 'remotion';
 import {FONT_TITLE} from '../localFonts';
 import {CARTOON_PALETTE as C} from './palette';
 import {smooth} from './PalacePaper';
 
-export const CartoonGfx:React.FC<{children:React.ReactNode}> = ({children}) => (getInputProps() as {hideGfx?:boolean}).hideGfx?null:<>{children}</>;
+export const CartoonGfx:React.FC<{children:React.ReactNode}> = ({children}) => ((getRemotionEnvironment().isPlayer ? {} : getInputProps()) as {hideGfx?:boolean}).hideGfx?null:<>{children}</>;
 
 /** A spoken promise, on a piece of paper; it never becomes a paid transfer. */
 export const AmountCard:React.FC<{at:number;until:number;amount:string}> = ({at,until,amount}) => {

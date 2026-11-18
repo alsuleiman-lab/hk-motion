@@ -4,11 +4,13 @@
 //   1. scraps whose words are not in the speech (.tmp/<id>/cut_words.json) are dropped; `times` are rebuilt from the speech (never a word before it is spoken)
 //   2. degenerate items (until <= at) are dropped
 //   3. nameTag + subscribe exist, sit at coordinates the grid accepts (landscape: nameTag land {692,800}, subscribe land {410,838} = inside the solo slot and left of the face zone), and nothing else overlaps them
-//   4. gaps (first minute > 0.3 s, anywhere > 5 s): filled with a slow zoom (never with mechanically cut speech: writing is chosen, 2026-11-12)
+//   4. gaps (first minute > 1 s (user 2026-11-18, rules review; coverage_check FIRST_GAP), anywhere > 5 s): filled with a slow zoom (never with mechanically cut speech: writing is chosen, 2026-11-12)
 //   5. the grid planner runs with --write, every item it cannot place (over the face, no free slot, quote font < 26) becomes a zoom instead, and the loop repeats
 //   6. fewer than 4 kit kinds → the question as it is read/asked becomes a torn note (never a generated or filler picture)
 //   7. «mention without picture» / «required element missing» are NOT skipped silently: they are listed; `--allow-skips` writes documented skipMentions/skipRequired (disclose them in the report)
 // Exit 1 + the remaining ✘ lines when something is left; exit 0 only when the plain gates are clean.
+// (user 2026-11-18, rules review, trial #29) the FULL list of gaps, failures and notes goes to .tmp/<id>/normalize_report.md (one section per orientation; --report <file> elsewhere);
+// the screen shows a short summary and the report path.
 import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
@@ -117,6 +119,19 @@ if (dry) {
   if (diff.length || zw !== zn) process.exitCode = 1;   // the spec as built is incomplete
 }
 const bad = [...(g.match(/✘[^\n]*/g) || []), ...(c.match(/✘[^\n]*/g) || []), ...(m.match(/✘[^\n]*/g) || [])];
-console.log(`[spec_normalize] ${id} (${o}): ${bad.length ? "✘ " + bad.length + " باقية" : "✔ نظيف"}${notes.length ? "\n  ملاحظات: " + [...new Set(notes)].join(" | ") : ""}`);
-for (const b of bad) console.log("  " + b.slice(0, 200));
+/* (user 2026-11-18, rules review, trial #29) the full list is written to a report file, never truncated; the screen keeps a short summary */
+const reportF = arg("report", path.join(".tmp", id, "normalize_report.md")), uniqNotes = [...new Set(notes)];
+const gapLines = c.split(/\r?\n/).filter((l) => /^\s*✘.*(فراغ|لحظات بلا عنصر)/.test(l));
+{
+  const sec = [`## ${o === "land" ? "عرضي (land)" : "طولي (port)"} — ${new Date().toISOString()}${dry ? " — dry" : ""}`, "",
+    `### ✘ remaining (${bad.length})`, ...(bad.length ? bad.map((b) => `- ${b}`) : ["- none"]), "",
+    `### gaps (coverage_check)`, ...(gapLines.length ? gapLines.map((l) => `- ${l.trim()}`) : ["- none"]), "",
+    `### notes (${uniqNotes.length})`, ...(uniqNotes.length ? uniqNotes.map((n) => `- ${n}`) : ["- none"]), ""].join("\n");
+  let old = ""; try { old = fs.readFileSync(reportF, "utf8"); } catch { /* first run */ }
+  const parts = old.split(/^(?=## )/m).filter((x) => x.startsWith("## ") && !x.startsWith(`## ${o === "land" ? "عرضي" : "طولي"}`));
+  try { fs.mkdirSync(path.dirname(reportF), { recursive: true }); fs.writeFileSync(reportF, `# spec_normalize — ${id}\n\n` + [...parts, sec].map((x) => x.trimEnd() + "\n\n").join("")); } catch (e) { console.log(`⚠ normalize report not written: ${e.message}`); }
+}
+console.log(`[spec_normalize] ${id} (${o}): ${bad.length ? "✘ " + bad.length + " باقية" : "✔ نظيف"}${uniqNotes.length ? ` · ${uniqNotes.length} ملاحظة` : ""} — القائمة كاملة: ${reportF}`);
+for (const b of bad.slice(0, 5)) console.log("  " + b.slice(0, 200));
+if (bad.length > 5) console.log(`  … و${bad.length - 5} أخرى في ${reportF}`);
 process.exit(bad.length || process.exitCode === 1 ? 1 : 0);

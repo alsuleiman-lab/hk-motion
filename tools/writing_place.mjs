@@ -7,7 +7,7 @@
 //    changed word fails (a mishearing is corrected only through the file's "fix" map: transcript word → what he said);
 // 2) refuses a phrase that starts or ends on a dangling word (و، مع، أن، أنه، له، على، في، من، إلى، عن، الذي، اللي، بين…) or a scraps longer than 7 words;
 // 3) with --write: removes EVERY torn/scraps of the spec and puts these in, `at` = first word, scraps `times` = each word, until = last word + hold
-//    (torn 1.8 s, scraps 1.0 s, never into the next writing item).
+//    (user 2026-11-18, rules review w5/w15: every writing 1.5 s after its last part, ≥ 0.2 s before the next writing of the band; was torn 1.8 / scraps 1.0 / −0.15).
 import fs from "node:fs";
 import path from "node:path";
 
@@ -54,13 +54,18 @@ if (fs.existsSync(specF)) {
 }
 if (bad.length && !process.argv.includes("--hold")) { console.log(`✘ writing_place: ${bad.length} عبارة مرفوضة:\n  ` + bad.join("\n  ")); process.exit(1); }
 out.sort((a, b) => a.at - b.at);
+/* (user 2026-11-18, rules review w5/w15) one hold for every writing element: 1.5 s after its last part; two writings of the same band (torn and scraps share it)
+   keep ≥ 0.2 s between them. A phrase the next writing cuts below its 1.5 s is named (⚠) so the plan can move or drop one of them. */
+const HOLD = 1.5, GAP = 0.2, short = [];
 const items = out.map((o, i) => {
-  const next = out[i + 1]?.at ?? 1e9, hold = o.t === "torn" ? 1.8 : 1.0, until = +Math.min(o.lastEnd + hold, next - 0.15).toFixed(2);
+  const next = out[i + 1]?.at ?? 1e9, until = +Math.min(o.lastEnd + HOLD, next - GAP).toFixed(2);
+  if (until < o.lastEnd + HOLD - 0.01) short.push(`«${o.text}» @${o.at}ث تبقى ${Math.max(0, until - o.lastEnd).toFixed(2)}ث بعد آخر كلمة (< ${HOLD}) لأن الكتابة التالية تبدأ ${next}ث`);
   /* a long torn note keeps ONE line in landscape (2026-11-12, kitab 1:45: two lines ran under the title bar / onto the face): the largest size ≤ 37 whose text fits one line of the 1000-px note (TornNote wrap estimate, as grid_plan) */
   const oneLine = (txt) => { const L = txt.replace(/\s+/g, " ").length; for (let z = 37; z > 30; z--) { const w = Math.min(1000, Math.round(L * z * 0.5 + 3.6 * z + 70)); if (L <= Math.floor((w - 3.6 * z) / (z * 0.52))) return z; } return 30; };
   return o.t === "torn" ? { t: "torn", text: o.text, at: o.at, until, land: { size: oneLine(o.text), y: 822 } } : { t: "scraps", text: o.text, at: o.at, until, times: o.times, y: 1500, land: { size: 34 } };
 });
 console.log(`✔ writing_place: ${items.length} عبارة (ملاحظة ممزقة ${items.filter((x) => x.t === "torn").length}، قصاصات ${items.filter((x) => x.t === "scraps").length}) كلها بكلماته متتابعة ومكتملة`);
+if (short.length) console.log(`⚠ writing_place: ${short.length} كتابة أقصر من ${HOLD}ث بعد آخر كلمة:\n  ` + short.join("\n  "));
 // --hold: after writing_sync / grid moved things, each writing item stays until the next writing item (−0.15 s) or the next card in the writing band,
 // at most 7 s after its start, never shorter than its last word + 0.6 s — no two writings overlap and no blank stretch is left after a phrase
 if (process.argv.includes("--hold")) {
@@ -87,9 +92,9 @@ if (process.argv.includes("--hold")) {
   for (let i = 0; i < Wr.length; i++) {
     const it = Wr[i], last = it.times ? it.times[it.times.length - 1] : it.at + 1.2, next = Wr[i + 1]?.at ?? 1e9;
     const cardNext = Math.min(...cards.map(([a]) => a).filter((a) => a > it.at), 1e9);
-    // the next writing or card always wins the band: a phrase stays to its last word (+0.25 s) only if nothing starts before that
-    const cap = Math.min(next - 0.2, cardNext - 0.2, (spec.frames ?? 1e9) / 30 - 0.1);   // never past the video's end; grid_plan needs ≥ 0.15 s between two users of a slot; coverage allows ≤ 0.3 s empty in the first minute
-    it.until = +Math.min(cap, Math.max(last + 0.25, Math.min(cap, it.at + 7))).toFixed(2);
+    // the next writing or card always wins the band: a phrase stays to its last word + 1.5 s (user 2026-11-18, rules review w5/w15; was +0.25) only if nothing starts before that
+    const cap = Math.min(next - GAP, cardNext - GAP, (spec.frames ?? 1e9) / 30 - 0.1);   // never past the video's end; ≥ 0.2 s between two writings of the band; coverage allows ≤ 1 s empty in the first minute (user 2026-11-18, rules review)
+    it.until = +Math.min(cap, Math.max(last + HOLD, Math.min(cap, it.at + 7))).toFixed(2);
     if (it.until < it.at + 0.6) drop.add(it);   // no room before the next one: the phrase goes (never a span that ends before it starts)
     if (solo.some(([a, b]) => it.at < b && it.until > a)) { const [a, b] = solo.find(([a, b]) => it.at < b && it.until > a); if (it.at >= a) { it.at = +(b + 0.1).toFixed(2); if (it.times) it.times = it.times.map((t) => Math.max(t, it.at)); } }
   }

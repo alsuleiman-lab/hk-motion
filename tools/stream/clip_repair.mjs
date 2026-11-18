@@ -15,10 +15,11 @@ const setEnd = (i, e) => { if (i.t === "rows") i.to = fix(e); else if (SOLO.has(
 const snapSolo = (p, n) => { for (const dd of [0, -0.01, 0.01, -0.02, 0.02]) { const d = fix(n.at - 0.3 - start(p) + dd), b = start(p) + d; if (d >= 3.0 && !(n.at < b + 0.3) && !(n.at - b > 0.3)) { p.dur = d; return true; } } return false; };   // بطاقتان منفردتان متجاورتان: بينهما 0.3 ث بالضبط (التطبيع يحذف ما دونها والتغطية ترفض ما فوقها)
 const NEED = (min) => Math.min(9, Math.max(4, Math.ceil(min * 0.8)));
 const KIND = { pick: "pick", torn: "torn", rows: "rows", subscribe: "sub", nameTag: "name", scraps: "scraps", verse: "verse", hadith: "had", note: "had", word: "word", blur: "blur", tphoto: "tp", news: "news", clock: "clock", flash: "flash", phone: "phone", rewrite: "rw", pic: "pic", brushx: "bx" };
-const GAPV = (spans, dur) => {   // مثل فحص التغطية: ما بعد الدقيقة الأولى يُسمح بفراغ حتى 5 ث، وفي الأولى 0.3 ث
+const FIRST_GAP = 1;   // (user 2026-11-18, rules review) فراغ الدقيقة الأولى حتى 1 ث كفحص التغطية (FIRST_GAP)، وكان 0.3
+const GAPV = (spans, dur) => {   // مثل فحص التغطية: ما بعد الدقيقة الأولى يُسمح بفراغ حتى 5 ث، وفي الأولى 1 ث
   const out = []; let e = 0; const first = Math.min(60, dur);
-  for (const [a, b] of spans) { const lim = a < first ? 0.3 : 5; if (a - e > lim) out.push([e, a]); e = Math.max(e, b); }
-  if (e < first && first - e > 0.3) out.push([e, first]); else if (dur - 3 - e > 5) out.push([e, dur - 3]);
+  for (const [a, b] of spans) { const lim = a < first ? FIRST_GAP : 5; if (a - e > lim) out.push([e, a]); e = Math.max(e, b); }
+  if (e < first && first - e > FIRST_GAP) out.push([e, first]); else if (dur - 3 - e > 5) out.push([e, dur - 3]);
   return out;
 };
 const linesOf = (id) => {
@@ -43,7 +44,9 @@ for (const id of ids) {
     if (items().some((i) => SOLO.has(i.t) && start(i) < un + 0.2 && endOf(i) > at - 0.2)) { log.push(`آية ${v.sura}:${v.aya} تتداخل مع بطاقة منفردة فلم تُضف`); continue; }
     for (const o of [...items()]) { if (o.t === "verse") continue; const a = start(o), e = endOf(o); if (a == null || !(a < un + 0.2 && e > at - 0.2)) continue;
       if (a < at - 1.2 && PANEL.has(o.t)) setEnd(o, at - 0.2); else sp.items.splice(sp.items.indexOf(o), 1); }
-    sp.items.push({ t: "verse", at, until: un, words: v.words, times: v.times, title: v.name, refText: v.ref, aya: v.aya, full: true, x: 40, y: 1520, w: 1000, size: 24 }); log.push(`بطاقة آية ${v.sura}:${v.aya} @${at}`);
+    /* (user 2026-11-18, rules review d3) آية الريل شاشة مقسومة مع اللوحة الذهبية، لا ملء الشاشة؛ ملء الشاشة بطلب صريح فقط (userFull:true) */
+    const userFull = v.userFull === true;
+    sp.items.push({ t: "verse", at, until: un, words: v.words, times: v.times, title: v.name, refText: v.ref, aya: v.aya, ...(userFull ? { full: true, userFull: true } : {}), x: 40, y: 1520, w: 1000, size: 24 }); log.push(`بطاقة آية ${v.sura}:${v.aya} @${at}`);
   }
   // عبارات الكتابة (.tmp/<id>/writing.json): writing_place يرفض أكثر من قصاصة أو ملاحظة في الدقيقة بزمن التفريغ الجديد للصوت النهائي؛ نحذف الزائد حسب رسالته ثم نضع الكتابة من جديد
   { const wf = path.join(".tmp", id, "writing.json"); let wj = rd(wf, null), changed = false;
@@ -108,7 +111,7 @@ for (const id of ids) {
   }
   // قصاصة أو ملاحظة تبدأ بكلمة نُطقت قبل ظهورها: تُحذف الكلمات المبكرة من أولها (الصيغة والعزل)
   { const W = rd(path.join(".tmp", id, "cut_words.json"), []).map((w) => ({ w: String(w.w ?? w.word), s: +(w.s ?? w.start) }));
-    for (const it of items().filter((i) => WRITE.has(i.t))) { const tk = it.text.split(/s+/); let cut = 0;
+    for (const it of items().filter((i) => WRITE.has(i.t))) { const tk = it.text.split(/\s+/); let cut = 0;
       for (let j = 0; j < W.length; j++) { if (tk.slice(0, 1)[0] !== W[j].w) continue; if (tk.every((x, q) => !W[j + q] || W[j + q].w === x || true) && Math.abs(W[j].s - it.at) < 6) { while (cut < tk.length - 3 && W[j + cut] && W[j + cut].s < it.at - 0.25) cut++; break; } }
       if (cut > 0) { it.text = tk.slice(cut).join(" "); if (Array.isArray(it.times)) it.times = it.times.slice(cut); log.push(`حُذفت ${cut} كلمة مبكرة من ${it.t}@${fix(it.at)}`); } } }
   fs.writeFileSync(f, JSON.stringify(sp, null, 1)); spawnSync(process.execPath, ["tools/writing_sync.mjs", f, "--fix"], { encoding: "utf8" }); Object.assign(sp, rd(f, sp));   // الكتابة تبدأ عند أول كلمة منطوقة فعلاً

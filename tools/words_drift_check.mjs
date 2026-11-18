@@ -49,10 +49,23 @@ else console.log(`words_drift: ✔ cut_words.json matches the cut audio (${rows.
   let splits = [], keep = [];
   /* spec.keepMarks [{t, w, why, userConfirmed:true}]: a word that IS part of his speech (a rhetorical «عفواً، لا لا»): honoured ONLY with the user's own confirmation (2026-11-13: I overrode this gate with a wrong measurement and a real «عفواً» fragment stayed in the video; no self-made exemption any more) */
   try { for (const f of fs.readdirSync("data/specs")) { const s = JSON.parse(fs.readFileSync(path.join("data/specs", f), "utf8")); if (s.id === p || f === `${p}.json`) { splits = s.splits ?? []; keep = s.keepMarks ?? []; } } } catch { /* no spec yet */ }
-  const MARK = /^(عفو|عفوا|عفواً|عفوني|اعيد|أعيد|اعيدها|معليش|أفوان|أفون|فون|فوان|مونتاج|موتاج|منتاج)$/;
+  /* (user 2026-11-18, rules review t11/t12) the markers are «عفواً» (also «عفواً سأعيد», whose «عفواً» is the hit) and «مونتاج» only; «أعيد» or «معليش» alone is
+     ordinary speech. «أفوان/أفون/فوان/فون» is how Whisper hears «عفواً», but NOT when a noun follows («أفوان الكل» = «أفواه الكل») or «كمّم/كمم/تكميم» comes before it
+     («كمّم الأفواه»); «أفغان» is never a marker. */
+  const MARK = /^(عفو|عفوا|عفواً|عفوني|أفوان|أفون|فون|فوان|مونتاج|موتاج|منتاج)$/, AFWAN = /^(أفوان|أفون|فون|فوان)$/, NOT_MARK = /^[اأإ]?فغان/;
+  const bare = (w) => String(w ?? "").replace(/[.،؟?!]/g, "").replace(/[ً-ْ]/g, "").trim();
   const raw = JSON.parse(fs.readFileSync(freshF, "utf8"));
-  const hits = raw.filter((x) => MARK.test(String(x.w).replace(/[.،؟?!]/g, "").trim()) && !splits.some((sp) => x.s >= sp.from && x.s <= sp.to) && !keep.some((k) => Math.abs(k.t - x.s) < 0.6 && k.why && k.userConfirmed === true));
+  const isMark = (x, i) => {
+    const w = bare(x.w); if (!MARK.test(w) || NOT_MARK.test(w)) return false;
+    if (AFWAN.test(w)) {
+      const nx = raw[i + 1], nb = nx ? bare(nx.w) : "";
+      if (nx && nx.s - x.s < 1.5 && /^(ال|لل)/.test(nb) && nb.length >= 4) return false;   // «أفوان الكل» → «أفواه الكل»: a noun follows
+      if (raw.slice(Math.max(0, i - 2), i).some((y) => /^(كمم|تكميم|يكمم|وكمم)/.test(bare(y.w).replace(/ّ/g, "")))) return false;   // «كمّم أفواه»
+    }
+    return true;
+  };
+  const hits = raw.filter((x, i) => isMark(x, i) && !splits.some((sp) => x.s >= sp.from && x.s <= sp.to) && !keep.some((k) => Math.abs(k.t - x.s) < 0.6 && k.why && k.userConfirmed === true));
   if (hits.length) { bad++; console.log(`words_drift: ✘ correction/instruction words still audible in the cut (${hits.length}): ` + hits.map((x) => `${x.s.toFixed(1)}s «${x.w}»`).join("، ") + " — cut them at the real silence (large-model word times), re-cut, re-run"); }
-  else console.log("words_drift: ✔ no «عفواً/أعيد/مونتاج» left in the cut audio");
+  else console.log("words_drift: ✔ no «عفواً/مونتاج» left in the cut audio");
 }
 process.exit(bad ? 1 : 0);

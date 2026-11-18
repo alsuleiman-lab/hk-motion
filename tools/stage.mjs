@@ -12,7 +12,8 @@
 //                                                     split out, the gate's own «cut» sounds removed and the cut redone inside the same command; only a «review»
 //                                                     sound (his decision) fails. --keep-sound = a range kept with ALL its sound (adhan, nasheed).
 //                                                     → public/<p>_cut.mp4 and the cut transcript .tmp/<p>/cut_transcript.txt (for timing elements).
-//   node tools/stage.mjs check <p> <CompId> --file src/<X>.tsx --minutes <m> [--skip 0-12,40-55]
+//   node tools/stage.mjs check <p> <CompId> --file src/<X>.tsx --minutes <m> [--skip 0-12,40-55] [--answers-applied]
+//        first the answers gate (user 2026-11-18, rules review): fails while .tmp/<p>/answers.json has an answer newer than .tmp/<p>/answers_applied.json
 //                                                     typecheck → rules_lint → element_usage → brand_audit (spec) → mg_usage_audit → writing_sync (spec: no writing before its words) → coverage_check (spec) → pick_triggers (spec: the picked elements where due) → grid_plan + grid_sheet (spec montage; else face_check) → frame_audit (old TSX only), one after another (never two renders at once).
 //        BOTH ORIENTATIONS AT ONCE (user 2026-11-16): for a data-spec montage the check runs for the portrait AND the landscape form whichever composition is named
 //        (spec_register: the three Studio compositions exist · spec_normalize/grid_plan for both · a grid sheet for both); a reel (kind reel or an id ending -R) is portrait only.
@@ -77,6 +78,16 @@ const remapWords = (words, segs) => {
     if (g) out.push({ s: +(g.n + Math.max(0, w.s - g.a)).toFixed(3), e: +(g.n + Math.min(g.b, w.e) - g.a).toFixed(3), w: w.w });
   }
   return out.sort((x, y) => x.s - y.s);   // a moved block (--move) makes the source order differ from the cut order
+};
+/* (user 2026-11-18, rules review t14) the cut words come from THE word table (.tmp/<p>/words_table.json, aligned large-v3, the same words the cut plan was built from);
+   words_vad.json only when an old project has no table. Output stays {s,e,w}. */
+const cutSourceWords = () => {
+  const wtf = path.join(T, "words_table.json");
+  if (fs.existsSync(wtf)) {
+    const ws = (JSON.parse(fs.readFileSync(wtf, "utf8")).words ?? []).map((w) => ({ s: +(w.s ?? w.start), e: +(w.e ?? w.end ?? w.s ?? w.start), w: String(w.w ?? w.word ?? "") })).filter((w) => Number.isFinite(w.s) && Number.isFinite(w.e) && w.w.trim());
+    if (ws.length) return { words: ws, from: "words_table.json" };
+  }
+  return { words: JSON.parse(fs.readFileSync(path.join(T, "words_vad.json"), "utf8")), from: "words_vad.json (no word table — old project)" };
 };
 const finish = (code) => {
   console.log(lines.join("\n"));
@@ -226,7 +237,9 @@ if (stage === "cut") {
     const audioAsset = path.join("public", p, `voice_${Date.now()}.wav`);
     fs.copyFileSync(wavClean, audioAsset);
     fs.writeFileSync(cfgFile, JSON.stringify({ ...prepConfig, cutAudio: audioAsset }, null, 2));
-    const cutWords = remapWords(JSON.parse(fs.readFileSync(path.join(T, "words_vad.json"), "utf8")), JSON.parse(fs.readFileSync(mapF, "utf8")).segments);
+    const sw = cutSourceWords();   // (user 2026-11-18, rules review) word table first
+    const cutWords = remapWords(sw.words, JSON.parse(fs.readFileSync(mapF, "utf8")).segments);
+    say(`cut words from ${sw.from}: ${cutWords.length}`);
     fs.writeFileSync(path.join(T, "cut_words.json"), JSON.stringify(cutWords));
     fs.writeFileSync(path.join(T, "cut_transcript.txt"), toText(cutWords));
     say(`audio-only cut ${(await dur(audioAsset)).toFixed(1)} s · ${segments.length} segments → ${audioAsset}`);
@@ -258,7 +271,9 @@ if (stage === "cut") {
   const jp = spawn(process.execPath, ["-e", job], { detached: true, stdio: "ignore", windowsHide: true });
   fs.writeFileSync(running, JSON.stringify({ token, t: Date.now(), pid: jp.pid }));
   jp.unref();
-  const cutWords = remapWords(JSON.parse(fs.readFileSync(path.join(T, "words_vad.json"), "utf8")), JSON.parse(fs.readFileSync(mapF, "utf8")).segments);
+  const sw = cutSourceWords();   // (user 2026-11-18, rules review) word table first
+  const cutWords = remapWords(sw.words, JSON.parse(fs.readFileSync(mapF, "utf8")).segments);
+  say(`cut words from ${sw.from}: ${cutWords.length}`);
   for (const stale of ["cut_words.aligned.json", "cut_words_large.raw.json", "cut_words_large.json", "drift_fresh.json"]) { try { fs.rmSync(path.join(T, stale)); } catch { /* absent */ } }   // (2026-11-13) a stale alignment from the previous cut shifted every word 0.45 s
   fs.writeFileSync(path.join(T, "cut_words.json"), JSON.stringify(cutWords));
   fs.writeFileSync(path.join(T, "cut_transcript.txt"), toText(cutWords));
@@ -285,6 +300,18 @@ if (stage === "check") {
   const comp = rest.find((a) => !a.startsWith("--") && rest[rest.indexOf(a) - 1]?.startsWith("--") !== true);
   const file = opt("file", ""), minutes = opt("minutes", "");
   if (!comp || !file || !minutes) { say("✘ usage: check <p> <CompId> --file src/X.tsx --minutes M [--skip a-b,…]"); finish(1); }
+  /* ANSWERS GATE (user 2026-11-18, rules review q3): an answer on the questions page that is newer than the last «applied» stamp (.tmp/<p>/answers_applied.json {appliedAt})
+     has not been worked into the montage yet → the check fails at once and names the new answer ids. After applying them: node tools/questions.mjs applied <p>
+     (or --answers-applied on this check, which writes the stamp here). No answers.json = nothing to apply. */
+  {
+    const af = path.join(T, "answers.json"), stampF = path.join(T, "answers_applied.json");
+    if (rest.includes("--answers-applied")) { fs.writeFileSync(stampF, JSON.stringify({ appliedAt: new Date().toISOString() }, null, 1)); say("answers: stamp written (--answers-applied)"); }
+    let ans = {}; try { ans = JSON.parse(fs.readFileSync(af, "utf8")) ?? {}; } catch { /* no answers */ }
+    let applied = 0; try { applied = Date.parse(JSON.parse(fs.readFileSync(stampF, "utf8")).appliedAt) || 0; } catch { /* never applied */ }
+    const fresh = Object.entries(ans).filter(([, a]) => a && (a.answer != null || a.note) && (Date.parse(a.at ?? "") || (applied ? 0 : Infinity)) > applied).map(([id]) => id);
+    if (fresh.length) { say(`✘ answers: ${fresh.length} new answer(s) on the questions page not applied yet: ${fresh.join(", ")} — apply them, then: node tools/questions.mjs applied ${p}`); finish(1); }
+    if (Object.keys(ans).length) say(`✔ answers: all ${Object.keys(ans).length} applied${applied ? ` (stamp ${new Date(applied).toISOString()})` : ""}`);
+  }
   const running = path.join(T, "smooth.running");
   if (fs.existsSync(running)) {
     say("waiting for the background smoothing (<p>_cut_s.mp4)…");

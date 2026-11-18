@@ -3,6 +3,7 @@
 // 1) every thing in data/mention_lexicon.json (+ every fetched picture in .tmp/<p>/images.json) has a picture item on screen within −3…+4 s of its first mention
 // 0) only approved item types (the renderer's APPROVED_TYPES = the gallery) and no retired spec field
 // 2) no stretch longer than --gap (5) seconds without any item, baked split, push-in or shake
+// 2b) the first minute: no stretch longer than --first-gap (1) second without an item (user 2026-11-18, rules review; spec_normalize, writing_place and clip_repair use the same 1 s)
 // 3) the moves were planned: no more than 2 min from the start / between push-ins (`zooms`) / to the end, and a `shake` list (tools/moves_plan.mjs → .tmp/<p>/moves.md)
 // Exit 1 on any miss; a miss that is right on purpose is written in the spec as  "skipMentions": ["الإنجيل"]  (the reason goes in the plan).
 import { align as alignScraps } from "./lib/scraps_times.mjs";
@@ -183,7 +184,7 @@ if (gaps.length) fails++;
 }
 
 // 2b) first minute: never empty (attraction window) — gaps above FIRST_GAP seconds fail
-const FIRST_LEN = Math.min(60, dur), FIRST_GAP = Number(opt("first-gap", 1));   /* (user 2026-11-18 on the review page: «لا فراغ أطول من 1 ثوانٍ، وأجد ما أملؤه به») */   /* (user 2026-11-17: «القاعدة تقول ٣ ثواني وليس ثلث، وعليك أن تجد ما تملأ به») */
+const FIRST_LEN = Math.min(60, dur), FIRST_GAP = Number(opt("first-gap", 1));   /* (user 2026-11-18 on the review page: «لا فراغ أطول من 1 ثوانٍ، وأجد ما أملؤه به») */   /* (user 2026-11-17: «القاعدة تقول ٣ ثواني وليس ثلث، وعليك أن تجد ما تملأ به») — superseded by 1 s (user 2026-11-18, rules review) */
 const fgaps = [];
 { let e = 0; for (const [a, b] of spans) { if (a >= FIRST_LEN) break; if (a - e > FIRST_GAP) fgaps.push([e, a]); e = Math.max(e, b); } if (e < FIRST_LEN && FIRST_LEN - e > FIRST_GAP) fgaps.push([e, FIRST_LEN]); }
 console.log(fgaps.length ? `✘ الدقيقة الأولى فيها لحظات بلا عنصر (> ${FIRST_GAP} ث): ${fgaps.map(([a, b]) => `${a.toFixed(1)}–${b.toFixed(1)} ث`).join("، ")}` : `✔ الدقيقة الأولى بلا فراغ`);

@@ -19,3 +19,10 @@
 ## .claude/skills/lessons-and-streams/references/rules.md
 القديم: «- الآيات في المقاطع الطولية ملء الشاشة.»
 الجديد: «- الآيات في المقاطع الطولية: فيديوه فوق واللوحة الذهبية تحته؛ وملء الشاشة عند دمج تصحيح التلاوة فقط (أمر المستخدم 2026-11-18).»
+
+## .claude/skills/thumbnail-design/refs/chatgpt_cover_prompt.md
+القديم: «on the left third of the frame»
+الجديد: «on the right third of the frame (the signature sits bottom-left; one side for every landscape cover, 2026-11-18)»
+
+## «لحظة»
+جواب المستخدم: «ليس لها معنى خاص» — لا قاعدة.

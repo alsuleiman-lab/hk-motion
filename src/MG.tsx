@@ -293,8 +293,8 @@ export const TimelineCounter: React.FC<{
  * 14) MorphBox — «التحويل المشترك» (reference: motion-lab video, SKILL.md §8-ب). ONE container survives across scenes and morphs its rectangle
  * (word box → big card → hairline baseline → word box…), so scene changes are a single continuous motion instead of cuts.
  * states = [{ t, x, y, w, h, r? }]: at each state's `t` (seconds, absolute) the box glides from the previous rectangle to this one over `dur` (≈1 s, soft landing).
- * Inside it, <MorphContent from to> shows one scene's content: it fades OUT (0.3 s) just before `to` (= the next state's t) so the frame never shows old content
- * on a moving box, and fades IN (0.35 s) at `from` (= when the speaker reaches it). children may be a function (rect) => node to draw things anchored to the
+ * Inside it, <MorphContent from to> shows one scene's content: it cuts OUT at `to` (= the next state's t) so the frame never shows old content
+ * on a moving box, and cuts IN at `from` (= when the speaker reaches it) with a short slide up — no fades (user 2026-11-18, rules review, w8). children may be a function (rect) => node to draw things anchored to the
  * live rectangle (e.g. bars standing on the box when it has collapsed into a baseline). Keep h ≥ 6; use h = 6 with no border for a pure line.
  */
 export type MorphState = { t: number; x: number; y: number; w: number; h: number; r?: number };
@@ -324,10 +324,10 @@ export const MorphBox: React.FC<{ states: MorphState[]; dur?: number; accent?: s
 };
 export const MorphContent: React.FC<{ from: number; to?: number; children: React.ReactNode }> = ({ from, to, children }) => {
   const t = useT(0), r = React.useContext(MorphCtx);
-  const inK = ease((t - from) / 0.35), outK = to === undefined ? 1 : ease((to - t) / 0.3);
-  const o = clamp(Math.min(inK, outK));
-  if (o <= 0) return null;
-  return <div style={{ position: "absolute", left: r.x, top: r.y, width: r.w, height: r.h, opacity: o, transform: `translateY(${(1 - inK) * 18}px)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", direction: "rtl", fontFamily: kufiF, color: "#fff" }}>{children}</div>;
+  /* no fade in or out: hard cut at from/to; the slide-up on entry stays (user 2026-11-18, rules review, w8) */
+  if (t < from || (to !== undefined && t >= to)) return null;
+  const inK = ease((t - from) / 0.35);
+  return <div style={{ position: "absolute", left: r.x, top: r.y, width: r.w, height: r.h, transform: `translateY(${(1 - inK) * 18}px)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", direction: "rtl", fontFamily: kufiF, color: "#fff" }}>{children}</div>;
 };
 
 /**

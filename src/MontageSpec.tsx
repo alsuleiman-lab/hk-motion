@@ -698,7 +698,7 @@ const draw = (key: string, n: number) => { let h = 2166136261; for (const c of k
 const ayaOf = (it: { aya?: number; refText: string }) => it.aya ?? Number((it.refText.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).match(/\d+/) ?? ["0"])[0]);
 /** HOLD AFTER COMPLETION (user 2026-11-15: «العناصر تختفي بمجرد أن تتم … لازم تبقى ثانية أو ثانيتين بحيث أن الناس تستوعب»): a picked element never leaves before
  *  its LAST part has appeared (every `at`/`…At` inside it, typed text ends, the entrance animation ≈0.8 s) + PICK_HOLD seconds — whatever `until` the spec says. */
-export const PICK_HOLD = 2;   /* user 2026-11-15 (frame 17337): after the writing ends the element stays AT LEAST 2 s */
+export const PICK_HOLD = 1.5;   /* user 2026-11-15 (frame 17337): after the writing ends the element stays a while; 2 → 1.5 s (user 2026-11-18, rules review, w5) */
 type PickItem = Extract<SpecItem, { t: "pick" }>;
 export const pickLastEvent = (it: PickItem): number => {
   let m = it.at; const walk = (v: unknown, key: string) => { if (typeof v === "number" && (key === "at" || /At$/.test(key))) m = Math.max(m, v); else if (Array.isArray(v)) v.forEach((x) => walk(x, key)); else if (v && typeof v === "object") Object.entries(v).forEach(([k, x]) => walk(x, k)); };

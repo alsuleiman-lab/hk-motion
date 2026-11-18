@@ -4,9 +4,11 @@
 //   node tools/el.mjs show <code|اسمه>                one element: when to use it, its fields (required ones marked), orientations, an example
 //   node tools/el.mjs names                           every element has ONE Arabic name, no two alike (exit 1 otherwise) — the name the Studio writes under the screen
 //   node tools/el.mjs add <p> <code> at=12.3 [until=15] field=value …   append it to data/specs/<p>.json — content and timing ONLY
-//   node tools/el.mjs items <p> [from-to]             the spec's elements, numbered (seconds), one line each
-//   node tools/el.mjs set <p> <n> field=value …       change content/timing of element n (size/place cannot be set: they are the gallery's)
-//   node tools/el.mjs del <p> <n>                     remove element n
+//   node tools/el.mjs items <p> [from-to]             the spec's elements, numbered (seconds), with their stable id (#id), one line each
+//   node tools/el.mjs set <p> <#id|id=…|n> field=value …   change content/timing of one element (size/place cannot be set: they are the gallery's)
+//   node tools/el.mjs del <p> <#id|id=…|n>            remove one element
+// Stable ids (user 2026-11-18, rules review): every item carries a short `id`, unique in its spec. `add` gives the new item one; any item without one gets it the
+// first time el.mjs saves (or lists) the spec; sorting by time never changes an id. The old index still works but moves when the spec is re-sorted (warned).
 // Values: plain text, numbers, or JSON for lists/objects (lines='[{"text":"…","at":1.2}]'). A picture (src=…) gets its own ratio measured, so the card keeps the
 // gallery width and shows the whole picture. In a `galleryRef` spec (every new spec, tools/spec_draft.mjs) size and place come from the gallery at render time
 // (src/galleryRef.ts): editing an element in the gallery changes it in every such video. Older specs get the gallery geometry written once (gallery_geometry --write).
@@ -17,7 +19,7 @@ import { spawnSync } from "node:child_process";
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const [cmd, ...args] = process.argv.slice(2);
 const read = (f) => fs.readFileSync(f, "utf8");
-const NOT_CONTENT = new Set(["t", "el", "x", "y", "w", "h", "W", "H", "size", "land", "only", "dx", "dy", "k", "placeOwn", "noShift", "slot", "ratio", "galleryRef", "right", "side",
+const NOT_CONTENT = new Set(["t", "id", "el", "x", "y", "w", "h", "W", "H", "size", "land", "only", "dx", "dy", "k", "placeOwn", "noShift", "slot", "ratio", "galleryRef", "right", "side",
   /* layout numbers of a few elements: the gallery's too */ "y0", "step", "rowH", "bandY", "axisK", "portTop", "nodeW", "nodeH", "titleSize", "landLift", "landPanel", "landCanvas", "portPanel", "portCanvas", "imgH", "carW", "r", "s"]);
 const TIMING = new Set(["at", "until", "from", "to", "dur"]);
 
@@ -57,7 +59,16 @@ const kv = (list) => { const o = {}; for (const a of list) { const i = a.indexOf
 const ratioOf = (src) => { const r = spawnSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", path.join("public", src)], { encoding: "utf8" }); const [w, h] = String(r.stdout).trim().split(",").map(Number); return w && h ? +(h / w).toFixed(4) : null; };
 const specPath = (p) => { const f = path.join("data", "specs", `${p}.json`); if (!fs.existsSync(f)) { console.error(`✘ لا مواصفة: ${f}`); process.exit(2); } return f; };
 const span = (it) => { const a = it.at ?? it.from ?? it.times?.[0] ?? it.oldAt; return a == null ? null : [a, it.until ?? it.to ?? (it.dur != null ? a + it.dur : a + 3)]; };
-const save = (f, s) => { s.items.sort((a, b) => (span(a)?.[0] ?? 0) - (span(b)?.[0] ?? 0)); fs.writeFileSync(f, JSON.stringify(s, null, 1)); };
+/* stable ids (user 2026-11-18, rules review): short, unique in the spec; a missing or repeated id gets a new one; ids ride on the items, so sorting keeps them */
+const newId = (used) => { let id; do { id = Math.random().toString(36).slice(2, 6); } while (id.length < 4 || !/^[a-z]/.test(id) || used.has(id)); used.add(id); return id; };
+const ensureIds = (s) => { const used = new Set(s.items.map((x) => x.id).filter(Boolean)), seen = new Set(); let n = 0; for (const it of s.items) { if (!it.id || seen.has(it.id)) { it.id = newId(used); n++; } seen.add(it.id); } return n; };
+const at = (s, ref) => {   // an item by #id / id=… (stable) or by its index (moves when the spec is re-sorted: warned)
+  const r = String(ref ?? ""), m = r.match(/^(?:id=|#)(.+)$/);
+  if (m) { const i = s.items.findIndex((x) => x.id === m[1]); return i < 0 ? null : i; }
+  if (/^\d+$/.test(r)) { const i = Number(r); if (!s.items[i]) return null; console.warn(`⚠ الرقم ${i} يتغير إذا أُعيد الترتيب — معرّفه الثابت: #${s.items[i].id}`); return i; }
+  const i = s.items.findIndex((x) => x.id === r); return i < 0 ? null : i;
+};
+const save = (f, s) => { ensureIds(s); s.items.sort((a, b) => (span(a)?.[0] ?? 0) - (span(b)?.[0] ?? 0)); fs.writeFileSync(f, JSON.stringify(s, null, 1)); };
 let CODE_OF = null;   // spec type → gallery code (src/galleryPlace.ts TYPE_OF)
 const label = (it) => { if (it.el) return it.el; if (!CODE_OF) { const gp = read("src/galleryPlace.ts"); CODE_OF = {}; for (const m of gp.slice(gp.indexOf("TYPE_OF"), gp.indexOf("};", gp.indexOf("TYPE_OF"))).matchAll(/(\w+):\s*"([\w:]+)"/g)) CODE_OF[m[2]] ??= m[1]; } return CODE_OF[it.t === "nameTag" && it.style === "pinned" ? "nameTag:pinned" : it.t] ?? it.t; };
 const textOf = (it) => String(it.text ?? it.name ?? it.title ?? it.q ?? it.myth ?? it.lines?.[0]?.text ?? it.words?.join?.(" ") ?? it.src ?? "").slice(0, 40);
@@ -90,26 +101,29 @@ if (cmd === "list") {
   if (missing.length) { console.error(`✘ ${code}: ينقصه ${missing.join("، ")} (node tools/el.mjs show ${code})`); process.exit(2); }
   const it = { t: e.t, ...(e.el ? { el: e.el } : {}), ...(e.fixed ?? {}), ...vals };
   if (typeof it.src === "string" && ["tphoto", "scholar", "pic"].includes(it.t)) { const r = ratioOf(it.src); if (r) it.ratio = r; else { console.error(`✘ لا أقرأ الصورة public/${it.src}`); process.exit(2); } }
-  const s = JSON.parse(read(f)); s.items.push(it); save(f, s); fixGeometry(f, s);
-  const n = JSON.parse(read(f)).items.findIndex((x) => JSON.stringify(x).startsWith(JSON.stringify({ t: it.t, ...(it.el ? { el: it.el } : {}) }).slice(0, -1)) && x.at === it.at);
-  console.log(`✔ أُضيف ${code} رقم ${n} عند ${it.at ?? it.from}ث${s.galleryRef ? " (المكان والمقاس من المعرض)" : ""}`);
+  const s = JSON.parse(read(f)); ensureIds(s); const id = newId(new Set(s.items.map((x) => x.id))); s.items.push({ id, ...it }); save(f, s); fixGeometry(f, s);
+  const n = JSON.parse(read(f)).items.findIndex((x) => x.id === id);
+  console.log(`✔ أُضيف ${code} #${id} (رقم ${n}) عند ${it.at ?? it.from}ث${s.galleryRef ? " (المكان والمقاس من المعرض)" : ""}`);
+  /* trial #42 (user 2026-11-18, rules review): an item in the first minute → show the first-minute line of the coverage check */
+  if ((it.at ?? it.from) < 60) { const r = spawnSync(process.execPath, ["tools/coverage_check.mjs", f], { encoding: "utf8" }); const line = String(r.stdout).split(/\r?\n/).find((l) => l.includes("الدقيقة الأولى")); if (line) console.log(line); }
 } else if (cmd === "items") {
-  const s = JSON.parse(read(specPath(args[0]))), [A, B] = (args[1] ?? "").split("-").map(Number);
+  const f = specPath(args[0]), s = JSON.parse(read(f)), [A, B] = (args[1] ?? "").split("-").map(Number);
+  if (ensureIds(s)) fs.writeFileSync(f, JSON.stringify(s, null, 1));   /* ids written once, order untouched, so the listed ids stay (user 2026-11-18, rules review) */
   const cat = catalog(), nm = (it) => ar(cat[label(it)] ?? {}) || label(it);   // the Arabic name, as under the screen in the Studio
-  s.items.forEach((it, i) => { const sp = span(it); if (args[1] && sp && (sp[1] < A || sp[0] > B)) return; console.log(`${i} · ${nm(it)} · ${sp ? sp.map((v) => v.toFixed(1)).join("–") : "—"}${it.only ? ` · ${it.only === "land" ? "عرضي فقط" : "طولي فقط"}` : ""} · ${textOf(it)}`); });
+  s.items.forEach((it, i) => { const sp = span(it); if (args[1] && sp && (sp[1] < A || sp[0] > B)) return; console.log(`${i} · #${it.id} · ${nm(it)} · ${sp ? sp.map((v) => v.toFixed(1)).join("–") : "—"}${it.only ? ` · ${it.only === "land" ? "عرضي فقط" : "طولي فقط"}` : ""} · ${textOf(it)}`); });
 } else if (cmd === "set") {
-  const [p, n, ...rest] = args, f = specPath(p), s = JSON.parse(read(f)), it = s.items[Number(n)];
-  if (!it) { console.error(`✘ لا عنصر رقم ${n}`); process.exit(2); }
+  const [p, n0, ...rest] = args, f = specPath(p), s = JSON.parse(read(f)); ensureIds(s); const n = at(s, n0), it = n == null ? null : s.items[n];
+  if (!it) { console.error(`✘ لا عنصر ${n0}`); process.exit(2); }
   const vals = kv(rest), bad = Object.keys(vals).filter((k) => NOT_CONTENT.has(k));
   if (bad.length) { console.error(`✘ لا يُضبط ${bad.join("، ")}: المكان والمقاس من المعرض`); process.exit(2); }
   Object.assign(it, vals);
   if (vals.src && ["tphoto", "scholar", "pic"].includes(it.t)) { const r = ratioOf(it.src); if (r) it.ratio = r; }
-  save(f, s); fixGeometry(f, s); console.log(`✔ عُدّل العنصر ${n} (${label(it)})`);
+  save(f, s); fixGeometry(f, s); console.log(`✔ عُدّل العنصر #${it.id} (${label(it)})`);
 } else if (cmd === "del") {
-  const [p, n] = args, f = specPath(p), s = JSON.parse(read(f)), it = s.items[Number(n)];
-  if (!it) { console.error(`✘ لا عنصر رقم ${n}`); process.exit(2); }
-  s.items.splice(Number(n), 1); save(f, s); console.log(`✔ حُذف العنصر ${n} (${label(it)})`);
+  const [p, n0] = args, f = specPath(p), s = JSON.parse(read(f)); ensureIds(s); const n = at(s, n0), it = n == null ? null : s.items[n];
+  if (!it) { console.error(`✘ لا عنصر ${n0}`); process.exit(2); }
+  s.items.splice(n, 1); save(f, s); console.log(`✔ حُذف العنصر #${it.id} (${label(it)})`);
 } else {
-  console.error("usage: node tools/el.mjs list [word] | show <code> | add <p> <code> at=… field=value … | items <p> [a-b] | set <p> <n> field=value … | del <p> <n>");
+  console.error("usage: node tools/el.mjs list [word] | show <code> | add <p> <code> at=… field=value … | items <p> [a-b] | set <p> <#id|n> field=value … | del <p> <#id|n>");
   process.exit(2);
 }

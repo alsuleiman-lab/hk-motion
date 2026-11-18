@@ -94,6 +94,18 @@ export function runAutoCleanup(verbose = true) {
     for (const d of fs.existsSync(sb) ? fs.readdirSync(sb) : []) if (d.toLowerCase().replace(/[-_]/g, "").startsWith(proj.toLowerCase().replace(/[-_]/g, ""))) hits.push(path.join(sb, d));
     const rw = path.join(root, "render_work", proj);
     if (fs.existsSync(rw)) hits.push(rw);
+    /* (user 2026-11-18: drive S was 89% full — 184 GB of leftovers) every stills bundle HARD-LINKS the whole public/, so a purged project's
+       videos stayed on disk through the bundles; they are caches rebuilt on demand → on approval every bundle and stills run untouched for an hour goes,
+       with the project's GPU-render frames, its pre-bumper copies and the old engines' outputs */
+    const idle = (p) => { try { const st = fs.statSync(p); if (Date.now() - st.mtimeMs < 3600e3) return false; if (!st.isDirectory()) return true;
+      const walk = (d) => fs.readdirSync(d).every((f) => { const q = path.join(d, f), t = fs.statSync(q); return Date.now() - t.mtimeMs >= 3600e3 && (!t.isDirectory() || walk(q)); }); return walk(p); } catch { return false; } };
+    const norm = (x) => x.toLowerCase().replace(/[-_ ]/g, ""), P = norm(proj);
+    for (const d of fs.existsSync(sb) ? fs.readdirSync(sb) : []) { const q = path.join(sb, d); if (!hits.includes(q) && idle(q)) hits.push(q); }
+    for (const d of fs.existsSync(sTmp) ? fs.readdirSync(sTmp) : []) {
+      const q = path.join(sTmp, d);
+      if ((/^run_stills_/.test(d) || d === "nvidia_out" || d === "hybrid_any") && idle(q)) hits.push(q);
+      if (d === "gpu_render" || d === "bumper_orig") for (const e of fs.readdirSync(q)) if (norm(e).includes(P)) hits.push(path.join(q, e));
+    }
     let pf = 0;
     for (const p of hits) pf += safeRemove(p);
     freed += pf;

@@ -155,7 +155,7 @@ export const PaperMap: React.FC<{
   const { t, k } = useStop();
   if (t < at || t > until) return null;
   const pop = clamp((t - at) / 0.35);
-  const full = full0 ?? (x <= 0 && y <= 0 && (w >= 1900 || h >= 1900)), zoomFrom = zf0 ?? (full ? Math.max(span0 * 4, 55) : 0);
+  const full = full0 ?? (atlas && x <= 0 && y <= 0 && (w >= 1900 || h >= 1900)),   /* (2026-11-18) the country atlas only: the torn-paper map (no atlas) keeps its approved card look */ zoomFrom = zf0 ?? (full ? Math.max(span0 * 4, 55) : 0);
   const z0 = clamp((t - at - zoomAt) / zoomDur), ze = zoomFrom > span0 ? z0 * z0 * (3 - 2 * z0) : 1;
   let center = center0, spanLat = zoomFrom > span0 ? Math.exp(Math.log(zoomFrom) + (Math.log(span0) - Math.log(zoomFrom)) * ze) : span0, highlight = hl0, pts = pts0, flag = flag0, flagP = ze;   /* zoom in log space: an even camera move */
   for (const m of [...moves].sort((a, b) => a.from - b.from)) {

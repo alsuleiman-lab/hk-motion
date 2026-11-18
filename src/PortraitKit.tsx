@@ -117,9 +117,11 @@ export const SheikhLayers: React.FC<{ cut: string; cams: Cam[]; zooms?: { from: 
 /* ───────── map types (PaperMap below; Natural Earth outlines in src/levantMap.ts) ───────── */
 import { LEVANT } from "./levantMap";
 import { WORLD } from "./worldMap";
+import { WORLD_ALL } from "./worldAllMap";
 import { ASIA } from "./asiaMap";
 // the paper atlas draws the Arab region + South/Central Asia (India and its neighbours, 2026-11-11)
-const ATLAS_LAND: Record<string, number[][][][]> = { ...ASIA, ...LEVANT };
+const ATLAS_LAND: Record<string, number[][][][]> = { ...WORLD_ALL, ...WORLD, ...ASIA, ...LEVANT };   /* (user 2026-11-18) every country of the world, the detailed sets on top: a moving map never shows a gap */
+const ATLAS_BOX: Record<string, [number, number, number, number]> = Object.fromEntries(Object.entries(ATLAS_LAND).map(([c, ps]) => { const q = ps.flat(2); return [c, [Math.min(...q.map((v) => v[0])), Math.min(...q.map((v) => v[1])), Math.max(...q.map((v) => v[0])), Math.max(...q.map((v) => v[1]))]]; }));
 import { BRAND } from "./brand";
 export type MapMove = { from: number; center?: [number, number]; spanLat?: number; highlight?: string[]; pts?: MapPt[]; flag?: boolean };
 export type MapPt = { name: string; lon: number; lat: number; at: number; down?: boolean };
@@ -141,7 +143,11 @@ export const PaperMap: React.FC<{
   /** (user 2026-11-18, rules review: «ترسمها مرة واحدة وتحركها إذا ذكرت دولة مجاورة أو مدينة دون إعادة رسم… علم الدولة على خريطتها، أما مع المدينة فبدون علم»)
    *  moves: later mentions of the same country, a neighbour or a city move THIS map (centre/span ease over 0.9 s); flag: the named country is FILLED with its flag (user 2026-11-18, Germany example) */
   moves?: MapMove[]; flag?: boolean;
-}> = ({ at, until, x, y, w, h, center: center0, spanLat: span0, highlight: hl0 = ["SYR"], highlightAt, geo, pts: pts0 = [], legs = [], carSrc = "collage/car.png", carW = 140, atlas = false, moves = [], flag: flag0 = false }) => {
+  /** (user 2026-11-18: «المفترض أنها تكون واسعة جداً، ولما تنتقل ما يظهر شيء من الخلفية، والدولة التي أتكلم عنها تظهر على يساري واضحة لا تختفي خلف جسدي»)
+   *  full: the map fills the whole frame (no tilt, no frame, no zoom-in, hard cut); default = it covers the frame from 0,0.
+   *  focus: where the centre lands, as fractions of the frame; default full landscape = the free side beside him [0.24, 0.5], full portrait = above his shoulders [0.5, 0.3] */
+  full?: boolean; focus?: [number, number];
+}> = ({ at, until, x, y, w, h, center: center0, spanLat: span0, highlight: hl0 = ["SYR"], highlightAt, geo, pts: pts0 = [], legs = [], carSrc = "collage/car.png", carW = 140, atlas = false, moves = [], flag: flag0 = false, full: full0, focus: focus0 }) => {
   const { t, k } = useStop();
   if (t < at || t > until) return null;
   const pop = clamp((t - at) / 0.35);
@@ -154,7 +160,10 @@ export const PaperMap: React.FC<{
   }
   const [clon, clat] = center, cosl = Math.cos((clat * Math.PI) / 180), pxPerLat = h / spanLat;
   const flagCode = flag && highlight[0] && (!highlightAt || t >= (highlightAt[highlight[0]] ?? 0)) ? highlight[0] : null;   /* the named country is filled with its flag; a city move has flag:false */
-  const P = (lon: number, lat: number): [number, number] => [w / 2 + (lon - clon) * cosl * pxPerLat, h / 2 - (lat - clat) * pxPerLat];
+  const full = full0 ?? (x <= 0 && y <= 0 && (w >= 1900 || h >= 1900)), focus = focus0 ?? (full ? (w > h ? [0.24, 0.5] : [0.5, 0.3]) : [0.5, 0.5]);
+  const P = (lon: number, lat: number): [number, number] => [w * focus[0] + (lon - clon) * cosl * pxPerLat, h * focus[1] - (lat - clat) * pxPerLat];
+  const lonL = clon - (w * focus[0]) / (cosl * pxPerLat) - 2, lonR = clon + (w * (1 - focus[0])) / (cosl * pxPerLat) + 2, latT = clat + (h * focus[1]) / pxPerLat + 2, latB = clat - (h * (1 - focus[1])) / pxPerLat - 2;
+  const seen = (c: string) => { const b = ATLAS_BOX[c]; return !b || (b[2] >= lonL && b[0] <= lonR && b[3] >= latB && b[1] <= latT); };
   const path = (poly: number[][][]) => poly.map((ring) => "M" + ring.map(([lo, la]) => P(lo, la).map((v) => v.toFixed(1)).join(",")).join("L") + "Z").join("");
   const car = legs.map((l) => {
     const g = clamp((t - l.at) / (l.dur ?? 1.2));
@@ -164,7 +173,7 @@ export const PaperMap: React.FC<{
     return { l, e, px: u * u * x1 + 2 * u * e * mx + e * e * x2, py: u * u * y1 + 2 * u * e * my + e * e * y2, dx: x2 - x1, x1, y1, x2, y2, mx, my };
   });
   return (
-    <div style={{ ...paperCard(x, y, w, h, pop, -2.5), opacity: Math.min(1, pop * 2.5) /* (user 2026-11-17, 4:42 of «اعتقالات الدعاة»: a dissolving map over his cut-out = double image) hard exit, no opacity transition */ }}>
+    <div style={full ? { position: "absolute", left: x, top: y, width: w, height: h, overflow: "hidden", background: "#8fb0c2" } : { ...paperCard(x, y, w, h, pop, -2.5), opacity: Math.min(1, pop * 2.5) /* (user 2026-11-17, 4:42 of «اعتقالات الدعاة»: a dissolving map over his cut-out = double image) hard exit, no opacity transition */ }}>
       <Grain />
       <svg width={w} height={h} style={{ position: "absolute", left: 0, top: 0 }}>
         <defs>
@@ -180,15 +189,15 @@ export const PaperMap: React.FC<{
           <g>
             <rect x={0} y={0} width={w} height={h} fill="#8fb0c2" />
             <rect x={0} y={0} width={w} height={h} fill="url(#seaglow)" />
-            {Object.entries(ATLAS_LAND).map(([code, polys]) => { const on = highlight.includes(code) && (!highlightAt || t >= (highlightAt[code] ?? 0)); return polys.map((poly, i) => <path key={code + i} d={path(poly)} fill={on && code === flagCode ? `url(#flagfill-${code})` : on ? (code === "LBN" ? "#f3d27a" : "#e9b765") : "#e7dcc2"} stroke={on ? "#4a2f17" : "#8a7352"} strokeWidth={on ? 3.4 : 1.6} strokeLinejoin="round" />); })}
-            {Object.entries(ATLAS_LAND).map(([code, polys]) => {
+            {Object.entries(ATLAS_LAND).filter(([code]) => seen(code)).map(([code, polys]) => { const on = highlight.includes(code) && (!highlightAt || t >= (highlightAt[code] ?? 0)); return polys.map((poly, i) => <path key={code + i} d={path(poly)} fill={on && code === flagCode ? `url(#flagfill-${code})` : on ? (code === "LBN" ? "#f3d27a" : "#e9b765") : "#e7dcc2"} stroke={on ? "#4a2f17" : "#8a7352"} strokeWidth={on ? 3.4 : 1.6} strokeLinejoin="round" />); })}
+            {Object.entries(ATLAS_LAND).filter(([code]) => seen(code)).map(([code, polys]) => {
               const name = ATLAS_NAMES[code]; if (!name) return null;
               const big = polys.reduce((a, b) => (b[0].length > a[0].length ? b : a)), xs = big[0].map((q) => q[0]), ys = big[0].map((q) => q[1]);
               const [lx, ly] = P((Math.min(...xs) + Math.max(...xs)) / 2 + (ATLAS_DX[code] ?? 0), (Math.min(...ys) + Math.max(...ys)) / 2 + (ATLAS_DY[code] ?? 0)), on = highlight.includes(code);
               if (lx < 20 || lx > w - 20 || ly < 20 || ly > h - 20) return null;
               return <text key={"nm" + code} x={lx} y={ly} textAnchor="middle" fontFamily={kufiF} fontWeight={800} fontSize={on ? 58 : 34} fill={on ? "#3a220d" : "#6e5a3a"} stroke={on ? "#fff6dc" : "#f1e8d2"} strokeWidth={on ? 7 : 5} paintOrder="stroke" direction="rtl">{name}</text>;
             })}
-            <rect x={6} y={6} width={w - 12} height={h - 12} fill="none" stroke="#4a2f17" strokeWidth={5} />
+            {full ? null : <rect x={6} y={6} width={w - 12} height={h - 12} fill="none" stroke="#4a2f17" strokeWidth={5} />}
           </g>
         ) : (
           <>{Object.entries(geo === "world" ? WORLD : LEVANT).map(([code, polys]) => polys.map((poly, i) => <path key={code + i} d={path(poly)} fill={code === flagCode ? `url(#flagfill-${code})` : highlight.includes(code) && (!highlightAt || t >= (highlightAt[code] ?? 0)) ? "#f4ead2" : "#dcc296"} stroke={highlight.includes(code) ? "#fffaf0" : "#efe0bf"} strokeWidth={highlight.includes(code) ? 5 : 3} />))}</>

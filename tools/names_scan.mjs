@@ -92,12 +92,18 @@ for (const row of ("SYR:TUR,IRQ,JOR,LBN,ISR,PSX IRQ:TUR,IRN,KWT,SAU,JOR LBN:ISR 
   const [a, bs] = row.split(":");
   for (const b of bs.split(",")) { for (const [x, y] of [[a, b], [b, a]]) { if (!NB.has(x)) NB.set(x, new Set()); NB.get(x).add(y); } }
 }
+let _boxes = null;   /* every country's [lonMin, latMin, lonMax, latMax] from the atlas data (src/worldAllMap.ts, Natural Earth 50m) */
+const COUNTRY_BOX = () => _boxes ??= (() => { try { const t = fs.readFileSync(new URL("../src/worldAllMap.ts", import.meta.url), "utf8"); const j = JSON.parse(t.slice(t.indexOf("= ") + 2, t.lastIndexOf(";")));
+  return Object.fromEntries(Object.entries(j).map(([c, ps]) => { const q = ps.reduce((m, p) => (p[0].length > m[0].length ? p : m))[0];   /* the main land only (not far islands or overseas parts) */ return [c, [Math.min(...q.map((v) => v[0])), Math.min(...q.map((v) => v[1])), Math.max(...q.map((v) => v[0])), Math.max(...q.map((v) => v[1]))]]; })); } catch { return {}; } })();
 const view = (hs) => {
   const codes = [...new Set(hs.map((h) => h.iso3).filter(Boolean))];
   const pts = hs.filter((h) => h.kind === "city").map((h) => ({ name: h.said.replace(/^(و|ف)?(ب|ل)?/, ""), lon: +h.lon.toFixed(2), lat: +h.lat.toFixed(2), at: h.at }));
-  const all = hs.map((h) => [h.lon, h.lat]), lons = all.map((a) => a[0]), lats = all.map((a) => a[1]);
+  /* (user 2026-11-18: «المفترض أنها تكون واسعة جداً… والدولة التي أتكلم عنها تظهر على يساري واضحة لا تختفي خلف جسدي») a named country counts with its whole outline,
+     and the span is wide enough for it to fit the free side beside him (landscape: ≤ 30 % of the width, ≤ 60 % of the height; the engine puts the centre there) */
+  const all = hs.flatMap((h) => { const b = h.kind === "country" && h.iso3 ? COUNTRY_BOX()[h.iso3] : null; return b ? [[b[0], b[1]], [b[2], b[3]]] : [[h.lon, h.lat]]; }), lons = all.map((a) => a[0]), lats = all.map((a) => a[1]);
   const center = [+((Math.min(...lons) + Math.max(...lons)) / 2).toFixed(1), +((Math.min(...lats) + Math.max(...lats)) / 2).toFixed(1)];
-  const spanLat = +Math.min(60, Math.max(8, (Math.max(...lats) - Math.min(...lats)) * 1.8, (Math.max(...lons) - Math.min(...lons)) * 1.1)).toFixed(1);
+  const cosl = Math.cos((center[1] * Math.PI) / 180), hasCountry = hs.some((h) => h.kind === "country");
+  const spanLat = +Math.min(70, Math.max(hasCountry ? 14 : 5, (Math.max(...lats) - Math.min(...lats)) * 1.67, (Math.max(...lons) - Math.min(...lons)) * cosl * 1.9)).toFixed(1);
   return { codes, pts, center, spanLat, highlightAt: Object.fromEntries(codes.map((c) => [c, hs.find((h) => h.iso3 === c).at])), flag: hs.some((h) => h.kind === "country") };
 };
 

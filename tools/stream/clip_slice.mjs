@@ -41,7 +41,12 @@ const parentVideo = process.env.SLICE_VIDEO && fs.existsSync(process.env.SLICE_V
 if (!parentVideo) { console.error(`✘ لا قص لـ${P} بعد`); process.exit(1); }
 const cutS = path.join("public", `${id}_cut_s.mp4`); slice(parentVideo, cutS, true);
 for (const s of ["cut", "src"]) { const f = path.join("public", `${id}_${s}.mp4`); try { fs.rmSync(f); } catch { /* new */ } try { fs.linkSync(cutS, f); } catch { fs.copyFileSync(cutS, f); } }
-fs.writeFileSync(path.join("public", `${id}_map.json`), JSON.stringify({ segments: [{ a: 0, b: D, n: 0 }], duration: D }));
+/* (2026-11-18) the child map keeps the parent's cut-model segments (clip / speech types) on the child timeline, so the audio gate measures the slice with
+   the ONE cut rule (word gaps, clip windows exempt) instead of raw file silence — a reel sliced from a cut episode failed on pauses the episode passed */
+const parentMap = rd(path.join("public", `${P}_map.json`)), childSegs = [];
+for (const g of parentMap.segments) { const gs = g.n, ge = g.n + (g.b - g.a); for (let k = 0; k < pieces.length; k++) { const lo = Math.max(gs, pieces[k][0]), hi = Math.min(ge, pieces[k][1]); if (hi - lo > 0.02) { const c = +(lo - pieces[k][0] + off[k]).toFixed(4); childSegs.push({ a: c, b: +(c + hi - lo).toFixed(4), n: c, ...(g.type ? { type: g.type } : {}) }); } } }
+childSegs.sort((x, y) => x.n - y.n);
+fs.writeFileSync(path.join("public", `${id}_map.json`), JSON.stringify(parentMap.model === "cut_model" && childSegs.length ? { segments: childSegs, duration: D, model: "cut_model" } : { segments: [{ a: 0, b: D, n: 0 }], duration: D }));
 // SLICE_AUDIO_CHECK=1: صوت للأب لا يطابق طول خريطته (قديم من قبل قص جزء) لا يُقتطع، فلا تنحرف الشريحة
 const parentD = rd(path.join("public", `${P}_map.json`)).duration;
 const staleWav = (f) => { if (process.env.SLICE_AUDIO_CHECK !== "1" || !parentD) return false; const r = spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], { encoding: "utf8", windowsHide: true }); const d = Number(String(r.stdout).trim()); if (Number.isFinite(d) && Math.abs(d - parentD) > 0.15) { console.log(`⚠ ${path.basename(f)} (${d.toFixed(2)}ث) لا يطابق خريطة ${P} (${parentD}ث): لم يُقتطع`); return true; } return false; };
@@ -55,6 +60,18 @@ for (const f of ["cut_words_large.json", "words.json", "words_vad.json"]) fs.wri
 fs.writeFileSync(path.join(T, "cut_transcript.txt"), cw.reduce((o, w, i) => { if (i % 12 === 0) o.push(`[${w.s.toFixed(1)}] `); o[o.length - 1] += w.w + " "; return o; }, []).join("\n") + "\n");
 // 4) كشف صوتي جديد على الشريحة (ثوانٍ) ثم تفريغ موزَّع عليه، وإعدادات التجهيز
 sh(PY, ["tools/vad_segments.py", path.join(T, "a16k.wav"), path.join(T, "vad.json"), "--padstart", "100", "--padend", "180", "--minsil", "150"]);
+/* (2026-11-18) with a cut-model parent the child's speech stretches are the PARENT's (source → parent cut → child), so the one cut rule sees the same
+   untranscribed sounds the parent's plan saw; a fresh detection on the slice split them across the joins («cut inside a word» that the episode never had) */
+if (parentMap.model === "cut_model") {
+  try {
+    const pv = rd(path.join(TP, "vad.json")).speech ?? [], sp = [];
+    for (const [s0, e0] of pv) for (const g of parentMap.segments) { const lo = Math.max(s0, g.a), hi = Math.min(e0, g.b); if (hi - lo <= 0.02) continue;
+      const c0 = g.n + (lo - g.a), c1 = g.n + (hi - g.a);
+      for (let k = 0; k < pieces.length; k++) { const l2 = Math.max(c0, pieces[k][0]), h2 = Math.min(c1, pieces[k][1]); if (h2 - l2 > 0.02) sp.push([+(l2 - pieces[k][0] + off[k]).toFixed(3), +(h2 - pieces[k][0] + off[k]).toFixed(3)]); } }
+    sp.sort((x, y) => x[0] - y[0]);
+    const vj = rd(path.join(T, "vad.json")); vj.speech = sp; fs.writeFileSync(path.join(T, "vad.json"), JSON.stringify(vj));
+  } catch (e) { console.log(`⚠ parent speech stretches not mapped: ${e.message}`); }
+}
 const vad = rd(path.join(T, "vad.json")).speech;
 const tr = vad.map(([s, e], i) => { const ws = cw.filter((w) => (w.s + w.e) / 2 >= s - 0.05 && (w.s + w.e) / 2 <= e + 0.05); return { i, s, e, text: ws.map((w) => w.w).join(" "), words: ws }; });
 fs.writeFileSync(path.join(T, "tr_vad.json"), JSON.stringify(tr));

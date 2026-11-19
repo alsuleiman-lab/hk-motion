@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Img, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { HybridHost, HybridBg, VSlot } from "../hybrid/Slot";
 import { ff, useFonts } from "./fonts";
 import { clamp01, easeInOut, easeOut, lerp } from "./motion";
@@ -93,10 +93,12 @@ export const ActiveSpeaker: React.FC = () => {
   const t = useCurrentFrame() / fps;
   const [x, y, w, h] = frameBox(t);
   /* قلب البطاقة: الصورة تضيق حتى تختفي، ويظهر ظهرها (صورة شارحة) ثم تعود الصورة */
-  const flipS = t < 5.6 ? 1 : t < 6.4 ? 1 - (t - 5.6) / 0.8 : t < 8.0 ? 0 : t < 8.8 ? (t - 8.0) / 0.8 : 1;
-  const backS = t < 6.4 ? 0 : t < 7.2 ? (t - 6.4) / 0.8 : t < 8.0 ? 1 : t < 8.8 ? 1 - (t - 8.0) / 0.8 : 0;
+  /* قلب واقعي: الصورة ثابتة (لقطة من لحظة القلب) تدور ٠ إلى ١٨٠ ثم تعود، مع منظور ثلاثي الأبعاد */
+  const flipping = t >= 5.6 && t < 8.8;
+  const flipAng = t < 5.6 ? 0 : t < 6.4 ? (180 * (t - 5.6)) / 0.8 : t < 8.0 ? 180 : t < 8.8 ? 180 + (180 * (t - 8.0)) / 0.8 : 360;
+
   /* ميلان خفيف أثناء القلب يعطي إحساس البطاقة في الفراغ */
-  const skewA = t < 6.4 ? (1 - flipS) * 5 : t < 8.0 ? 0 : (1 - flipS) * -5;
+
   /* الخلفية تتحول من الفيديو إلى السادة بعد أن تنزاح الصورة */
   const plain = t >= 1.2;
   return (
@@ -105,24 +107,31 @@ export const ActiveSpeaker: React.FC = () => {
         <AbsoluteFill style={{ background: C.cream }} />
       </HybridBg>
       {plain && <AbsoluteFill style={{ background: C.cream, backgroundImage: "linear-gradient(rgba(42,28,31,.06) 2px, transparent 2px), linear-gradient(90deg, rgba(42,28,31,.06) 2px, transparent 2px)", backgroundSize: "54px 54px" }} />}
-      {w < 1000 && <div style={{ position: "absolute", left: x - 14, top: y - 14, width: w + 28, height: h + 28, background: "#fffdf6", borderRadius: 26, boxShadow: "0 18px 34px rgba(0,0,0,.28)", transform: `scaleX(${flipS}) skewY(${skewA}deg)`, transformOrigin: "50% 50%" }} />}
-      <VSlot src="dubkmr/src.mp4" w={w} h={h} radius={w > 1000 ? 0 : 26} vx={0} vy={0} vw={w} vh={h} style={{ left: x, top: y, transform: `scaleX(${flipS}) skewY(${skewA}deg)`, transformOrigin: "50% 50%" }} grow={0} />
-      {backS > 0.001 && (
-        <div style={{ position: "absolute", left: x, top: y, width: w, height: h, background: "#fffdf6", borderRadius: 26, boxSizing: "border-box", boxShadow: "0 18px 34px rgba(0,0,0,.28)", transform: `scaleX(${backS}) skewY(${(1 - backS) * -5}deg)`, transformOrigin: "50% 50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <svg width="88%" height="80%" viewBox="0 0 400 600">
-            <rect x="30" y="40" width="340" height="110" rx="18" fill="none" stroke={C.maroon} strokeWidth="8" />
-            <text x="200" y="110" textAnchor="middle" fontFamily={ff("ruqaa")} fontSize="44" fill={C.maroon}>الوصف بالكلام</text>
-            <line x1="200" y1="160" x2="200" y2="260" stroke={C.teal} strokeWidth="10" strokeLinecap="round" />
-            <polygon points="170,250 230,250 200,300" fill={C.teal} />
-            <rect x="30" y="310" width="340" height="110" rx="18" fill="none" stroke={C.maroon} strokeWidth="8" />
-            <text x="200" y="380" textAnchor="middle" fontFamily={ff("ruqaa")} fontSize="44" fill={C.maroon}>الحركة</text>
-            <line x1="200" y1="430" x2="200" y2="500" stroke={C.teal} strokeWidth="10" strokeLinecap="round" />
-            <polygon points="174,480 226,480 200,520" fill={C.teal} />
-            <text x="200" y="590" textAnchor="middle" fontFamily={ff("rakkas")} fontSize="64" fill={C.teal}>موشن</text>
-          </svg>
+      {w < 1000 && !flipping && <div style={{ position: "absolute", left: x - 14, top: y - 14, width: w + 28, height: h + 28, background: "#fffdf6", borderRadius: 26, boxShadow: "0 18px 34px rgba(0,0,0,.28)", transformOrigin: "50% 50%" }} />}
+      {!flipping && <VSlot src="dubkmr/src.mp4" w={w} h={h} radius={w > 1000 ? 0 : 26} vx={0} vy={0} vw={w} vh={h} style={{ left: x, top: y, transformOrigin: "50% 50%" }} grow={0} />}
+
+      {flipping && (
+        <div style={{ position: "absolute", left: x, top: y, width: w, height: h, perspective: 1600 }}>
+          <div style={{ position: "absolute", inset: 0, transformStyle: "preserve-3d", transform: `rotateY(${flipAng}deg)`, transformOrigin: "50% 50%" }}>
+            <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", borderRadius: 26, overflow: "hidden", boxShadow: "0 18px 34px rgba(0,0,0,.35)" }}>
+              <Img src={staticFile("dubkmr/flip_still.jpg")} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            </div>
+            <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", transform: "rotateY(180deg)", borderRadius: 26, background: "#fffdf6", boxShadow: "0 18px 34px rgba(0,0,0,.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="88%" height="80%" viewBox="0 0 400 600">
+                <rect x="30" y="40" width="340" height="110" rx="18" fill="none" stroke={C.maroon} strokeWidth="8" />
+                <text x="200" y="110" textAnchor="middle" fontFamily={ff("ruqaa")} fontSize="44" fill={C.maroon}>الوصف بالكلام</text>
+                <line x1="200" y1="160" x2="200" y2="260" stroke={C.teal} strokeWidth="10" strokeLinecap="round" />
+                <polygon points="170,250 230,250 200,300" fill={C.teal} />
+                <rect x="30" y="310" width="340" height="110" rx="18" fill="none" stroke={C.maroon} strokeWidth="8" />
+                <text x="200" y="380" textAnchor="middle" fontFamily={ff("ruqaa")} fontSize="44" fill={C.maroon}>الحركة</text>
+                <line x1="200" y1="430" x2="200" y2="500" stroke={C.teal} strokeWidth="10" strokeLinecap="round" />
+                <polygon points="174,480 226,480 200,520" fill={C.teal} />
+                <text x="200" y="590" textAnchor="middle" fontFamily={ff("rakkas")} fontSize="64" fill={C.teal}>موشن</text>
+              </svg>
+            </div>
+          </div>
         </div>
       )}
-
       {/* المرحلة ١: فوق الصدر وجانب الرأس، والصورة كاملة */}
       <Word at={0.1} out={1.25} x={0} y={40} size={120} text="ما راح" color={C.cream} shadow={C.maroon} />
       <Word at={0.35} out={1.25} x={0} y={1260} size={240} text="تصدق" color={C.cream} shadow={C.maroon} />

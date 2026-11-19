@@ -354,10 +354,26 @@ STREAMS = {}
 SLOCK = threading.Lock()
 
 
+EDL = {}   # (user 2026-11-19) heavy cut file -> {src, map, smooth}: the cut read straight from the original through its cut list (tools/gpu/edl_stream.py), set by tools/gpu_render.mjs
+if os.environ.get("HK_EDL_MAP"):
+    try:
+        for _k, _v in json.load(open(os.environ["HK_EDL_MAP"], encoding="utf-8")).items():
+            EDL[os.path.normcase(os.path.abspath(_k))] = _v
+        print(f"EDL: {len(EDL)} cut video(s) read from the original through the cut list", flush=True)
+    except Exception as _e:
+        print(f"WARNING: HK_EDL_MAP not read: {_e}", flush=True)
+
+
 def stream_for(path, key):
     with SLOCK:
         k = (path, key)
         if k not in STREAMS:
+            ed = EDL.get(os.path.normcase(os.path.abspath(path)))
+            if ed:
+                sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "gpu"))
+                from edl_stream import EdlStream
+                STREAMS[k] = EdlStream(ed["src"], ed["map"], nv12_to_rgb, smooth=ed.get("smooth", True))
+                return STREAMS[k]
             probe(path)
             # NVDEC straight to CUDA only for the codecs checked frame-exact against the hybrid's reader (tools/gpu/check_decoder.py, seek_truth.py):
             # h264 / av1 by SimpleDecoder (hevc not checked yet); VP9 by tools/gpu/nvseq.py (SimpleDecoder was one frame ahead and drifting on VP9

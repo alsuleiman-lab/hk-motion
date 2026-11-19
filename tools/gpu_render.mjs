@@ -25,7 +25,8 @@ process.chdir(root);
 try { os.setPriority(process.pid, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch {} // every child (Electron, its GPU process, python, ffmpeg) inherits BelowNormal
 const SMALL_JOB = arg("frames", false) !== false || (arg("start", false) !== false && arg("end", false) !== false && Number(arg("end", 0)) - Number(arg("start", 0)) <= 900);   // a short span / scattered frames may run beside another render (user 2026-11-15)
 acquireRenderLock("gpu " + compId, { small: SMALL_JOB });
-(await import("./cut_lazy.mjs")).ensureCutForComp(compId);   // the cut video matches the cut list (tools/cut_lazy.mjs)   // a FULL render is still one at a time, like every other render entry point
+const EDL = (await import("./cut_lazy.mjs")).edlSetup(compId);   // a tracked project is read from the original through its cut list (tools/gpu/edl_stream.py); any other: the cut video is made current first (tools/cut_lazy.mjs)
+if (EDL) process.env.HK_EDL_MAP = EDL.file;   // a FULL render is still one at a time, like every other render entry point
 const out = path.resolve(root, arg("out", `render_work/gpu/${compId}.mp4`));
 const logProgress = startMonitor(path.join(root, ".tmp", "render_logs", `gpu_render_${compId}${process.argv.includes("--frames") ? "_frames" : ""}.log`), path.basename(out, path.extname(out)));   /* a frames run never overwrites the video render's log */
 const work = path.join(root, ".tmp/gpu_render/work", compId);
@@ -247,7 +248,7 @@ segs.forEach((o, k) => {
   const v = o.vols.reduce((a, b) => a + b, 0) / o.vols.length;
   if (Math.max(...o.vols) - Math.min(...o.vols) > 0.02) log(`audio ${o.id}: volume varies (${Math.min(...o.vols).toFixed(2)}–${Math.max(...o.vols).toFixed(2)}), using the mean`);
   const dur = (o.last - o.startRel + 1) / FPS, ms = Math.round((o.startRel / FPS) * 1000);
-  const sp = toPath(o.src); if (!uniq.has(sp)) { uniq.set(sp, { idx: uniq.size, n: 0 }); inputs.push("-i", sp); } const u = uniq.get(sp); o.inLabel = `u${u.idx}_${u.n++}`;
+  const sp0 = toPath(o.src), sp = EDL?.audio && path.resolve(sp0).toLowerCase() === path.resolve(EDL.heavy).toLowerCase() ? EDL.audio : sp0; if (!uniq.has(sp)) { uniq.set(sp, { idx: uniq.size, n: 0 }); inputs.push("-i", sp); } const u = uniq.get(sp); o.inLabel = `u${u.idx}_${u.n++}`;
   parts.push(`[${o.inLabel}]atrim=start=${(o.trim / FPS).toFixed(4)}:duration=${(dur * o.rate).toFixed(4)},asetpts=PTS-STARTPTS${o.rate !== 1 ? `,atempo=${o.rate}` : ""},volume=${v.toFixed(4)},adelay=${ms}:all=1[a${k}]`);
   mixIn.push(`[a${k}]`);
 });

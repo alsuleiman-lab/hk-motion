@@ -106,6 +106,23 @@ export const isStaleHeavy = (rel) => {
   const s = status(m[1]); return s === "video" || s === "audio";
 };
 
+/** THE EXPORT FROM THE ORIGINAL (phase 2): for a project the lazy cut tracks, the GPU renderer reads the cut straight from the original through the cut list
+ *  (tools/gpu/edl_stream.py), so no cut video is built for it at all. Writes the registry the compositor reads (env HK_EDL_MAP) and returns {p, file, heavy, audio}; the audio of the cut comes
+ *  from .tmp/<p>/cut_audio.wav. Returns null (after `ensureCut`, the old way) for an untracked project, HK_EDL=0, or a source codec NVDEC reads differently from the build. */
+export const edlSetup = (comp) => {
+  const p = projectOf(comp); if (!p) return null;
+  const i = info(p), st = status(p);
+  const ok = process.env.HK_EDL !== "0" && st !== "legacy" && fs.existsSync(i.src) && fs.existsSync(i.mapF) && fs.existsSync(i.audio);
+  const codec = ok ? spawnSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name", "-of", "csv=p=0", i.src], { encoding: "utf8", windowsHide: true }).stdout.trim() : "";
+  if (!ok || !["h264", "hevc", "av1"].includes(codec)) { ensureCut(p); return null; }
+  const file = path.join(i.T, "edl_map.json");
+  fs.writeFileSync(file, JSON.stringify({ [i.heavy]: { src: i.src, map: i.mapF, smooth: process.env.HK_SMOOTH !== "0" } }));
+  const frames = Math.round(i.spec?.frames ?? 0), segs = rd(i.mapF, { segments: [] }).segments, tot = segs.reduce((s, x) => s + x.b - x.a, 0) * 30;
+  if (frames && Math.abs(tot - frames) > 3) console.error(`cut_lazy: ⚠ the cut list is ${tot.toFixed(0)} frames but the spec says ${frames}`);
+  console.log(`cut_lazy: ${p} is exported from the original through the cut list (no cut video is built; the sound is the cut audio)`);
+  return { p, file, heavy: i.heavy, audio: i.audio };
+};
+
 /** a composition id (Studio/render name like `Jordan-Arrests-Both`) → the project whose spec exists, or null */
 export const projectOf = (comp) => {
   const base = String(comp ?? "").replace(/-(Both|BothV|L)$/i, "").toLowerCase();

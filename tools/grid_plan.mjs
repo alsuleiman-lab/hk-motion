@@ -27,7 +27,7 @@ const zoneAt = (t, o) => (zoneOf ??= faceZoner({ ...spec, psplits: [...(spec.psp
 let refMoved = 0;
 const setSlot = (i, o, n) => { const it = raw.items[i]; if (!it || it.slot?.[o] === n) return; it.slot = { ...(it.slot ?? {}), [o]: n }; refMoved++; };
 // the landscape title bar (src/TitleBar.tsx): right 34, bottom 24, its width follows the title (380–900), ≈ 110 px with the credit line under it — nothing may sit under it
-const TITLE_BAR = [Math.round(1920 - 34 - Math.min(900, Math.max(380, String(spec.title ?? "").length * 14 + 180))), 1080 - 24 - 110, 1886, 1056];
+const TITLE_BAR = [Math.round(1920 - 34 - Math.min(900, Math.max(380, String(spec.title ?? "").length * 14 + 180))), 1080 - 24 - 110 - (spec.titleSub ? 22 : 0), 1886, 1056];
 // each element belongs to ONE screen mode (user 2026-10-31; data/elements_lab.json `mode`): a half-screen element (his key word, the opponent's words)
 // used while the screen is not split is an error — e.g. the key-word chip over his whole frame (allah_taht 4:22, «لماذا يُستخدم هذا في وضع الشاشة الكاملة؟»)
 const LAB_MODE = Object.fromEntries(JSON.parse(fs.readFileSync(path.join("data", "elements_lab.json"), "utf8")).map((m) => [m.id, m]));
@@ -189,7 +189,7 @@ const md = [`# الشبكة — ${spec.id}`, ""];
 let bad = 0, moved = 0;
 for (const o of orients) {
   const grid = G[o], res = {}, fails = [], offGrid = [], rows = [];
-  const items = spec.items.map((it, i) => ({ it, i, s: spanOf(it), k: it.t === "verse" && it.full ? "exclusive" : o === "port" && it.t === "scraps" && spec.captions?.words?.length ? "ignore" : kindOf[it.t] ?? "photo" }))
+  const items = spec.items.map((it, i) => ({ it, i, s: spanOf(it), k: it.t === "verse" && it.full ? "exclusive" : o === "port" && it.t === "scraps" && spec.captions?.words?.length ? "ignore" : o === "port" && ((it.t === "pick" && !PICK_FULL.has(it.el)) || (it.t === "note" && (it.phrases?.length || it.way !== "card"))) ? "ignore" /* (2026-11-18) a portrait pick IS the lower-half panel of its own zone (engine pickPortBoard): no grid slot to find */ : kindOf[it.t] ?? "photo" }))
     .filter((x) => x.s && x.k !== "ignore" && !(x.it.t === "rows" && x.it.pin && o === "port") && !(x.it.only && x.it.only !== o) && !(o === "land" && x.it.land?.skip) && !(o === "land" && x.it.t === "phone"))
     .sort((a, b) => a.s[0] - b.s[0]);
   const big = items.filter((x) => x.k === "exclusive" || x.k === "solo");

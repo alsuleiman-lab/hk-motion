@@ -13,7 +13,12 @@ import { HYL, HyLayer, VSlot } from "./hybrid/Slot";
  * under the original's background shapes (no plain background).
  * A source is either a whole video (`src`) or a source-pixel column of the baked split (`src` + `x`/`w`).
  */
-export type DebateSrc = { src: string; x?: number; w?: number; y?: number; h?: number; aspect?: number; blur?: number; t0?: number };   /* t0: an added clip file plays from its own start when its window opens (as in the main tree, 2026-11-16) */
+/** `t0` = the second the window starts: an ADDED clip file (not the whole cut) plays from its own start when its window opens (user 2026-11-16: the added Tom/Sabah videos stood still on the last frame because their time ran with the whole video's clock) */
+/** `marks` (user 2026-11-19: «الحديث الذي أطالعه لا تكتبه مرة أخرى، أشّر على الكلام الذي فيه»): the yellow marker over the text he reads on the shown page, crop-relative px, sweeping right to left from his word */
+export type DebateMark = { at: number; x: number; y: number; w: number; h: number; dur?: number };
+/** `paper` (user 2026-11-19, «ضع ورقة بدل اليهودي واكتب الحسابات عليها»): between `from` and `to` the window shows a sheet of paper instead of the video; each line has an optional small label and `parts` that are written one after another (right to left) at their second; a part with `tone: "mark"` is the result */
+export type DebatePaper = { from: number; to: number; lines: { label?: string; labelAt?: number; parts: { at: number; text: string; tone?: "mark" | "step" }[] }[] };
+export type DebateSrc = { src: string; x?: number; w?: number; y?: number; h?: number; aspect?: number; blur?: number; t0?: number; marks?: DebateMark[]; paper?: DebatePaper };
 export type DebateLayoutName = "dossier" | "dossierBig" | "dossierPair" | "blocks";
 type Props = { main: DebateSrc; guest: DebateSrc; guestName?: string; title?: string; url?: string; at?: number; behind?: React.ReactNode; gaps?: { from: number; to: number }[] };
 
@@ -53,7 +58,75 @@ const UnderPicture: React.FC<{ s: DebateSrc; w: number; h: number; o: number; c:
   return b > a && d > cT ? <div style={{ position: "absolute", left: left + a, top: top + cT, width: b - a, height: d - cT, background: c }} /> : null;
 };
 /** the video whole inside its 4:3 window: a whole video is contained; a column of the baked split is centred at full height */
+const PageMarks: React.FC<{ s: DebateSrc; w: number; h: number; o: number }> = ({ s, w, h, o }) => {
+  const t = useCurrentFrame() / 30;
+  if (!s.marks?.length || s.w === undefined) return null;
+  const r = feedRect(s, w, h, o), k = r.BW / s.w;
+  const ms = [...s.marks].sort((a, b) => a.at - b.at);
+  return <>{ms.map((m, i) => {
+    const p0 = Math.max(0, Math.min(1, (t - m.at) / (m.dur ?? 0.45))), end = ms[i + 1] ? ms[i + 1].at : m.at + 4, fade = Math.max(0, Math.min(1, (end + 0.2 - t) / 0.3)), p = p0 * p0 * (3 - 2 * p0) * fade;   /* only the line he is reading is marked: it fades as the next one starts */
+    if (p <= 0) return null;
+    return <div key={i} style={{ position: "absolute", left: r.L + m.x * k, top: r.T + m.y * k, width: m.w * k, height: m.h * k, borderRadius: 8, background: "rgba(255,206,0,.42)", boxShadow: "0 0 0 2px rgba(255,160,0,.85), 0 0 24px rgba(255,200,0,.55)", clipPath: `inset(-30px 0 -30px ${(1 - p) * 100}%)` }} />;
+  })}</>;
+};
+const wipe = (t: number, at: number, dur = 0.5) => { const p = Math.max(0, Math.min(1, (t - at) / dur)); return p * p * (3 - 2 * p); };
+const CalcPaper: React.FC<{ p: DebatePaper; w: number; h: number }> = ({ p, w, h }) => {
+  const t = useCurrentFrame() / 30, fs = Math.round(Math.min(45, w * 0.105)), lh = Math.round(fs * 1.28);
+  const row = (key: string, shown: boolean, text: string, at: number, color: string, size: number, weight = 800) => (
+    <div key={key} style={{ height: Math.round(size * 1.3), lineHeight: 1.3, whiteSpace: "nowrap" }}>
+      {shown ? <span dir="rtl" style={{ unicodeBidi: "isolate", display: "inline-block", fontFamily: kufiF, fontWeight: weight, fontSize: size, color, clipPath: `inset(-8px 0 -8px ${(1 - wipe(t, at)) * 100}%)` }}>{text}</span> : null}
+    </div>
+  );
+  return (
+    <div style={{ position: "absolute", inset: 0, background: BRAND.paper, direction: "rtl", overflow: "hidden", backgroundImage: `repeating-linear-gradient(0deg, transparent 0 ${lh - 1}px, ${alpha(BRAND.ink, 0.1)} ${lh - 1}px ${lh}px)` }}>
+      <div style={{ position: "absolute", right: Math.round(w * 0.07), top: 0, bottom: 0, width: 3, background: alpha(BRAND.mark, 0.55) }} />
+      <div style={{ position: "absolute", left: Math.round(w * 0.04), right: Math.round(w * 0.13), top: Math.round(h * 0.035) }}>
+        {p.lines.map((ln, i) => {
+          const mains = ln.parts.filter((q) => !q.tone), marks = ln.parts.filter((q) => !!q.tone);
+          const first = Math.min(ln.parts[0]?.at ?? 1e9, ln.labelAt ?? 1e9);
+          if (t < first - 0.05) return null;
+          const mainShown = mains.length > 0 && t >= mains[0].at, mainText = mains.map((q) => q.text).join(" "), mainAt = mains[0]?.at ?? 0;
+          return (
+            <div key={i} style={{ marginBottom: Math.round(fs * 0.3) }}>
+              {ln.label ? row("l", t >= (ln.labelAt ?? first), ln.label, ln.labelAt ?? first, alpha(BRAND.ink, 0.6), Math.round(fs * 0.6), 700) : null}
+              {mains.length ? row("m", mainShown, mainText, mainAt, BRAND.ink, fs) : null}
+              {marks.map((q, k) => row("k" + k, t >= q.at, q.text, q.at, q.tone === "mark" ? BRAND.mark : BRAND.ink, fs))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+/** `PaperFlow` (user 2026-11-19, ريل «نبوءة موسى»: «الناس ما راح تفهم العملية الحسابية إذا ما تكتبها أمامها»): a sheet where each row is ONE equation written left to right in speech order — the parts of a row come one after another at their second (the first at the right, RTL), a part with tone "mark" is the result; used as the lower card of a reel's split window (`splits[].flow`) */
+export type PaperFlow = { rows: { parts: { at: number; text: string; tone?: "mark" | "step" }[] }[] };
+export const CalcPaperFlow: React.FC<{ p: PaperFlow; w: number; h: number; now: number }> = ({ p, w, h, now }) => {
+  const n = Math.max(p.rows.length, 1), fs = Math.round(Math.min(h / (n + 0.8) * 0.5, w * 0.075)), rowH = Math.round(Math.min(h / (n + 0.6), fs * 1.9)), lh = Math.round(rowH / 2);
+  return (
+    <div style={{ position: "absolute", inset: 0, background: BRAND.paper, direction: "rtl", overflow: "hidden", backgroundImage: `repeating-linear-gradient(0deg, transparent 0 ${lh - 1}px, ${alpha(BRAND.ink, 0.1)} ${lh - 1}px ${lh}px)` }}>
+      <div style={{ position: "absolute", right: Math.round(w * 0.06), top: 0, bottom: 0, width: 3, background: alpha(BRAND.mark, 0.55) }} />
+      <div style={{ position: "absolute", left: Math.round(w * 0.03), right: Math.round(w * 0.11), top: Math.round(h * 0.03) }}>
+        {p.rows.map((r, i) => {
+          if (now < (r.parts[0]?.at ?? 1e9) - 0.05) return <div key={i} style={{ height: rowH }} />;
+          return (
+            <div key={i} style={{ height: rowH, display: "flex", flexDirection: "row", gap: Math.round(fs * 0.35), alignItems: "center", whiteSpace: "nowrap" }}>
+              {r.parts.map((pt, j) => {
+                const e = wipe(now, pt.at);
+                return <span key={j} dir="rtl" style={{ unicodeBidi: "isolate", display: "inline-block", fontFamily: kufiF, fontWeight: 800, fontSize: fs, lineHeight: 1.2, color: pt.tone === "mark" ? BRAND.mark : BRAND.ink, opacity: e > 0 ? 1 : 0, clipPath: `inset(-8px 0 -8px ${(1 - e) * 100}%)` }}>{pt.text}</span>;
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 const Feed: React.FC<{ s: DebateSrc; w: number; h: number; z?: number; o?: number; radii?: [number, number, number, number] }> = ({ s, w, h, z = 0, o = 0, radii }) => {
+  const t = useCurrentFrame() / 30;
+  if (s.paper && t >= s.paper.from && t < s.paper.to) return <CalcPaper p={s.paper} w={w} h={h} />;
+  return <><FeedPic s={s} w={w} h={h} z={z} o={o} radii={radii} /><PageMarks s={s} w={w} h={h} o={o} /></>;
+};
+const FeedPic: React.FC<{ s: DebateSrc; w: number; h: number; z?: number; o?: number; radii?: [number, number, number, number] }> = ({ s, w, h, z = 0, o = 0, radii }) => {
   const f = s.blur ? { filter: `blur(${s.blur}px)` } : {};
   if (HYL) {   /* GPU renderer: the same picture placed by the compositor (NVDEC), clipped to the same box; blur as a slot effect. `radii`: the window's
                   rounded corners, applied when the picture's clip box IS the window box (it fills it) */

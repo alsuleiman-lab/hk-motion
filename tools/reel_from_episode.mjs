@@ -25,7 +25,7 @@ const [tMin, tMax0] = tg.length > 1 ? tg : [Math.round(tg[0] * 0.85), tg[0]], tM
 // ── الأرقام (تفصيلها في .claude/skills/reel-from-episode/references/detail.md) ──
 const RULES = rd(path.join("data", "cut_rules.json"), {});
 const SG = RULES.sentenceGap ?? 0.45, MIN_SENT = 1.2, JOIN_GAP = 2.0, MAX_SENT = 18;
-const PAD_B = 0.15, PAD_A = 0.30, REPLY_MIN = 5, REPLY_MAX = 25, HOOK_MAX = 15, POINT_MAX = 22, IDEA_MIN = 6, IDEA_GAP = 3.0, INTERJ_MAX = 3, PART_MIN = 3, KEY_MIN = 5;
+const PAD_B = 0.12, PAD_A = 0.26, REPLY_MIN = 5, REPLY_MAX = 25, HOOK_MAX = 15, POINT_MAX = 22, IDEA_MIN = 6, IDEA_GAP = 3.0, INTERJ_MAX = 3, PART_MIN = 3, KEY_MIN = 5;
 
 // ── المدخلات ──
 const mapJ = rd(path.join("public", `${P}_map.json`));

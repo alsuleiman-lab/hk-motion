@@ -284,6 +284,50 @@ export const ReelVerseFull: React.FC<{ to: number; refName: string; lines: { wor
   const from = lines[0].times[0] - 0.1;
   if (t < from || t >= to) return null;
   const words = lines.flatMap((l) => l.words.map((w, i) => ({ w: hadith ? w : cleanQuran(w), at: l.times[i] })));
+  /* (أمر المستخدم 2026-11-19) حديث أو آية طويلان: ملء الشاشة سطراً سطراً؛ السطر الأعلى يختفي حين يظهر السطر الأسفل فيبقى النص مقروءاً.
+     تقطيع الكلمات إلى أسطر بعرض تقديري، ثم نافذة من آخر أسطر بعدد ما يتسع للمنطقة؛ لا يعمل إلا إن زاد عدد الأسطر عما يتسع. */
+  const fs0 = hadith ? Math.round(size * 0.8) : size, LH = fs0 * 1.9, areaTop = LD ? 240 : 480, areaH = VH - areaTop - (LD ? 230 : 380), areaW = VW - 2 * (LD ? 190 : 100);
+  const maxLines = Math.max(2, Math.floor(areaH / LH));
+  const wpx = (s: string) => [...s.replace(/[ً-ٰٟۖ-ۭ]/g, "")].length * fs0 * 0.52 + 14;
+  const rows: { s: number; e: number }[] = [];
+  { let cur = 0, start = 0; words.forEach((x, i) => { const w = wpx(x.w); if (cur + w > areaW && i > start) { rows.push({ s: start, e: i - 1 }); start = i; cur = 0; } cur += w; }); rows.push({ s: start, e: words.length - 1 }); }
+  if (rows.length > maxLines) {
+    const rowAt = rows.map((r) => words[r.s].at);
+    let cr = 0; rowAt.forEach((a, i) => { if (t >= a) cr = i; });
+    const shiftFrom = cr - maxLines + 1;   // first row index shown once the window is full
+    const firstF = shiftFrom > 0 ? shiftFrom - (1 - Easing.out(Easing.cubic)(clamp((t - rowAt[cr]) / 0.3))) : 0;
+    return (
+      <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 45%, ${BRAND.base2} 0%, ${BRAND.base} 60%, ${BRAND.base3} 100%)` }}>
+        <svg width={VW} height={VH} style={{ position: "absolute", inset: 0, opacity: 0.13 }}>
+          <defs><pattern id="aw-star2" width="120" height="120" patternUnits="userSpaceOnUse"><path d="M60 8l14 38 38 14-38 14-14 38-14-38-38-14 38-14z" fill="none" stroke={BRAND.light} strokeWidth="2" /><circle cx="60" cy="60" r="9" fill="none" stroke={BRAND.light} strokeWidth="2" /></pattern></defs>
+          <rect width={VW} height={VH} fill="url(#aw-star2)" />
+        </svg>
+        <div style={{ position: "absolute", left: LD ? 110 : 60, right: LD ? 110 : 60, top: LD ? 110 : 300, bottom: LD ? 150 : 300, border: `3px solid ${alpha(BRAND.light, 0.55)}`, borderRadius: 34 }} />
+        <div style={{ position: "absolute", left: 0, right: 0, top: LD ? 150 : 370, textAlign: "center", fontFamily: `"${QURAN_FONT}", ${TITLE}`, fontWeight: 400, fontSize: LD ? 46 : 52, color: BRAND.light, direction: "rtl" }}>{refName}</div>
+        <div style={{ position: "absolute", left: LD ? 190 : 100, right: LD ? 190 : 100, top: areaTop + (areaH - maxLines * LH) / 2, height: maxLines * LH, direction: "rtl" }}>
+          {rows.map((r, ri) => {
+            if (ri > cr) return null;
+            const op = clamp(ri - firstF + 1);
+            if (op <= 0) return null;
+            return (
+              <div key={ri} style={{ position: "absolute", left: 0, right: 0, top: (ri - firstF) * LH, height: LH, opacity: op, textAlign: "center", whiteSpace: "nowrap", fontFamily: hadith ? TEXT : QURAN_FAM, fontWeight: hadith ? 800 : undefined, fontSize: fs0, lineHeight: `${LH}px`, color: BRAND.card }}>
+                {words.slice(r.s, r.e + 1).map((x, k) => {
+                  const gi = r.s + k, p = clamp((t - x.at) / 0.25);
+                  return (
+                    <span key={gi} style={{ margin: "0 6px" }}>
+                      {gi === 0 ? <span style={{ color: BRAND.light }}>{hadith ? "« " : "﴿ "}</span> : null}
+                      <span style={{ opacity: 0.12 + 0.88 * p, display: "inline-block", transform: `translateY(${(1 - p) * 14}px)` }}>{x.w}</span>
+                      {gi === words.length - 1 ? <span style={{ color: BRAND.light }}>{hadith ? " »" : " ﴾"}</span> : null}
+                    </span>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </AbsoluteFill>
+    );
+  }
   return (
     <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 45%, ${BRAND.base2} 0%, ${BRAND.base} 60%, ${BRAND.base3} 100%)` }}>
       <svg width={VW} height={VH} style={{ position: "absolute", inset: 0, opacity: 0.13 }}>

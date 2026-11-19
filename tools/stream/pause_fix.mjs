@@ -15,7 +15,8 @@ const cutRangesToSrc = ([cs, ce]) => { const out = []; for (const g of map) { co
 for (const id of ids) {
   const tf = path.join(".tmp", P, "clip_table.json"); let fixed = false;
   if (process.argv.includes("--reslice")) { const c0 = rd(tf, []).find((x) => x.id === id); if (c0) { const r0 = spawnSync(process.execPath, ["tools/stream/clip_slice.mjs", P, id, c0.ranges.map((x) => x.from + "-" + x.to).join(",")], { encoding: "utf8", maxBuffer: 1 << 26 }); console.log(id + ": أُعيد الاقتطاع من الجدول (" + (r0.status === 0 ? "نجح" : "فشل") + ")"); } }
-  for (let round = 1; round <= 3; round++) {
+  const MAXR = process.argv.includes("--rounds") ? Number(process.argv[process.argv.indexOf("--rounds") + 1]) : 3;   // --rounds 1: جولة الحذف المطلوبة وحدها (لا حذف آلي لما تكشفه البوابة بعدها، فقد يكون حرفاً مهموساً داخل كلمة)
+  for (let round = 1; round <= MAXR; round++) {
     const g = gate(id); const fs2 = g.ok && process.argv.includes("--final") ? finalSil(id) : []; if (g.ok && !fs2.length && !(round === 1 && process.argv.includes("--rem"))) { console.log(`✔ ${id}: بوابة الصوت نجحت${round > 1 ? " بعد " + (round - 1) + " جولة" : ""}`); fixed = true; break; }
     const rem = [];   // فترات تُحذف بزمن المقطع
     const pm = g.out.match(/سكتات > 0\.40ث: \d+ ([^\n(]*)\(/); for (const m of (pm?.[1] ?? "").matchAll(/\[([0-9.]+)ث ×([0-9.]+)\]/g)) { const t = Number(m[1]), len = Number(m[2]); rem.push([t + 0.10, t + len - 0.10]); }

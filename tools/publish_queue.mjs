@@ -16,7 +16,7 @@ if (cmd === "save") {
   if (fs.existsSync(yt)) for (const n of fs.readdirSync(yt)) if (n.toLowerCase().startsWith(key)) files.push(path.join(yt, n));
   const er = path.join("data", "episode_refs", `${key}.json`); if (fs.existsSync(er)) files.push(er);
   const T = path.join(".tmp", p);
-  if (fs.existsSync(T)) for (const n of fs.readdirSync(T)) if (/^answers\.json$|^(sections|chapters)[^/]*\.json$|^(cover|thumb)[^/]*\.(png|jpe?g|webp)$/i.test(n)) files.push(path.join(T, n));
+  if (fs.existsSync(T)) for (const n of fs.readdirSync(T)) if (/^(first_)?answers\.json$|^(sections|chapters)[^/]*\.json$|^(cover|thumb)[^/]*\.(png|jpe?g|webp)$/i.test(n)) files.push(path.join(T, n));
   if (!files.length) { console.log("لا شيء من حزمة النشر لهذا المشروع"); process.exit(0); }
   fs.mkdirSync(Q, { recursive: true });
   for (const f of files) fs.copyFileSync(f, path.join(Q, path.basename(f)));

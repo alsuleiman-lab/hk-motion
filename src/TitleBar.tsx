@@ -19,7 +19,7 @@ export type BarTheme = { timerBg: string; titleBg: string; timerText: string; ti
 /** one colour identity for every video (src/brand.ts): the bar always uses BRAND_BAR; a `theme` passed by an older composition is ignored */
 export const THEME_LESSON: BarTheme = BRAND_BAR;
 
-export const TitleBar: React.FC<{ title: string; theme?: BarTheme; date?: string; offsetSec?: number; bottomHalf?: boolean; hideNotice?: boolean }> = ({ title, date = EDIT_DATE, offsetSec = 0, bottomHalf = false, hideNotice = false }) => {
+export const TitleBar: React.FC<{ title: string; theme?: BarTheme; date?: string; offsetSec?: number; bottomHalf?: boolean; hideNotice?: boolean; sub?: string }> = ({ title, sub, date = EDIT_DATE, offsetSec = 0, bottomHalf = false, hideNotice = false }) => {
   const theme = BRAND_BAR;
   const f = useCurrentFrame();
   const { fps, width } = useVideoConfig();
@@ -37,6 +37,7 @@ export const TitleBar: React.FC<{ title: string; theme?: BarTheme; date?: string
           <div style={{ flex: 1, background: theme.titleBg, padding: "5px 10px", minWidth: 0 }}>
             {/* title font ×2 (user 2026-10-25: «خط العنوان اجعله أكبر بمقدار 130%» → chose ×2); the box grows leftward to fit it */}
             <div style={{ fontFamily: lalezar, fontSize: bottomHalf ? Math.min(17 * 2 * k, 395 / (title.length * 0.52)) : 17 * 2 * k, color: theme.titleText, lineHeight: 1.1, whiteSpace: "nowrap" }}>{title}</div>
+            {sub ? <div style={{ fontFamily: cairo, fontWeight: 700, fontSize: 14 * k, color: theme.titleText, opacity: 0.9, lineHeight: 1.25, whiteSpace: "nowrap" }}>{sub}</div> : null}{/* (user 2026-11-19) the one exception: a second line under the title («مأخوذة من مناظرة …») */}
             <div style={{ fontFamily: cairo, fontWeight: 700, fontSize: 11 * k, color: theme.subText, whiteSpace: "nowrap" }}>{hijri(date)} • {gregorian(date)}</div>
           </div>
         </div>

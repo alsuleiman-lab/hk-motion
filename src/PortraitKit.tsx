@@ -195,11 +195,11 @@ export const PaperMap: React.FC<{
           <g>
             <rect x={0} y={0} width={w} height={h} fill="#8fb0c2" />
             <rect x={0} y={0} width={w} height={h} fill="url(#seaglow)" />
-            {Object.entries(ATLAS_LAND).filter(([code]) => seen(code)).map(([code, polys]) => { const on = highlight.includes(code) && (!highlightAt || t >= (highlightAt[code] ?? 0)); return polys.map((poly, i) => <path key={code + i} d={path(poly)} fill={on ? (code === "LBN" ? "#f3d27a" : "#e9b765") : "#e7dcc2"} stroke={on ? "#4a2f17" : "#8a7352"} strokeWidth={on ? 3.4 : 1.6} strokeLinejoin="round" />); })}
+            {Object.entries(ATLAS_LAND).filter(([code]) => seen(code)).map(([code, polys]) => { const own = code === "ISR" ? "PSX" : code, on = highlight.includes(own) && (!highlightAt || t >= (highlightAt[own] ?? 0)); return polys.map((poly, i) => <path key={code + i} d={path(poly)} fill={on ? (code === "LBN" ? "#f3d27a" : "#e9b765") : "#e7dcc2"} stroke={on ? "#4a2f17" : "#8a7352"} strokeWidth={on ? 3.4 : 1.6} strokeLinejoin="round" />); })}
             {flagCode && flagP > 0 ? (ATLAS_LAND[flagCode] ?? []).map((poly, i) => <path key={"fl" + i} d={path(poly)} fill={`url(#flagfill-${flagCode})`} opacity={flagP} stroke="#4a2f17" strokeWidth={3.4} strokeLinejoin="round" />) : null}
             {Object.entries(ATLAS_LAND).filter(([code]) => seen(code)).map(([code, polys]) => {
               const name = ATLAS_NAMES[code]; if (!name || (code === flagCode && flagP > 0)) return null;   /* no name over the flag (user 2026-11-18) */
-              const big = polys.reduce((a, b) => (b[0].length > a[0].length ? b : a)), xs = big[0].map((q) => q[0]), ys = big[0].map((q) => q[1]);
+              const whole = code === "PSX" ? [...polys, ...(ATLAS_LAND.ISR ?? [])] : polys, big = whole.reduce((a, b) => (b[0].length > a[0].length ? b : a)), xs = code === "PSX" ? whole.flatMap((pl) => pl[0].map((q) => q[0])) : big[0].map((q) => q[0]), ys = code === "PSX" ? whole.flatMap((pl) => pl[0].map((q) => q[1])) : big[0].map((q) => q[1]);   /* (user 2026-11-19: «فلسطين تحددها كلها») Palestine = the whole land, one label at its centre */
               const [lx, ly] = P((Math.min(...xs) + Math.max(...xs)) / 2 + (ATLAS_DX[code] ?? 0), (Math.min(...ys) + Math.max(...ys)) / 2 + (ATLAS_DY[code] ?? 0)), on = highlight.includes(code);
               if (lx < 20 || lx > w - 20 || ly < 20 || ly > h - 20) return null;
               const [ax] = P(Math.min(...xs), 0), [bx] = P(Math.max(...xs), 0);

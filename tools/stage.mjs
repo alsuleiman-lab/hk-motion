@@ -412,7 +412,7 @@ if (stage === "check") {
   // the source itself, not the browser window: missing crop boxes are detected and written, the sheet .tmp/<p>/source_crops.jpg is looked at
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("source_crop", "node", ["tools/source_crop.mjs", path.join("data", "specs", `${p}.json`), "--write"], /✘|→|لا نوافذ/);
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("writing_sync", "node", ["tools/writing_sync.mjs", path.join("data", "specs", `${p}.json`)], /^s*✘|writing_sync/);
-  if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("element_slots", "node", ["tools/element_slots.mjs", p], /^✘|✔|⚠/);   // one element at a time; the more important one keeps the slot (user 2026-11-17)
+  if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("element_slots", "node", ["tools/element_slots.mjs", p, ...(orients.length === 1 ? ["--only", orients[0]] : [])], /^✘|✔|⚠/);   // one element at a time; the more important one keeps the slot (user 2026-11-17)
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("coverage_check", "node", ["tools/coverage_check.mjs", path.join("data", "specs", `${p}.json`)], /^✘|PASSED|FAILED/);
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("pick_triggers", "node", ["tools/pick_triggers.mjs", path.join("data", "specs", `${p}.json`)], /^✘|PASSED|FAILED/);   // the 12 picked elements are used where due (user 2026-11-14)
   // every card at the gallery's size and place (user 2026-11-11: «حل مشكلة عدم الالتزام بمواقع المعرض جذرياً»): exact gallery-sample geometry, run gallery_geometry --write last in every build

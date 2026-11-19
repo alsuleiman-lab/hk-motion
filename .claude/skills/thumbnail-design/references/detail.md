@@ -17,3 +17,7 @@
 - «لا تزد عليه»: لا سطر إثارة ولا كلام من عندي؛ النصان الوحيدان العنوان والتوقيع.
 - في البرومبت يُضاف إلى بند النص: «plus a small signature in Arabic: محمد بن شمس الدين, bottom-left inside the safe margin; no other text».
 - الكرتون: الفيديو الكرتوني بلا غلاف.
+
+## علم دولة مع علامة منع (أمر المستخدم 2026-11-18)
+- لا يُرسم الإكس أو الشطب فوق علم أي دولة (إهانة)؛ العلم كاملاً نظيفاً، والإكس ورقة حمراء مستقلة تحت حافته السفلى.
+- في البرومبت: «the flag stays clean and complete; the red X is a separate torn-paper card placed UNDER the flag, never drawn over it».

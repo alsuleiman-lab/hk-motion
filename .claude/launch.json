@@ -12,6 +12,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["tools/gallery_serve.mjs", "5601"],
       "port": 5601
+    },
+    {
+      "name": "motion-ref-gallery",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["S:/AI_Tools/External_Skills/motion_reference_gallery/server.mjs", "5610"],
+      "port": 5610
     }
   ]
 }

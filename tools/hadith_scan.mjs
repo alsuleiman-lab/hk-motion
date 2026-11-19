@@ -47,7 +47,23 @@ if (open.length) { console.log(`✘ ${open.length} narration(s) not verified yet
 let added = 0;
 for (const h of list.filter((x) => x.verified && !x.skip)) {
   if (!h.text || !h.book || !h.n) { console.log(`✘ ${h.at}s: text/book/n missing`); process.exit(1); }
-  if ((spec.items ?? []).some((it) => it.t === "note" && Math.abs(it.at - h.at) < 2)) continue;
+  if ((spec.items ?? []).some((it) => (it.t === "note" || it.t === "hadith") && Math.abs((it.at ?? it.times?.[0] ?? 0) - h.at) < 2)) continue;
+  /* (أمر المستخدم 2026-11-19) حديث طويل لا يُقرأ في بطاقة صغيرة على الجوال ← ملء الشاشة سطراً سطراً (ReelVerseFull يُنزل السطر الأعلى حين يظهر الأسفل):
+     كلمات المتن بتوقيت نطقها (مطابقة تقريبية مع كلمات القص) */
+  const strip = (s) => String(s).replace(/[ً-ٰٟۖ-ۭ]/g, "");
+  if ([...strip(h.text)].length > 110) {
+    const nm = (s) => strip(s).replace(/[إأآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/[^ء-ي]/g, "");
+    const lev = (a, b) => { const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]); for (let j = 1; j <= b.length; j++) d[0][j] = j; for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; };
+    const cwF = path.join(".tmp", p, "cut_words.json"), cw0 = read(cwF, []), cwAll = (cw0.words ?? cw0).map((w) => ({ w: w.w ?? w.word, s: +(w.s ?? w.start) }));
+    const sp = cwAll.filter((w) => w.s >= h.at - 0.3 && w.s <= h.until + 0.1);
+    const mw = h.text.split(/\s+/).map((w) => w.replace(/[«»"“”.،:؛]/g, "")).filter((w) => nm(w));
+    const at = new Array(mw.length).fill(null); let ptr = 0;
+    mw.forEach((w, i) => { const a = nm(w); for (let j = ptr; j < Math.min(sp.length, ptr + 5); j++) { const b = nm(sp[j].w); if (a === b || (a.length >= 4 && lev(a, b) <= 1)) { at[i] = sp[j].s; ptr = j + 1; break; } } });
+    for (let i = 0; i < at.length; i++) if (at[i] == null) { let a = i - 1; while (a >= 0 && at[a] == null) a--; let b = i + 1; while (b < at.length && at[b] == null) b++; const t0 = a >= 0 ? at[a] : sp[0]?.s ?? h.at, t1 = b < at.length ? at[b] : h.until; at[i] = a >= 0 || b < at.length ? t0 + ((t1 - t0) * (i - a)) / (b - a) : t0; }
+    for (let i = 1; i < at.length; i++) if (at[i] < at[i - 1]) at[i] = at[i - 1] + 0.05;
+    spec.items.push({ t: "hadith", at: r2(at[0] - 0.05), words: mw, times: at.map(r2), source: `${h.book} (${h.n})`, until: r2(h.until + 1.5), auto: "hadith_scan" });
+    added++; continue;
+  }
   // the card types at ~14 chars/s: it stays ≥ 1 s after the typing ends and ≥ 1.5 s after he finishes (rules §8.3, §9.5)
   const until = r2(Math.max(h.until + 1.5, h.at + h.text.length / 14 + 1));
   spec.items.push({ t: "note", at: r2(h.at - 0.05), until, label: "حديث شريف", tag: `${h.book} (${h.n})`, title: h.text, ...(h.narrator ? { narrator: h.narrator } : {}), books: [{ book: h.book, n: h.n }], auto: "hadith_scan" });

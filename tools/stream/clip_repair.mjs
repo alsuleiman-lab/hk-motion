@@ -123,7 +123,7 @@ for (const id of ids) {
   { const why = "قالب سريع آلي للبث (أمر الساعتين 2026-11-16)"; fs.writeFileSync(f, JSON.stringify(sp, null, 1));
     const cov = spawnSync(process.execPath, ["tools/coverage_check.mjs", f], { encoding: "utf8" }).stdout ?? "", NL = String.fromCharCode(10);
     for (const ln of cov.split(NL).filter((l) => l.includes("كلام بلا عنصره المطلوب"))) for (const en of ln.replace(/^.*?\): /, "").split("،")) { const m = en.match(/عند (\d+):(\d+)/); if (!m) continue; const n = en.replace(/ عند .*$/, "").replace(/ \(\d+ كلمة\) بلا كتابة/, "").trim(); sp.skipRequired = [...new Set([...(sp.skipRequired ?? []), n + "@" + (Number(m[1]) * 60 + Number(m[2])), n + "@" + (Number(m[1]) * 60 + Number(m[2]) + 1)])]; log.push("إعفاء: " + n); }
-    for (const ln of cov.split(NL).filter((l) => l.includes("مذكور بلا صورة عند ذكره"))) for (const en of ln.replace(/^.*?\): /, "").split("،")) { const n = en.replace(/\([0-9:]+ = [0-9.]+s\)/, "").trim(); if (n) sp.skipMentions = [...new Set([...(sp.skipMentions ?? []), n])]; }
+/* (أمر المستخدم 2026-11-19) لا إعفاء لمذكور من صورته */
     const pt = spawnSync(process.execPath, ["tools/pick_triggers.mjs", f], { encoding: "utf8" }).stdout ?? ""; const els = [...pt.matchAll(/✘ ([A-Za-z]+):/g)].map((m) => m[1]);
     if (els.length) { sp.skipPicks = [...(sp.skipPicks ?? []), ...els.filter((e) => !(sp.skipPicks ?? []).some((x) => x.el === e)).map((e) => ({ el: e, why }))]; log.push("إعفاء لوحات: " + els.join("،")); } }
   fs.writeFileSync(f, JSON.stringify(sp, null, 1));

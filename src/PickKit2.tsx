@@ -166,6 +166,60 @@ export const FillGlasses: React.FC<Base & { items: { label: string; value: numbe
   );
 };
 
+/** 32 · العرى المتسلسلة (user 2026-11-18, in-recording order of «فرسان الفجر»: «زرد أو سلسلة كبيرة واضحة؛ لما أقول تنقض عرى الإسلام عروة عروة
+ *  تتكسر واحدة واحدة وتذهب هباء، وناس صغار يتمسكون بها وينتقلون إلى التي بعدها، وآخر واحدة الصلاة، فإذا تكسرت يسقطون»).
+ *  A big chain anchored to a wall on the left; link 0 sits at the wall (the LAST to break), the far link breaks first. Small faceless people hang under the
+ *  outermost whole link; when it breaks they swing to the next one; when link 0 breaks they fall. Each break = a crack flash, then the two halves fly and fall
+ *  and scatter to dust. labels: a tag under a link (or at its empty place) from its `at` — never before he says it. Times in seconds. */
+export const ChainLinks: React.FC<Base & { n?: number; breaks: { i: number; at: number }[]; labels?: { i: number; text: string; at: number; gold?: boolean }[]; people?: number; hold?: number }> = ({ at, until, x, y, n = 6, breaks, labels = [], people = 3, hold = 0.45 }) => {
+  const { t, k } = useK(); const kk = k(at, 0.45, until);
+  const W = 1100, H = 720, X0 = 170, STEP = n > 5 ? 165 : 195, CY = 270, LW = n > 5 ? 215 : 245, LH = n > 5 ? 128 : 146;   /* big and clear (his order: «وعملها كبيرة لكي تكون واضحة») */
+  const brokeAt = (i: number) => breaks.find((b) => b.i === i)?.at ?? Infinity;
+  const whole = (i: number) => t < brokeAt(i);
+  /* where the people hang: the outermost link still whole; they arrive `hold` s after the break of the one before */
+  const order = [...breaks].sort((a, b) => a.at - b.at);
+  let cur = n - 1, sinceMove = 99, prev = n - 1;
+  for (const b of order) { if (t < b.at) break; if (b.i === cur) { prev = cur; cur = cur - 1; sinceMove = t - b.at; } }
+  const falling = cur < 0, fallT = falling ? sinceMove : 0;
+  const swing = falling ? 1 : ease(clamp((sinceMove - 0.05) / hold));
+  const hx = (i: number) => X0 + i * STEP;
+  const pX = (falling ? hx(0) : hx(prev) + (hx(cur) - hx(prev)) * swing), pY = CY + 70 + (falling ? 0.5 * 2600 * fallT * fallT : -Math.sin(Math.PI * swing) * 40);
+  const link = (i: number) => {
+    const ba = brokeAt(i), d = t - ba, cx = hx(i), side = i % 2 === 1;
+    const steel = `url(#chainSteel)`;
+    if (d < 0) return <g key={i}>{side
+      ? <rect x={cx - LW / 2} y={CY - 30} width={LW} height={60} rx={30} fill="none" stroke={steel} strokeWidth={26} />
+      : <ellipse cx={cx} cy={CY} rx={LW / 2} ry={LH / 2} fill="none" stroke={steel} strokeWidth={28} />}</g>;
+    if (d > 1.6) return null;
+    const crack = d < 0.18, g = 0.5 * 2200 * Math.max(0, d - 0.12) ** 2, dust = clamp((d - 0.7) / 0.9);
+    const half = (sgn: number) => <g key={sgn} transform={`translate(${sgn * 60 * d} ${g}) rotate(${sgn * 140 * d} ${cx + sgn * LW / 4} ${CY})`} opacity={1 - dust}>
+      <path d={side ? `M ${cx} ${CY - 26} H ${cx + sgn * (LW / 2 - 26)} A 26 26 0 0 ${sgn > 0 ? 1 : 0} ${cx + sgn * (LW / 2 - 26)} ${CY + 26} H ${cx}` : `M ${cx} ${CY - LH / 2} A ${LW / 2} ${LH / 2} 0 0 ${sgn > 0 ? 1 : 0} ${cx} ${CY + LH / 2}`} fill="none" stroke={steel} strokeWidth={side ? 20 : 22} strokeLinecap="round" />
+      {Array.from({ length: 7 }, (_, j) => <circle key={j} cx={cx + sgn * (20 + rnd(i * 13 + j) * 70)} cy={CY - 40 + rnd(i * 7 + j) * 80 + 160 * dust * rnd(j + 3)} r={4 + 6 * rnd(j + i)} fill="#b9b2a6" opacity={dust} />)}
+    </g>;
+    return <g key={i}>{crack ? <g stroke="#ffd36b" strokeWidth={6} strokeLinecap="round"><path d={`M ${cx - 10} ${CY - 70} L ${cx + 6} ${CY - 18} L ${cx - 8} ${CY + 14} L ${cx + 10} ${CY + 70}`} fill="none" /><circle cx={cx} cy={CY} r={40 + 220 * d} fill="none" stroke="#fff3c4" strokeWidth={8 * (1 - d / 0.18)} /></g> : null}{half(-1)}{half(1)}</g>;
+  };
+  const person = (j: number) => { const ox = (j - (people - 1) / 2) * 56, sw = Math.sin(t * 3.1 + j) * 4, px = pX + ox + (falling ? (j - 1) * 120 * fallT : 0), py = pY + (falling ? j * 30 * fallT : 0);
+    return <g key={"p" + j} transform={`translate(${px} ${py}) rotate(${falling ? (j - 1) * 160 * fallT : sw} 0 -40)`}>
+      <line x1={-12} y1={-58} x2={-6} y2={0} stroke={BRAND.card} strokeWidth={9} strokeLinecap="round" /><line x1={12} y1={-58} x2={6} y2={0} stroke={BRAND.card} strokeWidth={9} strokeLinecap="round" />
+      <circle cx={0} cy={18} r={17} fill={BRAND.card} /><rect x={-15} y={34} width={30} height={52} rx={12} fill={BRAND.accent} />
+      <line x1={-8} y1={84} x2={-14} y2={130} stroke={BRAND.card} strokeWidth={9} strokeLinecap="round" /><line x1={8} y1={84} x2={14} y2={130} stroke={BRAND.card} strokeWidth={9} strokeLinecap="round" />
+    </g>; };
+  return (
+    <div style={abs({ left: x, top: y, width: W, height: H, ...pop(kk, 0.75) })}>
+      <svg width={W} height={H + 400} style={{ position: "absolute", left: 0, top: 0, overflow: "visible" }}>
+        <defs><linearGradient id="chainSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f2efe8" /><stop offset=".45" stopColor="#a9a39a" /><stop offset=".55" stopColor="#7d776f" /><stop offset="1" stopColor="#d9d4cb" /></linearGradient></defs>
+        <rect x={0} y={CY - 190} width={60} height={380} rx={8} fill="#6b5a45" stroke="#3b2f22" strokeWidth={6} />
+        <circle cx={60} cy={CY} r={26} fill="url(#chainSteel)" /><line x1={60} y1={CY} x2={X0 - LW / 2 + 8} y2={CY} stroke="url(#chainSteel)" strokeWidth={26} />
+        {Array.from({ length: n }, (_, i) => link(i))}
+        {pY < H + 380 && t >= at ? Array.from({ length: people }, (_, j) => person(j)) : null}
+      </svg>
+      {labels.map((l, i) => { const lk = clamp((t - l.at) / 0.35); if (lk <= 0 || l.i >= n) return null; const gone = !whole(l.i);
+        return <div key={"l" + i} style={abs({ left: hx(l.i) - 130, top: CY - 210, width: 260, textAlign: "center", fontFamily: kufiF, fontSize: 52, color: l.gold ? "#3a2608" : BRAND.card,
+          background: l.gold ? "linear-gradient(#ffe7a3, #e2b34f)" : gone ? "rgba(24,16,8,.82)" : BRAND.accent, border: gone ? `4px dashed ${BRAND.card}` : "none", borderRadius: 16, padding: "6px 10px", ...pop(lk, 0.5) })}>{l.text}</div>; })}
+    </div>
+  );
+};
+
 /** a dark left-to-right gradient behind an element that is NOT a split screen (user 2026-11-14, frames 10458/11903): he stays in the middle; the shade wipes in (no opacity fade) */
 export const LeftShade: React.FC<{ at: number; until: number }> = ({ at, until }) => {
   const t = useT(0), c = (x: number) => Math.max(0, Math.min(1, x)), e = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2), k = e(Math.min(c((t - at) / 0.5), c((until - t) / 0.4)));
@@ -219,7 +273,7 @@ export const railPortDrop = (n: number) => Math.max(0, Math.round(railPortBand(n
 export const SectionsRail: React.FC<{ at: number; until: number; sections: { title: string; at?: number }[]; current?: number; W?: number; H?: number }> = ({ at, until, sections, current, W: W0, H: H0 }) => {
   const { k } = useK(); const vc = useVideoConfig(), W = W0 ?? vc.width, H = H0 ?? vc.height, port = H > W;
   /* never on his face or beard: landscape titles end left at x ≥ 1150 (gallery face zone 811–1121); portrait = the band above his head (his video drops under it) */
-  const n = Math.max(1, sections.length), pb = railPortBand(n), top = port ? pb.top : H * 0.12, bot = port ? pb.bottom : H * 0.88, span = bot - top, gap = n > 1 ? span / (n - 1) : 0;
+  const n = Math.max(1, sections.length), pb = railPortBand(n), top = port ? pb.top : H * 0.1, bot = port ? pb.bottom : H * 0.76,   /* the episode bar sits at the bottom right: the rail ends above it (user 2026-11-19) */ span = bot - top, gap = n > 1 ? span / (n - 1) : 0;
   const railX = W - (port ? 60 : 80), lineK = ease(k(at + 0.15, 0.6, until)), stag = Math.min(0.3, 1.4 / n);
   const font = Math.round(Math.max(24, Math.min(port ? 46 : 50, (n > 1 ? gap : 80) * 0.55)));
   const FG = fitGroup(sections.map((s) => s.title), { font, minFont: Math.max(20, Math.round(font * 0.7)), minW: 80, maxW: port ? W * 0.82 : railX - 34 - 1150, padX: 10, padY: 4, maxLines: 1 });
@@ -231,11 +285,11 @@ export const SectionsRail: React.FC<{ at: number; until: number; sections: { tit
         : <div style={abs({ right: 0, top: 0, width: W * 0.5, height: H, background: "linear-gradient(to left, rgba(0,0,0,.88), rgba(0,0,0,.6) 45%, rgba(0,0,0,0))", opacity: shade > 0 ? 1 : 0, transform: `translateX(${(1 - shade) * 100}%)` })} />}
       <div style={abs({ left: railX - 3, top, width: 6, height: span * lineK, borderRadius: 3, background: BRAND.light })} />
       {sections.map((s, i) => {
-        const y = top + i * gap, ka = s.at ?? at + 0.35 + i * stag, kk = k(ka, 0.3, until), on = current === i, f = FG[i];
+        const y = top + i * gap, ka = s.at ?? at + 0.35 + i * stag, kk = k(ka, 0.3, until), on = current === i, done = current !== undefined && i < current, f = FG[i];   /* (user 2026-11-19) the part we reached: green mark; the parts above it faded; the ones below as before */
         if (kk <= 0 || lineK * span < y - top - 1) return null;
         return <React.Fragment key={i}>
-          <div style={abs({ left: railX - 15, top: y - 15, width: 30, height: 30, borderRadius: "50%", background: on ? BRAND.mark : BRAND.card, border: `4px solid ${BRAND.light}`, boxSizing: "border-box", transform: `scale(${0.3 + 0.7 * ease(kk)})`, boxShadow: on ? `0 0 18px ${BRAND.mark}` : "none" })} />
-          <div style={abs({ right: W - railX + 34, top: y - f.h / 2, height: f.h, display: "flex", alignItems: "center", gap: 14, fontFamily: kufiF, fontSize: f.fs, lineHeight: 1.3, color: on ? BRAND.card : "#fff", whiteSpace: "nowrap", direction: "rtl", clipPath: `inset(-20% 0 -20% ${(1 - ease(kk)) * 100}%)` })}>
+          <div style={abs({ left: railX - 15, top: y - 15, width: 30, height: 30, borderRadius: "50%", background: on || done ? "#2fbf5f" : BRAND.card, border: `4px solid ${on || done ? "#2fbf5f" : BRAND.light}`, boxSizing: "border-box", transform: `scale(${0.3 + 0.7 * ease(kk)})`, boxShadow: on ? "0 0 18px #2fbf5f" : "none", opacity: done ? 0.55 : 1, color: "#fff", fontSize: 18, lineHeight: "22px", textAlign: "center", fontWeight: 900 })}>{on || done ? "✓" : null}</div>
+          <div style={abs({ right: W - railX + 34, top: y - f.h / 2, height: f.h, display: "flex", alignItems: "center", gap: 14, fontFamily: kufiF, fontSize: f.fs, lineHeight: 1.3, color: on ? "#7dffa8" : "#fff", opacity: done ? 0.5 : 1, whiteSpace: "nowrap", direction: "rtl", clipPath: `inset(-20% 0 -20% ${(1 - ease(kk)) * 100}%)` })}>
             <span style={{ color: BRAND.light, fontSize: f.fs * 0.8 }}>{arDigits(i + 1)}</span><span>{s.title}</span>
           </div>
         </React.Fragment>;
@@ -244,15 +298,15 @@ export const SectionsRail: React.FC<{ at: number; until: number; sections: { tit
   );
 };
 
-export const PICK_KIT2 = { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, FillGlasses, SectionsRail, PrisonBars } as const;
+export const PICK_KIT2 = { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, FillGlasses, SectionsRail, PrisonBars, ChainLinks } as const;
 /** every picked element (PickKit + PickKit2) by spec name */
 /** the gallery's own x,y of every picked element (src/ElementsLab.tsx): used when a spec item gives none, so a spec never invents a place (user 2026-11-14: «لابد أن تنتبه إلى أماكن العناصر»). StickyNotes carry their own per-note x,y. */
-export const PICK_XY: Record<string, [number, number]> = { PrisonBars: [60, 120], MinuteTeaser: [150, 150], NoProof: [100, 200], FlapBoard: [80, 260], BigQuestion: [90, 150], NeverMeet: [110, 260], ThoughtBubble: [90, 170], RootsTree: [110, 120], Iceberg: [110, 130], Crossroads: [110, 150], MythFact: [90, 300], InkQuote: [90, 380], ChatThread: [110, 250], MindMap: [560, 560], RingStat: [560, 470], QACard: [160, 300], ViciousCycle: [560, 520], FillGlasses: [110, 220], DecisionFlow: [80, 150], Footnote: [90, 230], ClaimWall: [110, 300], CopiedMessages: [110, 150], WordCloud: [560, 480], CommentsFlood: [110, 150] };
+export const PICK_XY: Record<string, [number, number]> = { ChainLinks: [60, 200], PrisonBars: [60, 120], MinuteTeaser: [150, 150], NoProof: [100, 200], FlapBoard: [80, 260], BigQuestion: [90, 150], NeverMeet: [110, 260], ThoughtBubble: [90, 170], RootsTree: [110, 120], Iceberg: [110, 130], Crossroads: [110, 150], MythFact: [90, 300], InkQuote: [90, 380], ChatThread: [110, 250], MindMap: [560, 560], RingStat: [560, 470], QACard: [160, 300], ViciousCycle: [560, 520], FillGlasses: [110, 220], DecisionFlow: [80, 150], Footnote: [90, 230], ClaimWall: [110, 300], CopiedMessages: [110, 150], WordCloud: [560, 480], CommentsFlood: [110, 150] };
 /** PORTRAIT place of a picked element (user 2026-11-16, marked screenshot: the elements in the band 1400–1880 under the caption, never on his beard):
  *  the element is drawn in its landscape 1920×1080 board; PICK_PORT_BOX = the part of that board it really uses [top, height] (estimated from its layout),
  *  and the board is scaled (≤ 0.95) and placed so that part fills the band, centred (the board's content column is centred on x ≈ 590). */
 export const PICK_PORT_BOX: Record<string, [number, number]> = {
-  PrisonBars: [120, 620],
+  PrisonBars: [120, 620], ChainLinks: [160, 700],
   BigQuestion: [170, 650], NeverMeet: [250, 550], RingStat: [220, 630], ClaimWall: [300, 700], Crossroads: [150, 800], MythFact: [270, 440], DecisionFlow: [150, 780],
   MindMap: [180, 670], ViciousCycle: [180, 680], WordCloud: [200, 560], InkQuote: [380, 400], MinuteTeaser: [150, 600], NoProof: [200, 600],
   FlapBoard: [260, 420], ThoughtBubble: [170, 600], RootsTree: [120, 800], Iceberg: [130, 800], ChatThread: [250, 560], QACard: [300, 480], FillGlasses: [220, 620],
@@ -269,5 +323,5 @@ export const PICK_ALL = { ...PICK_KIT, ...PICK_KIT2 } as const;
 export type PickAllName = keyof typeof PICK_ALL;
 export const PICK_ALL_FULL_FRAME = new Set<string>([...PICK_FULL_FRAME, "BrushWipe", "SectionsRail"]);
 /** the drawn metaphors (user 2026-11-14: «كن مبدعاً … بإضافة المعاني والتعبير عنها بهذه الطريقة»): pick_triggers counts them per minute */
-export const METAPHOR_ELS = ["RootsTree", "FillGlasses", "Iceberg", "ViciousCycle", "Crossroads", "ClaimWall", "NeverMeet", "MindMap", "DecisionFlow", "StickyNotes", "WordCloud"];
+export const METAPHOR_ELS = ["ChainLinks", "RootsTree", "FillGlasses", "Iceberg", "ViciousCycle", "Crossroads", "ClaimWall", "NeverMeet", "MindMap", "DecisionFlow", "StickyNotes", "WordCloud"];
 void bounce;

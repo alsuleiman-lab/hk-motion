@@ -1,18 +1,19 @@
 {
- "stamped": "2026-11-18T22:11:37.739Z",
+ "stamped": "2026-11-19T20:08:01.627Z",
  "files": {
-  "القواعد_العامة.md": "d35c312914c7a0dab45ec379a897301a883c07ff",
-  "شجرة_العمليات.md": "35458c0ab02d6c5166883263554f831c12234918",
+  "القواعد_العامة.md": "cb0201bea8553a3dbdcb2602f8cb290981c6eb5c",
+  "شجرة_العمليات.md": "363d4e3543586a8ed7f0928b2f5ca3f2a924f982",
   ".claude/skills/advertising-video/SKILL.md": "69410013a807647ef77b95bd1a9ead4838af82df",
   ".claude/skills/approval/SKILL.md": "99decd94516aafefc69bcc30495e83d087f4740a",
   ".claude/skills/cartoon-animation/SKILL.md": "cacaa0ed8a2aafa95c63579b3a2f4fefbe93a56f",
   ".claude/skills/checking/SKILL.md": "542e1c00dc4a41153764aa4ccaa8e8308197b323",
   ".claude/skills/collage-broll-local/SKILL.md": "84e7a60a3a08b11582e27a92ae27cd5ef077c06c",
   ".claude/skills/delivery-links/SKILL.md": "0bf7c217c9057db902057bc6d3cd83411f095414",
-  ".claude/skills/explainer-motion/SKILL.md": "ee76ae6d1481903662381cfe873c97d276b3d617",
-  ".claude/skills/extraction/SKILL.md": "561f0c8f9109339f6f0ccf8be40a2edae2d7ec6b",
+  ".claude/skills/dubbing/SKILL.md": "432d2f397e12047f86fc67ae88ba890ee17a4575",
+  ".claude/skills/explainer-motion/SKILL.md": "ee93f204f8a71391d434c623f3482b109319f79c",
+  ".claude/skills/extraction/SKILL.md": "409ade03edef5fc034c7b491a547670844d2ce59",
   ".claude/skills/first-questions/SKILL.md": "0eac4bbfe4e875f2592f2e7839d8316788431336",
-  ".claude/skills/gallery-placement/SKILL.md": "e20ff361221f0cadb71cf6eb609be625860dd5b3",
+  ".claude/skills/gallery-placement/SKILL.md": "8ec08123a602e730a1bb4061db4402ad3f5019ab",
   ".claude/skills/identity/SKILL.md": "65f5749e83b4d8236dbcb70a0c5cf29240110fbe",
   ".claude/skills/lessons-and-streams/SKILL.md": "9fad23ba7ca6d755a422f36a4099730b07c01c51",
   ".claude/skills/montage-orders/SKILL.md": "bd733131ccadd231bdd170be53388a3f126f8829",
@@ -26,11 +27,12 @@
   ".claude/skills/segment-cut/SKILL.md": "ee320caa95c8e95be802f0cffbb8b37afada8174",
   ".claude/skills/sensitive-words/SKILL.md": "fbcb75e1c40be2e9d7decc91220c7aaea17057d7",
   ".claude/skills/silent-reaction/SKILL.md": "0e02944573c084c5fdb0e35ce5b01549ce98526d",
-  ".claude/skills/source-display/SKILL.md": "f8486597d74b3d3d372955b9e47758b685fb4429",
+  ".claude/skills/source-display/SKILL.md": "ba6c9789df78bbf36acf35df176ae6b864c6b70b",
   ".claude/skills/thumbnail-design/SKILL.md": "6b85e1932edda952096753561f69c1db5fdee4e2",
   ".claude/skills/transcription/SKILL.md": "df0015e346a164f696e7ba8a06ba89ccb721a3b9",
   ".claude/skills/video-cutting/SKILL.md": "de93689ee4f3f87391b82a8093ac4aea07d86a83",
   ".claude/skills/video-montage/SKILL.md": "33ded6c9ef6d719f1959c675fd56a06ea56cfc18",
-  ".claude/skills/video-sections/SKILL.md": "9bc7b07cd5d27f2f84ca675434486fb37dacd8ac"
+  ".claude/skills/video-sections/SKILL.md": "9bc7b07cd5d27f2f84ca675434486fb37dacd8ac",
+  ".claude/skills/voice-correction/SKILL.md": "446dd3f21f10708806ff6d668a8a160a79f6b2c1"
  }
 }

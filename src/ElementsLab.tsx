@@ -28,7 +28,7 @@ import { TRANSITIONS, TransitionScene } from "./TransitionsLab";
 import { Keycaps, Burst } from "./KhaamKit";
 import { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle, Footnote, ClaimWall, NoProof, BrokenIsnad, GradeLadder, YearsGap, Lifespans, Crossroads, AlertFrame, NeverMeet, RisingTimeline, MinuteTeaser, PipSource, PIP, pipK } from "./PickKit";
 import { VerseNoor, VerseBigWord, HalfScene, BlendPanel, halfK } from "./VerseKit";
-import { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, FillGlasses, SectionsRail, PrisonBars, railPortDrop, LeftShade, BottomShade, PICK_NOSPLIT, pickPortBoard } from "./PickKit2";
+import { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, FillGlasses, SectionsRail, PrisonBars, ChainLinks, railPortDrop, LeftShade, BottomShade, PICK_NOSPLIT, pickPortBoard } from "./PickKit2";
 import { HadithQuote, HadithBooks, HadithIsnad } from "./HadithKit";
 
 import { BRAND, applyBrand } from "./brand";
@@ -195,6 +195,8 @@ const VERSE_SCENES: Record<string, (o: Orient) => React.ReactNode> = {
   SectionsRail: (o) => <>{o === "land" ? <Rec /> : <RailDrop n={5} />}<SectionsRail at={0.1} until={2.95} sections={[{ title: "التدين الفردي" }, { title: "حديث طلحة: أفلح إن صدق" }, { title: "هل تكفي الأركان الخمسة؟" }, { title: "التجارة المنجية" }, { title: "الخلاصة" }]} W={o === "land" ? 1920 : 1080} H={o === "land" ? 1080 : 1920} /></>,
   BrushWipe: (o) => <>{o === "land" ? <Rec /> : <PortRec />}<BrushWipe at={0.4} until={2.95} title="المحور الجديد" W={o === "land" ? 1920 : 1080} H={o === "land" ? 1080 : 1920} /></>,
   RootsTree: (o) => <PickScene o={o} el="RootsTree"><RootsTree at={0.1} until={2.95} x={110} y={120} roots={["الكتاب", "السنة", "الإجماع"].map((text, i) => ({ text, at: 0.4 + i * 0.25 }))} branches={["الفقه", "الآداب", "الأخلاق"].map((text, i) => ({ text, at: 1.6 + i * 0.25 }))} /></PickScene>,
+  /* (user 2026-11-18, «فرسان الفجر»: the chain whose links break one by one, people hanging on, the last link «الصلاة», then they fall) */
+  ChainLinks: (o) => <PickScene o={o} el="ChainLinks"><ChainLinks at={0.1} until={2.95} x={60} y={200} n={5} breaks={[{ i: 4, at: 0.5 }, { i: 3, at: 0.9 }, { i: 2, at: 1.3 }, { i: 1, at: 1.7 }, { i: 0, at: 2.3 }]} labels={[{ i: 4, text: "الحكم", at: 0.7 }, { i: 0, text: "الصلاة", at: 1.5, gold: true }]} /></PickScene>,
   FillGlasses: (o) => <PickScene o={o} el="FillGlasses"><FillGlasses at={0.1} until={2.95} x={110} y={220} items={[{ label: "العمل بالسنة", value: 85, at: 0.3 }, { label: "العمل بالرأي", value: 25, at: 0.6 }]} /></PickScene>,
   NeverMeet: (o) => <PickScene o={o} el="NeverMeet"><NeverMeet at={0.1} until={2.95} x={110} y={260} a="التوحيد" b="الشرك" joinAt={1.2} /></PickScene>,
   RisingTimeline: (o) => <PickScene o={o} el="RisingTimeline"><RisingTimeline at={0.1} until={2.95} x={40} y={120} events={[{ date: "١١ هـ", title: "بيعة الصدّيق", at: 0.3 }, { date: "٣٥ هـ", title: "مقتل عثمان", at: 1.0 }, { date: "٤١ هـ", title: "عام الجماعة", at: 1.7 }, { date: "٦١ هـ", title: "مقتل الحسين", at: 2.4 }]} /></PickScene>,

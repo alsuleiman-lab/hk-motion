@@ -29,7 +29,8 @@ const lastEvent = (it) => { let m = it.at ?? 0; const walk = (v, k) => { if (typ
 const end = (it) => { const e = it.until ?? (it.dur != null ? start(it) + it.dur : it.to ?? null); return it.t === "pick" && e != null ? Math.max(e, lastEvent(it)) : e; };
 const rank = (it) => PR.rank[it.t] ?? 2;
 const WRITING = new Set(["torn", "scraps", "blur", "stamp", "text", "words", "word", "title"]);
-const sides = (it) => (it.only === "land" ? ["land"] : it.only === "port" ? ["port"] : ["land", "port"]);
+const ONLY = argv.includes("--only") ? argv[argv.indexOf("--only") + 1] : null;   /* a single-orientation check (stage check --only land) judges that orientation alone (2026-11-19) */
+const sides = (it) => { const all = it.only === "land" ? ["land"] : it.only === "port" ? ["port"] : ["land", "port"]; return ONLY ? all.filter((x) => x === ONLY) : all; };
 
 // ── areas (user 2026-11-18, rules review, w4 + w13)
 const ALL = { land: ["key", "left", "right"], port: ["band", "video"] };

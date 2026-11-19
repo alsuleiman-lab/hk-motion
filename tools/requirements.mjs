@@ -209,6 +209,8 @@ function check(rows) {
   if (!spec) { console.log(`✘ data/specs/${p}.json missing`); process.exit(1); }
   const span = (it) => { const a = it.at ?? it.from ?? it.times?.[0]; const b = it.until ?? it.to ?? (it.dur != null && a != null ? a + it.dur : a != null ? a + 3 : null); return a == null ? null : [a, b]; };
   const items = (spec.items ?? []).filter((i) => i.t !== "cover").map((i) => ({ t: i.t, sp: span(i), i }));
+  /* a map `move` (names_scan: later mentions of a country/neighbour/city ride on the same pmap item) is a map window of its own (2026-11-19) */
+  for (const i of spec.items ?? []) if (i.t === "pmap") for (const m of i.moves ?? []) items.push({ t: "pmap", sp: [m.from, m.to], i: m });
   const behind = (spec.behind ?? []).map((w) => [w.from, w.to]);
   const skip = new Set(spec.skipRequired ?? []), waive = (spec.waiveOrders ?? []).map((s) => Number(String(s).split(":")[0]));
   // "peek.say" = a peek item that carries a `say` bubble (a type with a required field)

@@ -78,7 +78,7 @@ const build = (c) => {
   // لا تداخل: كل عنصر يبدأ بعد انتهاء السابق بـ0.2 ث على الأقل (الشبكة)
   items.sort((a, b) => a.at - b.at); for (let q = 1; q < items.length; q++) if (items[q].at < items[q - 1].until + 0.2) items[q - 1].until = fix(Math.max(items[q - 1].at + 1.6, items[q].at - 0.2));
   return { orient: c.kind === "reel" || dur <= 120 ? "port" : "land", title: T.title, brand: T.brand ?? "maroon", pose: T.pose ?? "10", bg: typeof T.bg === "string" && T.bg.includes("/") ? T.bg : `stream_bg/bg_${T.bg ?? ((k % 6) + 1)}.jpg`,
-    words: { main: T.main, accent: T.accent, sub: T.sub }, items, writing, extra: { name: tn === null ? [] : [tn], sub: ts === null ? [] : [ts] }, skipMetaphors: "قالب سريع آلي للبث: بلا استعارات مرسومة (أمر الساعتين 2026-11-16)", skipRequired: ist.map((v) => `آية ${v.sura}:${v.aya}@${Math.round(v.times[0])}`), skipMentions: ["قالب سريع آلي: لا صور للمذكورات (أمر الساعتين 2026-11-16)"] };
+    words: { main: T.main, accent: T.accent, sub: T.sub }, items, writing, extra: { name: tn === null ? [] : [tn], sub: ts === null ? [] : [ts] }, skipMetaphors: "قالب سريع آلي للبث: بلا استعارات مرسومة (أمر الساعتين 2026-11-16)", skipRequired: ist.map((v) => `آية ${v.sura}:${v.aya}@${Math.round(v.times[0])}`) };
 };
 const BF = onlyArg && onlyArg.size === 1 ? `build_${[...onlyArg][0]}.json` : "build.json";   // ملف لكل مقطع حين يُبنى مقطع وحده: بناء عدة مقاطع معاً بلا تسابق على ملف واحد
 const todo = plan.clips.filter((c) => !onlyArg || onlyArg.has(c.id) ), out = rd(path.join(".tmp", P, BF), {}), errs = [];
@@ -92,7 +92,7 @@ if (run) for (const c of todo) { if (!out[c.id]) continue;
       const key = (i) => i.at ?? i.from ?? 0, all = sp.items.filter((i) => i.t !== "cover").sort((a, b2) => key(a) - key(b2));
       for (const it of all) if (it.t === "nameTag" || it.t === "subscribe") { const nx = all.find((o) => key(o) > key(it) + 0.5); if (nx) it.dur = +Math.min(4.5, Math.max(3.1, key(nx) - 0.5 - key(it))).toFixed(2); }
       const rq = sh(`node tools/requirements.mjs ${c.id} --check`).stdout ?? "";   // ما ذُكر بلا صورة: قرار القالب السريع (بلا صور مخصصة) يُسجَّل في المواصفة ويُذكر للمستخدم
-      const rows = [...rq.matchAll(/«([^»]+)» عند (\d+):(\d+)/g)].map((m) => ({ n: m[1], at: Number(m[2]) * 60 + Number(m[3]) })); if (rows.length) { sp.skipMentions = [...new Set([...(sp.skipMentions ?? []), ...rows.map((r) => r.n)])]; sp.skipRequired = [...new Set([...(sp.skipRequired ?? []), ...rows.map((r) => `${r.n}@${r.at}`)])]; }
+      const rows = [...rq.matchAll(/«([^»]+)» عند (\d+):(\d+)/g)].map((m) => ({ n: m[1], at: Number(m[2]) * 60 + Number(m[3]) })); /* (أمر المستخدم 2026-11-19: «من قال لك تستثني الصور؟») لا إعفاء لمذكور من صورته؛ تُضاف صوره بـtools/stream/clip_pictures.mjs من .tmp/<البث>/pictures.json */ void rows;
       // بعد كتابة writing_place الفعلية: العنصر الذي يلي قصاصة/ملاحظة يبدأ عند نهايتها الحقيقية + 0.2 (لا تداخل ولا فراغ)
       { const wr = new Set(["scraps", "torn"]), arr = sp.items.filter((i) => i.t !== "cover").sort((a, b2) => (a.at ?? a.from ?? 0) - (b2.at ?? b2.from ?? 0));
         for (let q = 0; q < arr.length - 1; q++) if (wr.has(arr[q].t)) { const nx = arr[q + 1], end = arr[q].until ?? arr[q].to; if (wr.has(nx.t) || nx.t === "nameTag" || nx.t === "subscribe" || end == null) continue;
@@ -100,7 +100,6 @@ if (run) for (const c of todo) { if (!out[c.id]) continue;
       // قرارات القالب السريع المكتوبة: ما لا يملؤه القالب يُعفى بسبب مكتوب في المواصفة ويُذكر للمستخدم
       const cov = sh(`node tools/coverage_check.mjs ${f}`).stdout ?? "", why = "قالب سريع آلي للبث (أمر الساعتين 2026-11-16)";
       for (const ln of cov.split(String.fromCharCode(10)).filter((l) => l.includes("كلام بلا عنصره المطلوب"))) for (const en of ln.replace(/^.*?\): /, "").split("،")) { const m = en.match(/عند (\d+):(\d+)/); if (!m) continue; const n = en.replace(/ عند .*$/, "").replace(/ \(\d+ كلمة\) بلا كتابة/, "").trim(); sp.skipRequired = [...new Set([...(sp.skipRequired ?? []), `${n}@${Number(m[1]) * 60 + Number(m[2])}`])]; }
-      for (const ln of cov.split(String.fromCharCode(10)).filter((l) => l.includes("مذكور بلا صورة عند ذكره"))) for (const en of ln.replace(/^.*?\): /, "").split("،")) { const n = en.replace(/\(\d+:\d+ = [\d.]+s\)/, "").trim(); if (n) sp.skipMentions = [...new Set([...(sp.skipMentions ?? []), n])]; }
       const pt = sh(`node tools/pick_triggers.mjs ${f}`).stdout ?? ""; const els = [...pt.matchAll(/✘ ([A-Za-z]+):/g)].map((m) => m[1]);
       if (els.length) sp.skipPicks = [...(sp.skipPicks ?? []), ...els.filter((e) => !(sp.skipPicks ?? []).some((x) => x.el === e)).map((e) => ({ el: e, why }))];
       fs.writeFileSync(f, JSON.stringify(sp, null, 1)); sh(`node tools/grid_plan.mjs ${f} --o ${sp.orient === "land" || c.kind !== "reel" && c.dur > 120 ? "land" : "port"} --write`); } }

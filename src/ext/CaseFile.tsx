@@ -2,7 +2,7 @@ import React from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { clamp01, easeInOut, easeOut, lerp } from "./motion";
 import { mulberry32 } from "./rand";
-import { back, CrumplePaper, FONT, poly, settle, tornLine, useAlmarai } from "./PaperSteps";
+import { back, CrumplePaper, FONT, FONT_HAND, poly, settle, tornLine, useAlmarai } from "./PaperSteps";
 
 /**
  * تمرين على مرجع «ملف القضية» (إعلان طولي 112ث على بنترست، 2026-11-19، محفوظ في معرض المراجع):
@@ -59,7 +59,7 @@ const Label: React.FC<{ at: number; x: number; y: number; text: string; rot?: nu
   return (
     <div style={{ position: "absolute", left: x - w / 2, top: y, width: w, height: size * 1.7, transform: `rotate(${rot}deg) scale(${Math.max(0, k)})`, filter: "drop-shadow(0 6px 6px rgba(0,0,0,.3))" }}>
       <div style={{ position: "absolute", inset: 0, background: "#f5efe2", clipPath: `polygon(${poly(tornLine(0, 4, w, 0, 41, 16, 6))},${poly(tornLine(w, size * 1.7, 0, size * 1.7 - 4, 42, 16, 6))})` }} />
-      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT, fontWeight: 800, fontSize: size, color: C.ink, direction: "rtl" }}>{text}</div>
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_HAND, fontWeight: 700, fontSize: size * 1.2, color: C.ink, direction: "rtl" }}>{text}</div>
     </div>
   );
 };
@@ -90,8 +90,8 @@ const BoardScene: React.FC<{ t0: number }> = ({ t0 }) => {
         <div style={{ position: "absolute", left: W / 2 - 280, top: 620, width: 560, height: 680, transform: `scale(${lerp(1.7, 1, k)}) rotate(${lerp(-8, -2, k)}deg)`, filter: `drop-shadow(${lerp(50, 6, k)}px ${lerp(80, 10, k)}px ${lerp(40, 8, k)}px rgba(0,0,0,${lerp(0.25, 0.4, k)}))` }}>
           <div style={{ position: "absolute", inset: 0, background: C.note, clipPath: `polygon(${poly(tornLine(0, 0, 560, 6, 51, 24, 10))},${poly(tornLine(560, 680, 0, 676, 52, 24, 12))})` }}><CrumplePaper color={C.note} id="cf-note" seed={5} /></div>
           <div style={{ position: "absolute", left: 60, top: 190, width: 440, height: 300, border: `6px solid ${C.red}`, borderRadius: 14, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: FONT, fontWeight: 800, color: C.ink, direction: "rtl" }}>
-            <div style={{ fontSize: 74, lineHeight: 1.2, whiteSpace: "nowrap" }}>ملف القضية</div>
-            <div style={{ fontSize: 96, lineHeight: 1.2, whiteSpace: "nowrap" }}>رقم ١</div>
+            <div style={{ fontSize: 96, lineHeight: 1.2, whiteSpace: "nowrap" }}>ملف القضية</div>
+            <div style={{ fontSize: 125, lineHeight: 1.2, whiteSpace: "nowrap" }}>رقم ١</div>
           </div>
         </div>); })()}
       <Pin at={t0 + 54} x={W / 2} y={650} />
@@ -147,7 +147,7 @@ const ScrapsScene: React.FC<{ t0: number }> = ({ t0 }) => {
           <div style={{ position: "absolute", inset: 0, background: p.tone > 0.5 ? "#d9c7a6" : "#e7dcc8", clipPath: `polygon(${poly(tornLine(0, 3, p.w, 0, p.seed, 12, 9))},${poly(tornLine(p.w, h, 0, h - 3, p.seed + 1, 12, 9))})` }} />
         </div>; })}
       {f >= 64 && (() => { const k = back((f - 64) / 12, 2.4); return (
-        <div style={{ position: "absolute", left: W / 2 - 300, top: 820, width: 600, height: 280, transform: `rotate(-5deg) scale(${Math.max(0, k)})`, background: "#f6efe0", border: `10px solid ${C.glow}`, boxShadow: "0 16px 30px rgba(0,0,0,.35)", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", fontFamily: FONT, fontWeight: 800, fontSize: 100, lineHeight: 1.05, color: C.red, direction: "rtl" }}>أدلّة<br />متناثرة</div>); })()}
+        <div style={{ position: "absolute", left: W / 2 - 300, top: 820, width: 600, height: 280, transform: `rotate(-5deg) scale(${Math.max(0, k)})`, background: "#f6efe0", border: `10px solid ${C.glow}`, boxShadow: "0 16px 30px rgba(0,0,0,.35)", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", fontFamily: FONT, fontWeight: 800, fontSize: 130, lineHeight: 1.05, color: C.red, direction: "rtl" }}>أدلّة<br />متناثرة</div>); })()}
     </>
   );
 };
@@ -170,7 +170,7 @@ const StampScene: React.FC<{ t0: number }> = ({ t0 }) => {
           <svg width={200} height={250}><polyline points="50,130 88,170 156,92" fill="none" stroke="#222" strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray={`${ck} 1`} /></svg>
         </div>; })}
       {/* أثر الحبر بعد الضغط */}
-      {f >= SL && <div style={{ position: "absolute", left: W / 2 - 230, top: 760, width: 460, height: 150, border: `10px solid ${C.red}`, borderRadius: 16, transform: "rotate(-8deg)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT, fontWeight: 800, fontSize: 84, color: C.red, opacity: 0.9, mixBlendMode: "multiply", direction: "rtl" }}>تمّ التحقق</div>}
+      {f >= SL && <div style={{ position: "absolute", left: W / 2 - 230, top: 760, width: 460, height: 150, border: `10px solid ${C.red}`, borderRadius: 16, transform: "rotate(-8deg)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT, fontWeight: 800, fontSize: 109, color: C.red, opacity: 0.9, mixBlendMode: "multiply", direction: "rtl" }}>تمّ التحقق</div>}
       {/* الختم نفسه */}
       {f > SL - 12 && f < SL + 16 && <div style={{ position: "absolute", left: W / 2 - 250, top: 640 + sy, width: 500, height: 280, transform: "rotate(-8deg)", filter: f < SL ? "blur(3px)" : undefined }}>
         <div style={{ position: "absolute", left: 210, top: 0, width: 80, height: 120, borderRadius: "40px 40px 10px 10px", background: "#2a2320" }} />

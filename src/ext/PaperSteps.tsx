@@ -1,7 +1,8 @@
 import React from "react";
-import { AbsoluteFill, cancelRender, continueRender, delayRender, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { clamp01, easeInOut, easeOut, lerp } from "./motion";
 import { mulberry32 } from "./rand";
+import { ff, useFonts } from "./fonts";
 
 /**
  * تمرين على مرجع «إعلان الخطوات الورقي» (فيديو جرافيكا على بنترست، 2026-11-19، المحفوظ في معرض المراجع):
@@ -20,17 +21,10 @@ const PALS: Record<string, Pal> = {
   warm: { paper: "#efe7d8", ink: "#3a2a1c", accent: "#1f7a72", sun: "#e3ad35", red: "#c4473a", leaf: "#6f8f3a", kraft: "#b48a5a" },
 };
 
-/* ---------- خط محلي (بلا تحميل من الإنترنت) ---------- */
-let fontReady = false;
-export const useAlmarai = () => {
-  const [h] = React.useState(() => (fontReady ? null : delayRender("Almarai local")));
-  React.useEffect(() => {
-    if (!h) return;
-    const faces = [["800", "fonts/Almarai-ExtraBold.ttf"], ["700", "fonts/Almarai-Bold.ttf"]].map(([w, f]) => new FontFace("AlmaraiLocal", `url(${staticFile(f)})`, { weight: w }));
-    Promise.all(faces.map((f) => f.load())).then((l) => { l.forEach((f) => document.fonts.add(f)); fontReady = true; continueRender(h); }).catch((e) => cancelRender(e));
-  }, [h]);
-};
-export const FONT = "AlmaraiLocal, Almarai, sans-serif";
+/* ---------- خطوط فخمة محلية (أمر المستخدم 2026-11-19: لا خطوط عادية في الموشن المستقل) ---------- */
+export const useAlmarai = () => useFonts(["rakkas", "ruqaa", "kafRuqaa"]);
+export const FONT = ff("rakkas");
+export const FONT_HAND = ff("ruqaa");
 
 /* ---------- أدوات ---------- */
 export const back = (x: number, s = 1.7) => { const t = clamp01(x) - 1; return 1 + (s + 1) * t * t * t + s * t * t; };
@@ -133,11 +127,11 @@ const StepHeader: React.FC<{ at: number; n: string; top: string; bottom: string;
   const line = easeInOut(f / 12);
   return (
     <>
-      <div style={{ position: "absolute", left: W / 2 - 62, top: 150, width: 124, height: 124, border: `3px dashed ${p.ink}`, transform: `rotate(${rot}deg) scale(${Math.max(0, kb)})`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT, fontWeight: 800, fontSize: 104, color: p.accent, lineHeight: 1 }}>{n}</div>
+      <div style={{ position: "absolute", left: W / 2 - 62, top: 150, width: 124, height: 124, border: `3px dashed ${p.ink}`, transform: `rotate(${rot}deg) scale(${Math.max(0, kb)})`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT, fontWeight: 800, fontSize: 135, color: p.accent, lineHeight: 1 }}>{n}</div>
       <div style={{ position: "absolute", left: 0, top: 362, width: (W * 0.86) * line, height: 9, background: p.ink }} />
-      <Reveal at={at + 5} style={{ position: "absolute", right: W * 0.08, top: 286, fontFamily: FONT, fontWeight: 800, fontSize: 82, color: p.ink, direction: "rtl", whiteSpace: "nowrap" }}>{top}</Reveal>
-      <Reveal at={at + 9} style={{ position: "absolute", right: W * 0.14, top: 380, fontFamily: FONT, fontWeight: 800, fontSize: 82, color: p.ink, direction: "rtl", whiteSpace: "nowrap" }}>{bottom}</Reveal>
-      <Reveal at={at + 14} style={{ position: "absolute", right: W * 0.14, top: 490, fontFamily: FONT, fontWeight: 800, fontSize: 62, color: p.accent, direction: "rtl", whiteSpace: "nowrap" }}>{sub}</Reveal>
+      <Reveal at={at + 5} style={{ position: "absolute", right: W * 0.08, top: 286, fontFamily: FONT, fontWeight: 800, fontSize: 107, color: p.ink, direction: "rtl", whiteSpace: "nowrap" }}>{top}</Reveal>
+      <Reveal at={at + 9} style={{ position: "absolute", right: W * 0.14, top: 380, fontFamily: FONT, fontWeight: 800, fontSize: 107, color: p.ink, direction: "rtl", whiteSpace: "nowrap" }}>{bottom}</Reveal>
+      <Reveal at={at + 14} style={{ position: "absolute", right: W * 0.14, top: 486, fontFamily: FONT_HAND, fontWeight: 700, fontSize: 78, color: p.accent, direction: "rtl", whiteSpace: "nowrap" }}>{sub}</Reveal>
     </>
   );
 };
@@ -194,7 +188,7 @@ export const PaperSteps: React.FC<{ palette?: "warm" | "ref" }> = ({ palette = "
           <Drop at={T.window + 8} x={760} y={420} w={260} h={260} rot={-6}><svg width={260} height={260}><circle cx={130} cy={130} r={124} fill="#2a1f18" stroke="#fff" strokeWidth={6} /><circle cx={130} cy={130} r={44} fill={p.sun} /><circle cx={130} cy={130} r={6} fill="#2a1f18" /></svg></Drop>
           {/* الملصق الممزق يلتف ويستقر داخل النافذة */}
           {f >= T.window + 34 && (() => { const k = back((f - T.window - 34) / 14, 1.6); return (
-            <div style={{ position: "absolute", left: 540 - 380, top: 860, width: 760, padding: "18px 26px", whiteSpace: "nowrap", background: p.accent, color: "#fff", fontFamily: FONT, fontWeight: 800, fontSize: 60, direction: "rtl", textAlign: "center", transform: `translate(${(1 - k) * -380}px, ${(1 - k) * -260}px) rotate(${-6 + (1 - k) * -70}deg)`, clipPath: `polygon(${poly(tornLine(0, 0, 760, 0, 3, 18, 10))},${poly(tornLine(760, 120, 0, 120, 4, 18, 10))})`, boxShadow: "0 12px 18px rgba(0,0,0,.3)" }}>تريد أن تبدأ طلب العلم؟</div>); })()}
+            <div style={{ position: "absolute", left: 540 - 380, top: 860, width: 760, padding: "18px 26px", whiteSpace: "nowrap", background: p.accent, color: "#fff", fontFamily: FONT, fontWeight: 800, fontSize: 78, direction: "rtl", textAlign: "center", transform: `translate(${(1 - k) * -380}px, ${(1 - k) * -260}px) rotate(${-6 + (1 - k) * -70}deg)`, clipPath: `polygon(${poly(tornLine(0, 0, 760, 0, 3, 18, 10))},${poly(tornLine(760, 120, 0, 120, 4, 18, 10))})`, boxShadow: "0 12px 18px rgba(0,0,0,.3)" }}>تريد أن تبدأ طلب العلم؟</div>); })()}
           {/* الصفحة الممزقة فوق كل شيء */}
           <div style={{ position: "absolute", inset: 0, background: p.paper, clipPath: `polygon(${poly(edge2)},-40px ${H + 40}px,-40px -40px)`, transform: `translate(${-tearB * 900}px, ${-tearB * 120}px) rotate(${-tearB * 12}deg)`, filter: "drop-shadow(8px 0 10px rgba(0,0,0,.25))" }}><CrumplePaper color={p.paper} id="ps-tear2" seed={4} /></div>
           <div style={{ position: "absolute", inset: 0, background: p.paper, clipPath: `polygon(${poly(edge)},${W + 60}px ${H + 60}px,${W + 60}px ${H * 0.5}px)`, transform: `translate(${tearA * 700}px, ${tearA * 900}px) rotate(${tearA * 18}deg)`, filter: "drop-shadow(-8px -6px 10px rgba(0,0,0,.25))" }}><CrumplePaper color={p.paper} id="ps-tear1" seed={9} /></div>
@@ -208,10 +202,10 @@ export const PaperSteps: React.FC<{ palette?: "warm" | "ref" }> = ({ palette = "
             <div style={{ position: "absolute", left: W / 2 - 330, top: 520, width: 660, height: 660, borderRadius: "50%", background: p.sun, transform: `scale(${Math.max(0, k)})`, boxShadow: "0 18px 30px rgba(0,0,0,.18)" }} />
             <div style={{ position: "absolute", left: W / 2 - 80, top: 440 + (f < T.title + 16 ? (1 - easeOut((f - T.title - 4) / 12)) * -500 : 0) }}><Bird c={p.red} /></div>
             <div style={{ position: "absolute", left: W / 2 + 90 + Math.sin(f / 20) * 18, top: 590 }}><Cloud /></div>
-            {f > T.title + 12 && <div style={{ position: "absolute", left: W / 2 + 40, top: 640, fontFamily: FONT, fontWeight: 800, fontSize: 210, color: p.accent, transform: `scale(${back((f - T.title - 12) / 10, 2)})`, lineHeight: 1 }}>٤</div>}
-            <Reveal at={T.title + 20} style={{ position: "absolute", right: W / 2 - 20, top: 690, fontFamily: FONT, fontWeight: 800, fontSize: 100, color: "#fff", direction: "rtl" }}>خطوات</Reveal>
-            <Reveal at={T.title + 30} style={{ position: "absolute", width: W, textAlign: "center", top: 850, fontFamily: FONT, fontWeight: 800, fontSize: 76, color: "#fff", direction: "rtl" }}>لطلب العلم</Reveal>
-            <Reveal at={T.title + 40} style={{ position: "absolute", width: W, textAlign: "center", top: 960, fontFamily: FONT, fontWeight: 700, fontSize: 56, color: p.accent, direction: "rtl" }}>بداية ثابتة ومتينة</Reveal>
+            {f > T.title + 12 && <div style={{ position: "absolute", left: W / 2 + 40, top: 640, fontFamily: FONT, fontWeight: 800, fontSize: 273, color: p.accent, transform: `scale(${back((f - T.title - 12) / 10, 2)})`, lineHeight: 1 }}>٤</div>}
+            <Reveal at={T.title + 20} style={{ position: "absolute", right: W / 2 - 20, top: 690, fontFamily: FONT, fontWeight: 800, fontSize: 130, color: "#fff", direction: "rtl" }}>خطوات</Reveal>
+            <Reveal at={T.title + 30} style={{ position: "absolute", width: W, textAlign: "center", top: 850, fontFamily: FONT, fontWeight: 800, fontSize: 99, color: "#fff", direction: "rtl" }}>لطلب العلم</Reveal>
+            <Reveal at={T.title + 40} style={{ position: "absolute", width: W, textAlign: "center", top: 960, fontFamily: FONT, fontWeight: 700, fontSize: 73, color: p.accent, direction: "rtl" }}>بداية ثابتة ومتينة</Reveal>
           </>); })()}
       </Whip>
 
@@ -256,13 +250,13 @@ export const PaperSteps: React.FC<{ palette?: "warm" | "ref" }> = ({ palette = "
       {/* ٤) سطر الختام بحروف تومض، ثم الشعار */}
       <Whip from={T.end} to={T.logo + 6} outAt={T.logo} id="ps-w5">
         <div style={{ position: "absolute", left: W / 2 - 55, top: 640, transform: `scale(${back((f - T.end - 4) / 10, 2)})` }}><Heart c={p.red} /></div>
-        <Flicker at={T.end + 6} seed={31} text="ابدأ طريقك" style={{ position: "absolute", width: W, textAlign: "center", top: 780, fontFamily: FONT, fontWeight: 800, fontSize: 92, color: p.ink }} />
-        <Flicker at={T.end + 14} seed={57} text="بخطى ثابتـــة" style={{ position: "absolute", width: W, textAlign: "center", top: 900, fontFamily: FONT, fontWeight: 800, fontSize: 84, color: p.accent }} />
-        <Flicker at={T.end + 22} seed={83} text="مع محمد بن شمس الديـــن" style={{ position: "absolute", width: W, textAlign: "center", top: 1010, fontFamily: FONT, fontWeight: 800, fontSize: 70, color: p.accent }} />
+        <Flicker at={T.end + 6} seed={31} text="ابدأ طريقك" style={{ position: "absolute", width: W, textAlign: "center", top: 770, fontFamily: FONT, fontWeight: 800, fontSize: 120, color: p.ink }} />
+        <Flicker at={T.end + 14} seed={57} text="بخطى ثابتـــة" style={{ position: "absolute", width: W, textAlign: "center", top: 930, fontFamily: FONT, fontWeight: 800, fontSize: 109, color: p.accent }} />
+        <Flicker at={T.end + 22} seed={83} text="مع محمد بن شمس الديـــن" style={{ position: "absolute", width: W, textAlign: "center", top: 1080, fontFamily: FONT, fontWeight: 800, fontSize: 91, color: p.accent }} />
       </Whip>
       {f >= T.logo && (() => { const k = back((f - T.logo - 4) / 12, 1.5); return (
         <div style={{ position: "absolute", width: W, top: 840, display: "flex", flexDirection: "column", alignItems: "center", transform: `scale(${Math.max(0, k)})` }}>
-          <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 96, color: p.ink, direction: "rtl" }}>محمد بن شمس الدين</div>
+          <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 125, color: p.ink, direction: "rtl" }}>محمد بن شمس الدين</div>
           <div style={{ marginTop: 18, width: 520, height: 10, background: p.accent, transform: `scaleX(${easeOut((f - T.logo - 14) / 12)})` }} />
         </div>); })()}
     </AbsoluteFill>

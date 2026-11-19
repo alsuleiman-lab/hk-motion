@@ -185,7 +185,7 @@ const installTitles = () => {
       }
       // browser tab title: «العنوان العربي — id / …»
       const m = decodeURIComponent(location.pathname.split("/").filter(Boolean)[0] ?? "");
-      if (m && COMPOSITION_TITLES[m] && !document.title.startsWith(COMPOSITION_TITLES[m])) document.title = `${COMPOSITION_TITLES[m]} — ${m} / Remotion_Workspace - Remotion Studio`;
+      if (m && COMPOSITION_TITLES[m] && !document.title.startsWith(COMPOSITION_TITLES[m])) document.title = `${COMPOSITION_TITLES[m]} — ${m} / HK-Motion`;
     } catch { /* never break the Studio */ }
   };
   // ---- Arabic search in the Studio search box (Studio filters by Latin id only): block Studio's own handler for Arabic text and filter the sidebar rows by their Arabic titles ourselves.
@@ -588,6 +588,120 @@ const installErrorBanner = () => {
     } catch { /* never break the Studio */ }
   }, 150);
 };
+/**
+ * HK-MOTION (user 2026-11-19: «سمّه HK-Motion … أستطيع أن أقص بنفسي: أحدد بداية ونهاية وأكبس حذف، أو حذف موسيقى»).
+ * 1) the name and a little look: «HK-Motion» in the Studio's top bar and tab title instead of the workspace name, a thin gold line along the very top, a small icon;
+ * 2) a row of its own under the player (like the element names / the red error row; the player shrinks above it): «بداية» «نهاية» take the Studio's current frame, «حذف» removes the
+ *    span (tools/cut_blocks.mjs --snap-words through tools/hk_server.mjs: smart cut, no re-encode, the span moves to the gaps between words), «حذف موسيقى» takes only the music off that
+ *    span (tools/music_cut.mjs, the local music remover; the video is untouched). Both ask first (what will go, how long, the words inside); progress and result show in the row.
+ *    The server is addressed through the page's own host (works from the phone): http://<host>:3199. Studio-only, never breaks the Studio.
+ */
+const hkPort = (): number => (Number(location.port) || 3100) + 99;   // the Studio's port + 99 (remotion.config.ts starts the server there)
+const installBrand = () => {
+  const w = window as unknown as { __hkBrand?: boolean };
+  if (w.__hkBrand) return; w.__hkBrand = true;
+  const bar = document.createElement("div");
+  bar.id = "__hk_brand_bar";
+  bar.style.cssText = "position:fixed;left:0;right:0;top:0;height:3px;z-index:2147483640;pointer-events:none;background:linear-gradient(90deg,#f5a524,#e8590c 55%,#f5a524)";
+  document.body.appendChild(bar);
+  const icon = document.createElement("link");
+  icon.rel = "icon"; icon.type = "image/svg+xml";
+  icon.href = "data:image/svg+xml," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23101418'/><text x='32' y='43' font-family='Arial' font-weight='700' font-size='30' text-anchor='middle' fill='%23f5a524'>HK</text></svg>".replace(/%23/g, "#"));
+  document.head.appendChild(icon);
+  window.setInterval(() => {
+    try {
+      if (/Remotion_Workspace|Remotion Studio/.test(document.title)) document.title = document.title.replace(/\s*[-/]?\s*Remotion_Workspace\s*-\s*Remotion Studio$/, " / HK-Motion").replace(/Remotion Studio/, "HK-Motion").replace(/Remotion_Workspace/, "HK-Motion");
+      for (const e of Array.from(document.querySelectorAll("div,span"))) {
+        if (e.children.length === 0 && /^Remotion_Workspace(_next)?$/.test((e.textContent ?? "").trim()) && !e.closest("#__hk_row")) { e.textContent = "HK-Motion"; (e as HTMLElement).style.color = "#f5a524"; (e as HTMLElement).style.fontWeight = "700"; }
+      }
+    } catch { /* never break the Studio */ }
+  }, 700);
+};
+const installHK = () => {
+  const w = window as unknown as { __hk?: { row?: HTMLElement } };
+  if (w.__hk?.row) return;
+  const st = (w.__hk = {} as { row?: HTMLElement });
+  const comp = () => decodeURIComponent(location.pathname.split("/").filter(Boolean)[0] ?? "");
+  const frameNow = (): number | null => {
+    const real = document.querySelector<HTMLElement>('button[aria-label^="Show timeline ticks"]');
+    const t = (real?.textContent ?? "").trim();
+    return /^\d{1,7}$/.test(t) ? Number(t) : null;
+  };
+  const KEY = (c: string) => `__hk_range:${c}`;
+  const loadR = (c: string): { a: number | null; b: number | null } => { try { const o = JSON.parse(localStorage.getItem(KEY(c)) ?? "{}"); return { a: Number.isFinite(o.a) ? o.a : null, b: Number.isFinite(o.b) ? o.b : null }; } catch { return { a: null, b: null }; } };
+  const saveR = (c: string, r: { a: number | null; b: number | null }) => { try { localStorage.setItem(KEY(c), JSON.stringify(r)); } catch { /* ignore */ } };
+  const api = (p: string) => `http://${location.hostname}:${hkPort()}${p}`;
+  const row = document.createElement("div");
+  row.id = "__hk_row"; st.row = row;
+  row.style.cssText = "flex:0 0 36px;height:36px;position:relative;display:none;box-sizing:border-box;align-items:center;gap:6px;padding:0 8px;background:#1b2026;border-top:1px solid rgba(245,165,36,.45);direction:rtl;font:600 12px Tahoma,Arial,sans-serif;color:#e8e8e8;overflow-x:auto;overflow-y:hidden;white-space:nowrap";
+  const mk = (label: string, bg: string) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.style.cssText = `flex:0 0 auto;height:26px;padding:0 10px;border:1px solid rgba(255,255,255,.3);border-radius:7px;background:${bg};color:#fff;font:700 12px Tahoma,Arial,sans-serif;cursor:pointer`; return b; };
+  const tag = document.createElement("span"); tag.textContent = "HK"; tag.style.cssText = "flex:0 0 auto;color:#f5a524;font:800 12px Arial,sans-serif;letter-spacing:.5px";
+  const bA = mk("بداية", "#2d3a4a"), bB = mk("نهاية", "#2d3a4a"), bDel = mk("حذف", "#a02828"), bMus = mk("حذف موسيقى", "#7a4e12");
+  const info = document.createElement("span"); info.style.cssText = "flex:1 0 auto;min-width:80px;overflow:hidden;text-overflow:ellipsis;user-select:text;-webkit-user-select:text";
+  row.append(tag, bA, bB, bDel, bMus, info);
+  const paint = (msg?: string, color?: string) => {
+    const r = loadR(comp());
+    bA.textContent = r.a != null ? `بداية ${r.a}` : "بداية"; bB.textContent = r.b != null ? `نهاية ${r.b}` : "نهاية";
+    if (msg !== undefined) { info.textContent = msg; info.style.color = color ?? "#e8e8e8"; }
+  };
+  const setPt = (k: "a" | "b") => () => { const f = frameNow(); if (f === null) return; const c = comp(), r = loadR(c); r[k] = f; saveR(c, r); paint(""); };
+  bA.addEventListener("click", setPt("a")); bB.addEventListener("click", setPt("b"));
+  const call = async (path: string, body: unknown): Promise<{ ok: boolean; status: number; data: Record<string, unknown> }> => {
+    const res = await fetch(api(path), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    let data: Record<string, unknown> = {}; try { data = await res.json(); } catch { /* ignore */ }
+    return { ok: res.ok, status: res.status, data };
+  };
+  let busy = false;
+  const poll = async () => {
+    for (;;) {
+      await new Promise((r) => setTimeout(r, 2000));
+      try {
+        const j = (await (await fetch(api("/api/job"))).json()) as { state?: string; label?: string; seconds?: number; summary?: string };
+        if (j.state === "running") { paint(`⏳ ${j.label ?? "يعمل"} — ${j.seconds ?? 0} ث`, "#ffd479"); continue; }
+        if (j.state === "done") { paint(`✔ ${j.summary ?? "تم"}`, "#8fe08f"); const c = comp(); saveR(c, { a: null, b: null }); paint(); return; }
+        paint(`✘ ${j.summary ?? "فشل"}`, "#ff9a9a"); return;
+      } catch { paint("انقطع الاتصال بخادم HK", "#ff9a9a"); return; }
+    }
+  };
+  const run = (kind: "delete" | "music") => async () => {
+    if (busy) return; const c = comp(), r = loadR(c);
+    if (r.a == null || r.b == null) { paint("حدّد البداية والنهاية أولاً (انتقل إلى الإطار ثم اضغط بداية / نهاية)", "#ffd479"); return; }
+    busy = true;
+    try {
+      paint("… أتحقق", "#ffd479");
+      const pv = await call("/api/preview", { comp: c, a: r.a, b: r.b });
+      if (!pv.ok) { paint(`✘ ${String(pv.data.error ?? "تعذّر")}`, "#ff9a9a"); return; }
+      const d = pv.data as { seconds?: number; words?: string[]; count?: number };
+      const what = kind === "delete" ? "حذف" : "حذف الموسيقى من";
+      const extra = kind === "delete" ? "\nيُنقَل الحذف إلى أقرب فراغ بين كلمتين، دون إعادة ترميز الفيديو." : "\nالفيديو لا يُمسّ؛ يُبدَّل الصوت في هذا المقطع بصوت الكلام وحده.";
+      if (!window.confirm(`${what} المقطع من الإطار ${r.a} إلى ${r.b} (${d.seconds} ث، ${d.count ?? 0} كلمة):\n«${(d.words ?? []).join(" ")}»${extra}\nمتابعة؟`)) { paint(""); return; }
+      const go = await call(kind === "delete" ? "/api/delete" : "/api/music", { comp: c, a: r.a, b: r.b });
+      if (!go.ok) { paint(`✘ ${String(go.data.error ?? "تعذّر")}`, "#ff9a9a"); return; }
+      await poll();
+    } catch { paint("خادم HK غير مشغّل (يبدأ مع الاستوديو؛ أو شغّل tools/hk_server.mjs ${hkPort()})", "#ff9a9a"); }
+    finally { busy = false; }
+  };
+  bDel.addEventListener("click", run("delete")); bMus.addEventListener("click", run("music"));
+  const column = (): HTMLElement | null => {
+    const cc = document.querySelector<HTMLElement>(".remotion-studio-composition-container");
+    for (let n = cc?.parentElement ?? null; n && n !== document.body; n = n.parentElement) if (getComputedStyle(n).flexDirection === "column" && n.querySelector(".__remotion-canvas-tab")) return n;
+    return null;
+  };
+  let lastComp = "";
+  window.setInterval(() => {
+    try {
+      const col = column(), c = comp();
+      if (!col || !c) { row.style.display = "none"; return; }
+      const anchor = document.getElementById("__el_names_row") ?? document.getElementById("__err_row");
+      const a2 = anchor && anchor.parentElement === col ? anchor : null;
+      if (row.parentElement !== col || row.nextElementSibling !== a2) col.insertBefore(row, a2);
+      if (row.style.display !== "flex") row.style.display = "flex";
+      if (c !== lastComp) { lastComp = c; paint(""); }
+    } catch { /* never break the Studio */ }
+  }, 400);
+  // a job already running (the page was reloaded while it worked): show it
+  void (async () => { try { const j = (await (await fetch(api("/api/job"))).json()) as { state?: string }; if (j.state === "running") { busy = true; await poll(); busy = false; } } catch { /* server not running */ } })();
+};
 const installDeepLink = () => {
   const q = decodeURIComponent(location.search.replace(/^\?/, "")).replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).trim();
   const m = /^(\d+)\.(\d{1,2})$/.exec(q), f = /^\d+$/.test(q) ? Number(q) : m ? (Number(m[1]) * 60 + Number(m[2])) * 30 : null;
@@ -788,5 +902,5 @@ const installFilterPanel = () => {
 };
 
 try {
-  if (typeof window !== "undefined" && typeof document !== "undefined" && getRemotionEnvironment().isStudio) { installErrorBanner(); install(); installTitles(); installMobile(); installMarks(); installElementNames(); installDeepLink(); installFilterPanel(); }
+  if (typeof window !== "undefined" && typeof document !== "undefined" && getRemotionEnvironment().isStudio) { installErrorBanner(); installBrand(); install(); installTitles(); installMobile(); installMarks(); installElementNames(); installHK(); installDeepLink(); installFilterPanel(); }
 } catch { /* ignore */ }

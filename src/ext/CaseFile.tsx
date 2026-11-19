@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { clamp01, easeInOut, easeOut, lerp } from "./motion";
+import { SfxTrack } from "./sfx";
 import { mulberry32 } from "./rand";
 import { back, CrumplePaper, FONT, FONT_HAND, poly, settle, tornLine, useAlmarai } from "./PaperSteps";
 
@@ -220,6 +221,7 @@ export const CaseFile: React.FC = () => {
       {scene === 3 && <StampScene t0={T.stamp + 12} />}
       {scene === 4 && <SuspectScene t0={T.suspect + 12} />}
       {[T.chain, T.scraps, T.stamp, T.suspect].map((a) => <Roll key={a} at={a} />)}
+      <SfxTrack cues={[[4,"fast"],[44,"hit"],[60,"tap"],[150,"swipe"],[202,"swell"],[232,"blast"],[250,"popin"],[300,"swipe"],[314,"swish"],[376,"popdeep"],[430,"swipe"],[476,"tap"],[520,"thud"],[580,"swipe"],[592,"subdrop"],[628,"popin"]]} />
     </AbsoluteFill>
   );
 };

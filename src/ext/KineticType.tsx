@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { clamp01, easeInOut, easeOut, lerp } from "./motion";
+import { SfxTrack } from "./sfx";
 import { back } from "./PaperSteps";
 import { ff, useFonts } from "./fonts";
 
@@ -173,6 +174,7 @@ export const KineticType: React.FC = () => {
       <AbsoluteFill style={{ transform: out ? `translateY(${-out * out * 900}px) rotate(${-out * 8}deg)` : undefined, filter: out ? `blur(${out * 10}px)` : undefined }}>
         <Scene i={i} />
       </AbsoluteFill>
+      <SfxTrack cues={[[4,"popin"],[10,"zip"],[22,"popdeep"],[75,"whoosh_big"],[91,"tap"],[150,"popin"],[190,"thud"],[225,"whoosh_big"],[300,"swish"],[336,"typing"],[420,"whoosh_big"],[436,"swell"],[490,"swish"],[506,"thud"],[518,"popdeep"],[530,"thud"],[542,"popdeep"],[590,"whoosh_big"],[634,"popdeep"],[644,"zip"],[660,"sting"]]} />
     </AbsoluteFill>
   );
 };

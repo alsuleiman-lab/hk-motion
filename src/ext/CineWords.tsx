@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
 import { clamp01, easeInOut, easeOut, lerp } from "./motion";
+import { SfxTrack } from "./sfx";
 import { ff, useFonts } from "./fonts";
 
 /**
@@ -115,6 +116,7 @@ export const CineWords: React.FC = () => {
         <Line y={1540}><StretchWord at={T.b + 38} until={CINE_WORDS_FRAMES} a="بالخ" b="الق" size={190} font="mirza" /></Line>
       </>)}
       <Leak />
+      <SfxTrack cues={[[8,"shimmer"],[125,"subdrop"],[147,"swipe"],[230,"hit"],[262,"swell"],[330,"subdrop"],[368,"shimmer"]]} />
     </AbsoluteFill>
   );
 };

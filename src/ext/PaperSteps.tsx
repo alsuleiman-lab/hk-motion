@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { clamp01, easeInOut, easeOut, lerp } from "./motion";
+import { SfxTrack } from "./sfx";
 import { mulberry32 } from "./rand";
 import { ff, useFonts } from "./fonts";
 
@@ -259,6 +260,7 @@ export const PaperSteps: React.FC<{ palette?: "warm" | "ref" }> = ({ palette = "
           <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 125, color: p.ink, direction: "rtl" }}>محمد بن شمس الدين</div>
           <div style={{ marginTop: 18, width: 520, height: 10, background: p.accent, transform: `scaleX(${easeOut((f - T.logo - 14) / 12)})` }} />
         </div>); })()}
+      <SfxTrack cues={[[6,"tear"],[48,"swish"],[64,"popin"],[118,"whoosh_big"],[144,"popdeep"],[220,"fast"],[266,"thud"],[336,"fast"],[364,"thud"],[436,"fast"],[470,"thud"],[536,"fast"],[570,"thud"],[636,"fast"],[646,"glitch"],[724,"sting"]]} />
     </AbsoluteFill>
   );
 };

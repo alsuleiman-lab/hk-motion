@@ -48,7 +48,9 @@ const catalog = () => {
   }
   const X = JSON.parse(read("data/element_names.json"));   // names of the elements with no gallery card, and types named after another gallery element
   for (const t of approved) if (specFields[t] && !Object.values(els).some((e) => e.t === t)) { const code = X.codeOf?.[t] ?? t; els[code] = { code, t, fields: specFields[t], lab: lab[code] ?? (X.names?.[t] ? { ar: X.names[t] } : undefined) }; }
-  for (const e of Object.values(els)) e.edit = e.fields.filter((f) => !NOT_CONTENT.has(f.name));
+  // «right» is a layout flag for most elements but the TEXT of the right road in Crossroads (2026-11-19, mufti-hiraba): a field typed string is content
+  const isContent = (f) => !NOT_CONTENT.has(f.name) || (f.name === "right" && /string/.test(f.type));
+  for (const e of Object.values(els)) e.edit = e.fields.filter(isContent);
   return els;
 };
 const short = (e) => e.edit.map((f) => (TIMING.has(f.name) ? null : `${f.name}${f.opt ? "?" : ""}`)).filter(Boolean).join(" ");
@@ -87,7 +89,9 @@ if (cmd === "list") {
   if (e.lab?.where) console.log(`متى: ${e.lab.where}`);
   for (const f of e.edit) console.log(`  ${f.name}${f.opt ? "" : " (إلزامي)"}: ${f.type}`);
   const ex = e.edit.filter((f) => !f.opt && !TIMING.has(f.name)).map((f) => `${f.name}=${/\[\]|\{/.test(f.type) ? "'[…]'" : /^number$/.test(f.type) ? "1" : '"…"'}`).join(" ");
-  console.log(`مثال: node tools/el.mjs add <المشروع> ${e.code} at=12.3 until=16 ${ex}`);
+  // an element timed by its own from/to (PaperMap…) refuses at/until: the example names the fields add accepts (2026-11-19, mufti-hiraba)
+  const own = e.edit.some((f) => f.name === "from" && !f.opt);
+  console.log(`مثال: node tools/el.mjs add <المشروع> ${e.code} ${own ? "from=12.3 to=16" : "at=12.3 until=16"} ${ex.split(" ").filter((s) => !/^(from|to)=/.test(s)).join(" ")}`);
 } else if (cmd === "names") {
   const els = Object.values(catalog()), by = new Map();
   for (const e of els) { const n = ar(e); if (n) by.set(n, [...(by.get(n) ?? []), e.code]); }
@@ -99,7 +103,7 @@ if (cmd === "list") {
   const [p, code, ...rest] = args, f = specPath(p), e = find(catalog(), code);
   if (!e) { console.error(`✘ لا عنصر بهذا الاسم: ${code} (node tools/el.mjs list)`); process.exit(2); }
   const vals = kv(rest), names = new Set(e.fields.map((x) => x.name));
-  const bad = Object.keys(vals).filter((k) => NOT_CONTENT.has(k) || !names.has(k));
+  const editN = new Set(e.edit.map((x) => x.name)), bad = Object.keys(vals).filter((k) => (NOT_CONTENT.has(k) && !editN.has(k)) || !names.has(k));
   if (bad.length) { console.error(`✘ ${code}: لا يُضبط هنا ${bad.join("، ")} — المكان والمقاس من المعرض؛ الحقول: ${e.edit.map((x) => x.name).join(" ")}`); process.exit(2); }
   const missing = e.edit.filter((x) => !x.opt && vals[x.name] === undefined).map((x) => x.name);
   if (missing.length) { console.error(`✘ ${code}: ينقصه ${missing.join("، ")} (node tools/el.mjs show ${code})`); process.exit(2); }
@@ -122,7 +126,7 @@ if (cmd === "list") {
 } else if (cmd === "set") {
   const [p, n0, ...rest] = args, f = specPath(p), s = JSON.parse(read(f)); ensureIds(s); const n = at(s, n0), it = n == null ? null : s.items[n];
   if (!it) { console.error(`✘ لا عنصر ${n0}`); process.exit(2); }
-  const vals = kv(rest), bad = Object.keys(vals).filter((k) => NOT_CONTENT.has(k));
+  const vals = kv(rest), bad = Object.keys(vals).filter((k) => NOT_CONTENT.has(k) && !(k === "right" && typeof vals[k] === "string" && it.t === "pick"));
   if (bad.length) { console.error(`✘ لا يُضبط ${bad.join("، ")}: المكان والمقاس من المعرض`); process.exit(2); }
   Object.assign(it, vals);
   if (vals.src && ["tphoto", "scholar", "pic"].includes(it.t)) { const r = ratioOf(it.src); if (r) it.ratio = r; }

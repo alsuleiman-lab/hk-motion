@@ -62,6 +62,8 @@ else console.log(`words_drift: ✔ cut_words.json matches the cut audio (${rows.
       if (nx && nx.s - x.s < 1.5 && /^(ال|لل)/.test(nb) && nb.length >= 4) return false;   // «أفوان الكل» → «أفواه الكل»: a noun follows
       if (raw.slice(Math.max(0, i - 2), i).some((y) => /^(كمم|تكميم|يكمم|وكمم)/.test(bare(y.w).replace(/ّ/g, "")))) return false;   // «كمّم أفواه»
     }
+    // «لا عفو فيه» / «فلا عفو» = the noun (pardon, a fiqh term), never the apology «عفواً» (2026-11-19, mufti-hiraba 3:49 «وأنه لا عفو فيه»)
+    if (w === "عفو") { const pv = raw[i - 1]; if (pv && x.s - pv.s < 1.2 && /^[وف]?لا$/.test(bare(pv.w))) return false; }
     return true;
   };
   const hits = raw.filter((x, i) => isMark(x, i) && !splits.some((sp) => x.s >= sp.from && x.s <= sp.to) && !keep.some((k) => Math.abs(k.t - x.s) < 0.6 && k.why && k.userConfirmed === true));

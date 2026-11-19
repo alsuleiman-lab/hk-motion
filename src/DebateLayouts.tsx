@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, spring, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Sequence, spring, staticFile, useCurrentFrame } from "remotion";
 import { WarmBase, RV, LANDSCAPE } from "./PortraitKit";
 import { kufiF, monoF } from "./MG";
 import { BRAND, alpha } from "./brand";
@@ -13,7 +13,7 @@ import { HYL, HyLayer, VSlot } from "./hybrid/Slot";
  * under the original's background shapes (no plain background).
  * A source is either a whole video (`src`) or a source-pixel column of the baked split (`src` + `x`/`w`).
  */
-export type DebateSrc = { src: string; x?: number; w?: number; y?: number; h?: number; aspect?: number; blur?: number };
+export type DebateSrc = { src: string; x?: number; w?: number; y?: number; h?: number; aspect?: number; blur?: number; t0?: number };   /* t0: an added clip file plays from its own start when its window opens (as in the main tree, 2026-11-16) */
 export type DebateLayoutName = "dossier" | "dossierBig" | "dossierPair" | "blocks";
 type Props = { main: DebateSrc; guest: DebateSrc; guestName?: string; title?: string; url?: string; at?: number; behind?: React.ReactNode; gaps?: { from: number; to: number }[] };
 
@@ -59,9 +59,9 @@ const Feed: React.FC<{ s: DebateSrc; w: number; h: number; z?: number; o?: numbe
                   rounded corners, applied when the picture's clip box IS the window box (it fills it) */
     const fx = s.blur ? { blur: s.blur } : undefined, r = feedRect(s, w, h, o);
     const fills = r.L <= 0.5 && r.T <= 0.5 && r.L + r.BW >= w - 0.5 && r.T + r.BH >= h - 0.5;
-    return <VSlot src={s.src} w={r.BW} h={r.BH} style={{ left: r.L, top: r.T }} vx={r.IX - r.L} vy={r.IY - r.T} vw={r.IW} vh={r.IH} fx={fx} z={z} grow={0} radius={radii && fills ? radii : 0} />;
+    return <VSlot src={s.src} startFrom={s.t0 != null ? -Math.round(s.t0 * 30) : 0} w={r.BW} h={r.BH} style={{ left: r.L, top: r.T }} vx={r.IX - r.L} vy={r.IY - r.T} vw={r.IW} vh={r.IH} fx={fx} z={z} grow={0} radius={radii && fills ? radii : 0} />;
   }
-  if (s.w === undefined) return <RV src={staticFile(s.src)} style={{ position: "absolute", inset: 0, width: w, height: h, objectFit: "contain", ...f }} />;
+  if (s.w === undefined) { const v = <RV src={staticFile(s.src)} style={{ position: "absolute", inset: 0, width: w, height: h, objectFit: "contain", ...f }} />; return s.t0 != null ? <Sequence from={Math.round(s.t0 * 30)} layout="none">{v}</Sequence> : v; }
   const ch = s.h ?? 1080, k = Math.min(h / ch, w / s.w), vw = s.w * k, vh = ch * k;
   return (
     <div style={{ position: "absolute", left: (w - vw) / 2, top: (h - vh) / 2, width: vw, height: vh, overflow: "hidden" }}>

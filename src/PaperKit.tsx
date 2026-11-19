@@ -82,10 +82,10 @@ export const TornNote: React.FC<{ at: number; until?: number; x: number; y: numb
 
 /** a title made of torn paper scraps, one word per scrap (Arabic letters keep their joins), each arriving in stop-motion with its own tilt and stock */
 /** without x it is centred across the width (user 2026-10-29); without y too it sits in the writing area: the third quarter of the height */
-export const WordScraps: React.FC<{ at: number; until?: number; x?: number; y?: number; text: string; size?: number; gap?: number; times?: number[] }> = ({ at, until, x, y, text, size = 50, gap = 0.18, times }) => {
+export const WordScraps: React.FC<{ at: number; until?: number; x?: number; y?: number; w?: number; text: string; size?: number; gap?: number; times?: number[] }> = ({ at, until, x, y, w, text, size = 50, gap = 0.18, times }) => {
   const ta = (i: number) => times?.[i] ?? at + i * gap;   // each scrap is written the moment its word is spoken (user 2026-11-06)
   const t = useStep(), f = useCurrentFrame(), { width, height } = useVideoConfig();
-  const place: React.CSSProperties = x === undefined ? { left: 0, top: y ?? height * 0.5, width, ...(y === undefined ? { height: height * 0.25 } : {}), justifyContent: "center", boxSizing: "border-box", padding: `0 ${Math.round(width * 0.05)}px` } : { left: x, top: y ?? height * 0.5 };
+  const place: React.CSSProperties = x === undefined ? { left: 0, top: y ?? height * 0.5, width, ...(y === undefined ? { height: height * 0.25 } : {}), justifyContent: "center", boxSizing: "border-box", padding: `0 ${Math.round(width * 0.05)}px` } : { left: x, top: y ?? height * 0.5, ...(w ? { width: w, justifyContent: "center", boxSizing: "border-box" } : {}) };   /* x + w = a fixed box (landscape: beside a left-half element, user 2026-11-17 frame 5117) */
   if (t < at || (until !== undefined && t > until + 0.3)) return null;
   // at most 4 scraps at once: the first goes when a fifth arrives (user 2026-11-05)
   const shown = text.split(" ").map((wd, i, all) => ({ wd, i, gone: i + 4 < all.length ? ta(i + 4) : Infinity })).filter(({ i, gone }) => t >= ta(i) && t < gone);

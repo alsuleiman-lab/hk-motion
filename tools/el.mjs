@@ -95,8 +95,13 @@ const atomsOf = (txt) => {
   return out;
 };
 const gateAtoms = async (f, p) => {
-  const outs = await Promise.all([["tools/writing_sync.mjs", f], ["tools/element_slots.mjs", p], ["tools/coverage_check.mjs", f], ["tools/spec_normalize.mjs", f, "--o", "land", "--dry"], ["tools/spec_normalize.mjs", f, "--o", "port", "--dry"]].map(runGate));
-  return atomsOf(outs.join("\n"));
+  /* (2026-11-20) spec_normalize --dry WRITES the spec (its fixes) and then puts it back: two of them at once, or one beside a reader, raced on the same
+     file — a gate read a half-written spec (JSON error) and a restore could bring back an older version. The two normalisers run one after the other,
+     and only then the read-only gates, together. */
+  const n1 = await runGate(["tools/spec_normalize.mjs", f, "--o", "land", "--dry"]);
+  const n2 = await runGate(["tools/spec_normalize.mjs", f, "--o", "port", "--dry"]);
+  const outs = await Promise.all([["tools/writing_sync.mjs", f], ["tools/element_slots.mjs", p], ["tools/coverage_check.mjs", f]].map(runGate));
+  return atomsOf([n1, n2, ...outs].join("\n"));
 };
 const hashOf = (f) => crypto.createHash("sha1").update(read(f)).digest("hex");
 const GATE_OFF = process.argv.includes("--no-gate");

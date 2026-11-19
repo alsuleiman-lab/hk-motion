@@ -295,7 +295,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
       const w = L ? ov.w ?? it.w ?? 600 : it.w ?? 820, size = it.size ?? 38;
       const lines = Math.max(1, Math.ceil([...it.title].length / Math.max(1, Math.floor((w - 70) / (size * 0.5))))), h = ov.h ?? it.h ?? Math.round(130 + lines * size * 1.6);
       const x = L ? ov.x ?? 40 : it.x ?? Math.round((1080 - w) / 2);
-      return <Only key={i} from={it.at} to={it.until}><NoteCard at={it.at} x={x} y={L ? ov.y ?? 150 : it.y ?? 1440} w={w} h={h} label={it.label ?? "حديث شريف"} tag={it.tag} title={it.title} lines={0} size={size} cps={it.cps ?? Math.max(10, Math.round([...it.title].length / Math.max(2, it.until - it.at - 1.2)))} /></Only>;
+      return <Only key={i} from={it.at} to={it.until}><NoteCard at={it.at} x={x} y={L ? ov.y ?? 150 : it.y ?? 1440} w={w} h={h} label={it.label ?? "حديث شريف"} tag={it.tag} title={it.title} lines={0} size={size} cps={it.cps ?? Math.max(10, Math.round([...it.title].length / Math.max(2, it.until - it.at - 2.0)))} /></Only>;
     }
     case "peek": return <Only key={i} from={it.at} to={it.until}><PeekIn src={it.src} ar={it.ar} at={it.at} until={it.until} w={it.w ?? (L ? 400 : 460)} dx={it.dx ?? 0} corner={it.corner ?? "bl"} z={i} say={it.say} /></Only>;
     case "stamp": return <Only key={i} from={it.at} to={it.until ?? it.at + 2.5}><Stamp at={it.at} x={L ? ov.x ?? it.land?.x ?? 250 : it.x ?? 330} y={L ? ov.y ?? it.land?.y ?? 760 : it.y ?? 1470} text={it.text} size={it.size ?? 56} /></Only>;   // «هذا هو المرجح» (user 2026-11-12): the gallery red stamp at the word

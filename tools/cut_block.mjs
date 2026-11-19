@@ -112,6 +112,9 @@ for (const s of map.segments) {
   if (c0 < A) segs.push({ ...s, b: +(s.a + (A - c0)).toFixed(4) });
   if (c1 > B) segs.push({ ...s, a: +(s.a + (B - c0)).toFixed(4) });
 }
+/* (2026-11-20, mufti-hiraba 1:15) a span that ends a hair inside a segment's edge left pieces of length 0 (189.00–189.00): never keep a piece shorter
+   than a tenth of a frame — it holds no frame and the scans read it as a stray fragment between two cuts */
+for (let k = segs.length - 1; k >= 0; k--) if (segs[k].b - segs[k].a < 0.004) segs.splice(k, 1);
 // the replacement piece goes right where cut time A falls (after the pieces that sum to A)
 if (SA != null) { let t = 0, k = 0; while (k < segs.length && t + (segs[k].b - segs[k].a) <= A + 1e-4) { t += segs[k].b - segs[k].a; k++; } segs.splice(k, 0, { ...segs[Math.max(0, k - 1)], a: SA, b: SB }); }
 { let t = 0; for (const s of segs) { s.n = +t.toFixed(4); t += s.b - s.a; } }   /* (2026-11-18) every segment's cut-time start follows the cut (a cut-model map is read by its `n`: stale values made the gate see a 9.8 s pause) */

@@ -7,6 +7,9 @@
 //   node tools/el.mjs items <p> [from-to]             the spec's elements, numbered (seconds), with their stable id (#id), one line each
 //   node tools/el.mjs set <p> <#id|id=…|n> field=value …   change content/timing of one element (size/place cannot be set: they are the gallery's)
 //   node tools/el.mjs del <p> <#id|id=…|n>            remove one element
+//   node tools/el.mjs list --json | items <p> [a-b] --json   the same as JSON (the HK-Motion gallery panel and tools/hk_server.mjs read these)
+//   node tools/el.mjs size <p> <#id> [--land|--port] k=1.2 dx=40 dy=-20 | --reset     THIS element's own size and nudge, one orientation or both (user 2026-11-19: «أريحية المقاسات»)
+//   node tools/el.mjs gsize <code> --land|--port scale=1.1 dx=0 dy=0 | --reset         the GALLERY's size/place of an element type: every video, that orientation (data/gallery_notes.json)
 // Stable ids (user 2026-11-18, rules review): every item carries a short `id`, unique in its spec. `add` gives the new item one; any item without one gets it the
 // first time el.mjs saves (or lists) the spec; sorting by time never changes an id. The old index still works but moves when the spec is re-sorted (warned).
 // Values: plain text, numbers, or JSON for lists/objects (lines='[{"text":"…","at":1.2}]'). A picture (src=…) gets its own ratio measured, so the card keeps the
@@ -75,7 +78,8 @@ const textOf = (it) => String(it.text ?? it.name ?? it.title ?? it.q ?? it.myth 
 const fixGeometry = (f, s) => { spawnSync(process.execPath, [s.galleryRef ? "tools/gallery_geo.mjs" : "tools/gallery_geometry.mjs", ...(s.galleryRef ? [] : [f, "--write"])], { stdio: "ignore" }); };   // reference spec: refresh the gallery table; old spec: write the gallery geometry once
 
 if (cmd === "list") {
-  const els = Object.values(catalog()), q = args[0];
+  const els = Object.values(catalog()), q = args.find((a) => !a.startsWith("--"));
+  if (args.includes("--json")) { console.log(JSON.stringify(els.filter((x) => !q || `${x.code} ${ar(x)} ${x.lab?.group ?? ""}`.includes(q)).map((e) => ({ code: e.code, ar: ar(e), group: e.lab?.group ?? "", orient: e.lab?.orient ?? "", where: e.lab?.where ?? "", fields: e.edit })))); process.exit(0); }
   for (const e of els.filter((x) => !q || `${x.code} ${ar(x)} ${x.lab?.group ?? ""}`.includes(q))) console.log(`${e.code} · ${ar(e) || "—"} · ${short(e) || "(التوقيت فقط)"}`);
 } else if (cmd === "show") {
   const e = find(catalog(), args[0]); if (!e) { console.error(`✘ لا عنصر بهذا الاسم: ${args[0]} (node tools/el.mjs list)`); process.exit(2); }
@@ -110,6 +114,10 @@ if (cmd === "list") {
   const f = specPath(args[0]), s = JSON.parse(read(f)), [A, B] = (args[1] ?? "").split("-").map(Number);
   if (ensureIds(s)) fs.writeFileSync(f, JSON.stringify(s, null, 1));   /* ids written once, order untouched, so the listed ids stay (user 2026-11-18, rules review) */
   const cat = catalog(), nm = (it) => ar(cat[label(it)] ?? {}) || label(it);   // the Arabic name, as under the screen in the Studio
+  if (args.includes("--json")) {
+    console.log(JSON.stringify(s.items.map((it, i) => { const sp = span(it); return { n: i, id: it.id, code: label(it), ar: nm(it), from: sp?.[0] ?? null, to: sp?.[1] ?? null, text: textOf(it), dx: it.dx ?? 0, dy: it.dy ?? 0, k: it.k ?? 1, land: { dx: it.land?.dx ?? 0, dy: it.land?.dy ?? 0, k: it.land?.k ?? 1 } }; }).filter((x) => !args[1] || args[1].startsWith("--") || !(x.from != null && (x.to < A || x.from > B)))));
+    process.exit(0);
+  }
   s.items.forEach((it, i) => { const sp = span(it); if (args[1] && sp && (sp[1] < A || sp[0] > B)) return; console.log(`${i} · #${it.id} · ${nm(it)} · ${sp ? sp.map((v) => v.toFixed(1)).join("–") : "—"}${it.only ? ` · ${it.only === "land" ? "عرضي فقط" : "طولي فقط"}` : ""} · ${textOf(it)}`); });
 } else if (cmd === "set") {
   const [p, n0, ...rest] = args, f = specPath(p), s = JSON.parse(read(f)); ensureIds(s); const n = at(s, n0), it = n == null ? null : s.items[n];
@@ -123,7 +131,30 @@ if (cmd === "list") {
   const [p, n0] = args, f = specPath(p), s = JSON.parse(read(f)); ensureIds(s); const n = at(s, n0), it = n == null ? null : s.items[n];
   if (!it) { console.error(`✘ لا عنصر ${n0}`); process.exit(2); }
   s.items.splice(n, 1); save(f, s); console.log(`✔ حُذف العنصر #${it.id} (${label(it)})`);
+} else if (cmd === "size") {
+  /* (user 2026-11-19, HK-Motion: «أريحية المقاسات») an element's OWN size and nudge, on top of the gallery's: port = the item's dx/dy/k, land = its land.dx/dy/k (src/MontageSpec.tsx withGallery adds the gallery on top of both) */
+  const [p, n0, ...rest] = args, f = specPath(p), s = JSON.parse(read(f)); ensureIds(s); const n = at(s, n0), it = n == null ? null : s.items[n];
+  if (!it) { console.error(`✘ لا عنصر ${n0}`); process.exit(2); }
+  const o = rest.includes("--land") ? ["land"] : rest.includes("--port") ? ["port"] : ["port", "land"], vals = kv(rest.filter((a) => !a.startsWith("--")));
+  const bad = Object.keys(vals).filter((k) => !["k", "dx", "dy"].includes(k)); if (bad.length) { console.error(`✘ المسموح k و dx و dy فقط (لا ${bad.join("، ")})`); process.exit(2); }
+  if ((vals.k != null && !(vals.k >= 0.4 && vals.k <= 2.5)) || [vals.dx, vals.dy].some((v) => v != null && !(Math.abs(v) <= 1600))) { console.error("✘ k بين 0.4 و2.5، و dx/dy حتى ±1600"); process.exit(2); }
+  for (const ori of o) {
+    const tgt = ori === "land" ? (it.land ??= {}) : it;
+    if (rest.includes("--reset")) { delete tgt.k; delete tgt.dx; delete tgt.dy; if (ori === "land" && !Object.keys(it.land).length) delete it.land; }
+    else for (const [k, v] of Object.entries(vals)) { if (k === "k" && v === 1) delete tgt.k; else if ((k === "dx" || k === "dy") && v === 0) delete tgt[k]; else tgt[k] = v; }
+  }
+  save(f, s); console.log(`✔ ${rest.includes("--reset") ? "أُعيد مقاس" : "ضُبط مقاس"} العنصر #${it.id} (${label(it)}) — ${o.map((x) => (x === "land" ? "العرضي" : "الطولي")).join(" و")}`);
+} else if (cmd === "gsize") {
+  /* the gallery's own size/place of an element type (data/gallery_notes.json place.land|port {dx,dy,scale}, applied by the engine to EVERY item of that type in every video) */
+  const [code, ...rest] = args, e = find(catalog(), code); if (!e) { console.error(`✘ لا عنصر بهذا الاسم: ${code}`); process.exit(2); }
+  const o = rest.includes("--land") ? "land" : rest.includes("--port") ? "port" : null; if (!o) { console.error("✘ حدّد --land أو --port"); process.exit(2); }
+  const vals = kv(rest.filter((a) => !a.startsWith("--"))), bad = Object.keys(vals).filter((k) => !["scale", "dx", "dy"].includes(k)); if (bad.length) { console.error(`✘ المسموح scale و dx و dy فقط`); process.exit(2); }
+  if ((vals.scale != null && !(vals.scale >= 0.4 && vals.scale <= 2.5)) || [vals.dx, vals.dy].some((v) => v != null && !(Math.abs(v) <= 1600))) { console.error("✘ scale بين 0.4 و2.5، و dx/dy حتى ±1600"); process.exit(2); }
+  const nf = "data/gallery_notes.json", notes = JSON.parse(read(nf)), id = e.code; notes[id] ??= {}; notes[id].place ??= {}; const cur = notes[id].place[o] ?? { dx: 0, dy: 0, scale: 1 };
+  notes[id].place[o] = rest.includes("--reset") ? { dx: 0, dy: 0, scale: 1 } : { dx: vals.dx ?? cur.dx ?? 0, dy: vals.dy ?? cur.dy ?? 0, scale: vals.scale ?? cur.scale ?? 1 };
+  notes[id].at = Date.now(); fs.writeFileSync(nf, JSON.stringify(notes, null, 1));
+  console.log(`✔ مقاس المعرض لـ${e.code} (${o === "land" ? "العرضي" : "الطولي"}): ${JSON.stringify(notes[id].place[o])} — يسري على كل المونتاجات`);
 } else {
-  console.error("usage: node tools/el.mjs list [word] | show <code> | add <p> <code> at=… field=value … | items <p> [a-b] | set <p> <#id|n> field=value … | del <p> <#id|n>");
+  console.error("usage: node tools/el.mjs list [word] [--json] | show <code> | add <p> <code> at=… field=value … | items <p> [a-b] | set <p> <#id|n> field=value … | del <p> <#id|n> | size <p> <#id> [--land|--port] k= dx= dy= | gsize <code> --land|--port scale= dx= dy=");
   process.exit(2);
 }

@@ -3,6 +3,7 @@
 //   POST /api/preview {comp, a, b}   → what a deletion would take: project, seconds, the words inside (nothing is changed)
 //   POST /api/delete  {comp, a, b}   → tools/cut_blocks.mjs --snap-words (smart cut: no re-encode of the video, the span moves to the gaps between words first)
 //   POST /api/music   {comp, a, b}   → tools/music_cut.mjs (the music remover on that span only; the video is not touched)
+//   POST /api/gallery/list | items | add | del | size | status   the gallery (tools/hk_gallery.mjs, tools/el.mjs): browse, add an element at the Studio's current frame, delete it, make it bigger/smaller/nudge it
 //   GET  /api/job                    → the running / last job: state, summary, the end of its log
 //   GET  /api/ping
 // Port = the Studio's port + 99 (remotion.config.ts starts it with the Studio: 3100 → 3199, a Studio on 3200 → 3299).
@@ -12,7 +13,8 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { load as loadGallery } from "./hk_gallery.mjs";
 
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const PORT = Number(process.argv[2] ?? process.env.HK_PORT ?? 3199);
@@ -46,6 +48,43 @@ const parse = (body) => {
   return { p, spec, fa, fb };
 };
 
+/** the gallery calls: quick tools run to the end here (tools/el.mjs does the editing; its messages are returned as they are) */
+const el = (args) => { const r = spawnSync(process.execPath, ["tools/el.mjs", ...args], { encoding: "utf8", maxBuffer: 1 << 26 }); return { ok: r.status === 0, out: (r.stdout || "").trim(), err: (r.stderr || "").trim() }; };
+const gallery = (url, body) => {
+  if (job?.state === "running" && url !== "/api/gallery/list" && url !== "/api/gallery/items") throw Object.assign(new Error(`يعمل الآن: ${job.label}`), { code: 409 });
+  if (url === "/api/gallery/list") { const g = loadGallery(); return { version: g.version, sizePresets: g.sizePresets, elements: Object.values(g.elements).map((e) => ({ code: e.code, ar: e.ar, group: e.group, orient: e.orient, when: e.when, fields: e.fields, status: e.status, uses: e.uses, place: e.place })) }; }
+  const comp = String(body.comp ?? ""), p = project(comp);
+  if (url === "/api/gallery/status") { const r = spawnSync(process.execPath, ["tools/hk_gallery.mjs", "status", String(body.code), String(body.status || "none"), ...(body.note ? [String(body.note)] : [])], { encoding: "utf8" }); if (r.status !== 0) throw new Error((r.stderr || r.stdout).trim()); return { message: r.stdout.trim() }; }
+  if (url === "/api/gallery/size" && body.gallery) {
+    const orient = body.orient === "port" ? "--port" : "--land", a = ["gsize", String(body.code), orient, ...(body.reset ? ["--reset"] : []), ...(body.scale != null ? [`scale=${Number(body.scale)}`] : []), ...(body.dx != null ? [`dx=${Math.round(Number(body.dx))}`] : []), ...(body.dy != null ? [`dy=${Math.round(Number(body.dy))}`] : [])];
+    const r = el(a); if (!r.ok) throw new Error(r.err || r.out); return { message: r.out };
+  }
+  if (!p) throw new Error(`لا أجد مواصفة للتركيب «${comp}» (data/specs)`);
+  const spec = JSON.parse(fs.readFileSync(path.join("data", "specs", `${p}.json`), "utf8"));
+  if (url === "/api/gallery/items") {
+    const r = el(["items", p, "--json"]); if (!r.ok) throw new Error(r.err || r.out);
+    const t = body.frame != null ? specFrame(spec, Math.round(Number(body.frame))) / 30 : null;
+    return { project: p, now: t, items: JSON.parse(r.out).filter((x) => t == null || (x.from != null && x.from - 0.05 <= t && t <= (x.to ?? x.from + 3) + 0.05)) };
+  }
+  if (url === "/api/gallery/add") {
+    const g = loadGallery(), e = g.elements[String(body.code)]; if (!e) throw new Error(`لا عنصر باسم ${body.code}`);
+    const t0 = Math.round((specFrame(spec, Math.round(Number(body.frame))) / 30) * 100) / 100, len = Math.max(0.5, Number(body.len ?? 4)), t1 = Math.round((t0 + len) * 100) / 100, names = new Set(e.fields.map((f) => f.name));
+    const timing = [];
+    if (names.has("at")) timing.push(`at=${t0}`); if (names.has("from")) timing.push(`from=${t0}`);
+    if (names.has("until")) timing.push(`until=${t1}`); if (names.has("to")) timing.push(`to=${t1}`); if (names.has("dur")) timing.push(`dur=${len}`);
+    const vals = Object.entries(body.fields ?? {}).filter(([, v]) => v !== "" && v != null).map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v) : v}`);
+    const r = el(["add", p, e.code, ...timing, ...vals]); if (!r.ok) throw new Error(r.err || r.out);
+    return { message: r.out.split("\n")[0], at: t0, until: t1 };
+  }
+  if (url === "/api/gallery/del") { const r = el(["del", p, `#${String(body.id).replace(/^#/, "")}`]); if (!r.ok) throw new Error(r.err || r.out); return { message: r.out }; }
+  if (url === "/api/gallery/size") {
+    const o = body.orient === "land" ? "--land" : body.orient === "port" ? "--port" : "--both";
+    const a = ["size", p, `#${String(body.id).replace(/^#/, "")}`, ...(o === "--both" ? [] : [o]), ...(body.reset ? ["--reset"] : []), ...(body.k != null ? [`k=${Number(body.k)}`] : []), ...(body.dx != null ? [`dx=${Math.round(Number(body.dx))}`] : []), ...(body.dy != null ? [`dy=${Math.round(Number(body.dy))}`] : [])];
+    const r = el(a); if (!r.ok) throw new Error(r.err || r.out); return { message: r.out };
+  }
+  throw new Error("not found");
+};
+
 const start = (kind, p, args, label) => {
   if (job?.state === "running") throw Object.assign(new Error(`يعمل الآن: ${job.label}`), { code: 409 });
   const j = (job = { id: ++seq, kind, project: p, label, state: "running", startedAt: Date.now(), endedAt: null, summary: "", log: "" });
@@ -73,7 +112,9 @@ http.createServer((req, res) => {
   let raw = ""; req.on("data", (d) => { raw += d; if (raw.length > 1e5) req.destroy(); });
   req.on("end", () => {
     try {
-      const body = raw ? JSON.parse(raw) : {}, { p, fa, fb } = parse(body), A = (fa / 30).toFixed(4), B = (fb / 30).toFixed(4), secs = ((fb - fa) / 30).toFixed(1);
+      const body = raw ? JSON.parse(raw) : {};
+      if (url.startsWith("/api/gallery/")) return send(res, 200, gallery(url, body));
+      const { p, fa, fb } = parse(body), A = (fa / 30).toFixed(4), B = (fb / 30).toFixed(4), secs = ((fb - fa) / 30).toFixed(1);
       if (url === "/api/preview") {
         const inside = words(p).filter((w) => w.s >= fa / 30 - 0.03 && w.e <= fb / 30 + 0.03).map((w) => w.w);
         return send(res, 200, { project: p, from: +A, to: +B, seconds: +secs, words: inside.length > 40 ? [...inside.slice(0, 20), "…", ...inside.slice(-15)] : inside, count: inside.length });

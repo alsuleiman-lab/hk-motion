@@ -1,6 +1,7 @@
 import { getRemotionEnvironment } from "remotion";
 import { saveDefaultProps } from "@remotion/studio";
 import { COMPOSITION_TITLES } from "./compositionTitles";
+import { openGalleryPanel } from "./hkGalleryPanel";
 
 type FilterSettings = { brightness: number; contrast: number; saturation: number; sepia: number; temperature: number; tint: number; shadowLift: number; highlightRollOff: number; warmth: number; vignette: number; glow: number };
 type SavedFilter = { name: string; settings: FilterSettings };
@@ -636,9 +637,10 @@ const installHK = () => {
   row.style.cssText = "flex:0 0 36px;height:36px;position:relative;display:none;box-sizing:border-box;align-items:center;gap:6px;padding:0 8px;background:#1b2026;border-top:1px solid rgba(245,165,36,.45);direction:rtl;font:600 12px Tahoma,Arial,sans-serif;color:#e8e8e8;overflow-x:auto;overflow-y:hidden;white-space:nowrap";
   const mk = (label: string, bg: string) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.style.cssText = `flex:0 0 auto;height:26px;padding:0 10px;border:1px solid rgba(255,255,255,.3);border-radius:7px;background:${bg};color:#fff;font:700 12px Tahoma,Arial,sans-serif;cursor:pointer`; return b; };
   const tag = document.createElement("span"); tag.textContent = "HK"; tag.style.cssText = "flex:0 0 auto;color:#f5a524;font:800 12px Arial,sans-serif;letter-spacing:.5px";
-  const bA = mk("بداية", "#2d3a4a"), bB = mk("نهاية", "#2d3a4a"), bDel = mk("حذف", "#a02828"), bMus = mk("حذف موسيقى", "#7a4e12");
+  const bA = mk("بداية", "#2d3a4a"), bB = mk("نهاية", "#2d3a4a"), bDel = mk("حذف", "#a02828"), bMus = mk("حذف موسيقى", "#7a4e12"), bGal = mk("المعرض", "#1f5f3a");
   const info = document.createElement("span"); info.style.cssText = "flex:1 0 auto;min-width:80px;overflow:hidden;text-overflow:ellipsis;user-select:text;-webkit-user-select:text";
-  row.append(tag, bA, bB, bDel, bMus, info);
+  row.append(tag, bA, bB, bDel, bMus, bGal, info);
+  bGal.addEventListener("click", () => { try { openGalleryPanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // the gallery sheet (src/hkGalleryPanel.ts)
   const paint = (msg?: string, color?: string) => {
     const r = loadR(comp());
     bA.textContent = r.a != null ? `بداية ${r.a}` : "بداية"; bB.textContent = r.b != null ? `نهاية ${r.b}` : "نهاية";

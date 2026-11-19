@@ -16,6 +16,7 @@ import { PaperSteps, PAPER_STEPS_FRAMES } from "./ext/PaperSteps";
 import { CaseFile, CASE_FILE_FRAMES } from "./ext/CaseFile";
 import { FontSpecimen, FONT_SPECIMEN_FRAMES } from "./ext/FontSpecimen";
 import { KineticType, KINETIC_TYPE_FRAMES, KineticOver, KineticSplit, KINETIC_SPLIT_FRAMES } from "./ext/KineticType";
+import { ActiveSpeaker, ACTIVE_FRAMES } from "./ext/ActiveSpeaker";
 import { CineWords, CINE_WORDS_FRAMES } from "./ext/CineWords";
 import { JordanDetain, JORDAN_FRAMES } from "./JordanDetain";
 import { DubKmr, DubCkb, DUBKMR_FRAMES } from "./DubKmr";
@@ -138,6 +139,7 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Ref-KineticType" component={KineticType} durationInFrames={KINETIC_TYPE_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-KineticOver" component={KineticOver} durationInFrames={KINETIC_TYPE_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-KineticSplit" component={KineticSplit} durationInFrames={KINETIC_SPLIT_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Ref-ActiveSpeaker" component={ActiveSpeaker} durationInFrames={ACTIVE_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-CineWords" component={CineWords} durationInFrames={CINE_WORDS_FRAMES} fps={30} width={1080} height={1920} />
       </Folder>
       <Folder name="موشن توضيحي مستقل">

@@ -76,10 +76,16 @@ if (!process.env.CUT_BLOCKS_FULL) {
   } else console.log(`cut_blocks: smart cut not used (${line || "exit " + r.status}) → full encode`);
 }
 if (!spliced) ff(["-hwaccel", "cuda", "-i", src, "-filter_complex", [...parts, ...aparts, cat].join(";"), "-map", "[v]", "-map", "[a]", "-c:v", "h264_nvenc", "-preset", "p5", "-rc", "vbr", "-cq", "16", "-b:v", "0", "-c:a", "aac", "-b:a", "256k", out]);
-ff(["-i", out, "-vn", "-ac", "1", "-ar", "48000", path.join(T, "cut.wav")]);
+/* ONE NAME: the new cut takes the old file's place (tools/hk_inplace.mjs); only when that is refused does it stay as <p>_cut_s_b<n>.mp4 */
+let outFinal = outName, outPath = out;
+if (!process.env.CUT_BLOCKS_VERSIONED && fs.existsSync(src) && path.resolve(src) !== path.resolve(out)) {
+  const { swapInPlace } = await import("./hk_inplace.mjs");
+  if (swapInPlace({ fresh: out, target: src })) { outFinal = path.basename(src); outPath = src; console.log(`cut_blocks: the new cut replaced ${outFinal} (no extra version)`); }
+}
+ff(["-i", outPath, "-vn", "-ac", "1", "-ar", "48000", path.join(T, "cut.wav")]);
 ff(["-i", path.join(T, "cut.wav"), "-ar", "16000", "-ac", "1", path.join(T, "cut16k.wav")]);
 for (const [a, b] of [...spans].reverse()) {
-  const r = spawnSync(process.execPath, ["tools/cut_block.mjs", p, `f${a}`, `f${b}`, ...rest.filter((x) => x !== "--snap-words" && x !== "--force"), "--force"], { encoding: "utf8", env: { ...process.env, CUT_BLOCK_JSON_ONLY: "1", CUT_BLOCK_OUT: outName } });
+  const r = spawnSync(process.execPath, ["tools/cut_block.mjs", p, `f${a}`, `f${b}`, ...rest.filter((x) => x !== "--snap-words" && x !== "--force"), "--force"], { encoding: "utf8", env: { ...process.env, CUT_BLOCK_JSON_ONLY: "1", CUT_BLOCK_OUT: outFinal } });
   console.log((r.stdout || "").trim().split("\n").slice(-2).join(" | ")); if (r.status !== 0) { console.error(r.stderr || r.stdout); process.exit(1); }
 }
 // (the silence gate ran above on the audio BEFORE the cut; the data pass below runs on the audio AFTER it, so it must not judge again: --force)

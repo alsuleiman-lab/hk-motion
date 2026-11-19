@@ -4,6 +4,7 @@
 //   POST /api/delete  {comp, a, b}   → tools/cut_blocks.mjs --snap-words (smart cut: no re-encode of the video, the span moves to the gaps between words first)
 //   POST /api/music   {comp, a, b}   → tools/music_cut.mjs (the music remover on that span only; the video is not touched)
 //   POST /api/gallery/list | items | add | del | size | status   the gallery (tools/hk_gallery.mjs, tools/el.mjs): browse, add an element at the Studio's current frame, delete it, make it bigger/smaller/nudge it
+//   POST /api/grade/get | set | presets | savepreset | delpreset   the colour tool (tools/hk_grade.mjs): the montage's grade and the saved looks
 //   GET  /api/job                    → the running / last job: state, summary, the end of its log
 //   GET  /api/ping
 // Port = the Studio's port + 99 (remotion.config.ts starts it with the Studio: 3100 → 3199, a Studio on 3200 → 3299).
@@ -15,6 +16,7 @@ import path from "node:path";
 import os from "node:os";
 import { spawn, spawnSync } from "node:child_process";
 import { load as loadGallery } from "./hk_gallery.mjs";
+import * as G from "./hk_grade.mjs";
 
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const PORT = Number(process.argv[2] ?? process.env.HK_PORT ?? 3199);
@@ -85,6 +87,18 @@ const gallery = (url, body) => {
   throw new Error("not found");
 };
 
+/** the colour tool: quick, done here (the spec is rewritten, the Studio hot-reloads it) */
+const grade = (url, body) => {
+  if (url === "/api/grade/presets") return { presets: G.presets() };
+  if (url === "/api/grade/savepreset") { G.savePreset(String(body.name ?? "").trim() || "لون جديد", body.grade ?? {}); return { presets: G.presets() }; }
+  if (url === "/api/grade/delpreset") { G.deletePreset(String(body.name)); return { presets: G.presets() }; }
+  const p = project(String(body.comp ?? "")); if (!p) throw new Error(`لا أجد مواصفة للتركيب «${body.comp}» (data/specs)`);
+  if (url === "/api/grade/get") return { project: p, grade: G.getGrade(p) };
+  if (job?.state === "running") throw Object.assign(new Error(`يعمل الآن: ${job.label}`), { code: 409 });
+  if (url === "/api/grade/set") return { project: p, grade: G.setGrade(p, body.grade ?? {}, !!body.replace) };
+  throw new Error("not found");
+};
+
 const start = (kind, p, args, label) => {
   if (job?.state === "running") throw Object.assign(new Error(`يعمل الآن: ${job.label}`), { code: 409 });
   const j = (job = { id: ++seq, kind, project: p, label, state: "running", startedAt: Date.now(), endedAt: null, summary: "", log: "" });
@@ -114,6 +128,7 @@ http.createServer((req, res) => {
     try {
       const body = raw ? JSON.parse(raw) : {};
       if (url.startsWith("/api/gallery/")) return send(res, 200, gallery(url, body));
+      if (url.startsWith("/api/grade/")) return send(res, 200, grade(url, body));
       const { p, fa, fb } = parse(body), A = (fa / 30).toFixed(4), B = (fb / 30).toFixed(4), secs = ((fb - fa) / 30).toFixed(1);
       if (url === "/api/preview") {
         const inside = words(p).filter((w) => w.s >= fa / 30 - 0.03 && w.e <= fb / 30 + 0.03).map((w) => w.w);

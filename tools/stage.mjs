@@ -268,10 +268,10 @@ if (stage === "cut") {
   /* ONE PASS (user 2026-11-19, «نتجاوز التنعيم والترميز الثالث»): the smoothed cut AND the Studio's light copy are built together, on the card, in one go (tools/cut_build_gpu.py):
      <p>_cut_s.mp4 (smoothed, with the audio) + <p>_cut_s_prev_<v>.mp4/.m4a, registered in data/preview_proxies.json. <p>_cut.mp4 becomes a hard link to <p>_cut_s.mp4 (tools that read it
      find the same whole file). No background smoothing, no separate proxy step. Every file is written as .part and moved into place when whole. CUT_BUILD_OLD=1, or any failure of the
-     GPU path, uses the old chain below (cut, then the smoothing in the background). */
+     GPU path, uses the old chain below (cut, then the smoothing in the background). HK_SMOOTH=0 skips the duplicate-frame repair (the cut is then the frames of the recording exactly). */
   let merged = false;
   if (!process.env.CUT_BUILD_OLD) {
-    const gb = spawnSync("C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe", ["tools/cut_build_gpu.py", src, mapF, cutS, "--audio-from", wavClean, "--proxy"], { encoding: "utf8", windowsHide: true, maxBuffer: 1 << 26 });
+    const gb = spawnSync("C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe", ["tools/cut_build_gpu.py", src, mapF, cutS, "--audio-from", wavClean, "--proxy", ...(process.env.HK_SMOOTH === "0" ? ["--no-smooth"] : [])], { encoding: "utf8", windowsHide: true, maxBuffer: 1 << 26 });
     const sum = (gb.stdout || "").trim().split("\n").filter((l) => /^cut_build_gpu/.test(l)).slice(-2).join(" | ");
     if (gb.status === 0) {
       merged = true; say(sum);

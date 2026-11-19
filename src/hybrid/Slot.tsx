@@ -1,4 +1,5 @@
 import React, { useLayoutEffect, useRef } from "react";
+import { svgValues } from "../gradeMatrix";
 import { AbsoluteFill, OffthreadVideo, continueRender, delayRender, Video, getInputProps, getRemotionEnvironment, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 
 /**
@@ -21,7 +22,7 @@ export const HYL = HY !== undefined && !!P.hybridLayers;
 /** background colour that disappears in the hybrid "top" layer (so the video below it is visible) */
 export const hyBg = <T,>(c: T): T | undefined => (HY === "top" ? undefined : c);
 
-type Rec = { id: string; src: string; t: number; f: number; rate: number; m: number[]; w: number; h: number; r: number | number[]; o: number; vx: number; vy: number; vw: number; vh: number; fx: Record<string, number>; mt?: string; mtT?: number; fl?: number; z?: number; g?: number; fit?: string; fp?: number[]; fz?: number[]; fr?: number[] };
+type Rec = { id: string; src: string; t: number; f: number; rate: number; m: number[]; w: number; h: number; r: number | number[]; o: number; vx: number; vy: number; vw: number; vh: number; fx: Record<string, number | number[]>; mt?: string; mtT?: number; fl?: number; z?: number; g?: number; fit?: string; fp?: number[]; fz?: number[]; fr?: number[] };
 const G: { frame: number; slots: Map<string, Rec>; flushedFrame: number; host: HTMLDivElement | null; under: boolean } = { frame: -1, slots: new Map(), flushedFrame: -2, host: null, under: false };
 
 const MEAS = new Map<string, () => void>(); // latest measuring function of every mounted slot
@@ -98,12 +99,12 @@ export const UnderHim: React.FC<{ active: boolean; from?: number; to?: number; c
   return null;
 };
 
-export type SlotFx = { blur?: number; brightness?: number; contrast?: number; saturate?: number; /** dark radial veil of a background clip (BgClip dim), drawn by the compositor */ veil?: number; /** soft transparent left edge, px of the box (his video slid aside, 2026-11-12) */ featherL?: number;
+export type SlotFx = { /** the montage's colour grade as a 12-number colour matrix (src/gradeMatrix.ts), applied by the Studio (SVG filter) and by the compositor to the recording's layers */ gm?: number[]; blur?: number; brightness?: number; contrast?: number; saturate?: number; /** dark radial veil of a background clip (BgClip dim), drawn by the compositor */ veil?: number; /** soft transparent left edge, px of the box (his video slid aside, 2026-11-12) */ featherL?: number;
   /** (2026-11-12) the same linear fade on the right / top / bottom edge (CSS mask-image linear-gradient of the box), px of the box */
   featherR?: number; featherT?: number; featherB?: number;
   /** (2026-11-12) CSS drop-shadow(0 shadowY shadowBlur rgba(shR, shG, shB, shadowA)) of what the slot shows (a cut-out: of his outline), drawn by the compositor */
   shadowY?: number; shadowBlur?: number; shadowA?: number; shR?: number; shG?: number; shB?: number };
-const cssFilter = (fx?: SlotFx) => (fx ? [fx.blur ? `blur(${fx.blur}px)` : "", fx.contrast != null ? `contrast(${fx.contrast})` : "", fx.saturate != null ? `saturate(${fx.saturate})` : "", fx.brightness != null ? `brightness(${fx.brightness})` : ""].filter(Boolean).join(" ") || undefined : undefined);
+const cssFilter = (fx?: SlotFx) => (fx ? [fx.gm ? "url(#hkgrade)" : "", fx.blur ? `blur(${fx.blur}px)` : "", fx.contrast != null ? `contrast(${fx.contrast})` : "", fx.saturate != null ? `saturate(${fx.saturate})` : "", fx.brightness != null ? `brightness(${fx.brightness})` : ""].filter(Boolean).join(" ") || undefined : undefined);
 // NOTE: the compositor applies the CSS filter functions in the order  contrast -> saturate -> brightness  (the order used by this project); blur always first.
 
 export type VSlotProps = {
@@ -139,9 +140,13 @@ export type VSlotProps = {
   fitZoom?: [number, number, number];
 };
 
+/** the montage's colour grade (src/MontageSpec.tsx provides it): the video layers whose file is `cut` get the matrix `gm` */
+export const GradeCtx = React.createContext<{ cut: string; gm: number[] } | null>(null);
 let SEQ = 0;
-export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, playbackRate = 1, muted = true, w, h, radius = 0, vx = 0, vy = 0, vw, vh, fx, style, matte, z: zProp, grow, fit, fitPos, fitZoom }) => {
+export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, playbackRate = 1, muted = true, w, h, radius = 0, vx = 0, vy = 0, vw, vh, fx: fx0, style, matte, z: zProp, grow, fit, fitPos, fitZoom }) => {
   const z = zProp ?? React.useContext(HyLevelCtx);
+  const gc = React.useContext(GradeCtx), gm = gc && gc.cut === src ? gc.gm : undefined;
+  const fx = gm ? { ...(fx0 ?? {}), gm } : fx0;   // the recording's layers carry the montage's colour grade
   const env = getRemotionEnvironment();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -180,7 +185,7 @@ export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, pla
     return <div ref={ref} style={{ ...box, overflow: "visible" }}>{dot(0, 0)}{dot(w, 0)}{dot(0, h)}</div>;
   }
   const common = { src: staticFile(env.isStudio && studioSrc ? studioSrc : src), muted, startFrom: Math.round(startFrom), playbackRate, style: { position: "absolute" as const, ...(fit ? { left: 0, top: 0, width: w, height: h, objectFit: fit, ...(fitPos ? { objectPosition: `${fitPos[0] * 100}% ${fitPos[1] * 100}%` } : {}), ...(fitZoom ? { transform: `scale(${fitZoom[0]})`, transformOrigin: `${fitZoom[1]}px ${fitZoom[2]}px` } : {}) } : { left: vx, top: vy, width: VW, height: VH }), maxWidth: "none" as const, filter: cssFilter(fx) } };
-  return <div style={box}>{env.isStudio ? <Video {...common} /> : <OffthreadVideo {...common} />}</div>;
+  return <div style={box}>{gm ? <svg width={0} height={0} style={{ position: "absolute" }}><filter id="hkgrade" colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values={svgValues(gm)} /></filter></svg> : null}{env.isStudio ? <Video {...common} /> : <OffthreadVideo {...common} />}</div>;
 };
 
 /** (2026-11-13, user: «أصلح كل شيء حتى الكرتون وغيره») drop-in replacement of <OffthreadVideo> for OLDER code (archived kits, labs): the SAME props.

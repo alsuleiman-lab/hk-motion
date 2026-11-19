@@ -34,7 +34,8 @@ import type { PickAllName as PickName } from "./PickKit2";
 import type { BrandName } from "./brand";
 import { MaskedVideo } from "./MaskedVideo";
 import { DEBATE_LAYOUTS } from "./DebateLayouts";
-import { HybridHost, HybridBg, VSlot, HY, HYL, HyLayer, HyLevel, hyBg, UnderHim } from "./hybrid/Slot";
+import { HybridHost, HybridBg, VSlot, HY, HYL, HyLayer, HyLevel, hyBg, UnderHim, GradeCtx } from "./hybrid/Slot";
+import { gradeMatrix, isNeutralGrade, svgValues } from "./gradeMatrix";
 import type { PortIso } from "./GazaFx";
 import type { DebateLayoutName } from "./DebateLayouts";
 import { BgClip, HClip, Watermark, FxStage, HorrorVeil, TailFade, TvOff, WeightsOnBack } from "./GazaFx";
@@ -145,6 +146,8 @@ export type SpecItem = Common & (
 );
 
 export type MontageSpec = {
+  /** the colour grade of the recording (the `cut` video layers only): src/gradeMatrix.ts; set from the Studio's «ألوان» sheet (HK-Motion) or `node tools/hk_grade.mjs` */
+  grade?: import("./gradeMatrix").Grade;
   id: string; title: string; frames: number; fps?: number;
   cut?: string;                       // public/<cut>.mp4 — his video (also the audio)
   bar?: BarTheme;                     // title-bar / key-chip colours (default BAR_WARM)
@@ -744,7 +747,7 @@ const FAWASEL: Record<string, { file: string; fileP: string }> = { press: { file
 const studioBumper = (s: MontageSpec) => { const b = (s as { bumper?: { id: string; at: number; end?: boolean } }).bumper; return getRemotionEnvironment().isStudio && b && (b.at >= 1 || b.end) && FAWASEL[b.id] && (s as { kind?: string }).kind !== "reel" ? b : null; };
 export const specFrames = (s: MontageSpec) => s.frames + (studioBumper(s) ? 150 : 0);
 /** `muted`: no sound from this copy (the side-by-side preview, src/MontageBoth.tsx, plays the sound from one side only) */
-export const MontageFromSpec: React.FC<{ spec: MontageSpec; muted?: boolean }> = ({ spec, muted }) => {
+const MontageFromSpecInner: React.FC<{ spec: MontageSpec; muted?: boolean }> = ({ spec, muted }) => {
   const b = studioBumper(spec), { width, height } = useVideoConfig(), frame = useCurrentFrame();
   if (!b) return <MontageFromSpecBody spec={spec} muted={muted} />;
   const G = Math.round(b.at * 30), f = FAWASEL[b.id], fr = frame;   // the Studio keeps an ended Sequence's audio tag playing: each voice piece is MUTED outside its own span
@@ -760,6 +763,22 @@ export const MontageFromSpec: React.FC<{ spec: MontageSpec; muted?: boolean }> =
       {spec.cut ? <Sequence key="voiceB" from={G + 150}><Audio src={staticFile(spec.cut)} startFrom={G} volume={0.8} muted={muted || fr < G + 150} /></Sequence> : null}
     </>
   );
+};
+
+
+/** the montage's colour grade (src/gradeMatrix.ts) reaches the recording's video layers through a context (src/hybrid/Slot.tsx VSlot): nothing else is touched, and a neutral or absent grade renders exactly as before */
+export const MontageFromSpec: React.FC<{ spec: MontageSpec; muted?: boolean }> = ({ spec, muted }) => {
+  const gm = React.useMemo(() => (spec.grade && !isNeutralGrade(spec.grade) ? gradeMatrix(spec.grade) : null), [spec.grade]);
+  const inner = <MontageFromSpecInner spec={spec} muted={muted} />;
+  /* the GPU render draws the recording through <VSlot> (HY): GradeCtx + the compositor. The Studio (and a normal render) draw it with plain <Video> elements: the same matrix as an SVG filter on every
+     <video> whose file is the montage's cut (or its light copy, which keeps the name), the matrix from src/gradeMatrix.ts */
+  const base = spec.cut ? spec.cut.replace(/.mp4$/i, "") : "";
+  return gm && spec.cut ? (
+    <GradeCtx.Provider value={{ cut: spec.cut, gm }}>
+      {HY ? null : <><svg width={0} height={0} style={{ position: "absolute" }}><filter id="hkgrade" colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values={svgValues(gm)} /></filter></svg><style>{`video[src*="${base}"]{filter:url(#hkgrade) !important}`}</style></>}
+      {inner}
+    </GradeCtx.Provider>
+  ) : inner;
 };
 /** TESTS ONLY (2026-11-12): inputProps {specTest: {items?, psplits?, dropBehind?: [index…]}} adds elements to the spec for ONE render or still
  *  (gpu_render --props / stills.mjs --props) — the spec files are never touched while a queue may be rendering from them. Absent: no effect. */

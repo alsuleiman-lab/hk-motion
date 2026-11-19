@@ -67,10 +67,14 @@ try {
   }
 } catch (e) { console.log("light copy skipped:", e.message); }
 
-// 6) the data: the spec points at the new file; the audio the gates and the transcript tools read is rebuilt
-spec.cut = outName; fs.writeFileSync(specF, JSON.stringify(spec, null, 1));
+// 6) the data: the new file takes the old one's name (one name, no extra version) or, if that is refused, the spec points at the versioned name; the audio the gates and the transcript tools read is rebuilt
+{
+  const { swapInPlace } = await import("./hk_inplace.mjs");
+  if (swapInPlace({ fresh: dst, target: src })) console.log(`music_cut: the new file replaced ${path.basename(src)} (no extra version)`);
+  else { spec.cut = outName; fs.writeFileSync(specF, JSON.stringify(spec, null, 1)); }
+}
 ff(["-i", out, "-ac", "1", "-ar", "48000", path.join(T, "cut.wav")]);
 ff(["-i", path.join(T, "cut.wav"), "-ar", "16000", "-ac", "1", path.join(T, "cut16k.wav")]);
 for (let k = 1; k < n - 1; k++) for (const f of fs.readdirSync("public").filter((x) => x.startsWith(`${p}_cut_s_b${k}.`) || x.startsWith(`${p}_cut_s_b${k}_prev_`))) { try { fs.rmSync(path.join("public", f)); } catch { /* open in the Studio */ } }
 fs.rmSync(path.join(W, "full.wav"), { force: true });
-console.log(`music_cut: ${A.toFixed(2)}–${B2.toFixed(2)}s speech only (${((Date.now() - t0) / 1000).toFixed(0)} s) → ${outName}; the spec points at it`);
+console.log(`music_cut: ${A.toFixed(2)}–${B2.toFixed(2)}s speech only (${((Date.now() - t0) / 1000).toFixed(0)} s) → ${spec.cut}`);

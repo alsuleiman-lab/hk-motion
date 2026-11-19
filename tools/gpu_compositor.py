@@ -689,6 +689,12 @@ def apply_fx(smp, fx, scl):
         smp = (grey + (smp - grey) * fx["saturate"]).clamp(0, 255)
     if fx["brightness"] != 1:
         smp = (smp * fx["brightness"]).clamp(0, 255)
+    gm = fx.get("gm")
+    if gm:   # the montage's colour grade (src/gradeMatrix.ts): the recording's layers only; one 3x4 matrix on 0..1 values, the same numbers the Studio feeds its SVG feColorMatrix
+        m = torch.tensor(gm, device=smp.device, dtype=smp.dtype).view(3, 4)
+        c_, h_, w_ = smp.shape
+        flat = m[:, :3] @ (smp.reshape(3, -1) / 255.0) + m[:, 3:4]
+        smp = (flat.clamp(0, 1) * 255.0).reshape(3, h_, w_)
     return smp
 
 

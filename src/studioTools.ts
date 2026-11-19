@@ -2,6 +2,8 @@ import { getRemotionEnvironment } from "remotion";
 import { saveDefaultProps } from "@remotion/studio";
 import { COMPOSITION_TITLES } from "./compositionTitles";
 import { openGalleryPanel } from "./hkGalleryPanel";
+import { openColorPanel } from "./hkColorPanel";
+import { installTheme, toggleTheme, currentTheme } from "./hkTheme";
 
 type FilterSettings = { brightness: number; contrast: number; saturation: number; sepia: number; temperature: number; tint: number; shadowLift: number; highlightRollOff: number; warmth: number; vignette: number; glow: number };
 type SavedFilter = { name: string; settings: FilterSettings };
@@ -379,7 +381,7 @@ const installMarks = () => {
   box.style.cssText = "position:fixed;z-index:2147483000;display:none;box-sizing:border-box;width:100px;max-height:320px;flex-direction:column;gap:6px;direction:rtl;font:600 13px Tahoma,Arial,sans-serif;color:#fff";
   const addBtn = document.createElement("button");
   addBtn.type = "button"; addBtn.textContent = "تحديد"; addBtn.title = "احفظ الموضع الحالي لتعود إليه لاحقاً";
-  addBtn.style.cssText = "flex:0 0 auto;height:30px;border:1px solid rgba(255,255,255,.35);border-radius:8px;background:#1f6feb;color:#fff;font:700 14px Tahoma,Arial,sans-serif;cursor:pointer";
+  addBtn.style.cssText = "flex:0 0 auto;height:30px;border:1px solid rgba(255,255,255,.35);border-radius:8px;background:var(--hk-accent);color:var(--hk-accent-text);font:700 14px Tahoma,Arial,sans-serif;cursor:pointer";
   const list = document.createElement("div");
   list.style.cssText = "display:flex;flex-direction:column;gap:5px;overflow-y:auto;min-height:0;padding-bottom:2px";
   list.className = "__fm_list";
@@ -405,7 +407,7 @@ const installMarks = () => {
       if (box.style.flexDirection === "row") row.style.width = "76px";
       const go = document.createElement("button");
       go.type = "button"; go.textContent = String(f); go.title = `ارجع إلى الإطار ${f} — كليك يمين للحذف`;
-      go.style.cssText = "flex:1;height:26px;border:1px solid rgba(255,255,255,.3);border-radius:7px;background:rgba(22,54,92,.96);color:#fff;font:600 13px Tahoma,Arial,sans-serif;font-variant-numeric:tabular-nums;cursor:pointer";
+      go.style.cssText = "flex:1;height:26px;border:1px solid rgba(255,255,255,.3);border-radius:7px;background:var(--hk-btn);color:var(--hk-text);font:600 13px Tahoma,Arial,sans-serif;font-variant-numeric:tabular-nums;cursor:pointer";
       go.addEventListener("click", (e) => { e.stopPropagation(); seekTo(f); });
       const del = document.createElement("button");
       del.type = "button"; del.textContent = "×"; del.title = "حذف";
@@ -478,7 +480,7 @@ const installElementNames = () => {
      viewer column, so the viewer shrinks above it instead of being covered; plain selectable text (select + Ctrl+C) */
   const row = document.createElement("div");
   row.id = "__el_names_row";
-  row.style.cssText = "flex:0 0 22px;height:22px;position:relative;display:none;box-sizing:border-box;border-top:1px solid rgba(255,255,255,.12);background:#1f2428;direction:rtl;font:600 11px Tahoma,Arial,sans-serif;color:#e8e8e8;overflow:hidden;user-select:text;-webkit-user-select:text;cursor:text";
+  row.style.cssText = "flex:0 0 22px;height:22px;position:relative;display:none;box-sizing:border-box;border-top:1px solid var(--hk-line);background:var(--hk-bg2);direction:rtl;font:600 11px Tahoma,Arial,sans-serif;color:var(--hk-text);overflow:hidden;user-select:text;-webkit-user-select:text;cursor:text";
   const cell = () => { const c = document.createElement("div"); c.style.cssText = "position:absolute;top:0;height:21px;line-height:21px;padding:0 8px;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;user-select:text;-webkit-user-select:text"; row.appendChild(c); return c; };
   const cells = [cell(), cell()];
   w.__elNames = { row };
@@ -601,9 +603,10 @@ const hkPort = (): number => (Number(location.port) || 3100) + 99;   // the Stud
 const installBrand = () => {
   const w = window as unknown as { __hkBrand?: boolean };
   if (w.__hkBrand) return; w.__hkBrand = true;
+  installTheme();   // night (smoky silver) or day (beige / sugar / light brown), kept in this browser (src/hkTheme.ts)
   const bar = document.createElement("div");
   bar.id = "__hk_brand_bar";
-  bar.style.cssText = "position:fixed;left:0;right:0;top:0;height:3px;z-index:2147483640;pointer-events:none;background:linear-gradient(90deg,#f5a524,#e8590c 55%,#f5a524)";
+  bar.style.cssText = "position:fixed;left:0;right:0;top:0;height:3px;z-index:2147483640;pointer-events:none;background:var(--hk-brand,linear-gradient(90deg,#d5dbe2,#7e8892 55%,#d5dbe2))";
   document.body.appendChild(bar);
   const icon = document.createElement("link");
   icon.rel = "icon"; icon.type = "image/svg+xml";
@@ -613,7 +616,7 @@ const installBrand = () => {
     try {
       if (/Remotion_Workspace|Remotion Studio/.test(document.title)) document.title = document.title.replace(/\s*[-/]?\s*Remotion_Workspace\s*-\s*Remotion Studio$/, " / HK-Motion").replace(/Remotion Studio/, "HK-Motion").replace(/Remotion_Workspace/, "HK-Motion");
       for (const e of Array.from(document.querySelectorAll("div,span"))) {
-        if (e.children.length === 0 && /^Remotion_Workspace(_next)?$/.test((e.textContent ?? "").trim()) && !e.closest("#__hk_row")) { e.textContent = "HK-Motion"; (e as HTMLElement).style.color = "#f5a524"; (e as HTMLElement).style.fontWeight = "700"; }
+        if (e.children.length === 0 && /^Remotion_Workspace(_next)?$/.test((e.textContent ?? "").trim()) && !e.closest("#__hk_row")) { e.textContent = "HK-Motion"; (e as HTMLElement).style.color = "var(--hk-accent)"; (e as HTMLElement).style.fontWeight = "700"; }
       }
     } catch { /* never break the Studio */ }
   }, 700);
@@ -634,17 +637,21 @@ const installHK = () => {
   const api = (p: string) => `http://${location.hostname}:${hkPort()}${p}`;
   const row = document.createElement("div");
   row.id = "__hk_row"; st.row = row;
-  row.style.cssText = "flex:0 0 36px;height:36px;position:relative;display:none;box-sizing:border-box;align-items:center;gap:6px;padding:0 8px;background:#1b2026;border-top:1px solid rgba(245,165,36,.45);direction:rtl;font:600 12px Tahoma,Arial,sans-serif;color:#e8e8e8;overflow-x:auto;overflow-y:hidden;white-space:nowrap";
-  const mk = (label: string, bg: string) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.style.cssText = `flex:0 0 auto;height:26px;padding:0 10px;border:1px solid rgba(255,255,255,.3);border-radius:7px;background:${bg};color:#fff;font:700 12px Tahoma,Arial,sans-serif;cursor:pointer`; return b; };
-  const tag = document.createElement("span"); tag.textContent = "HK"; tag.style.cssText = "flex:0 0 auto;color:#f5a524;font:800 12px Arial,sans-serif;letter-spacing:.5px";
-  const bA = mk("بداية", "#2d3a4a"), bB = mk("نهاية", "#2d3a4a"), bDel = mk("حذف", "#a02828"), bMus = mk("حذف موسيقى", "#7a4e12"), bGal = mk("المعرض", "#1f5f3a");
+  row.style.cssText = "flex:0 0 36px;height:36px;position:relative;display:none;box-sizing:border-box;align-items:center;gap:6px;padding:0 8px;background:var(--hk-bg2);border-top:1px solid var(--hk-line-strong);direction:rtl;font:600 12px Tahoma,Arial,sans-serif;color:var(--hk-text);overflow-x:auto;overflow-y:hidden;white-space:nowrap";
+  const mk = (label: string, bg: string) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.style.cssText = `flex:0 0 auto;height:26px;padding:0 10px;border:1px solid var(--hk-line-strong);border-radius:7px;background:${bg};color:var(--hk-text);font:700 12px Tahoma,Arial,sans-serif;cursor:pointer`; return b; };
+  const tag = document.createElement("span"); tag.textContent = "HK"; tag.style.cssText = "flex:0 0 auto;color:var(--hk-accent);font:800 12px Arial,sans-serif;letter-spacing:.5px";
+  const bA = mk("بداية", "var(--hk-btn)"), bB = mk("نهاية", "var(--hk-btn)"), bDel = mk("حذف", "var(--hk-danger)"), bMus = mk("حذف موسيقى", "var(--hk-btn-on)"), bGal = mk("المعرض", "var(--hk-btn)"), bCol = mk("ألوان", "var(--hk-btn)"), bTheme = mk(currentTheme() === "night" ? "نهاري" : "ليلي", "var(--hk-btn)");
   const info = document.createElement("span"); info.style.cssText = "flex:1 0 auto;min-width:80px;overflow:hidden;text-overflow:ellipsis;user-select:text;-webkit-user-select:text";
-  row.append(tag, bA, bB, bDel, bMus, bGal, info);
+  row.append(tag, bA, bB, bDel, bMus, bGal, bCol, bTheme, info);
+  bCol.addEventListener("click", () => { try { openColorPanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // the colour sheet (src/hkColorPanel.ts), the colour tool for every montage
+  bTheme.title = "بدّل بين المظهر الليلي (فضي دخاني) والنهاري (بيج وسكري وبني خفيف)";
+  bTheme.addEventListener("click", () => { toggleTheme(); });
+  window.addEventListener("hk-theme", () => { bTheme.textContent = currentTheme() === "night" ? "نهاري" : "ليلي"; });
   bGal.addEventListener("click", () => { try { openGalleryPanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // the gallery sheet (src/hkGalleryPanel.ts)
   const paint = (msg?: string, color?: string) => {
     const r = loadR(comp());
     bA.textContent = r.a != null ? `بداية ${r.a}` : "بداية"; bB.textContent = r.b != null ? `نهاية ${r.b}` : "نهاية";
-    if (msg !== undefined) { info.textContent = msg; info.style.color = color ?? "#e8e8e8"; }
+    if (msg !== undefined) { info.textContent = msg; info.style.color = color ?? "var(--hk-text)"; }
   };
   const setPt = (k: "a" | "b") => () => { const f = frameNow(); if (f === null) return; const c = comp(), r = loadR(c); r[k] = f; saveR(c, r); paint(""); };
   bA.addEventListener("click", setPt("a")); bB.addEventListener("click", setPt("b"));

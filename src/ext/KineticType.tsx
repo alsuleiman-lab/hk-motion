@@ -1,5 +1,6 @@
 import React from "react";
-import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Sequence, useCurrentFrame } from "remotion";
+import { HybridHost, HybridBg, VSlot } from "../hybrid/Slot";
 import { clamp01, easeInOut, easeOut, lerp } from "./motion";
 import { SfxTrack } from "./sfx";
 import { back } from "./PaperSteps";
@@ -11,7 +12,9 @@ import { ff, useFonts } from "./fonts";
  * مربع تحديد بمقابض حول كلمة، صندوق يُكتب فيه حرفاً حرفاً، حرف يتمدد بالكشيدة، أشرطة تتراكم مع عدّاد ساعات، شبكة كل المشاهد، وحرف أخير نقطته الشخصية.
  * الخطوط فخمة ويدوية (أمر المستخدم 2026-11-19). النص مثال.
  */
-export const KINETIC_TYPE_FRAMES = 690;
+/** لقطات من فيديوي أولاً (2.5 ث من الشيخ نفسه، أمر المستخدم 2026-11-19)، ثم مشاهد المرجع */
+export const KINETIC_INTRO_FRAMES = 75;
+export const KINETIC_TYPE_FRAMES = 690 + KINETIC_INTRO_FRAMES;
 const W = 1080, H = 1920;
 const C = { cream: "#ece3d3", maroon: "#6b1b2b", teal: "#1f6b66", dark: "#2a1518", ink: "#2a1518", line: "rgba(80,40,30,.07)" };
 
@@ -160,7 +163,7 @@ const Scene: React.FC<{ i: number }> = ({ i }) => {
   return null;
 };
 
-export const KineticType: React.FC = () => {
+const KineticBody: React.FC = () => {
   useFonts(["rakkas", "kafRuqaa", "kafRuqaaSw", "ruqaa", "ruqaaInk", "typokar"]);
   const f = useCurrentFrame();
   const i = SC.findIndex((s, j) => f >= s && f < SC[j + 1]);
@@ -178,3 +181,18 @@ export const KineticType: React.FC = () => {
     </AbsoluteFill>
   );
 };
+
+/** المقدمة: لقطات من فيديوي (الشيخ) ثم مشاهد المرجع بعدها بإزاحة */
+export const KineticType: React.FC = () => (
+  <HybridHost>
+    <HybridBg>
+      <AbsoluteFill style={{ background: C.cream }} />
+    </HybridBg>
+    <Sequence from={0} durationInFrames={KINETIC_INTRO_FRAMES}>
+      <VSlot src="dubkmr/src.mp4" w={1080} h={1920} radius={0} vx={0} vy={0} vw={1080} vh={1920} style={{ left: 0, top: 0 }} grow={0} />
+    </Sequence>
+    <Sequence from={KINETIC_INTRO_FRAMES} durationInFrames={690}>
+      <KineticBody />
+    </Sequence>
+  </HybridHost>
+);

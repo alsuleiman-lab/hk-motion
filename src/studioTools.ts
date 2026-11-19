@@ -550,6 +550,13 @@ const installErrorBanner = () => {
     if (last) { last.n++; st.errs.splice(st.errs.indexOf(last), 1); st.errs.push(last); } else { st.errs.push({ msg, full, n: 1 }); if (st.errs.length > 20) st.errs.shift(); }
     paint();
   };
+  /* a media file that failed and then loaded (src/studioProxy.ts retries it every 3 s): its error is no longer true */
+  window.addEventListener("studio-media-recovered", (e) => {
+    const name = String((e as CustomEvent).detail ?? ""); if (!name) return;
+    const base = name.replace(/_prev_\w+(?=\.)/, "");
+    for (let i = st.errs.length - 1; i >= 0; i--) if (st.errs[i].msg.includes(name) || st.errs[i].msg.includes(base)) st.errs.splice(i, 1);
+    paint();
+  });
   window.addEventListener("error", (e) => { if (!e.error) return; e.preventDefault(); e.stopImmediatePropagation(); take(e.error); }, true);
   window.addEventListener("unhandledrejection", (e) => { e.preventDefault(); e.stopImmediatePropagation(); take(e.reason ?? new Error("Unknown")); }, true);
   /* the viewer column (as in installElementNames); this row sits just before the element-names row when there is one, else last */

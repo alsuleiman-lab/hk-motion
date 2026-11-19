@@ -261,8 +261,16 @@ if (stage === "cut") {
   if (old.length) { for (const pid of old) spawnSync("taskkill", ["/T", "/F", "/PID", String(pid)], { windowsHide: true }); say(`stopped the previous cut's background smoothing (${old.length} process(es)) — it would have overwritten this cut`); }
   fs.rmSync(running, { force: true });
   for (const f of fs.readdirSync(T).filter((f) => /^cut_s_part.*\.mp4$/.test(f))) { try { fs.rmSync(path.join(T, f)); } catch { /* gone */ } }
-  try { fs.rmSync(cutS, { force: true }); } catch { say(`⚠ ${cutS} is held open (Studio?): the new smoothed video replaces it when free`); }
+  /* (user 2026-11-19, a MediaPlaybackError «404» over debate-ep_cut.mp4 while the Studio was open) a video the Studio is playing must NEVER disappear or be half written:
+     - <p>_cut.mp4 is unlinked first, so the build writes a NEW file; <p>_cut_s.mp4 (often a hard link to the OLD cut) keeps its old, whole content meanwhile;
+     - when the build is whole, <p>_cut_s.mp4 is replaced atomically (link + rename over it) by the new unsmoothed cut: the Studio always finds a whole playable video;
+     - the smoothing then renames its result over <p>_cut_s.mp4 the same way. (An old version of this deleted <p>_cut_s.mp4 up front: a gap of minutes with no video.) */
+  try { fs.rmSync(cut, { force: true }); } catch { say(`⚠ ${cut} is held open (Studio?): rebuilt in place`); }
   await must("NVENC build", "node", ["tools/cut_edl.mjs", "build", src, mapF, cut, "--audio-from", wavClean]);
+  try { const tmpLink = cutS + ".swap.mp4"; fs.rmSync(tmpLink, { force: true }); try { fs.linkSync(cut, tmpLink); } catch { fs.copyFileSync(cut, tmpLink); } fs.renameSync(tmpLink, cutS); fs.writeFileSync(path.join(T, "smooth.standin"), String(Date.now()));
+    // the light Studio copy (data/preview_proxies.json) of the OLD smoothed video would keep playing the old picture and sound: forget it, the Studio plays the whole new file until `check` makes a new one
+    try { const pf = path.join("data", "preview_proxies.json"), px = JSON.parse(fs.readFileSync(pf, "utf8")); let ch = false; for (const k of [`${p}_cut_s.mp4`, `${p}_cut.mp4`]) if (k in px) { delete px[k]; ch = true; } if (ch) fs.writeFileSync(pf, JSON.stringify(px, null, 1)); } catch { /* no proxy list */ } }
+  catch (e) { say(`⚠ could not put the new cut under ${cutS} yet (${e.code ?? e.message}): the smoothing replaces it when it finishes`); }
   // duplicated frames of the recording (frame-rate conversion) make the motion judder: ALWAYS smooth them right here (PREFERENCES §6 «تسجيلاته ترتجف»); the video is built on <p>_cut_s.mp4
   const srcWin = sources(src, ["--map", mapF]);
   // smoothing (≈5 min for 8 min) runs in the BACKGROUND: <p>_cut_s.mp4 appears when it is done (part file renamed); `check` waits for it (user 2026-10-27: «تسريع المونتاج»)
@@ -323,7 +331,13 @@ if (stage === "check") {
       if (k % 6 === 0 && fs.existsSync(running) && !smoothingPids(p).length) { fs.rmSync(running, { force: true }); say(`✘ the background smoothing died without finishing (reboot/killed?) — log ${path.join(T, "smooth.log")}; re-run the cut`); finish(1); }
     }
   }
-  if (!fs.existsSync(path.join("public", `${p}_cut_s.mp4`)) && fs.existsSync(path.join("public", `${p}_cut.mp4`))) { say(`✘ no smoothed video public/${p}_cut_s.mp4 after the smoothing — log ${path.join(T, "smooth.log")}`); finish(1); }
+  {
+    const cs = path.join("public", `${p}_cut_s.mp4`), c0 = path.join("public", `${p}_cut.mp4`);
+    // <p>_cut_s.mp4 is a hard link to <p>_cut.mp4 (the stand-in the cut stage leaves) until the smoothing renames its result over it: still the same file = the smoothing never finished
+    const standIn = fs.existsSync(cs) && fs.existsSync(c0) && fs.statSync(cs).ino === fs.statSync(c0).ino && fs.existsSync(path.join(T, "smooth.standin"));
+    if (!standIn) fs.rmSync(path.join(T, "smooth.standin"), { force: true });
+    if ((!fs.existsSync(cs) && fs.existsSync(c0)) || standIn) { say(`✘ no smoothed video public/${p}_cut_s.mp4 after the smoothing (it is still the unsmoothed stand-in) — log ${path.join(T, "smooth.log")}; re-run the cut`); finish(1); }
+  }
   let failed = 0;
   /* both orientations (2026-11-16): a spec montage is checked in portrait AND landscape whichever composition was named; a reel (kind reel, or an id ending -R) in portrait only */
   const specKind = (() => { try { return JSON.parse(fs.readFileSync(path.join("data", "specs", `${p}.json`), "utf8")).kind ?? "full"; } catch { return "full"; } })();

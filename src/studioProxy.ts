@@ -33,6 +33,24 @@ if (typeof window !== "undefined" && !g.__studioProxy) {
   if (d?.set && d.get) {
     Object.defineProperty(proto, "src", { configurable: true, enumerable: d.enumerable, get: d.get, set(this: HTMLMediaElement, v: string) { d.set!.call(this, swap(String(v), this instanceof HTMLAudioElement || this.tagName === "AUDIO")); } });
   }
+  /* SELF-HEALING (user 2026-11-19: a video file missing for a moment while a tool rebuilt it showed a «404» and the picture and sound stayed dead until a manual reload):
+     a <video>/<audio> that fails to load is asked again every 3 s (up to 3 minutes) and plays as soon as the file is back; the red row of src/studioTools.ts clears the matching error then */
+  if (!rendering()) {
+    const tries = new WeakMap<HTMLMediaElement, number>();
+    window.addEventListener("error", (e) => {
+      const el = e.target as HTMLMediaElement | null;
+      if (!el || (el.tagName !== "VIDEO" && el.tagName !== "AUDIO")) return;
+      const n = tries.get(el) ?? 0; if (n >= 60) return; tries.set(el, n + 1);
+      window.setTimeout(() => { try { if (!el.isConnected) return; const s = el.getAttribute("src") || el.currentSrc; if (s) { el.setAttribute("src", s); el.load(); } } catch { /* never break the Studio */ } }, 3000);
+    }, true);
+    window.addEventListener("loadeddata", (e) => {
+      const el = e.target as HTMLMediaElement | null;
+      if (!el || (el.tagName !== "VIDEO" && el.tagName !== "AUDIO") || !tries.has(el)) return;
+      tries.delete(el);
+      const name = (el.currentSrc || "").split("/").pop()?.split("?")[0]?.split("#")[0] ?? "";
+      window.dispatchEvent(new CustomEvent("studio-media-recovered", { detail: name }));
+    }, true);
+  }
   const sa = Element.prototype.setAttribute;
   Element.prototype.setAttribute = function (this: Element, name: string, value: string) {
     if (name === "src" && (this.tagName === "VIDEO" || this.tagName === "AUDIO")) value = swap(String(value), this.tagName === "AUDIO");

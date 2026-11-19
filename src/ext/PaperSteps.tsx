@@ -217,9 +217,9 @@ export const PaperSteps: React.FC<{ palette?: "warm" | "ref" }> = ({ palette = "
       <Whip from={T.s1} to={T.s2 + 4} outAt={T.s2 - 4} id="ps-w1">
         <StepHeader at={T.s1 + 4} n="١" top="النيـ" bottom="ـــة الصالحة" sub="أصل كل عمل" p={p} />
         <Big>
-        <Drop at={T.s1 + 26} x={560} y={1180} w={300} h={230} rot={-4}><Stack c={p.accent} k={p.kraft} /></Drop>
-        <Drop at={T.s1 + 36} x={300} y={1310} w={300} h={216} rot={8}><Book c={p.red} /></Drop>
-        <Drop at={T.s1 + 46} x={820} y={1330} w={60} h={300} rot={-28}><Pen c={p.accent} /></Drop>
+        <Drop at={T.s1 + 26} x={560} y={1180} w={460} h={352} rot={-4}><Stack c={p.accent} k={p.kraft} /></Drop>
+        <Drop at={T.s1 + 36} x={270} y={1330} w={420} h={302} rot={8}><Book c={p.red} /></Drop>
+        <Drop at={T.s1 + 46} x={840} y={1340} w={90} h={450} rot={-28}><Pen c={p.accent} /></Drop>
         <Drop at={T.s1 + 54} x={760} y={1060} w={90} h={90}><Check c={p.leaf} /></Drop>
         </Big>
       </Whip>

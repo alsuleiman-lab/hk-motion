@@ -17,7 +17,8 @@
 // (src/galleryRef.ts): editing an element in the gallery changes it in every such video. Older specs get the gallery geometry written once (gallery_geometry --write).
 import fs from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const [cmd, ...args] = process.argv.slice(2);
@@ -73,6 +74,47 @@ const at = (s, ref) => {   // an item by #id / id=… (stable) or by its index (
   if (/^\d+$/.test(r)) { const i = Number(r); if (!s.items[i]) return null; console.warn(`⚠ الرقم ${i} يتغير إذا أُعيد الترتيب — معرّفه الثابت: #${s.items[i].id}`); return i; }
   const i = s.items.findIndex((x) => x.id === r); return i < 0 ? null : i;
 };
+/* EVERY ELEMENT IS CHECKED THE MOMENT IT IS WRITTEN (user 2026-11-19: «ممنوع تخطئ ثم تفحص ثم تعدل»). On mufti-hiraba the final check found, one by one,
+   elements I had added against the rules (a half-screen chip in full mode, two elements in one slot, the name card not alone, a map behind his head).
+   add / set / del now run the quick gates of the final check (writing_sync, element_slots, coverage_check, spec_normalize --dry for both orientations;
+   in parallel, ~10 s) before and after the change: a failure the change ADDS → the spec is put back as it was and the reasons are printed (exit 1).
+   Failures that were already there do not block (the baseline is cached per spec content in .tmp/<p>/gate_base.json). --no-gate skips it on purpose. */
+const runGate = (args) => new Promise((res) => { const c = spawn(process.execPath, args, { windowsHide: true }); let o = ""; c.stdout.on("data", (d) => { o += d; }); c.stderr.on("data", (d) => { o += d; }); c.on("close", () => res(o)); });
+const atomsOf = (txt) => {
+  const out = new Set();
+  for (let l of String(txt).split(/\r?\n/)) {
+    l = l.trim(); if (!l.startsWith("✘")) continue;
+    if (/^✘ \d+ (باقية|مشكلة)|^✘ .*(FAILED|القائمة كاملة)/.test(l)) continue;   // summaries: their numbers move whenever anything changes
+    l = l.replace(/\(\d+\)/g, "").replace(/([A-Za-z]+)#\d+/g, "$1").replace(/\s+/g, " ");
+    const m = /^(.*?\):|^(.*?):)\s(.+)$/.exec(l);
+    if (m && m[3].includes("، ")) for (const part of m[3].split("، ")) out.add(`${m[1] ?? m[2]} ${part.trim()}`); else out.add(l);
+  }
+  return out;
+};
+const gateAtoms = async (f, p) => {
+  const outs = await Promise.all([["tools/writing_sync.mjs", f], ["tools/element_slots.mjs", p], ["tools/coverage_check.mjs", f], ["tools/spec_normalize.mjs", f, "--o", "land", "--dry"], ["tools/spec_normalize.mjs", f, "--o", "port", "--dry"]].map(runGate));
+  return atomsOf(outs.join("\n"));
+};
+const hashOf = (f) => crypto.createHash("sha1").update(read(f)).digest("hex");
+const GATE_OFF = process.argv.includes("--no-gate");
+const baseFile = (p) => path.join(".tmp", p, "gate_base.json");
+const gateBefore = async (f, p) => {
+  if (GATE_OFF) return null;
+  const h = hashOf(f); try { const b = JSON.parse(read(baseFile(p))); if (b.hash === h) return new Set(b.atoms); } catch { /* none */ }
+  return gateAtoms(f, p);
+};
+/** after a change: new failures → restore `before` text and refuse; else remember the new baseline */
+const gateAfter = async (f, p, base, beforeText, what) => {
+  if (GATE_OFF || !base) return;
+  const now = await gateAtoms(f, p), added = [...now].filter((a) => !base.has(a));
+  if (added.length) {
+    fs.writeFileSync(f, beforeText);
+    console.error(`✘ رُفض ${what}: يضيف ${added.length} مخالفة لم تكن — أُعيدت المواصفة كما كانت:\n  ` + added.join("\n  "));
+    process.exit(1);
+  }
+  try { fs.mkdirSync(path.dirname(baseFile(p)), { recursive: true }); fs.writeFileSync(baseFile(p), JSON.stringify({ hash: hashOf(f), atoms: [...now] })); } catch { /* cache only */ }
+  if (now.size) console.log(`  (فحص العنصر: لا مخالفة جديدة؛ ${now.size} مخالفة قديمة باقية في المواصفة)`); else console.log("  (فحص العنصر: المواصفة نظيفة)");
+};
 const save = (f, s) => { ensureIds(s); s.items.sort((a, b) => (span(a)?.[0] ?? 0) - (span(b)?.[0] ?? 0)); fs.writeFileSync(f, JSON.stringify(s, null, 1)); };
 let CODE_OF = null;   // spec type → gallery code (src/galleryPlace.ts TYPE_OF)
 const label = (it) => { if (it.el) return it.el; if (!CODE_OF) { const gp = read("src/galleryPlace.ts"); CODE_OF = {}; for (const m of gp.slice(gp.indexOf("TYPE_OF"), gp.indexOf("};", gp.indexOf("TYPE_OF"))).matchAll(/(\w+):\s*"([\w:]+)"/g)) CODE_OF[m[2]] ??= m[1]; } return CODE_OF[it.t === "nameTag" && it.style === "pinned" ? "nameTag:pinned" : it.t] ?? it.t; };
@@ -109,7 +151,9 @@ if (cmd === "list") {
   if (missing.length) { console.error(`✘ ${code}: ينقصه ${missing.join("، ")} (node tools/el.mjs show ${code})`); process.exit(2); }
   const it = { t: e.t, ...(e.el ? { el: e.el } : {}), ...(e.fixed ?? {}), ...vals };
   if (typeof it.src === "string" && ["tphoto", "scholar", "pic"].includes(it.t)) { const r = ratioOf(it.src); if (r) it.ratio = r; else { console.error(`✘ لا أقرأ الصورة public/${it.src}`); process.exit(2); } }
+  const beforeText = read(f), base = await gateBefore(f, p);
   const s = JSON.parse(read(f)); ensureIds(s); const id = newId(new Set(s.items.map((x) => x.id))); s.items.push({ id, ...it }); save(f, s); fixGeometry(f, s);
+  await gateAfter(f, p, base, beforeText, `إضافة ${code}`);
   const n = JSON.parse(read(f)).items.findIndex((x) => x.id === id);
   console.log(`✔ أُضيف ${code} #${id} (رقم ${n}) عند ${it.at ?? it.from}ث${s.galleryRef ? " (المكان والمقاس من المعرض)" : ""}`);
   /* trial #42 (user 2026-11-18, rules review): an item in the first minute → show the first-minute line of the coverage check */
@@ -124,17 +168,17 @@ if (cmd === "list") {
   }
   s.items.forEach((it, i) => { const sp = span(it); if (args[1] && sp && (sp[1] < A || sp[0] > B)) return; console.log(`${i} · #${it.id} · ${nm(it)} · ${sp ? sp.map((v) => v.toFixed(1)).join("–") : "—"}${it.only ? ` · ${it.only === "land" ? "عرضي فقط" : "طولي فقط"}` : ""} · ${textOf(it)}`); });
 } else if (cmd === "set") {
-  const [p, n0, ...rest] = args, f = specPath(p), s = JSON.parse(read(f)); ensureIds(s); const n = at(s, n0), it = n == null ? null : s.items[n];
+  const [p, n0, ...rest] = args, f = specPath(p), beforeText = read(f), base = await gateBefore(f, p), s = JSON.parse(read(f)); ensureIds(s); const n = at(s, n0), it = n == null ? null : s.items[n];
   if (!it) { console.error(`✘ لا عنصر ${n0}`); process.exit(2); }
-  const vals = kv(rest), bad = Object.keys(vals).filter((k) => NOT_CONTENT.has(k) && !(k === "right" && typeof vals[k] === "string" && it.t === "pick"));
+  const vals = kv(rest.filter((a) => a !== "--no-gate")), bad = Object.keys(vals).filter((k) => NOT_CONTENT.has(k) && !(k === "right" && typeof vals[k] === "string" && it.t === "pick"));
   if (bad.length) { console.error(`✘ لا يُضبط ${bad.join("، ")}: المكان والمقاس من المعرض`); process.exit(2); }
   Object.assign(it, vals);
   if (vals.src && ["tphoto", "scholar", "pic"].includes(it.t)) { const r = ratioOf(it.src); if (r) it.ratio = r; }
-  save(f, s); fixGeometry(f, s); console.log(`✔ عُدّل العنصر #${it.id} (${label(it)})`);
+  save(f, s); fixGeometry(f, s); await gateAfter(f, p, base, beforeText, `تعديل #${it.id}`); console.log(`✔ عُدّل العنصر #${it.id} (${label(it)})`);
 } else if (cmd === "del") {
-  const [p, n0] = args, f = specPath(p), s = JSON.parse(read(f)); ensureIds(s); const n = at(s, n0), it = n == null ? null : s.items[n];
+  const [p, n0] = args, f = specPath(p), beforeText = read(f), base = await gateBefore(f, p), s = JSON.parse(read(f)); ensureIds(s); const n = at(s, n0), it = n == null ? null : s.items[n];
   if (!it) { console.error(`✘ لا عنصر ${n0}`); process.exit(2); }
-  s.items.splice(n, 1); save(f, s); console.log(`✔ حُذف العنصر #${it.id} (${label(it)})`);
+  s.items.splice(n, 1); save(f, s); await gateAfter(f, p, base, beforeText, `حذف #${it.id}`); console.log(`✔ حُذف العنصر #${it.id} (${label(it)})`);
 } else if (cmd === "size") {
   /* (user 2026-11-19, HK-Motion: «أريحية المقاسات») an element's OWN size and nudge, on top of the gallery's: port = the item's dx/dy/k, land = its land.dx/dy/k (src/MontageSpec.tsx withGallery adds the gallery on top of both) */
   const [p, n0, ...rest] = args, f = specPath(p), s = JSON.parse(read(f)); ensureIds(s); const n = at(s, n0), it = n == null ? null : s.items[n];

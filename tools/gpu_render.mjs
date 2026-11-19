@@ -24,7 +24,8 @@ if (!compId || compId === true) { console.error("usage: node tools/gpu_render.mj
 process.chdir(root);
 try { os.setPriority(process.pid, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch {} // every child (Electron, its GPU process, python, ffmpeg) inherits BelowNormal
 const SMALL_JOB = arg("frames", false) !== false || (arg("start", false) !== false && arg("end", false) !== false && Number(arg("end", 0)) - Number(arg("start", 0)) <= 900);   // a short span / scattered frames may run beside another render (user 2026-11-15)
-acquireRenderLock("gpu " + compId, { small: SMALL_JOB });   // a FULL render is still one at a time, like every other render entry point
+acquireRenderLock("gpu " + compId, { small: SMALL_JOB });
+(await import("./cut_lazy.mjs")).ensureCutForComp(compId);   // the cut video matches the cut list (tools/cut_lazy.mjs)   // a FULL render is still one at a time, like every other render entry point
 const out = path.resolve(root, arg("out", `render_work/gpu/${compId}.mp4`));
 const logProgress = startMonitor(path.join(root, ".tmp", "render_logs", `gpu_render_${compId}${process.argv.includes("--frames") ? "_frames" : ""}.log`), path.basename(out, path.extname(out)));   /* a frames run never overwrites the video render's log */
 const work = path.join(root, ".tmp/gpu_render/work", compId);

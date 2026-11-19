@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import { spawnSync } from "node:child_process";
+import { isStaleHeavy } from "./cut_lazy.mjs";   // a cut video that is stale (the cut list changed) never makes a light copy: the light copy is the newer one
 const LIST = "data/preview_proxies.json";
 let list = fs.existsSync(LIST) ? JSON.parse(fs.readFileSync(LIST, "utf8")) : {};
 if (Array.isArray(list)) list = {};   // old format (unversioned names): rebuilt below
@@ -16,7 +17,7 @@ const auto = process.argv.includes("--auto");
 const proj = auto ? process.argv.slice(2).find((a) => !a.startsWith("--")) : undefined;   // --auto <project>: only that project's files (public/<project>_* and public/<project>/*)
 const files = auto
   ? walk("public").filter((f) => !proj || f.startsWith(`public/${proj}_`) || f.startsWith(`public/${proj}/`)).filter((f) => /\.mp4$/i.test(f) && !/_prev(_\w+)?\.mp4$/i.test(f) && !/_src\.mp4$/i.test(f) && !(/_cut\.mp4$/i.test(f) && fs.existsSync(f.replace(/\.mp4$/i, "_s.mp4"))) && fs.statSync(f).size > MIN_MB * 1e6)
-      .filter((f) => list[f.slice("public/".length)] !== ver(f) || !fs.existsSync(f.replace(/\.mp4$/i, `_prev_${ver(f)}.mp4`))).map((f) => f.slice("public/".length))
+      .filter((f) => !isStaleHeavy(f.slice("public/".length))).filter((f) => list[f.slice("public/".length)] !== ver(f) || !fs.existsSync(f.replace(/\.mp4$/i, `_prev_${ver(f)}.mp4`))).map((f) => f.slice("public/".length))
   : process.argv.slice(2);
 if (auto && !files.length) { console.log("preview proxies up to date"); process.exit(0); }
 if (!files.length) { console.error("usage: make_preview_proxy.mjs <file relative to public/> ..."); process.exit(1); }

@@ -17,6 +17,7 @@ const T = path.join(".tmp", p), R = path.join(T, "research"); fs.mkdirSync(R, { 
 const read = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return d; } };
 const W = read(path.join(T, "cut_words.json"), null);
 if (!W) { console.error(`✘ ${T}/cut_words.json missing — run tools/stage.mjs cut ${p} first`); process.exit(1); }
+(await import("./cut_lazy.mjs")).ensureCut(p);   // the cut video matches the cut list (tools/cut_lazy.mjs)
 const cutVideo = ["_cut_s.mp4", "_cut.mp4"].map((s) => `public/${p}${s}`).find((f) => fs.existsSync(f)) ?? null;
 const mm = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const norm = (s) => String(s).replace(/[ً-ْٰـ]/g, "").replace(/[إأآٱا]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\s+/g, " ").trim();

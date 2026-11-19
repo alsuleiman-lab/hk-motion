@@ -19,11 +19,19 @@ if (!(B > A)) { console.error("✘ B must be after A"); process.exit(2); }
 const T = path.join(".tmp", p), W = path.join(T, "music"), specF = path.join("data", "specs", `${p}.json`);
 const spec = JSON.parse(fs.readFileSync(specF, "utf8")), src = path.join("public", spec.cut);
 if (!fs.existsSync(src)) { console.error(`✘ ${src} is missing`); process.exit(1); }
+/* LAZY (the cut as a list over the original): the music comes off the AUDIO of the cut (.tmp/<p>/cut_audio.wav); the heavy video is not read or written — it only gets the new sound the next time
+   something needs it (tools/cut_lazy.mjs ensureCut remuxes: the picture is copied). MUSIC_CUT_EAGER=1 = the old behaviour (heavy file rewritten now). No light copy = eager. */
+const L = await import("./cut_lazy.mjs");
+const px0 = fs.existsSync(path.join("data", "preview_proxies.json")) ? JSON.parse(fs.readFileSync(path.join("data", "preview_proxies.json"), "utf8")) : {};
+const rel0 = path.relative("public", src).replace(/\\/g, "/"), v0 = px0[rel0], base0 = src.replace(/\.mp4$/, ""), pv0 = `${base0}_prev_${v0}.mp4`, pa0 = `${base0}_prev_${v0}.m4a`;
+const LAZY = !process.env.MUSIC_CUT_EAGER && !!v0 && fs.existsSync(pv0) && (() => { try { L.initLazy(p); return true; } catch { return false; } })();
+if (!LAZY) L.ensureCut(p);
+const I0 = L.info(p), asrc = LAZY ? I0.audio : src, CH = LAZY ? L.channels(I0.audio) : 2;
 const RM = "S:/AI_Tools/RemoveMusic", SEP = `${RM}/.venv/Scripts/audio-separator.exe`;
 if (!fs.existsSync(SEP)) { console.error(`✘ the music remover is missing: ${SEP}`); process.exit(1); }
 const run = (cmd, args, o = {}) => { const r = spawnSync(cmd, args, { encoding: "utf8", windowsHide: true, maxBuffer: 1 << 26, ...o }); if (r.status !== 0) { console.error((r.stderr || r.stdout || "").slice(-1500)); process.exit(1); } return r; };
 const ff = (args) => run("ffmpeg", ["-v", "error", "-y", "-threads", "4", ...args]);
-const dur = Number(run("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", src]).stdout.trim());
+const dur = Number(run("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", asrc]).stdout.trim());
 if (A >= dur) { console.error(`✘ ${A}s is past the end of the video (${dur.toFixed(2)}s)`); process.exit(2); }
 const B2 = Math.min(B, Math.floor(dur * 30) / 30);
 fs.rmSync(W, { recursive: true, force: true }); fs.mkdirSync(path.join(W, "stems"), { recursive: true });
@@ -31,7 +39,7 @@ const t0 = Date.now(), s0 = Math.max(0, A - PAD), s1 = Math.min(dur, B2 + PAD);
 
 // 1) the whole audio (48 kHz stereo, the rate the pipeline uses) and the span with its context (44.1 kHz stereo: the model's rate)
 const full = path.join(W, "full.wav"), ctx = path.join(W, "ctx.wav");
-ff(["-i", src, "-map", "0:a:0", "-ar", "48000", "-ac", "2", "-c:a", "pcm_s16le", full]);
+ff(["-i", asrc, "-map", "0:a:0", "-ar", "48000", "-ac", String(CH), "-c:a", "pcm_s16le", full]);
 ff(["-ss", s0.toFixed(3), "-t", (s1 - s0).toFixed(3), "-i", full, "-ar", "44100", "-c:a", "pcm_s16le", ctx]);
 
 // 2) the music off (GPU)
@@ -42,10 +50,23 @@ if (!stem) { console.error("✘ no speech stem came out of the music remover"); 
 
 // 3) back to 48 kHz, cut to exactly the span, the same length as the span it replaces
 const patch = path.join(W, "patch.wav");
-ff(["-i", stem, "-ar", "48000", "-ac", "2", "-ss", (A - s0).toFixed(4), "-t", (B2 - A).toFixed(4), "-c:a", "pcm_s16le", patch]);
+ff(["-i", stem, "-ar", "48000", "-ac", String(CH), "-ss", (A - s0).toFixed(4), "-t", (B2 - A).toFixed(4), "-c:a", "pcm_s16le", patch]);
 const out = path.join(W, "audio_new.wav");
 run("C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe", ["-I", "tools/audio_patch.py", full, patch, A.toFixed(4), out, "--fade", "0.03"]);
 
+if (LAZY) {   // the new sound is the audio truth; the light copy gets a new version (same picture, new m4a); the heavy video is left stale on purpose
+  fs.renameSync(out, I0.audio);
+  const v1 = Date.now().toString(36), pv1 = `${base0}_prev_${v1}.mp4`, pa1 = `${base0}_prev_${v1}.m4a`;
+  try { fs.linkSync(pv0, pv1); } catch { fs.copyFileSync(pv0, pv1); }
+  ff(["-i", I0.audio, "-vn", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", pa1]);
+  px0[rel0] = v1; fs.writeFileSync(path.join("data", "preview_proxies.json"), JSON.stringify(px0, null, 1));
+  for (const f2 of [pv0, pa0]) { try { fs.rmSync(f2, { force: true }); } catch { /* the Studio still reads it: the next proxy run removes it */ } }
+  ff(["-i", I0.audio, "-ac", "1", "-ar", "48000", path.join(T, "cut.wav")]);
+  ff(["-i", path.join(T, "cut.wav"), "-ar", "16000", "-ac", "1", path.join(T, "cut16k.wav")]);
+  fs.rmSync(full, { force: true });
+  console.log(`music_cut: ${A.toFixed(2)}–${B2.toFixed(2)}s speech only (${((Date.now() - t0) / 1000).toFixed(0)} s) → the audio of the cut and its light copy; the cut video gets the sound when something needs it (lazy)`);
+  process.exit(0);
+}
 // 4) the new versioned file: the video as it is, the new audio
 const nFile = path.join(T, "cut_block_n.txt");
 const n = 1 + Math.max(0, ...fs.readdirSync("public").map((f) => Number(f.match(new RegExp(`^${p}_cut_s_b(\\d+)`))?.[1] ?? 0)), Number(fs.existsSync(nFile) ? fs.readFileSync(nFile, "utf8") : 0));

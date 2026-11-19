@@ -13,7 +13,7 @@ const T = path.join(".tmp", p), PY = process.env.PY ?? "S:/AI_Tools/ComfyUI_wind
 const wordsF = path.join(T, "cut_words.json"), cutWav = path.join(T, "cut.wav"), w16 = path.join(T, "cut16k.wav"), freshF = path.join(T, "drift_fresh.json");
 /* (2026-11-13) the fresh pass must run on the audio of the file the video really uses (spec.cut), not on an intermediate cut.wav: a fragment muted/edited in one copy only slipped through */
 let audioSrc = cutWav;
-try { const sp = JSON.parse(fs.readFileSync(path.join("data", "specs", `${p}.json`), "utf8")); const cf = path.join("public", sp.cut); if (sp.cut && fs.existsSync(cf)) audioSrc = cf; } catch { /* no spec yet */ }
+try { const sp = JSON.parse(fs.readFileSync(path.join("data", "specs", `${p}.json`), "utf8")); const cf = path.join("public", sp.cut); if (sp.cut && fs.existsSync(cf)) audioSrc = cf; const ta = path.join(T, "cut_audio.wav"); if (fs.existsSync(ta)) audioSrc = ta; } catch { /* no spec yet */ }
 if (!fs.existsSync(wordsF) || !fs.existsSync(cutWav)) { console.log(`words_drift: ✘ ${!fs.existsSync(wordsF) ? "cut_words.json" : "cut.wav"} missing in ${T}`); process.exit(1); }
 const m = (f) => fs.statSync(f).mtimeMs;
 const words = JSON.parse(fs.readFileSync(wordsF, "utf8"));

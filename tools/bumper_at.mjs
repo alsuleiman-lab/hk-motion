@@ -8,6 +8,7 @@ import path from "node:path";
 const p = process.argv[2];
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const raw = JSON.parse(fs.readFileSync(`.tmp/${p}/cut_words.json`, "utf8")), W = (raw.words ?? raw).map((w) => ({ s: +(w.s ?? w.start), e: +(w.e ?? w.end ?? (w.s ?? w.start)), w: String(w.w ?? w.word) }));
+(await import("./cut_lazy.mjs")).ensureCut(p);   // the cut video matches the cut list (tools/cut_lazy.mjs)
 const spec = JSON.parse(fs.readFileSync(`data/specs/${p}.json`, "utf8")), inClip = (t) => (spec.splits ?? []).some((x) => t >= x.from && t < x.to - 0.3);
 const n = (s) => s.replace(/[ً-ْٰـ]/g, "").replace(/[إأآ]/g, "ا").replace(/[^\p{L}]/gu, "");
 let hit = -1;

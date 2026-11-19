@@ -16,6 +16,7 @@ const [id, out, title = "فيديو", monitorId] = process.argv.slice(2);
 // ONE render at a time, always (user order 2026-10-22) — exclusive lock shared by every render entry point (tools/render_lock.mjs).
 requireHybrid("render_final");   // strict hybrid (2026-11-09)
 acquireRenderLock(title);
+(await import("./cut_lazy.mjs")).ensureCutForComp(id);   // the cut video matches the cut list (tools/cut_lazy.mjs)
 let log = () => {};
 try { os.setPriority(0, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch { /* ignore */ }
 fs.mkdirSync(path.dirname(out), { recursive: true });

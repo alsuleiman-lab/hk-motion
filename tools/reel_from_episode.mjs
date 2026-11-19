@@ -308,6 +308,7 @@ const id = opt("out") ?? `${P}-reel`;
 if (!/^[A-Za-z0-9_-]+$/.test(id)) { console.error(`✘ معرّف غير صالح ${id}`); process.exit(2); }
 if (fs.existsSync(path.join("data", "specs", `${id}.json`)) || fs.existsSync(path.join("public", `${id}_cut_s.mp4`))) { console.error(`✘ ${id} موجود: اختر --out آخر أو احذفه أولاً`); process.exit(1); }
 const epSpec = rd(path.join("data", "specs", `${P}.json`), {});
+(await import("./cut_lazy.mjs")).ensureCut(P);   // the episode's cut video matches its cut list (tools/cut_lazy.mjs)
 const video = epSpec.cut && fs.existsSync(path.join("public", epSpec.cut)) ? path.join("public", epSpec.cut) : null;
 const t0 = Date.now(), gateF = path.join(".tmp", "gates", `${id}.audio.ok`);
 const spanArg = chosen.map((r) => `${r.from}-${r.to}`).join(",");

@@ -54,6 +54,7 @@ if (lv && !process.argv.includes("--force")) {
 if (process.env.CUT_BLOCK_CHECK_ONLY) { console.log("cut_block: check ok"); process.exit(0); }   // cut_blocks.mjs: the gate above passed, nothing is written yet
 const spec = JSON.parse(fs.readFileSync(specF, "utf8"));
 const src = path.join("public", spec.cut);
+if (!process.env.CUT_BLOCK_JSON_ONLY) { const { ensureCut } = await import("./cut_lazy.mjs"); ensureCut(p); }   /* the picture is rewritten below: the heavy file must be the current cut first */
 const ff = (args) => { const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", ...args], { encoding: "utf8" }); if (r.status !== 0) { console.error(r.stderr); process.exit(1); } };
 /* the next number is above every version ever used (a deleted b1 must not be reused: Studio caches by name) */
 let n = 1 + Math.max(0, ...fs.readdirSync("public").map((f) => Number(f.match(new RegExp(`^${p}_cut_s_b(\d+)`))?.[1] ?? 0)), Number(fs.existsSync(path.join(T, "cut_block_n.txt")) ? fs.readFileSync(path.join(T, "cut_block_n.txt"), "utf8") : 0)); fs.writeFileSync(path.join(T, "cut_block_n.txt"), String(n));
@@ -127,4 +128,5 @@ for (const f of ["cut_words.json", "drift_fresh.json"]) {
   const W = JSON.parse(fs.readFileSync(wf, "utf8")).filter((w) => w.s < A || w.s >= B).map((w) => ({ ...w, s: mv(w.s), ...(w.e != null ? { e: mv(w.e) } : {}) }));
   fs.writeFileSync(wf, JSON.stringify(W));
 }
+if (!process.env.CUT_BLOCK_JSON_ONLY) { try { (await import("./cut_lazy.mjs")).resetFromHeavy(p); } catch { /* lazy state is rebuilt by the next lazy edit */ } }
 console.log(`cut_block: حُذف ${gone.length} عنصراً داخل النطاق (${gone.join("، ") || "—"})، وأُزيح ما بعده ${D.toFixed(3)}ث؛ المدة الآن ${(spec.frames / 30).toFixed(2)}ث`);

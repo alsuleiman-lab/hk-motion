@@ -25,6 +25,7 @@ const READY = "C:/Users/mshms/Videos/جاهز";
 const title = arg("title", id);
 requireHybrid("render_chunked");   // strict hybrid (2026-11-09)
 acquireRenderLock(title);
+(await import("./cut_lazy.mjs")).ensureCutForComp(id);   // the cut video matches the cut list (tools/cut_lazy.mjs)
 try { os.setPriority(0, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch {}
 const out = arg("out") ?? (arg("folder") ? path.join(READY, arg("folder"), `${title}.mp4`) : null);
 if (!out) { console.error("حدّد --folder (تحت جاهز) أو --out"); process.exit(1); }

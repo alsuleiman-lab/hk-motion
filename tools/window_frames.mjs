@@ -13,6 +13,7 @@ import { spawnSync } from "node:child_process";
 const [p, mode] = process.argv.slice(2);
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const spec = JSON.parse(fs.readFileSync(`data/specs/${p}.json`, "utf8"));
+(await import("./cut_lazy.mjs")).ensureCut(p);   // the cut video matches the cut list (tools/cut_lazy.mjs)
 const base = (f) => path.basename(f).replace(/\.[^.]+$/, "");
 /* (2026-11-12, user: «لا اريد التفادي») EVERY isolation window is cut out on the GPU now; what lies under him (map, full picture, tree) is drawn in the
    "under" layer. `node tools/window_frames.mjs <p> under <L|R>` prints the frame ranges of that layer for hybrid_any --under (same test as MontageSpec

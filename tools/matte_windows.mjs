@@ -11,6 +11,7 @@ import { spawnSync } from "node:child_process";
 const argv = process.argv.slice(2), specF = argv.find((a) => a.endsWith(".json")), force = argv.includes("--force");
 if (!specF) { console.error("usage: node tools/matte_windows.mjs data/specs/<p>.json [--force]"); process.exit(2); }
 const spec = JSON.parse(fs.readFileSync(specF, "utf8")), p = spec.id, cut = path.join("public", spec.cut);
+(await import("./cut_lazy.mjs")).ensureCut(p);   // the cut video matches the cut list (tools/cut_lazy.mjs)
 const PY = process.env.PY ?? "S:/AI_Tools/ComfyUI_windows_portable/python_embeded/python.exe";
 const T = path.join(".tmp", p, "mt"), out = path.join("public", p, "mt");
 fs.mkdirSync(T, { recursive: true }); fs.mkdirSync(out, { recursive: true });

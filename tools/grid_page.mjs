@@ -10,6 +10,7 @@ const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : arg
 const specF = argv.find((a) => a.endsWith(".json")) ?? "data/specs/zaynab_shrine.json";
 const at = Number(opt("at", 40)), OUT = "scratch/grid_site";
 const spec = JSON.parse(fs.readFileSync(specF, "utf8"));
+(await import("./cut_lazy.mjs")).ensureCut(spec.id);   // the cut video matches the cut list (tools/cut_lazy.mjs)
 const grids = JSON.parse(fs.readFileSync("data/layout_grids.json", "utf8"));
 fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
 

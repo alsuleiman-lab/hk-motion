@@ -21,7 +21,8 @@ if (!compId || compId === true) { console.error("usage: node tools/hybrid_any.mj
 process.chdir(root);
 const PARENT = process.env.HYBRID_PARENT_LOCK;   // set by tools/hybrid_parallel.mjs, which holds the render lock for the whole job
 let parentOk = false; try { parentOk = !!PARENT && JSON.parse(fs.readFileSync(".tmp/render.lock", "utf8")).pid === Number(PARENT); } catch { /* no lock */ }
-if (!parentOk) acquireRenderLock("hybrid " + compId);   // one render at a time, like every other render entry point
+if (!parentOk) acquireRenderLock("hybrid " + compId);
+(await import("./cut_lazy.mjs")).ensureCutForComp(compId);   // the cut video matches the cut list (tools/cut_lazy.mjs)   // one render at a time, like every other render entry point
 const out = path.resolve(root, arg("out", `render_work/hybrid/${compId}.mp4`));
 const PART = arg("part", "") === true ? "" : String(arg("part", ""));
 const logProgress = startMonitor(path.join(root, ".tmp", "render_logs", `hybrid_any_${compId}${PART ? "_p" + PART : ""}.log`), path.basename(out, path.extname(out)));

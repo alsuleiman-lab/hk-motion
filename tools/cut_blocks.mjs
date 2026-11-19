@@ -45,6 +45,42 @@ const n = 1 + Math.max(0, ...fs.readdirSync("public").map((f) => Number(f.match(
 fs.writeFileSync(nFile, String(n));
 const outName = `${p}_cut_s_b${n}.mp4`, out = path.join("public", outName), total = spec.frames;
 const keep = []; let prev = 0; for (const [a, b] of spans) { keep.push([prev, a]); prev = b; } keep.push([prev, total]);
+const keepArg0 = keep.filter(([s, e]) => e > s).map(([s, e]) => `${s}-${e}`).join(",");
+/* LAZY (user 2026-11-19, the cut as a LIST over the original, like an editing program): the deletion edits the list (map/spec, below), the audio of the cut (.tmp/<p>/cut_audio.wav) and the light
+   Studio copy (spliced, a few seconds); the heavy cut video is NOT touched — it becomes stale and is built again from the original in one pass only when something needs its pixels
+   (tools/cut_lazy.mjs ensureCut: renders, face/window/matte tools). CUT_BLOCKS_EAGER=1 keeps the old behaviour (heavy file spliced now). A project with no light copy goes the eager way. */
+const lazyPY = "C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe";
+if (!process.env.CUT_BLOCKS_EAGER) {
+  const L = await import("./cut_lazy.mjs");
+  const LIST0 = path.join("data", "preview_proxies.json"), px0 = fs.existsSync(LIST0) ? JSON.parse(fs.readFileSync(LIST0, "utf8")) : {}, rel0 = path.relative("public", src).replace(/\\/g, "/"), v0 = px0[rel0];
+  const base0 = src.replace(/\.mp4$/, ""), pv0 = `${base0}_prev_${v0}.mp4`, pa0 = `${base0}_prev_${v0}.m4a`;
+  let I = null; try { I = fs.existsSync(pv0) ? L.initLazy(p) : null; } catch (e) { console.log("cut_blocks: lazy cut not possible (" + e.message + ") → eager"); }
+  if (I) {
+    const v1 = Date.now().toString(36), pv1 = `${base0}_prev_${v1}.mp4`, pa1 = `${base0}_prev_${v1}.m4a`;
+    const rp = spawnSync(lazyPY, ["tools/cut_splice.py", pv0, pv1, "--keep", keepArg0, "--kind", "proxy"], { encoding: "utf8", windowsHide: true, maxBuffer: 1 << 26 });
+    if (rp.status === 0) {
+      const ffl = (args) => { const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", ...args], { encoding: "utf8" }); if (r.status !== 0) { console.error(r.stderr); process.exit(1); } };
+      const ap = keep.map(([s, e], i) => { const d = (e - s) / 30; return `[0:a]atrim=start=${(s / 30).toFixed(4)}:end=${(e / 30).toFixed(4)},asetpts=PTS-STARTPTS${i > 0 ? ",afade=t=in:st=0:d=0.012" : ""}${i < keep.length - 1 ? `,afade=t=out:st=${Math.max(0, d - 0.012).toFixed(4)}:d=0.012` : ""}[a${i}]`; });
+      ffl(["-i", I.audio, "-filter_complex", [...ap, keep.map((_, i) => `[a${i}]`).join("") + `concat=n=${keep.length}:v=0:a=1[a]`].join(";"), "-map", "[a]", "-c:a", "pcm_s16le", I.audio + ".new.wav"]);
+      fs.renameSync(I.audio + ".new.wav", I.audio);
+      ffl(["-i", I.audio, "-vn", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", pa1]);
+      px0[rel0] = v1; fs.writeFileSync(LIST0, JSON.stringify(px0, null, 1));
+      for (const f2 of [pv0, pa0]) { try { fs.rmSync(f2, { force: true }); } catch { /* the Studio still reads it: the next proxy run removes it */ } }
+      ffl(["-i", I.audio, "-ac", "1", "-ar", "48000", path.join(T, "cut.wav")]);
+      ffl(["-i", path.join(T, "cut.wav"), "-ar", "16000", "-ac", "1", path.join(T, "cut16k.wav")]);
+      console.log(`cut_blocks: ${spans.length} blocks (${(spans.reduce((s, [a, b]) => s + b - a, 0) / 30).toFixed(2)} s) taken out of the LIST, the audio and the light copy; the heavy video is not touched (built again only when something needs it)`);
+      for (const [a, b] of [...spans].reverse()) {
+        const r = spawnSync(process.execPath, ["tools/cut_block.mjs", p, `f${a}`, `f${b}`, ...rest.filter((x) => x !== "--snap-words" && x !== "--force"), "--force"], { encoding: "utf8", env: { ...process.env, CUT_BLOCK_JSON_ONLY: "1", CUT_BLOCK_OUT: path.basename(src) } });
+        console.log((r.stdout || "").trim().split("\n").slice(-2).join(" | ")); if (r.status !== 0) { console.error(r.stderr || r.stdout); process.exit(1); }
+      }
+      console.log("cut_blocks: DONE (lazy)");
+      process.exit(0);
+    }
+    console.log("cut_blocks: the light copy could not be spliced (" + (rp.stdout || "").trim().split("\n").slice(-1)[0] + ") → eager");
+    fs.rmSync(pv1, { force: true });
+  }
+  L.ensureCut(p);   // eager from here: the heavy file must match the list first
+}
 const parts = keep.map(([s, e], i) => `[0:v]trim=start_frame=${s}:end_frame=${e},setpts=PTS-STARTPTS[v${i}]`);
 const aparts = keep.map(([s, e], i) => { const d = (e - s) / 30; return `[0:a]atrim=start=${(s / 30).toFixed(4)}:end=${(e / 30).toFixed(4)},asetpts=PTS-STARTPTS${i > 0 ? ",afade=t=in:st=0:d=0.012" : ""}${i < keep.length - 1 ? `,afade=t=out:st=${Math.max(0, d - 0.012).toFixed(4)}:d=0.012` : ""}[a${i}]`; });
 const cat = keep.map((_, i) => `[v${i}]`).join("") + `concat=n=${keep.length}:v=1:a=0[v];` + keep.map((_, i) => `[a${i}]`).join("") + `concat=n=${keep.length}:v=0:a=1[a]`;
@@ -91,4 +127,5 @@ for (const [a, b] of [...spans].reverse()) {
 // (the silence gate ran above on the audio BEFORE the cut; the data pass below runs on the audio AFTER it, so it must not judge again: --force)
 // older versions (each ~1.7 GB): keep only the new one and the one before it
 for (let k = 1; k < n - 1; k++) for (const f of fs.readdirSync("public").filter((x) => x.startsWith(`${p}_cut_s_b${k}.`) || x.startsWith(`${p}_cut_s_b${k}_prev_`))) { try { fs.rmSync(path.join("public", f)); } catch { /* open in Studio */ } }
+try { (await import("./cut_lazy.mjs")).resetFromHeavy(p); } catch (e) { console.log("cut_blocks: lazy state not refreshed:", e.message); }
 console.log("cut_blocks: DONE");

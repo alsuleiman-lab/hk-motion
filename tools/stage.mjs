@@ -277,6 +277,10 @@ if (stage === "cut") {
       merged = true; say(sum);
       try { const tl = cut + ".swap.mp4"; fs.rmSync(tl, { force: true }); fs.linkSync(cutS, tl); fs.renameSync(tl, cut); } catch (e) { say(`⚠ ${cut} not refreshed (${e.code ?? e.message})`); }
       fs.rmSync(path.join(T, "smooth.standin"), { force: true });
+      try {   // the cut as a list over the original: the audio truth (lossless) and the state «the cut video matches the list» (tools/cut_lazy.mjs)
+        const ta = path.join(T, "cut_audio.wav"), r0 = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", wavClean, "-ar", "48000", "-c:a", "pcm_s16le", ta + ".part.wav"], { windowsHide: true });
+        if (r0.status === 0) { fs.renameSync(ta + ".part.wav", ta); (await import("./cut_lazy.mjs")).markFresh(p); } else say("⚠ cut_audio.wav not written — the first lazy edit takes it from the cut video");
+      } catch (e) { say(`⚠ lazy state not written: ${e.message}`); }
     } else say(`⚠ the one-pass GPU build was not used (${sum || "exit " + gb.status}) → the old chain: cut, then smoothing in the background`);
   }
   if (!merged) {
@@ -326,6 +330,7 @@ if (stage === "cut") {
 }
 
 if (stage === "check") {
+  (await import("./cut_lazy.mjs")).ensureCut(p);   // the cut video must match the cut list before the checks read it (tools/cut_lazy.mjs)
   const comp = rest.find((a) => !a.startsWith("--") && rest[rest.indexOf(a) - 1]?.startsWith("--") !== true);
   const file = opt("file", ""), minutes = opt("minutes", "");
   if (!comp || !file || !minutes) { say("✘ usage: check <p> <CompId> --file src/X.tsx --minutes M [--skip a-b,…]"); finish(1); }

@@ -11,6 +11,7 @@ const specF = argv.find((a) => a.endsWith(".json"));
 if (!specF) { console.error("usage: node tools/source_crop.mjs data/specs/<p>.json [--write] [--force]"); process.exit(2); }
 const write = argv.includes("--write"), force = argv.includes("--force");
 const spec = JSON.parse(fs.readFileSync(specF, "utf8"));
+(await import("./cut_lazy.mjs")).ensureCut(spec.id);   // the cut video matches the cut list (tools/cut_lazy.mjs)
 const cut = path.join("public", spec.cut), T = path.join(".tmp", spec.id), tmp = path.join(T, "srccrop");
 fs.mkdirSync(tmp, { recursive: true });
 

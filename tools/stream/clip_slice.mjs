@@ -37,6 +37,7 @@ const slice = (inF, outF, video) => {
   sh("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", "-threads", "4", ...ins, "-filter_complex", fc, ...(video ? ["-map", "[v]", "-map", "[a]", "-c:v", "h264_nvenc", "-preset", "p7", "-rc", "vbr", "-cq", "19", "-b:v", "0", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-ar", "48000"] : ["-map", "[a]"]), outF]);
 };
 // SLICE_VIDEO: ملف القص الحالي للأب إن كان بإصدار جديد بعد قص جزء (المواصفة `cut`، يمرّره tools/reel_from_episode.mjs)
+(await import("../cut_lazy.mjs")).ensureCut(P);   // the parent's cut video matches its cut list (tools/cut_lazy.mjs)
 const parentVideo = process.env.SLICE_VIDEO && fs.existsSync(process.env.SLICE_VIDEO) ? process.env.SLICE_VIDEO : ["cut_s", "cut"].map((s) => path.join("public", `${P}_${s}.mp4`)).find((f) => fs.existsSync(f));
 if (!parentVideo) { console.error(`✘ لا قص لـ${P} بعد`); process.exit(1); }
 const cutS = path.join("public", `${id}_cut_s.mp4`); slice(parentVideo, cutS, true);

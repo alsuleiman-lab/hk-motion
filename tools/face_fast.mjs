@@ -20,6 +20,7 @@ const opt = (n, d) => (argv.includes("--" + n) ? argv[argv.indexOf("--" + n) + 1
 const specF = opt("spec", "");
 if (!id || !specF) { console.error("usage: node tools/face_fast.mjs <CompositionId> --spec data/specs/<p>.json [--step 15]"); process.exit(2); }
 const spec = JSON.parse(fs.readFileSync(specF, "utf8"));
+(await import("./cut_lazy.mjs")).ensureCut(spec.id);   // the cut video matches the cut list (tools/cut_lazy.mjs)
 const step = Number(opt("step", 15)), SC = Number(opt("scale", 0.25)), THR = Number(opt("thr", 0.008));
 const outDir = opt("out", path.join(".tmp", spec.id ?? id, "ff"));
 const PY = "C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe";

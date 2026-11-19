@@ -22,7 +22,7 @@ const PALS: Record<string, Pal> = {
 
 /* ---------- خط محلي (بلا تحميل من الإنترنت) ---------- */
 let fontReady = false;
-const useAlmarai = () => {
+export const useAlmarai = () => {
   const [h] = React.useState(() => (fontReady ? null : delayRender("Almarai local")));
   React.useEffect(() => {
     if (!h) return;
@@ -30,14 +30,14 @@ const useAlmarai = () => {
     Promise.all(faces.map((f) => f.load())).then((l) => { l.forEach((f) => document.fonts.add(f)); fontReady = true; continueRender(h); }).catch((e) => cancelRender(e));
   }, [h]);
 };
-const FONT = "AlmaraiLocal, Almarai, sans-serif";
+export const FONT = "AlmaraiLocal, Almarai, sans-serif";
 
 /* ---------- أدوات ---------- */
-const back = (x: number, s = 1.7) => { const t = clamp01(x) - 1; return 1 + (s + 1) * t * t * t + s * t * t; };
-const settle = (t: number) => (t <= 0 ? 0 : Math.exp(-0.18 * t) * Math.sin(t * 0.55));
+export const back = (x: number, s = 1.7) => { const t = clamp01(x) - 1; return 1 + (s + 1) * t * t * t + s * t * t; };
+export const settle = (t: number) => (t <= 0 ? 0 : Math.exp(-0.18 * t) * Math.sin(t * 0.55));
 
 /** ورق مجعّد يتبدّل نسيجه كل 4 إطارات (ارتجاف التصوير إطاراً بإطار). */
-const CrumplePaper: React.FC<{ color: string; seed?: number; id: string }> = ({ color, seed = 0, id }) => {
+export const CrumplePaper: React.FC<{ color: string; seed?: number; id: string }> = ({ color, seed = 0, id }) => {
   const f = useCurrentFrame();
   const s = seed + Math.floor(f / 4) % 3;
   return (
@@ -55,11 +55,11 @@ const CrumplePaper: React.FC<{ color: string; seed?: number; id: string }> = ({ 
 };
 
 /** حافة ممزقة: مضلع من نقاط عشوائية ثابتة بالبذرة على خط من (x1,y1) إلى (x2,y2). */
-const tornLine = (x1: number, y1: number, x2: number, y2: number, seed: number, n = 46, amp = 16) => {
+export const tornLine = (x1: number, y1: number, x2: number, y2: number, seed: number, n = 46, amp = 16) => {
   const r = mulberry32(seed);
   return Array.from({ length: n + 1 }, (_, i) => { const t = i / n; const j = (r() - 0.5) * amp * (i % 3 === 0 ? 2.2 : 1); return [lerp(x1, x2, t) + j * 0.6, lerp(y1, y2, t) + j]; });
 };
-const poly = (pts: number[][]) => pts.map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(",");
+export const poly = (pts: number[][]) => pts.map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(",");
 
 /** قصاصة: ظل ورقي تحت أي رسم (مظهر الملصق المقصوص). */
 const Cut: React.FC<{ x: number; y: number; w: number; h: number; rot?: number; s?: number; children: React.ReactNode; z?: number }> = ({ x, y, w, h, rot = 0, s = 1, children, z }) => (
@@ -75,7 +75,7 @@ const Drop: React.FC<{ at: number; x: number; y: number; w: number; h: number; r
 };
 
 /** نص يُكشف من اليمين إلى اليسار (اتجاه الكتابة). */
-const Reveal: React.FC<{ at: number; dur?: number; children: React.ReactNode; style?: React.CSSProperties }> = ({ at, dur = 10, children, style }) => {
+export const Reveal: React.FC<{ at: number; dur?: number; children: React.ReactNode; style?: React.CSSProperties }> = ({ at, dur = 10, children, style }) => {
   const k = easeOut((useCurrentFrame() - at) / dur);
   return <div style={{ ...style, clipPath: `inset(-20% 0 -20% ${(1 - k) * 100}%)` }}>{children}</div>;
 };

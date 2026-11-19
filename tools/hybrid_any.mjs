@@ -25,7 +25,7 @@ if (!parentOk) acquireRenderLock("hybrid " + compId);
 (await import("./cut_lazy.mjs")).ensureCutForComp(compId);   // the cut video matches the cut list (tools/cut_lazy.mjs)   // one render at a time, like every other render entry point
 const out = path.resolve(root, arg("out", `render_work/hybrid/${compId}.mp4`));
 const PART = arg("part", "") === true ? "" : String(arg("part", ""));
-const logProgress = startMonitor(path.join(root, ".tmp", "render_logs", `hybrid_any_${compId}${PART ? "_p" + PART : ""}.log`), path.basename(out, path.extname(out)));
+const logProgress = startMonitor(path.join((await import("./lib/projdir.mjs")).projTmp(compId, "logs"), `hybrid_any_${compId}${PART ? "_p" + PART : ""}.log`), path.basename(out, path.extname(out)));
 const work = path.join(root, ".tmp/hybrid_any", compId + (PART ? "_p" + PART : ""));
 fs.mkdirSync(work, { recursive: true });
 fs.mkdirSync(path.dirname(out), { recursive: true });

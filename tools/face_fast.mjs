@@ -31,7 +31,7 @@ fs.rmSync(outDir, { recursive: true, force: true }); fs.mkdirSync(outDir, { recu
 // ---- 1) face track of the cut (cached by file size + mtime)
 const cut = path.join("public", spec.cut);
 const st = fs.statSync(cut);
-const trackF = path.join(".tmp", "facetrack", `${path.basename(cut, ".mp4")}_${st.size}_${Math.round(st.mtimeMs)}.json`);
+const trackF = path.join((await import("./lib/projdir.mjs")).projTmp(path.basename(cut, ".mp4"), "facetrack"), `${path.basename(cut, ".mp4")}_${st.size}_${Math.round(st.mtimeMs)}.json`);
 if (!fs.existsSync(trackF)) {
   fs.mkdirSync(path.dirname(trackF), { recursive: true });
   const r = spawnSync(PY, ["tools/face_track.py", cut, trackF], { encoding: "utf8", windowsHide: true });

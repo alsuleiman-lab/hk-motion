@@ -107,6 +107,12 @@ if (cmd === "stage") {
   { const ap = (await import("node:child_process")).spawnSync("node", ["tools/approve_purge.mjs", project], { encoding: "utf8" });
     console.log("— حذف الكود والبيانات —\n" + ((ap.stdout || "") + (ap.stderr || "")).trim());
     if (ap.status !== 0) process.exitCode = 1; }
+  /* HK-Motion addition (user 2026-11-19: every temporary thing of a project in one place, deleted at once): the project = its source video, so its
+     reels/clips/compositions go with it, and the places the prefix scan below never looked at (stills bundles, GPU work, render logs, face tracking,
+     the slim public copy, render_work sub-folders) are emptied by tools/project.mjs. The scan below still runs and still reports what is left. */
+  { const pc = (await import("node:child_process")).spawnSync("node", ["tools/project.mjs", "clean", project, "--yes"], { encoding: "utf8" });
+    console.log("— كل مؤقتات المشروع (tools/project.mjs) —\n" + ((pc.stdout || "") + (pc.stderr || "")).trim().split("\n").slice(-4).join("\n"));
+    if (pc.status !== 0) process.exitCode = 1; }
   const key = project.toLowerCase(), left = [];
   // approval deletes the project's own files (name starts with the project key) in public/, .tmp/, .tmp/gates, render_work/ and tools/; code (src/, Root.tsx, titles) stays for the agent to remove and typecheck
   // safety: a key under 4 letters is only listed (too many shared names match), and a tool named in the rules or skills is shared, never deleted

@@ -17,7 +17,7 @@ const root = "S:/AI_Tools/Remotion_Workspace";
 const work = path.join(root, ".tmp/hybrid");
 fs.mkdirSync(work, { recursive: true });
 const out = path.resolve(root, arg("out", "out/tir_hybrid.mp4"));
-const logProgress = startMonitor(path.join(root, ".tmp", "render_logs", `hybrid_${path.basename(out)}.log`), path.basename(out, path.extname(out)));
+const logProgress = startMonitor(path.join((await import("./lib/projdir.mjs")).projTmp(path.basename(out), "logs"), `hybrid_${path.basename(out)}.log`), path.basename(out, path.extname(out)));
 const orient = arg("orient", "landscape");
 const SHORT = arg("short", false) === true;
 const AZ = arg("project", "tir") === "az"; // Azerbaijan project: no splits/B-roll/quotes, own source + windows

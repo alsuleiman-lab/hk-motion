@@ -27,9 +27,10 @@ const SMALL_JOB = arg("frames", false) !== false || (arg("start", false) !== fal
 acquireRenderLock("gpu " + compId, { small: SMALL_JOB });
 const EDL = (await import("./cut_lazy.mjs")).edlSetup(compId);   // a tracked project is read from the original through its cut list (tools/gpu/edl_stream.py); any other: the cut video is made current first (tools/cut_lazy.mjs)
 if (EDL) process.env.HK_EDL_MAP = EDL.file;   // a FULL render is still one at a time, like every other render entry point
+const PROJ = (await import("./lib/projdir.mjs")).projTmp(compId);   /* the project's own temporary folder: work frames and logs go there (user 2026-11-19) */
 const out = path.resolve(root, arg("out", `render_work/gpu/${compId}.mp4`));
-const logProgress = startMonitor(path.join(root, ".tmp", "render_logs", `gpu_render_${compId}${process.argv.includes("--frames") ? "_frames" : ""}.log`), path.basename(out, path.extname(out)));   /* a frames run never overwrites the video render's log */
-const work = path.join(root, ".tmp/gpu_render/work", compId);
+const logProgress = startMonitor(path.join(PROJ, "logs", `gpu_render_${compId}${process.argv.includes("--frames") ? "_frames" : ""}.log`), path.basename(out, path.extname(out)));   /* a frames run never overwrites the video render's log */
+const work = path.join(PROJ, "gpu_work", compId);   // in the project folder (was .tmp/gpu_render/work/<Comp>), 2026-11-19
 fs.rmSync(work, { recursive: true, force: true });
 fs.mkdirSync(work, { recursive: true });
 fs.mkdirSync(path.dirname(out), { recursive: true });

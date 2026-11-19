@@ -44,7 +44,7 @@ const splits = sources.filter((w) => w.split && (w.split.clip?.w ?? w.clip?.w ??
 
 // his face per stretch → portrait cams (cached track of the cut, shared with face_fast.mjs)
 const cut = path.join("public", `${p}_cut.mp4`), st = fs.statSync(cut);
-const trackF = path.join(".tmp", "facetrack", `${path.basename(cut, ".mp4")}_${st.size}_${Math.round(st.mtimeMs)}.json`);
+const trackF = path.join((await import("./lib/projdir.mjs")).projTmp(path.basename(cut, ".mp4"), "facetrack"), `${path.basename(cut, ".mp4")}_${st.size}_${Math.round(st.mtimeMs)}.json`);
 if (!fs.existsSync(trackF)) { fs.mkdirSync(path.dirname(trackF), { recursive: true }); spawnSync(PY, ["tools/face_track.py", cut, trackF], { windowsHide: true }); }
 const track = read(trackF, { fps: 2, boxes: [] });
 const medCx = (a, b) => { const xs = track.boxes.filter((x) => x[1] != null && x[0] >= a && x[0] < b).map((x) => x[1] + x[3] / 2).sort((u, v) => u - v); return xs.length ? Math.round(xs[xs.length >> 1]) : 990; };

@@ -8,6 +8,7 @@
 // (or a folder prefix like `kh/alpha_${n}.webm`, `fonts/${f}`) and exists under public/. Add more with a manifest (one path or folder per line, relative to public/; # comments).
 import { bundle } from "@remotion/bundler";
 import path from "path"; import fs from "fs"; import crypto from "crypto";
+import { rootOf, projTmp, sweepDeadRuns } from "./projdir.mjs";
 
 const ROOT = process.cwd(), SRC = path.join(ROOT, "src"), PUB = path.join(ROOT, "public");
 const ENTRY = path.resolve(process.env.ENTRY ?? "src/index.ts");
@@ -110,7 +111,7 @@ function linkInto(destPublic, files) {
 }
 
 export async function cachedServeUrl(id, { manifest = "", tag = "bundle", manifestOnly = false } = {}) {
-  const cacheDir = path.join(ROOT, ".tmp", "stills_bundle", id);
+  const cacheDir = projTmp(id, "stills_bundle", id);   // in the project's own folder (was .tmp/stills_bundle/<Id>, 1.6 GB left there for mufti-hiraba)
   const emptyPub = path.join(ROOT, ".tmp", "stills_empty_public"); fs.mkdirSync(emptyPub, { recursive: true });
   const h = crypto.createHash("sha1");
   h.update(`${ENTRY}|manifestOnly=${manifestOnly}\n`);
@@ -140,7 +141,12 @@ export async function cachedServeUrl(id, { manifest = "", tag = "bundle", manife
 }
 
 export function privateTemp(tag) {
-  const dir = path.join(ROOT, ".tmp", `run_${tag}_${process.pid}`);
+  /* (user 2026-11-19: every temporary thing of a project in its own place) the run folder goes under the project named on the command line
+     (.tmp/<root>/run_<tag>_<pid>, deleted with the project); runs killed by force skip the exit cleanup, so dead runs' folders are swept first
+     (7.9 GB of them had piled up in .tmp/ from four killed stills runs) */
+  const base = (() => { for (const a of process.argv.slice(2)) { if (a.startsWith("-")) continue; const r = rootOf(a); if (fs.existsSync(path.join(ROOT, ".tmp", r)) && fs.statSync(path.join(ROOT, ".tmp", r)).isDirectory()) return path.join(ROOT, ".tmp", r); } return path.join(ROOT, ".tmp"); })();
+  sweepDeadRuns(path.join(ROOT, ".tmp")); if (base !== path.join(ROOT, ".tmp")) sweepDeadRuns(base);
+  const dir = path.join(base, `run_${tag}_${process.pid}`);
   fs.mkdirSync(dir, { recursive: true });
   process.env.TEMP = process.env.TMP = process.env.TMPDIR = dir;
   const rm = () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* best effort; clean_temp catches leftovers */ } };

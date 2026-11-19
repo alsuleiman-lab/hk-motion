@@ -10,7 +10,7 @@ import { back } from "./PaperSteps";
  * ثم تنزاح إلى الجانب على خلفية سادة يُكتب عليها، ثم ترجع قليلاً، ثم تُوضع في الوسط وتُكتب الكلمات حولها.
  * فيديو المتحدث هو الملف المرفوع (public/dubkmr/src.mp4)، وكل الكتابة بالخط الفخم.
  */
-export const ACTIVE_FRAMES = 780; // 26 ثانية
+export const ACTIVE_FRAMES = 1080; // 36 ثانية
 const W = 1080, H = 1920;
 const C = { cream: "#ece3d3", maroon: "#6b1b2b", teal: "#1f6b66", ink: "#2a1518" };
 
@@ -28,7 +28,11 @@ const KF: number[][] = [
   [21.5, 1200, 560, 432, 768],
   [22.4, 1200, 560, 432, 768],
   [23.4, 0, 0, 1080, 1920],
-  [30.0, 0, 0, 1080, 1920],
+  [26.0, 0, 0, 1080, 1920],
+  [26.5, -1300, 0, 1080, 1920],
+  [32.6, -1300, 120, 540, 960],
+  [33.3, 270, 120, 540, 960],
+  [40.0, 270, 120, 540, 960],
 ];
 const frameBox = (t: number): number[] => {
   for (let i = 0; i < KF.length - 1; i++) {
@@ -71,7 +75,7 @@ const BOX_KF: number[][] = [
 ];
 const MovingBox: React.FC = () => {
   const t = useCurrentFrame() / 30;
-  if (t < BOX_KF[0][0]) return null;
+  if (t < BOX_KF[0][0] || t >= 26.0) return null;
   let [x, y, w, h] = BOX_KF[BOX_KF.length - 1].slice(1);
   for (let i = 0; i < BOX_KF.length - 1; i++) {
     const a = BOX_KF[i], b = BOX_KF[i + 1];
@@ -85,6 +89,39 @@ const MovingBox: React.FC = () => {
   return (
     <div style={{ position: "absolute", left: x, top: y, width: w, height: h, border: `7px solid ${C.maroon}`, borderRadius: 14, boxSizing: "border-box", clipPath: `inset(0 ${(1 - draw) * 100}% 0 0)`, boxShadow: "0 8px 18px rgba(0,0,0,.25)" }} />
   );
+};
+
+/** شاشة كاملة تنزلق من جهة بميل ثم تستقيم، وتبقى حتى تغطيها التالية. out = شاشة شفافة الوسط تحت الصورة (للأخيرة) */
+const SlideScreen: React.FC<{ at: number; until: number; from: "r" | "l" | "b"; color: string; out?: boolean; children: React.ReactNode }> = ({ at, until, from, color, out, children }) => {
+  const t = useCurrentFrame() / 30;
+  if (t < at || t >= until) return null;
+  const k = easeOut((t - at) / 0.45), d = 1 - k;
+  const tx = from === "r" ? d * 1200 : from === "l" ? -d * 1200 : 0, ty = from === "b" ? d * 2000 : 0;
+  const grid = color === C.cream ? "rgba(42,28,31,.06)" : "rgba(255,255,255,.07)";
+  return (
+    <div style={{ position: "absolute", inset: 0, transform: `translate(${tx}px, ${ty}px) rotate(${d * (from === "l" ? -7 : 7)}deg)`, boxShadow: "0 0 60px rgba(0,0,0,.3)", background: out ? "transparent" : color, backgroundImage: out ? undefined : `linear-gradient(${grid} 2px, transparent 2px), linear-gradient(90deg, ${grid} 2px, transparent 2px)`, backgroundSize: "54px 54px" }}>
+      {children}
+    </div>
+  );
+};
+const Counter: React.FC<{ at: number; to: number }> = ({ at, to }) => {
+  const t = useCurrentFrame() / 30;
+  if (t < at) return null;
+  const n = Math.round(to * easeOut((t - at) / 1.4));
+  return <div style={{ position: "absolute", left: 0, width: W, top: 460, textAlign: "center", fontFamily: ff("rakkas"), fontSize: 240, color: C.cream, textShadow: `10px 10px 0 ${C.ink}`, direction: "rtl" }}>{n.toLocaleString("ar-EG")} ساعة</div>;
+};
+const Bar: React.FC<{ at: number; i: number; text: string }> = ({ at, i, text }) => {
+  const t = useCurrentFrame() / 30;
+  if (t < at) return null;
+  const k = back((t - at) / 0.3, 1.4);
+  const col = [C.maroon, C.cream, C.ink, C.maroon][i];
+  return <div style={{ position: "absolute", left: 140 + (1 - Math.min(1, k)) * 900, top: 1640 - i * 150, width: 800, height: 120, background: col, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: ff("ruqaa"), fontSize: 80, color: col === C.cream ? C.ink : C.cream, boxShadow: "0 10px 20px rgba(0,0,0,.3)", direction: "rtl" }}>{text}</div>;
+};
+const Button: React.FC<{ at: number }> = ({ at }) => {
+  const t = useCurrentFrame() / 30;
+  if (t < at) return null;
+  const k = back((t - at) / 0.3, 2.2), pulse = 1 + 0.04 * Math.sin((t - at) * 6);
+  return <div style={{ position: "absolute", left: W / 2 - 220, top: 1580, width: 440, height: 140, borderRadius: 70, background: C.maroon, boxShadow: `8px 8px 0 ${C.teal}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: ff("rakkas"), fontSize: 100, color: C.cream, transform: `scale(${Math.max(0, k) * pulse})`, direction: "rtl" }}>كلّمني</div>;
 };
 
 export const ActiveSpeaker: React.FC = () => {
@@ -164,9 +201,25 @@ export const ActiveSpeaker: React.FC = () => {
       <Word at={20.6} out={21.8} x={0} y={640} size={150} text="كتابة بس" color={C.teal} shadow={C.cream} />
       <MovingBox />
 
+      {/* من ٢٦ ثانية: شاشات تنزلق فوق بعضها بميل (كما في المرجع) */}
+      <SlideScreen at={26.0} until={29.9} from="r" color={C.teal}>
+        <Word at={26.4} x={0} y={300} size={110} text="شغلك الحين:" color={C.cream} shadow={C.ink} font="ruqaa" />
+        <Counter at={26.6} to={14} />
+        {["تصدير", "تحريك", "طبقات", "مونتاج"].map((s, i) => <Bar key={s} at={27.4 + i * 0.35} i={i} text={s} />)}
+      </SlideScreen>
+      <SlideScreen at={29.5} until={33.0} from="b" color={C.maroon}>
+        <Word at={29.9} x={0} y={640} size={120} text="وكل هذا" color={C.cream} shadow={C.ink} font="ruqaa" />
+        <Word at={30.3} x={0} y={820} size={230} text="بضربة وحدة" color={C.cream} shadow={C.teal} stretch={24} />
+      </SlideScreen>
+      <SlideScreen at={32.4} until={99} from="l" color={C.cream} out>
+        <Word at={33.4} x={0} y={1180} size={150} text="تبي إعلانك كذا؟" color={C.maroon} shadow={C.cream} />
+        <Word at={34.0} x={0} y={1380} size={90} text="فريقنا يسويه لك" color={C.teal} shadow={C.cream} font="ruqaa" />
+        <Button at={34.6} />
+      </SlideScreen>
+
       {/* من ٢٣ ثانية: الصورة كاملة والكتابة فوقها */}
-      <Word at={23.6} x={0} y={1340} size={110} text="شوف الكتابة فوقها" color={C.cream} shadow={C.maroon} />
-      <Word at={25.0} x={0} y={1460} size={80} text="والكتابة تتحرك معها" color={C.cream} shadow={C.maroon} font="ruqaa" />
+      <Word at={23.6} out={26.0} x={0} y={1340} size={110} text="شوف الكتابة فوقها" color={C.cream} shadow={C.maroon} />
+      <Word at={25.0} out={26.0} x={0} y={1460} size={80} text="والكتابة تتحرك معها" color={C.cream} shadow={C.maroon} font="ruqaa" />
     </HybridHost>
   );
 };

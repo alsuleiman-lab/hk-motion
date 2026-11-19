@@ -92,14 +92,32 @@ const MovingBox: React.FC = () => {
 };
 
 /** شاشة كاملة تنزلق من جهة بميل ثم تستقيم، وتبقى حتى تغطيها التالية. out = شاشة شفافة الوسط تحت الصورة (للأخيرة) */
-const SlideScreen: React.FC<{ at: number; until: number; from: "r" | "l" | "b"; color: string; out?: boolean; children: React.ReactNode }> = ({ at, until, from, color, out, children }) => {
+/** شاشة كاملة بانتقالات المرجع الثالث (دُرست إطاراً بإطار):
+ *  iris = دائرة تتسع من نقطة (طرف السلك) حتى تملأ الشاشة، واللوح مائل قليلاً ثم يستقيم؛
+ *  grow = خط عمودي رفيع في الوسط يتسع إلى مستطيل ثم إلى الشاشة كلها، بميل يستقيم؛
+ *  none = بلا دخول (تنكشف حين تخرج التي فوقها)؛
+ *  exitUp = الكاميرا تنزل: الشاشة تخرج إلى أعلى بضبابية حركة في آخر ٠٫٣٥ ث. */
+const SlideScreen: React.FC<{ at: number; until: number; color: string; out?: boolean; enter?: "iris" | "grow" | "none"; ox?: number; oy?: number; exitUp?: boolean; children: React.ReactNode }> = ({ at, until, color, out, enter = "none", ox = 140, oy = 1700, exitUp, children }) => {
   const t = useCurrentFrame() / 30;
   if (t < at || t >= until) return null;
-  const k = easeOut((t - at) / 0.45), d = 1 - k;
-  const tx = from === "r" ? d * 1200 : from === "l" ? -d * 1200 : 0, ty = from === "b" ? d * 2000 : 0;
+  const u = t - at;
+  let tf = "", clip: string | undefined, blur = 0;
+  if (enter === "iris") {
+    clip = `circle(${easeInOut(u / 0.4) * 2400}px at ${ox}px ${oy}px)`;
+    tf = `rotate(${(1 - easeOut(u / 0.6)) * 4}deg)`;
+  } else if (enter === "grow") {
+    const gw = easeOut(u / 0.45), gh = easeOut((u - 0.08) / 0.45);
+    const iw = lerp(1070, 0, gw) / 2, ih = lerp(820, 0, Math.max(0, gh)) ;
+    clip = gw < 0.999 || gh < 0.999 ? `inset(${ih}px ${iw}px ${ih}px ${iw}px round 18px)` : undefined;
+    tf = `rotate(${(1 - gw) * -6}deg)`;
+  }
+  if (exitUp) {
+    const e = clamp01((t - (until - 0.35)) / 0.35);
+    if (e > 0) { tf += ` translateY(${-e * e * 2100}px)`; blur = e * 14; }
+  }
   const grid = color === C.cream ? "rgba(42,28,31,.06)" : "rgba(255,255,255,.07)";
   return (
-    <div style={{ position: "absolute", inset: 0, transform: `translate(${tx}px, ${ty}px) rotate(${d * (from === "l" ? -7 : 7)}deg)`, boxShadow: "0 0 60px rgba(0,0,0,.3)", background: out ? "transparent" : color, backgroundImage: out ? undefined : `linear-gradient(${grid} 2px, transparent 2px), linear-gradient(90deg, ${grid} 2px, transparent 2px)`, backgroundSize: "54px 54px" }}>
+    <div style={{ position: "absolute", inset: 0, transform: tf || undefined, clipPath: clip, filter: blur ? `blur(${blur}px)` : undefined, boxShadow: "0 0 60px rgba(0,0,0,.3)", background: out ? "transparent" : color, backgroundImage: out ? undefined : `linear-gradient(${grid} 2px, transparent 2px), linear-gradient(90deg, ${grid} 2px, transparent 2px)`, backgroundSize: "54px 54px" }}>
       {children}
     </div>
   );
@@ -202,16 +220,16 @@ export const ActiveSpeaker: React.FC = () => {
       <MovingBox />
 
       {/* من ٢٦ ثانية: شاشات تنزلق فوق بعضها بميل (كما في المرجع) */}
-      <SlideScreen at={26.0} until={29.9} from="r" color={C.teal}>
+      <SlideScreen at={26.0} until={29.9} color={C.teal} enter="iris" ox={140} oy={1700} exitUp>
         <Word at={26.4} x={0} y={300} size={110} text="شغلك الحين:" color={C.cream} shadow={C.ink} font="ruqaa" />
         <Counter at={26.6} to={14} />
         {["تصدير", "تحريك", "طبقات", "مونتاج"].map((s, i) => <Bar key={s} at={27.4 + i * 0.35} i={i} text={s} />)}
       </SlideScreen>
-      <SlideScreen at={29.5} until={33.0} from="b" color={C.maroon}>
-        <Word at={29.9} x={0} y={640} size={120} text="وكل هذا" color={C.cream} shadow={C.ink} font="ruqaa" />
-        <Word at={30.3} x={0} y={820} size={230} text="بضربة وحدة" color={C.cream} shadow={C.teal} stretch={24} />
+      <SlideScreen at={29.9} until={32.7} color={C.maroon} enter="grow" exitUp>
+        <Word at={30.25} x={0} y={640} size={120} text="وكل هذا" color={C.cream} shadow={C.ink} font="ruqaa" />
+        <Word at={30.55} x={0} y={820} size={230} text="بضربة وحدة" color={C.cream} shadow={C.teal} stretch={24} />
       </SlideScreen>
-      <SlideScreen at={32.4} until={99} from="l" color={C.cream} out>
+      <SlideScreen at={32.4} until={99} color={C.cream} out>
         <Word at={33.4} x={0} y={1180} size={150} text="تبي إعلانك كذا؟" color={C.maroon} shadow={C.cream} />
         <Word at={34.0} x={0} y={1380} size={90} text="فريقنا يسويه لك" color={C.teal} shadow={C.cream} font="ruqaa" />
         <Button at={34.6} />

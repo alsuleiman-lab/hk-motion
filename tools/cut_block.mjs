@@ -37,6 +37,7 @@ if (process.argv.includes("--snap-words")) {
 }
 const fA = Math.round(sa * 30), fB = Math.round(sb * 30), A = fA / 30, B = fB / 30, D = B - A - L;
 if (!(fB > fA)) { console.error("✘ B must be after A"); process.exit(2); }
+if (process.env.CUT_BLOCK_SNAP_ONLY) { console.log("SNAP " + JSON.stringify({ fA, fB })); process.exit(0); }   // cut_blocks.mjs: only the span after --snap-words
 const T = path.join(".tmp", p), specF = path.join("data", "specs", `${p}.json`), frozenF = path.join(T, "spec_frozen.json");
 /* PREVENTION (user 2026-11-12, frame 3722: «بقايا كلمة… ما بدي علاج بدي منع»): a cut point must lie in REAL silence, and the audio that follows the join must not
    start with a short isolated burst (the tail of a deleted word). Measured on .tmp/<p>/cut16k.wav (16-bit mono PCM) in 20 ms frames.
@@ -50,6 +51,7 @@ if (lv && !process.argv.includes("--force")) {
   /* after B: a burst ≤ 0.35 s followed by ≥ 0.1 s of silence before the next speech = the tail of a deleted word */
   { let t = B, on = null; for (; t < B + 0.8; t += 0.02) { const L2 = lv(t); if (L2 > -32 && on === null) on = t; if (on !== null && L2 < -45) { const dur = t - on, rest = [0, 0.02, 0.04, 0.06, 0.08].every((q) => lv(t + q) < -40); if (dur <= 0.35 && rest) { console.log(`✘ cut_block: بعد نقطة النهاية ${B.toFixed(3)}ث صوت قصير معزول ${on.toFixed(2)}–${t.toFixed(2)}ث (بقايا كلمة) — مُدَّ النهاية إلى ${t.toFixed(2)}ث`); process.exit(1); } break; } } }
 }
+if (process.env.CUT_BLOCK_CHECK_ONLY) { console.log("cut_block: check ok"); process.exit(0); }   // cut_blocks.mjs: the gate above passed, nothing is written yet
 const spec = JSON.parse(fs.readFileSync(specF, "utf8"));
 const src = path.join("public", spec.cut);
 const ff = (args) => { const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", ...args], { encoding: "utf8" }); if (r.status !== 0) { console.error(r.stderr); process.exit(1); } };

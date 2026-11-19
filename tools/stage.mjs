@@ -265,16 +265,33 @@ if (stage === "cut") {
      - <p>_cut.mp4 is unlinked first, so the build writes a NEW file; <p>_cut_s.mp4 (often a hard link to the OLD cut) keeps its old, whole content meanwhile;
      - when the build is whole, <p>_cut_s.mp4 is replaced atomically (link + rename over it) by the new unsmoothed cut: the Studio always finds a whole playable video;
      - the smoothing then renames its result over <p>_cut_s.mp4 the same way. (An old version of this deleted <p>_cut_s.mp4 up front: a gap of minutes with no video.) */
+  /* ONE PASS (user 2026-11-19, «نتجاوز التنعيم والترميز الثالث»): the smoothed cut AND the Studio's light copy are built together, on the card, in one go (tools/cut_build_gpu.py):
+     <p>_cut_s.mp4 (smoothed, with the audio) + <p>_cut_s_prev_<v>.mp4/.m4a, registered in data/preview_proxies.json. <p>_cut.mp4 becomes a hard link to <p>_cut_s.mp4 (tools that read it
+     find the same whole file). No background smoothing, no separate proxy step. Every file is written as .part and moved into place when whole. CUT_BUILD_OLD=1, or any failure of the
+     GPU path, uses the old chain below (cut, then the smoothing in the background). */
+  let merged = false;
+  if (!process.env.CUT_BUILD_OLD) {
+    const gb = spawnSync("C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe", ["tools/cut_build_gpu.py", src, mapF, cutS, "--audio-from", wavClean, "--proxy"], { encoding: "utf8", windowsHide: true, maxBuffer: 1 << 26 });
+    const sum = (gb.stdout || "").trim().split("\n").filter((l) => /^cut_build_gpu/.test(l)).slice(-2).join(" | ");
+    if (gb.status === 0) {
+      merged = true; say(sum);
+      try { const tl = cut + ".swap.mp4"; fs.rmSync(tl, { force: true }); fs.linkSync(cutS, tl); fs.renameSync(tl, cut); } catch (e) { say(`⚠ ${cut} not refreshed (${e.code ?? e.message})`); }
+      fs.rmSync(path.join(T, "smooth.standin"), { force: true });
+    } else say(`⚠ the one-pass GPU build was not used (${sum || "exit " + gb.status}) → the old chain: cut, then smoothing in the background`);
+  }
+  if (!merged) {
   try { fs.rmSync(cut, { force: true }); } catch { say(`⚠ ${cut} is held open (Studio?): rebuilt in place`); }
   await must("NVENC build", "node", ["tools/cut_edl.mjs", "build", src, mapF, cut, "--audio-from", wavClean]);
   try { const tmpLink = cutS + ".swap.mp4"; fs.rmSync(tmpLink, { force: true }); try { fs.linkSync(cut, tmpLink); } catch { fs.copyFileSync(cut, tmpLink); } fs.renameSync(tmpLink, cutS); fs.writeFileSync(path.join(T, "smooth.standin"), String(Date.now()));
     // the light Studio copy (data/preview_proxies.json) of the OLD smoothed video would keep playing the old picture and sound: forget it, the Studio plays the whole new file until `check` makes a new one
     try { const pf = path.join("data", "preview_proxies.json"), px = JSON.parse(fs.readFileSync(pf, "utf8")); let ch = false; for (const k of [`${p}_cut_s.mp4`, `${p}_cut.mp4`]) if (k in px) { delete px[k]; ch = true; } if (ch) fs.writeFileSync(pf, JSON.stringify(px, null, 1)); } catch { /* no proxy list */ } }
   catch (e) { say(`⚠ could not put the new cut under ${cutS} yet (${e.code ?? e.message}): the smoothing replaces it when it finishes`); }
+  }
   // duplicated frames of the recording (frame-rate conversion) make the motion judder: ALWAYS smooth them right here (PREFERENCES §6 «تسجيلاته ترتجف»); the video is built on <p>_cut_s.mp4
   const srcWin = sources(src, ["--map", mapF]);
   // smoothing (≈5 min for 8 min) runs in the BACKGROUND: <p>_cut_s.mp4 appears when it is done (part file renamed); `check` waits for it (user 2026-10-27: «تسريع المونتاج»)
   // each job has its own token and part file; it renames/clears only while the flag still carries ITS token (a newer cut owns the flag otherwise)
+  if (!merged) {
   const token = `${Date.now()}_${process.pid}`;
   fs.writeFileSync(running, JSON.stringify({ token, t: Date.now() }));
   const part = path.join(T, `cut_s_part_${token}.mp4`);
@@ -282,6 +299,7 @@ if (stage === "cut") {
   const jp = spawn(process.execPath, ["-e", job], { detached: true, stdio: "ignore", windowsHide: true });
   fs.writeFileSync(running, JSON.stringify({ token, t: Date.now(), pid: jp.pid }));
   jp.unref();
+  }
   const sw = cutSourceWords();   // (user 2026-11-18, rules review) word table first
   const cutWords = remapWords(sw.words, JSON.parse(fs.readFileSync(mapF, "utf8")).segments);
   say(`cut words from ${sw.from}: ${cutWords.length}`);
@@ -289,7 +307,7 @@ if (stage === "cut") {
   fs.writeFileSync(path.join(T, "cut_words.json"), JSON.stringify(cutWords));
   fs.writeFileSync(path.join(T, "cut_transcript.txt"), toText(cutWords));
   await srcWin;
-  say(`cut ${(await dur(cut)).toFixed(1)} s · ${segments.length} segments → ${cut} (smoothing in the background → ${cutS} in ≈5 min, log ${path.join(T, "smooth.log")} — build on it; after the render run tools/judder_check.mjs)`);
+  say(`cut ${(await dur(cut)).toFixed(1)} s · ${segments.length} segments → ${cut} ${merged ? `(smoothed in the same pass → ${cutS}, light Studio copy made with it — build on it; after the render run tools/judder_check.mjs)` : `(smoothing in the background → ${cutS} in ≈5 min, log ${path.join(T, "smooth.log")} — build on it; after the render run tools/judder_check.mjs)`}`);
   say(`read: ${path.join(T, "cut_transcript.txt")} (cut timeline — check stumbles/«أعيد» are gone)`);
   if (process.env.STREAM_WHOLE === "1") { say("بث كامل: بلا آيات ولا بحث ولا حركات ولا متطلبات على القص كله؛ يُجرى كل منها على كل شريحة في clip_slice.mjs (ميزانية الساعتين)"); finish(0); }
   const vs = await run("node", ["tools/verse_scan.mjs", p]);   // every recited verse becomes a verse item at the second it is said (user 2026-10-28)

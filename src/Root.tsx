@@ -34,8 +34,6 @@ const Archive: React.FC = SHOW_ARCHIVE ? // eslint-disable-next-line @typescript
 
 import { MontageFromSpec, specFrames } from "./MontageSpec";
 import type { MontageSpec } from "./MontageSpec";
-import debateMosesReelSpec from "../data/specs/debate-moses-reel.json";
-const DebateMosesReelComp: React.FC = () => <MontageFromSpec spec={debateMosesReelSpec as unknown as MontageSpec} />;
 import c2598ReelSpec from "../data/specs/c2598-reel.json";
 const C2598ReelComp: React.FC = () => <MontageFromSpec spec={c2598ReelSpec as unknown as MontageSpec} />;
 import c2598Spec from "../data/specs/c2598.json";
@@ -50,10 +48,6 @@ import tirmidhi322Spec from "../data/specs/tirmidhi32_2.json";
 const Tirmidhi322Comp: React.FC = () => <MontageFromSpec spec={tirmidhi322Spec as unknown as MontageSpec} />;
 import tirmidhi321Spec from "../data/specs/tirmidhi32_1.json";
 const Tirmidhi321Comp: React.FC = () => <MontageFromSpec spec={tirmidhi321Spec as unknown as MontageSpec} />;
-import debateEpSpec from "../data/specs/debate-ep.json";
-const DebateEpComp: React.FC = () => <MontageFromSpec spec={debateEpSpec as unknown as MontageSpec} />;
-const DebateEpBothVComp: React.FC = () => <MontageBoth spec={debateEpSpec as unknown as MontageSpec} phone />;
-const DebateEpBothComp: React.FC = () => <MontageBoth spec={debateEpSpec as unknown as MontageSpec} />;
 import urwaReelSpec from "../data/specs/urwa-reel.json";
 const UrwaReelComp: React.FC = () => <MontageFromSpec spec={urwaReelSpec as unknown as MontageSpec} />;
 import anchorKillsChildrenReelSpec from "../data/specs/anchor-kills-children-reel.json";
@@ -81,10 +75,6 @@ export const RemotionRoot: React.FC = () => {
 
       <Folder name="مونتاج الجلسة">
         <Composition id="C2598-L" component={C2598Comp} durationInFrames={specFrames(c2598Spec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
-        <Composition id="Debate-Ep-L" component={DebateEpComp} durationInFrames={specFrames(debateEpSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
-        <Composition id="Debate-Ep" component={DebateEpComp} durationInFrames={specFrames(debateEpSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="Debate-Ep-Both" component={DebateEpBothComp} durationInFrames={specFrames(debateEpSpec as unknown as MontageSpec)} fps={30} width={BOTH.W} height={BOTH.H} />
-        <Composition id="Debate-Ep-BothV" component={DebateEpBothVComp} durationInFrames={specFrames(debateEpSpec as unknown as MontageSpec)} fps={30} width={BOTHV.W} height={BOTHV.H} />
         <Composition id="Urwa-Reel" component={UrwaReelComp} durationInFrames={specFrames(urwaReelSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
         <Composition id="Anchor-Kills-Children-L" component={AnchorKillsChildrenComp} durationInFrames={specFrames(anchorKillsChildrenSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
       </Folder>
@@ -97,7 +87,6 @@ export const RemotionRoot: React.FC = () => {
         {/* بث للحوار مع المخالفين (1) */}
       </Folder>
       <Folder name="ريلز">
-        <Composition id="Debate-Moses-Reel" component={DebateMosesReelComp} durationInFrames={specFrames(debateMosesReelSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
         <Composition id="C2598-Reel" component={C2598ReelComp} durationInFrames={specFrames(c2598ReelSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
         <Composition id="Tirmidhi322-L" component={Tirmidhi322Comp} durationInFrames={specFrames(tirmidhi322Spec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
         <Composition id="Anchor-Kills-Children-Reel" component={AnchorKillsChildrenReelComp} durationInFrames={specFrames(anchorKillsChildrenReelSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />

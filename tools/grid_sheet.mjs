@@ -32,7 +32,14 @@ if (!argv.includes("--browser")) {
     pts.forEach((p) => fs.copyFileSync(path.join(gdir, `gp_${String(frameOf(p)).padStart(6, "0")}.png`), path.join(out, `${p.split(":")[0]}.png`)));
     fs.rmSync(gdir, { recursive: true, force: true });
     ok = true;
-  } else { console.error("GPU engine frames failed — falling back to the browser stills"); fs.rmSync(gdir, { recursive: true, force: true }); }
+  } else {
+    fs.rmSync(gdir, { recursive: true, force: true });
+    /* (user 2026-11-19: «يستهلك أكبر قدر من المعالج… ألا يمكن أن تنقل هذه إلى كرت الشاشة») the browser stills ran silently on the CPU for 12+ minutes
+       per sheet whenever the engine failed (a linked public folder broke it). No silent CPU fallback: fail loudly so the engine gets fixed;
+       --browser (or GRID_BROWSER_FALLBACK=1) still allows the old way on purpose. */
+    if (process.env.GRID_BROWSER_FALLBACK !== "1") { console.error("✘ GPU engine frames failed (exit " + g.status + ") — no CPU fallback; fix the engine, or pass --browser on purpose"); process.exit(1); }
+    console.error("GPU engine frames failed — GRID_BROWSER_FALLBACK=1: browser stills on the CPU");
+  }
 }
 if (!ok) {
   const r = spawnSync("node", ["tools/stills.mjs", id, out, ...pts, "--scale", scale], { stdio: ["ignore", "ignore", "inherit"] });

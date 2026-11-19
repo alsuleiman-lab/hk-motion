@@ -21,7 +21,7 @@ const KF: number[][] = [
   [2.0, 600, 560, 432, 768],
   [2.6, 560, 520, 480, 853],
   [3.4, 270, 120, 540, 960],
-  [9.0, 270, 120, 540, 960],
+  [9.0, 250, 100, 580, 1031],
   [17.0, 270, 120, 540, 960],
   [17.8, 560, 560, 432, 768],
   [20.0, 560, 560, 432, 768],
@@ -92,6 +92,9 @@ export const ActiveSpeaker: React.FC = () => {
   const { fps } = useVideoConfig();
   const t = useCurrentFrame() / fps;
   const [x, y, w, h] = frameBox(t);
+  /* قلب البطاقة: الصورة تضيق حتى تختفي، ويظهر ظهرها (صورة شارحة) ثم تعود الصورة */
+  const flipS = t < 5.6 ? 1 : t < 6.4 ? 1 - (t - 5.6) / 0.8 : t < 8.0 ? 0 : t < 8.8 ? (t - 8.0) / 0.8 : 1;
+  const backS = t < 6.4 ? 0 : t < 7.2 ? (t - 6.4) / 0.8 : t < 8.0 ? 1 : t < 8.8 ? 1 - (t - 8.0) / 0.8 : 0;
   /* الخلفية تتحول من الفيديو إلى السادة بعد أن تنزاح الصورة */
   const plain = t >= 1.2;
   return (
@@ -100,7 +103,22 @@ export const ActiveSpeaker: React.FC = () => {
         <AbsoluteFill style={{ background: C.cream }} />
       </HybridBg>
       {plain && <AbsoluteFill style={{ background: C.cream, backgroundImage: "linear-gradient(rgba(42,28,31,.06) 2px, transparent 2px), linear-gradient(90deg, rgba(42,28,31,.06) 2px, transparent 2px)", backgroundSize: "54px 54px" }} />}
-      <VSlot src="dubkmr/src.mp4" w={w} h={h} radius={w > 1000 ? 0 : 26} vx={0} vy={0} vw={w} vh={h} style={{ left: x, top: y }} grow={0} />
+      <VSlot src="dubkmr/src.mp4" w={w} h={h} radius={w > 1000 ? 0 : 26} vx={0} vy={0} vw={w} vh={h} style={{ left: x, top: y, transform: `scaleX(${flipS})`, transformOrigin: "50% 50%" }} grow={0} />
+      {backS > 0.001 && (
+        <div style={{ position: "absolute", left: x, top: y, width: w, height: h, background: C.cream, border: `8px solid ${C.maroon}`, borderRadius: 26, boxSizing: "border-box", transform: `scaleX(${backS})`, transformOrigin: "50% 50%", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 16px 30px rgba(0,0,0,.25)" }}>
+          <svg width="88%" height="80%" viewBox="0 0 400 600">
+            <rect x="30" y="40" width="340" height="110" rx="18" fill="none" stroke={C.maroon} strokeWidth="8" />
+            <text x="200" y="110" textAnchor="middle" fontFamily={ff("ruqaa")} fontSize="44" fill={C.maroon}>الوصف بالكلام</text>
+            <line x1="200" y1="160" x2="200" y2="260" stroke={C.teal} strokeWidth="10" strokeLinecap="round" />
+            <polygon points="170,250 230,250 200,300" fill={C.teal} />
+            <rect x="30" y="310" width="340" height="110" rx="18" fill="none" stroke={C.maroon} strokeWidth="8" />
+            <text x="200" y="380" textAnchor="middle" fontFamily={ff("ruqaa")} fontSize="44" fill={C.maroon}>الحركة</text>
+            <line x1="200" y1="430" x2="200" y2="500" stroke={C.teal} strokeWidth="10" strokeLinecap="round" />
+            <polygon points="174,480 226,480 200,520" fill={C.teal} />
+            <text x="200" y="590" textAnchor="middle" fontFamily={ff("rakkas")} fontSize="64" fill={C.teal}>موشن</text>
+          </svg>
+        </div>
+      )}
 
       {/* المرحلة ١: فوق الصدر وجانب الرأس، والصورة كاملة */}
       <Word at={0.1} out={1.25} x={0} y={40} size={120} text="ما راح" color={C.cream} shadow={C.maroon} />

@@ -99,6 +99,18 @@ const grade = (url, body) => {
   throw new Error("not found");
 };
 
+/* NOTHING LEFT RUNNING UNUSED (user 2026-11-19: «مطلوب منك أن توقف أي خدمة غير مستعملة حتى ما تستهلك موارد الجهاز»): every open Studio page calls
+   /api/alive once a minute (src/studioTools.ts). No page and no job for HK_IDLE_MIN minutes (default 45) → the Studio this server came with (its pid is
+   the 2nd argument, passed by remotion.config.ts) is stopped with everything under it, then this server exits. */
+const IDLE_MIN = Number(process.env.HK_IDLE_MIN || 45), STUDIO_PID = Number(process.argv[3] || 0);
+let lastSeen = Date.now();
+setInterval(() => {
+  if (job?.state === "running" || Date.now() - lastSeen < IDLE_MIN * 60e3) return;
+  console.log(`no Studio page open for ${IDLE_MIN} min and no job: stopping the Studio (${STUDIO_PID || "unknown"}) and this server`);
+  if (STUDIO_PID) spawnSync("taskkill", ["/T", "/F", "/PID", String(STUDIO_PID)], { windowsHide: true });
+  process.exit(0);
+}, 60e3).unref();
+
 const start = (kind, p, args, label) => {
   if (job?.state === "running") throw Object.assign(new Error(`يعمل الآن: ${job.label}`), { code: 409 });
   const j = (job = { id: ++seq, kind, project: p, label, state: "running", startedAt: Date.now(), endedAt: null, summary: "", log: "" });
@@ -120,6 +132,7 @@ http.createServer((req, res) => {
   if (!priv(req.socket.remoteAddress)) return send(res, 403, { error: "private network only" });
   if (req.method === "OPTIONS") return send(res, 204, {});
   const url = (req.url ?? "").split("?")[0];
+  if (req.method === "GET" && url === "/api/alive") { lastSeen = Date.now(); return send(res, 200, { ok: true, idleMin: IDLE_MIN }); }
   if (req.method === "GET" && url === "/api/ping") return send(res, 200, { ok: true, name: "HK-Motion", busy: job?.state === "running" });
   if (req.method === "GET" && url === "/api/job") return send(res, 200, job ? { ...job, seconds: Math.round(((job.endedAt ?? Date.now()) - job.startedAt) / 1000), log: job.log.slice(-1200) } : { state: "idle" });
   if (req.method !== "POST") return send(res, 404, { error: "not found" });

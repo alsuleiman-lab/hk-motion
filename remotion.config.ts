@@ -14,7 +14,7 @@ import path from "node:path";
 if (process.argv.includes("studio")) {
   try {
     const pa = process.argv.find((a) => a.startsWith("--port=")), port = (pa ? Number(pa.split("=")[1]) : 3000) + 99;
-    const ch = spawn(process.execPath, [path.resolve(process.cwd(), "tools", "hk_server.mjs"), String(port)], { detached: true, stdio: "ignore", windowsHide: true });
+    const ch = spawn(process.execPath, [path.resolve(process.cwd(), "tools", "hk_server.mjs"), String(port), String(process.pid)], { detached: true, stdio: "ignore", windowsHide: true });
     ch.on("error", () => { /* no tools server: the buttons say so */ });
     ch.unref();
   } catch { /* never block the Studio */ }

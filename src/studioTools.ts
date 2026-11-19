@@ -708,6 +708,10 @@ const installHK = () => {
       if (c !== lastComp) { lastComp = c; paint(""); }
     } catch { /* never break the Studio */ }
   }, 400);
+  // presence (user 2026-11-19: «توقف أي خدمة غير مستعملة»): while this page is open it tells the tools server once a minute; with no open page and no
+  // job for HK_IDLE_MIN minutes the server stops the Studio and itself (tools/hk_server.mjs)
+  const alive = () => { void fetch(api("/api/alive")).catch(() => { /* server not running */ }); };
+  alive(); window.setInterval(alive, 60000);
   // a job already running (the page was reloaded while it worked): show it
   void (async () => { try { const j = (await (await fetch(api("/api/job"))).json()) as { state?: string }; if (j.state === "running") { busy = true; await poll(); busy = false; } } catch { /* server not running */ } })();
 };

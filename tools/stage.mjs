@@ -30,6 +30,11 @@ if (["prep", "cut", "check"].includes(stage)) { const { spawnSync: _sp } = await
 if (["prep", "cut"].includes(stage) && !process.env.STREAM_SLICE_OK) { const _m = /^(.+)_(\d+[a-z]?|r\d+)$/.exec(p ?? ""); try { if (_m && JSON.parse(fs.readFileSync(path.join(".tmp", _m[1], "plan.json"), "utf8")).clips?.some((c) => c.id === p)) { console.log(`✘ stage ${stage} ${p}: «${p}» مقطع من البث «${_m[1]}» (في خطته): لا تجهيز ولا قص لمقطع على حدة. قصّ البث كله مرة واحدة (cut_smart على «${_m[1]}») ثم اقتطع المقاطع شرائح بـtools/stream/clip_cut_all.mjs.`); process.exit(1); } } catch { /* not a stream clip */ } }
 const opt = (n, d) => (rest.includes("--" + n) ? rest[rest.indexOf("--" + n) + 1] : d);
 if (!["prep", "cut", "check"].includes(stage) || !p) { console.error("usage: node tools/stage.mjs prep|cut|check <project> …  (see the header)"); process.exit(2); }
+/* (user 2026-11-19: «مطلوب منك أن توقف أي خدمة غير مستعملة») two checks of one project ran at once and one kept the CPU busy after its task was stopped:
+   ONE stage per project at a time, registered (tools/proc.mjs ls), stopped with everything under it when the shell that started it dies (tools/bg.sh). */
+{ const { guardSelf, lock } = await import("./proc.mjs"); if (!lock(`stage_${p}`)) process.exit(3); guardSelf(`stage ${stage} ${p}`, { project: p, ttlMin: 120 }); }
+/* (user 2026-11-19: «ممنوع تخطئ ثم تفحص ثم تعدل») what the pipeline needs is checked BEFORE the first step, not discovered in the middle */
+if (stage === "prep") { const r = spawnSync(process.execPath, ["tools/preflight.mjs", "--quick"], { encoding: "utf8", windowsHide: true }); if (r.status !== 0) { console.error(r.stdout.split("\n").filter((l) => l.startsWith("✘")).join("\n") + "\n✘ preflight: أصلح ما فوق قبل أي عمل (node tools/preflight.mjs)"); process.exit(1); } }
 const PY = process.env.PY ?? "S:/AI_Tools/ComfyUI_windows_portable/python_embeded/python.exe";   // has faster_whisper + torch (system python does not)
 const T = path.join(".tmp", p);
 // pids of THIS project's background smoothing (the node job, smooth_dups.py and its re-exec'd ComfyUI child), found by command line — never by a stored pid alone,
@@ -476,5 +481,8 @@ if (stage === "check") {
     } else say(`– judder probe skipped: no cut file ${src}`);
   }
   if (!fs.existsSync(specF)) await step("frame_audit", "node", ["tools/frame_audit.mjs", comp, ...(opt("skip", "") ? ["--skip", opt("skip", "")] : [])], /plain share|PASSED|FAILED/);
+  /* (user 2026-11-19: «ما أرسلت لي إنه الفيديو جاهز ولا مو جاهز») the check ends with the announcement to send — never a silent pass */
+  if (!failed) say(`→ الآن الإعلان (إلزامي): node tools/ready.mjs ${p} ${comp} — يُرسل نصه كما هو للمستخدم مع تنبيه للجوال`);
+  else say(`→ الآن الإعلان (إلزامي): node tools/ready.mjs ${p} ${comp} --not "<ما الذي بقي>" — يُقال للمستخدم صراحةً إنه ليس جاهزاً بعد`);
   finish(failed ? 1 : 0);
 }

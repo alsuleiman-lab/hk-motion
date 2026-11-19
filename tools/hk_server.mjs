@@ -17,6 +17,41 @@ import os from "node:os";
 import { spawn, spawnSync } from "node:child_process";
 import { load as loadGallery } from "./hk_gallery.mjs";
 import * as G from "./hk_grade.mjs";
+import { state as progressState, nowItem } from "./render_progress.mjs";
+import { projectOf } from "./cut_lazy.mjs";
+
+/* THE RENDER QUEUE INSIDE HK-MOTION (user 2026-11-19: «ادمج طابور الرندر مع مستوى التقدم في البرنامج الجديد تبعنا»): the queue (tools/render_queue.mjs,
+   data/render_queue/state.json) and the progress of every render (tools/render_progress.mjs state()) answered here, shown by the «الطابور» sheet of the
+   Studio (src/hkQueuePanel.ts). Adding a montage from the Studio = the user asking for its render (rules: no render without his permission). The worker
+   is started registered (tools/proc.mjs: listed, a 12-hour limit) and only when none runs; it exits by itself when the queue is empty. */
+const QDEST = "C:/Users/mshms/Videos/جاهز", QSTATE = "data/render_queue/state.json", QLOCK = "data/render_queue/worker.pid";
+const pidAlive = (n) => { try { process.kill(Number(n), 0); return true; } catch (e) { return e.code === "EPERM"; } };
+const workerAlive = () => { try { const n = Number(fs.readFileSync(QLOCK, "utf8")); return n > 0 && pidAlive(n) ? n : 0; } catch { return 0; } };
+const startWorker = () => { if (workerAlive()) return false; spawnSync(process.execPath, ["tools/proc.mjs", "run", "--label", "render-worker", "--ttl", "720", "--log", ".tmp/render_worker.log", "--", process.execPath, "tools/render_queue.mjs", "run"], { windowsHide: true }); return true; };
+const arTitleOf = (comp) => { try { return fs.readFileSync("src/compositionTitles.ts", "utf8").match(new RegExp(`"${comp}"\\s*:\\s*"([^"]+)"`))?.[1] ?? comp; } catch { return comp; } };
+const queueState = () => {
+  let jobs = []; try { jobs = JSON.parse(fs.readFileSync(QSTATE, "utf8")).jobs ?? []; } catch { /* empty */ }
+  let log = ""; try { log = fs.readFileSync(".tmp/render_queue.log", "utf8").trim().split(/\r?\n/).slice(-6).join("\n"); } catch { /* none */ }
+  return { jobs: jobs.map((j) => ({ ...j, ar: arTitleOf(j.comp) })), worker: workerAlive(), progress: progressState(), now: nowItem(), log, dest: QDEST };
+};
+const queue = (url, body) => {
+  if (url === "/api/queue/add") {
+    const comp = String(body.comp ?? ""), p = projectOf(comp); if (!p) throw new Error(`لا مونتاج لهذه التركيبة: ${comp}`);
+    const orient = /-L$/i.test(comp) ? "L" : "R";
+    const r = spawnSync(process.execPath, ["tools/render_queue.mjs", "add", "--spec", p, "--comp", comp, "--orient", orient, "--dest", QDEST], { encoding: "utf8", windowsHide: true, timeout: 180000 });
+    const out = (r.stdout + r.stderr).trim();
+    if (r.status !== 0 || /✘ مرفوض/.test(out)) throw new Error(out.split(/\r?\n/).slice(0, 4).join(" | ") || "رُفض");
+    const started = startWorker();
+    return { message: `✔ في الطابور: ${arTitleOf(comp)}${started ? " — بدأ الإخراج" : ""}`, ...queueState() };
+  }
+  if (url === "/api/queue/drop" || url === "/api/queue/retry") {
+    const r = spawnSync(process.execPath, ["tools/render_queue.mjs", url.endsWith("drop") ? "drop" : "retry", String(body.spec), String(body.orient ?? "")], { encoding: "utf8", windowsHide: true });
+    if (r.status !== 0) throw new Error((r.stderr || r.stdout).trim() || "تعذّر");
+    if (url.endsWith("retry")) startWorker();
+    return queueState();
+  }
+  throw Object.assign(new Error("not found"), { code: 404 });
+};
 
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const PORT = Number(process.argv[2] ?? process.env.HK_PORT ?? 3199);
@@ -133,6 +168,7 @@ http.createServer((req, res) => {
   if (req.method === "OPTIONS") return send(res, 204, {});
   const url = (req.url ?? "").split("?")[0];
   if (req.method === "GET" && url === "/api/alive") { lastSeen = Date.now(); return send(res, 200, { ok: true, idleMin: IDLE_MIN }); }
+  if (req.method === "GET" && url === "/api/queue") { try { return send(res, 200, queueState()); } catch (e) { return send(res, 500, { error: String(e.message) }); } }
   if (req.method === "GET" && url === "/api/ping") return send(res, 200, { ok: true, name: "HK-Motion", busy: job?.state === "running" });
   if (req.method === "GET" && url === "/api/job") return send(res, 200, job ? { ...job, seconds: Math.round(((job.endedAt ?? Date.now()) - job.startedAt) / 1000), log: job.log.slice(-1200) } : { state: "idle" });
   if (req.method !== "POST") return send(res, 404, { error: "not found" });
@@ -142,6 +178,7 @@ http.createServer((req, res) => {
       const body = raw ? JSON.parse(raw) : {};
       if (url.startsWith("/api/gallery/")) return send(res, 200, gallery(url, body));
       if (url.startsWith("/api/grade/")) return send(res, 200, grade(url, body));
+      if (url.startsWith("/api/queue/")) return send(res, 200, queue(url, body));
       const { p, fa, fb } = parse(body), A = (fa / 30).toFixed(4), B = (fb / 30).toFixed(4), secs = ((fb - fa) / 30).toFixed(1);
       if (url === "/api/preview") {
         const inside = words(p).filter((w) => w.s >= fa / 30 - 0.03 && w.e <= fb / 30 + 0.03).map((w) => w.w);

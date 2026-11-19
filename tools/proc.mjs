@@ -96,7 +96,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const WAIT = head.includes("--wait");
     const [c, ...args] = a.slice(dd + 1), label = opt("label", path.basename(args[0] ?? c)), log = opt("log", ""), ttl = Number(opt("ttl", WAIT ? 0 : 90));
     const fd = log ? fs.openSync(log, "a") : WAIT ? "inherit" : "ignore";
-    const ch = spawn(c, args, { cwd: process.cwd(), detached: !WAIT, windowsHide: true, stdio: ["ignore", fd, fd] });
+    // npx / npm are .cmd scripts on Windows: they need the command shell (the whole tree is still stopped together, taskkill /T)
+    const viaShell = process.platform === "win32" && /^(npx|npm|pnpm|yarn)$/i.test(c);
+    const ch = spawn(c, args, { cwd: process.cwd(), detached: !WAIT, windowsHide: true, stdio: ["ignore", fd, fd], shell: viaShell });
     lowPrio(ch.pid);
     /* Git Bash hides its shells from the Windows parent chain (nice.exe's parent pid is already a dead fork): tools/bg.sh passes the real Windows pid of
        the calling bash (/proc/$$/winpid) as --owner and in HK_OWNER, so stopping the task (which kills that bash) stops the job and its tree. */

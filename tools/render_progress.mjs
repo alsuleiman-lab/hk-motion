@@ -39,7 +39,9 @@ const parse = (file) => {
     stalled: !done && idleMin > 5, mtime: st.mtimeMs,
   };
 };
-const state = () => {
+export { parse };
+/* (user 2026-11-19: «ادمج طابور الرندر مع مستوى التقدم في البرنامج الجديد») tools/hk_server.mjs imports state() for the HK-Motion queue sheet; the page below still runs alone */
+export const state = () => {
   const files = [];
   if (fs.existsSync(DIR)) files.push(...fs.readdirSync(DIR).filter((f) => /^progress_chunked_.*\.log$/.test(f)).map((f) => path.join(DIR, f)));
   const TMP = path.resolve(".tmp"); /* hybrid renders of the render queue */
@@ -68,7 +70,9 @@ c.innerHTML=r.length?r.map(x=>'<div class="card '+(x.done?"done":x.stalled?"stal
 tick();setInterval(tick,2000);
 </script></html>`;
 
-http.createServer((req, res) => {
+const NOW = () => { let j = {}; try { j = JSON.parse(fs.readFileSync(path.join(DIR, "queue_now.json"), "utf8")); if (Date.now() - j.t > 30 * 60e3 || j.end) j = {}; } catch { /* none */ } return j; };
+export { NOW as nowItem };
+if (process.argv[1] && path.resolve(process.argv[1]) === import.meta.filename) http.createServer((req, res) => {
   if (req.url.startsWith("/now")) { let j = {}; try { j = JSON.parse(fs.readFileSync(path.join(DIR, "queue_now.json"), "utf8")); if (Date.now() - j.t > 30 * 60e3 || j.end) j = {}; } catch { /* none */ } res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }); res.end(JSON.stringify(j)); return; }
   if (req.url.startsWith("/api")) { res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }); res.end(JSON.stringify(state())); return; }
   res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(PAGE);

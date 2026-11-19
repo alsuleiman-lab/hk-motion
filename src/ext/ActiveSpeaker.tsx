@@ -35,13 +35,13 @@ const frameBox = (t: number): number[] => {
 };
 
 /** كلمة تدخل بوهج وانكماش ثم تخرج بالتلاشي */
-const Word: React.FC<{ at: number; out?: number; x: number; y: number; w?: number; size: number; text: string; color?: string; shadow?: string; font?: Parameters<typeof ff>[0] }> = ({ at, out, x, y, w = 1080, size, text, color = C.cream, shadow = C.maroon, font = "rakkas" }) => {
+const Word: React.FC<{ at: number; out?: number; x: number; y: number; w?: number; size: number; text: string; color?: string; shadow?: string; font?: Parameters<typeof ff>[0]; stretch?: number }> = ({ at, out, x, y, w = 1080, size, text, color = C.cream, shadow = C.maroon, font = "rakkas", stretch = 0 }) => {
   const t = useCurrentFrame() / 30;
   if (t < at || (out !== undefined && t >= out)) return null;
   const k = back((t - at) / 0.22, 1.6);
   const fade = out !== undefined ? clamp01((out - t) / 0.12) : 1;
   return (
-    <div style={{ position: "absolute", left: x, top: y, width: w, textAlign: "center", fontFamily: ff(font), fontSize: size, lineHeight: 1.1, color, textShadow: `${Math.round(size * 0.05)}px ${Math.round(size * 0.05)}px 0 ${shadow}`, direction: "rtl", opacity: fade, transform: `scale(${0.6 + 0.4 * Math.max(0, k)})` }}>{text}</div>
+    <div style={{ position: "absolute", left: x, top: y, width: w, textAlign: "center", fontFamily: ff(font), fontSize: size, lineHeight: 1.1, color, textShadow: `${Math.round(size * 0.05)}px ${Math.round(size * 0.05)}px 0 ${shadow}`, direction: "rtl", letterSpacing: stretch ? stretch * clamp01((t - at) / 1.2) : undefined, opacity: fade, transform: `scale(${0.6 + 0.4 * Math.max(0, k)})` }}>{text}</div>
   );
 };
 
@@ -69,12 +69,12 @@ export const ActiveSpeaker: React.FC = () => {
       <VSlot src="dubkmr/src.mp4" w={w} h={h} radius={plain ? 26 : 0} vx={0} vy={0} vw={w} vh={h} style={{ left: x, top: y }} grow={0} />
 
       {/* المرحلة ١: فوق الصدر وجانب الرأس، والصورة كاملة */}
-      <Word at={0.1} out={1.25} x={0} y={260} size={150} text="ما راح" color={C.cream} shadow={C.maroon} />
+      <Word at={0.1} out={1.25} x={0} y={40} size={120} text="ما راح" color={C.cream} shadow={C.maroon} />
       <Word at={0.35} out={1.25} x={0} y={1260} size={240} text="تصدق" color={C.cream} shadow={C.maroon} />
 
       {/* المرحلة ٢: على الخلفية السادة وبجانب الصورة المنزاحة */}
       <Word at={1.5} out={3.1} x={40} y={560} w={520} size={110} text="شوف الحروف" color={C.maroon} shadow={C.cream} font="ruqaa" />
-      <Word at={1.9} out={3.1} x={40} y={740} w={520} size={210} text="تتمدد" color={C.teal} shadow={C.cream} />
+      <Word at={1.9} out={3.1} x={40} y={740} w={520} size={210} text="تتمدد" color={C.teal} shadow={C.cream} stretch={36} />
       <Line at={2.0} x1={560} y1={780} x2={600} y2={800} />
 
       {/* المرحلة ٤: الصورة في الوسط والكلمات حولها */}

@@ -196,3 +196,42 @@ export const KineticType: React.FC = () => (
     </Sequence>
   </HybridHost>
 );
+
+/** النمط الأول: الكتابة فوق جسدي في فيديوي الأصلي (ملء الشاشة) ثم مشاهد المرجع */
+export const KineticOver: React.FC = () => {
+  useFonts(["rakkas", "ruqaa"]);
+  const f = useCurrentFrame();
+  const k = clamp01(f / 12), k2 = clamp01((f - 14) / 10);
+  return (
+    <HybridHost>
+      <HybridBg>
+        <AbsoluteFill style={{ background: C.cream }} />
+      </HybridBg>
+      <Sequence from={0} durationInFrames={KINETIC_INTRO_FRAMES}>
+        <VSlot src="dubkmr/src.mp4" w={1080} h={1920} radius={0} vx={0} vy={0} vw={1080} vh={1920} style={{ left: 0, top: 0 }} grow={0} />
+        <AbsoluteFill style={{ background: "linear-gradient(rgba(20,12,8,0) 55%, rgba(20,12,8,.72))" }} />
+        <div style={{ position: "absolute", left: 0, width: 1080, top: 1200, textAlign: "center", fontFamily: ff("ruqaa"), fontSize: 110, color: C.cream, textShadow: `5px 5px 0 ${C.maroon}`, opacity: k, transform: `scale(${0.9 + 0.1 * k})`, direction: "rtl" }}>ما راح</div>
+        <div style={{ position: "absolute", left: 0, width: 1080, top: 1330, textAlign: "center", fontFamily: ff("rakkas"), fontSize: 210, lineHeight: 1.1, color: C.cream, textShadow: `8px 8px 0 ${C.maroon}`, opacity: k2, direction: "rtl" }}>تصدق</div>
+      </Sequence>
+      <Sequence from={KINETIC_INTRO_FRAMES} durationInFrames={690}>
+        <KineticBody />
+      </Sequence>
+    </HybridHost>
+  );
+};
+
+/** النمط الثاني: فيديوي مصغّر في القسم الأعلى، والكتابة والمشاهد مصغّرة في القسم الأسفل */
+export const KINETIC_SPLIT_FRAMES = 690;
+export const KineticSplit: React.FC = () => (
+  <HybridHost>
+    <HybridBg>
+      <AbsoluteFill style={{ background: C.cream }} />
+    </HybridBg>
+    <VSlot src="dubkmr/src.mp4" w={540} h={960} radius={0} vx={0} vy={0} vw={540} vh={960} style={{ left: 270, top: 0 }} grow={0} />
+    <div style={{ position: "absolute", left: 0, top: 960, width: 1080, height: 960, overflow: "hidden", background: C.cream }}>
+      <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, transform: "scale(0.5)", transformOrigin: "540px 0px" }}>
+        <KineticBody />
+      </div>
+    </div>
+  </HybridHost>
+);

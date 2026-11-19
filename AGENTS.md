@@ -5,7 +5,7 @@
 - **القراءة بالترتيب (منذ 2026-11-17):** `القواعد_العامة.md` (كل عمل) ← `شجرة_العمليات.md` (المراحل ومهارة كل مرحلة وشرط «تمّت») ← مهارة `router` ← مهارة كل مرحلة حين تصلها. تفصيل كل مهارة (الأرقام والجداول والأسماء الثابتة) في `references/detail.md` بجانبها. القديم (`MONTAGE_BRIEF.md` و`PREFERENCES.md` و`WORKFLOW_CHECKLIST.md`) في `_archive/rules_2026-11-17_tree/` ولا يُعمل به.
 - **المهارات** في `.claude/skills/` (النسخة الوحيدة):
   - البدء والأسئلة: `router`، `first-questions`.
-  - الصوت والكلام: `transcription`، `montage-orders` (تعليمات «مونتاج … انتهى مونتاج» المنطوقة والإعادات وقائمة المهام)، `sensitive-words`، `video-cutting`، `segment-cut` (قص جزء بطلب)، `reel-from-episode` (ريل من حلقة منتهية بجمل كاملة وسياق كل متحدث تام).
+  - الصوت والكلام: `transcription`، `montage-orders` (تعليمات «مونتاج … انتهى مونتاج» المنطوقة والإعادات وقائمة المهام)، `sensitive-words`، `video-cutting`، `segment-cut` (قص جزء بطلب)، `hk-motion` (الاستوديو بأزرار القص وحذف الموسيقى وخادم أدواته)، `reel-from-episode` (ريل من حلقة منتهية بجمل كاملة وسياق كل متحدث تام).
   - المحتوى: `extraction` (الأسماء والآيات والأحاديث والأخبار والحلقات المذكورة)، `video-sections`، `identity` (النمط والفاصل وشريط الحلقة)، `thumbnail-design`.
   - البناء: `video-montage`، `gallery-placement`، `source-display`، `motion-graphics`، `pixabay-search`، `collage-broll-local`.
   - التسليم: `checking` (وفيها قائمة المراجعة)، `delivery-links`، `remotion-render`، `approval`، `publishing`.

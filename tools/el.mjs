@@ -87,7 +87,10 @@ const atomsOf = (txt) => {
     if (/^✘ \d+ (باقية|مشكلة)|^✘ .*(FAILED|القائمة كاملة)/.test(l)) continue;   // summaries: their numbers move whenever anything changes
     l = l.replace(/\(\d+\)/g, "").replace(/([A-Za-z]+)#\d+/g, "$1").replace(/\s+/g, " ");
     const m = /^(.*?\):|^(.*?):)\s(.+)$/.exec(l);
-    if (m && m[3].includes("، ")) for (const part of m[3].split("، ")) out.add(`${m[1] ?? m[2]} ${part.trim()}`); else out.add(l);
+    const tidy0 = (t) => t.split(" — ")[0].replace(/\s*\([^)]*\)?/g, "").replace(/\s*\([^)]*$/, "").trim();   // the checks print long lists cut short: «(11 ث» and «— أضفه…» tails are not part of the failure
+    // a gap is known by where it starts: «8:01–8:12» becoming «8:01–8:09» is the same gap made shorter, not a new failure
+    const tidy = (t) => { const x = tidy0(t); return /فراغ/.test(x) ? x.replace(/(\d+:\d{2})–\d+:\d{2}/g, "$1") : x; };
+    if (m && m[3].includes("، ")) for (const part of m[3].split("، ")) out.add(tidy(`${m[1] ?? m[2]} ${part.trim()}`)); else out.add(tidy(l));
   }
   return out;
 };
@@ -144,7 +147,7 @@ if (cmd === "list") {
 } else if (cmd === "add") {
   const [p, code, ...rest] = args, f = specPath(p), e = find(catalog(), code);
   if (!e) { console.error(`✘ لا عنصر بهذا الاسم: ${code} (node tools/el.mjs list)`); process.exit(2); }
-  const vals = kv(rest), names = new Set(e.fields.map((x) => x.name));
+  const vals = kv(rest.filter((a) => a !== "--no-gate")), names = new Set(e.fields.map((x) => x.name));
   const editN = new Set(e.edit.map((x) => x.name)), bad = Object.keys(vals).filter((k) => (NOT_CONTENT.has(k) && !editN.has(k)) || !names.has(k));
   if (bad.length) { console.error(`✘ ${code}: لا يُضبط هنا ${bad.join("، ")} — المكان والمقاس من المعرض؛ الحقول: ${e.edit.map((x) => x.name).join(" ")}`); process.exit(2); }
   const missing = e.edit.filter((x) => !x.opt && vals[x.name] === undefined).map((x) => x.name);
@@ -179,6 +182,25 @@ if (cmd === "list") {
   const [p, n0] = args, f = specPath(p), beforeText = read(f), base = await gateBefore(f, p), s = JSON.parse(read(f)); ensureIds(s); const n = at(s, n0), it = n == null ? null : s.items[n];
   if (!it) { console.error(`✘ لا عنصر ${n0}`); process.exit(2); }
   s.items.splice(n, 1); save(f, s); await gateAfter(f, p, base, beforeText, `حذف #${it.id}`); console.log(`✔ حُذف العنصر #${it.id} (${label(it)})`);
+} else if (cmd === "batch") {
+  /* SEVERAL CHANGES, ONE CHECK (2026-11-19, mufti-hiraba): changes that depend on each other (shorten A so B fits, then move C into A's old time) fail the
+     per-change gate in the middle by nature. The plan is written as one list and applied together:
+       node tools/el.mjs batch <p> <ops.json>     ops = [{"op":"add","code":"WordScraps","vals":{"at":40.6,"until":49,"text":"…"}},
+                                                         {"op":"set","id":"#i5kc","vals":{"at":38.1}}, {"op":"del","id":"#kphg"}]
+     every op runs through add/set/del (same validation), then the quick gates run ONCE: a failure the whole batch adds → the spec is put back exactly. */
+  const [p, opsFile] = args, f = specPath(p), beforeText = read(f), base = await gateBefore(f, p);
+  const ops = JSON.parse(read(opsFile)), self = process.argv[1];
+  const asArgs = (vals) => Object.entries(vals ?? {}).map(([k, v]) => `${k}=${typeof v === "string" ? v : JSON.stringify(v)}`);
+  for (const [i, o] of ops.entries()) {
+    const a = o.op === "add" ? ["add", p, o.code, ...asArgs(o.vals)] : o.op === "set" ? ["set", p, o.id, ...asArgs(o.vals)] : o.op === "del" ? ["del", p, o.id] : null;
+    if (!a) { fs.writeFileSync(f, beforeText); console.error(`✘ العملية ${i + 1}: نوع غير معروف «${o.op}» — أُعيدت المواصفة`); process.exit(2); }
+    const r = spawnSync(process.execPath, [self, ...a, "--no-gate"], { encoding: "utf8" });
+    const line = (r.stdout + r.stderr).trim().split(/\r?\n/).filter((l) => /^[✔✘]/.test(l.trim())).pop() ?? "";
+    if (r.status !== 0) { fs.writeFileSync(f, beforeText); console.error(`✘ العملية ${i + 1} (${o.op} ${o.code ?? o.id}) فشلت: ${line || (r.stderr || "").trim().slice(0, 300)} — أُعيدت المواصفة كما كانت`); process.exit(1); }
+    console.log(`  ${i + 1}. ${line}`);
+  }
+  await gateAfter(f, p, base, beforeText, `الدفعة (${ops.length} عملية)`);
+  console.log(`✔ طُبّقت الدفعة كلها (${ops.length} عملية)`);
 } else if (cmd === "size") {
   /* (user 2026-11-19, HK-Motion: «أريحية المقاسات») an element's OWN size and nudge, on top of the gallery's: port = the item's dx/dy/k, land = its land.dx/dy/k (src/MontageSpec.tsx withGallery adds the gallery on top of both) */
   const [p, n0, ...rest] = args, f = specPath(p), s = JSON.parse(read(f)); ensureIds(s); const n = at(s, n0), it = n == null ? null : s.items[n];

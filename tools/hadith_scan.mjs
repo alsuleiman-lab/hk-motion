@@ -65,7 +65,8 @@ for (const h of list.filter((x) => x.verified && !x.skip)) {
     added++; continue;
   }
   // the card types at ~14 chars/s: it stays ≥ 1 s after the typing ends and ≥ 1.5 s after he finishes (rules §8.3, §9.5)
-  const until = r2(Math.max(h.until + 1.5, h.at + h.text.length / 14 + 1));
+  /* (2026-11-19, mufti-hiraba) +1 here, but writing_sync requires 1.5 s after the typing ends: every card failed by a few tenths. +1.6 now. */
+  const until = r2(Math.max(h.until + 1.5, h.at + h.text.length / 14 + 1.6));
   spec.items.push({ t: "note", at: r2(h.at - 0.05), until, label: "حديث شريف", tag: `${h.book} (${h.n})`, title: h.text, ...(h.narrator ? { narrator: h.narrator } : {}), books: [{ book: h.book, n: h.n }], auto: "hadith_scan" });
   added++;
 }

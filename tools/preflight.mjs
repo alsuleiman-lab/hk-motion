@@ -17,6 +17,7 @@ const run = (cmd, args, o = {}) => spawnSync(cmd, args, { encoding: "utf8", wind
 // 1) the models, keys and shared folders the pipeline reads
 ok(fs.existsSync(".tmp/models/yunet.onnx"), "نموذج الوجه (.tmp/models/yunet.onnx)", "اربط مجلد .tmp/models من الأساسية");
 ok(fs.existsSync(".env"), "ملف المفاتيح (.env)", "اربطه من الأساسية (رابط صلب)");
+ok(fs.existsSync("models/rvm_resnet50_fp32.torchscript"), "نموذج العزل (models/rvm_resnet50_fp32.torchscript)", "اربط مجلد models من الأساسية (وصلة مجلد) — بدونه تفشل أقنعة العزل للخرائط");
 for (const d of ["fonts", "scholar_images", "books", "people", "sfx", "broll", "flags", "kh"]) ok(fs.existsSync(path.join("public", d)), `مجلد العامة public/${d}`, "اربطه من الأساسية (وصلة مجلد)");
 
 // 2) every tool the skills and rules name exists (rules_lint), and — on the backup tree — the main tree's uncommitted tools are here too

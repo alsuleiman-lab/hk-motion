@@ -142,7 +142,9 @@ const install = () => {
       if (badge.style.fontSize !== bf) badge.style.fontSize = bf;
       if (badge.style.padding !== bp) badge.style.padding = bp;
       /* the compositions list opened over the player (phone): the badge is position:fixed above everything and floated over it (user 2026-11-17) — hide it while that list is under it */
-      if (document.elementsFromPoint(l + 10, tp + 12).some((e) => e !== badge && e.getAttribute("aria-label") === "Composition browser")) { if (badge.style.display !== "none") badge.style.display = "none"; return; }
+      const hit = document.elementsFromPoint(l + 10, tp + 12).find((e) => e !== badge && !badge.contains(e));
+      const overlaid = (e: Element | undefined) => { for (let n: Element | null = e ?? null; n && n !== document.body; n = n.parentElement) { if (n.id === "__frame_marks_box" || n.id === "__err_row") return false; if (n.getAttribute("aria-label") === "Composition browser" || getComputedStyle(n).position === "fixed") return true; } return false; };
+      if (overlaid(hit)) { if (badge.style.display !== "none") badge.style.display = "none"; return; }
       const txt = `الإطار ${n}`;
       if (badge.textContent !== txt) badge.textContent = txt;
       if (badge.style.display !== "block") badge.style.display = "block";
@@ -511,6 +513,74 @@ const installElementNames = () => {
  * Deep link (user 2026-11-09): /<CompId>?<frame> jumps to that frame, /<CompId>?<m>.<ss> to minute m, second ss (e.g. ?1.10 = 1:10). Studio-only; retries until the composition
  * is loaded (the frame counter exists), seeks, and stops once the jump took effect. Never breaks the Studio.
  */
+/**
+ * ERRORS DO NOT BLOCK THE PREVIEW (user 2026-11-19, a «MediaPlaybackError» covered the whole Studio over a missing video file: «إذا كان في خطأ يطلع رسالة حمراء، يوجد خطأ، انسخه، لكن أستطيع أن أشاهد بشكل عادي»).
+ * The Studio shows a runtime error as a full-screen overlay that hides the player. This takes the runtime errors (window error / unhandled rejection) BEFORE the Studio's own listeners
+ * (a CAPTURE listener on window runs before the Studio's bubble ones whatever their registration order) and stops them there, so the overlay never opens; instead a thin red row appears in the
+ * viewer column under the player (its own row, like the element names; the viewer shrinks above it, nothing is covered): «⚠ خطأ: <the message>» with «نسخ» (the whole message and stack) and «×».
+ * Errors that the Studio's own server reports (compile errors of the project) still use its overlay. Studio-only, never breaks the Studio.
+ */
+const installErrorBanner = () => {
+  const NL = String.fromCharCode(10);
+  const w = window as unknown as { __errBanner?: { row?: HTMLElement; on?: boolean; errs: { msg: string; full: string; n: number }[] } };
+  if (w.__errBanner?.on) return;
+  const st = (w.__errBanner = { on: true, errs: [] as { msg: string; full: string; n: number }[], row: undefined as HTMLElement | undefined });
+  const row = document.createElement("div");
+  row.id = "__err_row"; st.row = row;
+  row.style.cssText = "flex:0 0 30px;height:30px;position:relative;display:none;box-sizing:border-box;align-items:center;gap:8px;padding:0 8px;background:#7a1f1f;border-top:1px solid #ff8a8a;direction:rtl;font:600 12px Tahoma,Arial,sans-serif;color:#ffe3e3;overflow:hidden";
+  const txt = document.createElement("div"); txt.style.cssText = "flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:text;-webkit-user-select:text;cursor:text";
+  const mk = (label: string) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.style.cssText = "flex:0 0 auto;height:22px;padding:0 10px;border:1px solid rgba(255,255,255,.55);border-radius:6px;background:rgba(255,255,255,.14);color:#fff;font:700 12px Tahoma,Arial,sans-serif;cursor:pointer"; return b; };
+  const copyB = mk("نسخ"), closeB = mk("×");
+  row.append(txt, copyB, closeB);
+  const paint = () => {
+    const e = st.errs[st.errs.length - 1];
+    if (!e) { row.style.display = "none"; return; }
+    txt.textContent = `⚠ يوجد خطأ${st.errs.length > 1 ? ` (${st.errs.length})` : ""}: ${e.msg}${e.n > 1 ? ` ×${e.n}` : ""}`; txt.title = e.msg;
+    row.style.display = "flex";
+  };
+  const toast = (m: string) => { copyB.textContent = m; window.setTimeout(() => { copyB.textContent = "نسخ"; }, 1400); };
+  copyB.addEventListener("click", (ev) => { ev.stopPropagation(); const all = st.errs.map((e) => e.full).join(NL + NL + "---" + NL + NL); try { void navigator.clipboard.writeText(all).then(() => toast("نُسخ ✓"), () => toast("تعذّر")); } catch { toast("تعذّر"); } });
+  closeB.addEventListener("click", (ev) => { ev.stopPropagation(); st.errs.length = 0; paint(); });
+  const take = (error: unknown, extra?: string) => {
+    const o = error as { name?: string; message?: string; stack?: string } | null;
+    const err = error instanceof Error ? error : o && typeof o === "object" && typeof o.message === "string" ? Object.assign(new Error(o.message), { name: o.name || "Error", stack: o.stack }) : new Error(typeof error === "string" ? error : (() => { try { return JSON.stringify(error); } catch { return String(error); } })());
+    const msg = (err.name && err.name !== "Error" ? err.name + ": " : "") + (err.message || "خطأ بلا رسالة");
+    const full = msg + (extra ? NL + extra : "") + (err.stack ? NL + err.stack : "");
+    const last = st.errs.find((e) => e.msg === msg);
+    if (last) { last.n++; st.errs.splice(st.errs.indexOf(last), 1); st.errs.push(last); } else { st.errs.push({ msg, full, n: 1 }); if (st.errs.length > 20) st.errs.shift(); }
+    paint();
+  };
+  window.addEventListener("error", (e) => { if (!e.error) return; e.preventDefault(); e.stopImmediatePropagation(); take(e.error); }, true);
+  window.addEventListener("unhandledrejection", (e) => { e.preventDefault(); e.stopImmediatePropagation(); take(e.reason ?? new Error("Unknown")); }, true);
+  /* the viewer column (as in installElementNames); this row sits just before the element-names row when there is one, else last */
+  const column = (): HTMLElement | null => {
+    const cc = document.querySelector<HTMLElement>(".remotion-studio-composition-container");
+    for (let n = cc?.parentElement ?? null; n && n !== document.body; n = n.parentElement) if (getComputedStyle(n).flexDirection === "column" && n.querySelector(".__remotion-canvas-tab")) return n;
+    return null;
+  };
+  window.setInterval(() => {
+    try {
+      /* the Studio's own full-screen overlay (it registers its listeners before this file loads, so stopping the event above is not always first): hide it the moment it appears,
+         and keep its title and message in the red row so nothing is lost (compile errors from the server arrive only this way) */
+      for (const b of Array.from(document.querySelectorAll("button"))) {
+        if (b.textContent?.trim() !== "Copy stack") continue;
+        for (let n: HTMLElement | null = b.parentElement; n && n !== document.body; n = n.parentElement) {
+          const cs = getComputedStyle(n), r = n.getBoundingClientRect();
+          if ((cs.position === "absolute" || cs.position === "fixed") && r.width >= window.innerWidth * 0.9 && r.height >= window.innerHeight * 0.6) {
+            const sig = (n.innerText || "").slice(0, 400);
+            if (n.dataset.errSeen !== sig) { n.dataset.errSeen = sig; const lines = sig.split(NL).map((x) => x.trim()).filter((x) => x && !/^(Fix with Claude Code|Copy stack|Search Issues|Ask on Discord|×|Help:)/.test(x)); if (lines.length && !st.errs.some((e) => sig.includes(e.msg.replace(/^[A-Za-z]*Error: /, "")))) take({ name: lines[0], message: lines[1] ?? lines[0], stack: (n.innerText || "").slice(0, 3000) }); }
+            if (n.style.display !== "none") n.style.setProperty("display", "none", "important");
+            break;
+          }
+        }
+      }
+      if (!st.errs.length) return;
+      const col = column(), names = document.getElementById("__el_names_row");
+      if (col) { if (row.parentElement !== col || (names && names.parentElement === col ? row.nextElementSibling !== names : col.lastElementChild !== row)) col.insertBefore(row, names && names.parentElement === col ? names : null); row.style.position = "relative"; row.style.bottom = ""; row.style.left = ""; row.style.right = ""; }
+      else if (row.parentElement !== document.body) { document.body.appendChild(row); row.style.cssText += ";position:fixed;left:0;right:0;bottom:0;z-index:2147483000;display:flex"; }
+    } catch { /* never break the Studio */ }
+  }, 150);
+};
 const installDeepLink = () => {
   const q = decodeURIComponent(location.search.replace(/^\?/, "")).replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).trim();
   const m = /^(\d+)\.(\d{1,2})$/.exec(q), f = /^\d+$/.test(q) ? Number(q) : m ? (Number(m[1]) * 60 + Number(m[2])) * 30 : null;
@@ -711,5 +781,5 @@ const installFilterPanel = () => {
 };
 
 try {
-  if (typeof window !== "undefined" && typeof document !== "undefined" && getRemotionEnvironment().isStudio) { install(); installTitles(); installMobile(); installMarks(); installElementNames(); installDeepLink(); installFilterPanel(); }
+  if (typeof window !== "undefined" && typeof document !== "undefined" && getRemotionEnvironment().isStudio) { installErrorBanner(); install(); installTitles(); installMobile(); installMarks(); installElementNames(); installDeepLink(); installFilterPanel(); }
 } catch { /* ignore */ }

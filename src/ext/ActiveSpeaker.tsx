@@ -10,7 +10,7 @@ import { back } from "./PaperSteps";
  * ثم تنزاح إلى الجانب على خلفية سادة يُكتب عليها، ثم ترجع قليلاً، ثم تُوضع في الوسط وتُكتب الكلمات حولها.
  * فيديو المتحدث هو الملف المرفوع (public/dubkmr/src.mp4)، وكل الكتابة بالخط الفخم.
  */
-export const ACTIVE_FRAMES = 240; // 8 ثوان
+export const ACTIVE_FRAMES = 600; // 20 ثانية
 const W = 1080, H = 1920;
 const C = { cream: "#ece3d3", maroon: "#6b1b2b", teal: "#1f6b66", ink: "#2a1518" };
 
@@ -22,6 +22,9 @@ const KF: number[][] = [
   [2.6, 560, 520, 480, 853],
   [3.4, 270, 120, 540, 960],
   [9.0, 270, 120, 540, 960],
+  [17.0, 270, 120, 540, 960],
+  [17.8, 560, 560, 432, 768],
+  [30.0, 560, 560, 432, 768],
 ];
 const frameBox = (t: number): number[] => {
   for (let i = 0; i < KF.length - 1; i++) {
@@ -78,9 +81,23 @@ export const ActiveSpeaker: React.FC = () => {
       <Line at={2.0} x1={560} y1={780} x2={600} y2={800} />
 
       {/* المرحلة ٤: الصورة في الوسط والكلمات حولها */}
-      <Word at={3.7} x={0} y={1180} size={170} text="والكاميرا تطير" color={C.maroon} shadow={C.cream} />
-      <Word at={4.5} x={0} y={1400} size={130} text="بدون ولا قطع" color={C.teal} shadow={C.cream} font="ruqaa" />
-      <Word at={5.2} x={0} y={1560} size={120} text="تبي تتعلم؟" color={C.maroon} shadow={C.cream} font="ruqaa" />
+      <Word at={3.7} out={9.0} x={0} y={1180} size={170} text="والكاميرا تطير" color={C.maroon} shadow={C.cream} />
+      <Word at={4.5} out={9.0} x={0} y={1400} size={130} text="بدون ولا قطع" color={C.teal} shadow={C.cream} font="ruqaa" />
+      <Word at={5.2} out={9.0} x={0} y={1560} size={120} text="تبي تتعلم؟" color={C.maroon} shadow={C.cream} font="ruqaa" />
+
+      {/* من ٩ إلى ١٤ ثانية: الكتابة المتمددة والانتقال، والصورة في الوسط */}
+      <Word at={9.2} out={14.0} x={0} y={1180} size={120} text="شوف الحروف كيف تتمدد" color={C.maroon} shadow={C.cream} font="ruqaa" stretch={30} />
+      <Word at={10.5} out={14.0} x={0} y={1400} size={150} text="وهذا الانتقال؟" color={C.teal} shadow={C.cream} />
+
+      {/* من ١٤ إلى ١٧ ثانية: الوصف الكامل للعملية */}
+      <Word at={14.0} out={17.0} x={0} y={1180} size={170} text="كله بضربة وحدة" color={C.maroon} shadow={C.cream} />
+      <Word at={14.6} out={17.0} x={0} y={1400} size={92} text="مونتاج · طبقات · تحريك · تصدير" color={C.teal} shadow={C.cream} font="ruqaa" />
+
+      {/* من ١٧ إلى ٢٠ ثانية: الصورة تنزاح يميناً والكلام على اليسار */}
+      <Word at={17.6} x={20} y={520} w={520} size={84} text="تبي تتعلم كيف؟" color={C.maroon} shadow={C.cream} font="ruqaa" />
+      <Word at={18.4} x={0} y={680} w={560} size={118} text="اكتب موشن" color={C.teal} shadow={C.cream} stretch={6} />
+      <Word at={19.0} x={20} y={960} w={520} size={84} text="تبي إعلانك كذا؟" color={C.maroon} shadow={C.cream} font="ruqaa" />
+      <Word at={19.6} x={20} y={1090} w={520} size={70} text="فريقنا يسويه لك" color={C.teal} shadow={C.cream} font="ruqaa" />
     </HybridHost>
   );
 };

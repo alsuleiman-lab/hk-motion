@@ -52,7 +52,7 @@ const sync = (src, dst) => {
   fs.mkdirSync(dst, { recursive: true });
   for (const e of fs.readdirSync(src, { withFileTypes: true })) {
     const s = path.join(src, e.name), d = path.join(dst, e.name);
-    if (e.isDirectory()) { if (src === path.join(root, "public") && /^(fr|_vprobe_fr|matte_cache)$/.test(e.name)) continue; sync(s, d); continue; }   // fr/ = extracted JPEG frames (tens of GB, never used by the hybrid)
+    if (e.isDirectory() || (e.isSymbolicLink() && fs.statSync(s).isDirectory())) { if (src === path.join(root, "public") && /^(fr|_vprobe_fr|matte_cache)$/.test(e.name)) continue; sync(s, d); continue; }   // fr/ = extracted JPEG frames (tens of GB, never used by the hybrid)
     if (VID.test(e.name)) continue;
     const st = fs.statSync(s);
     if (st.size > 12e6) continue;
@@ -68,7 +68,7 @@ t = Date.now();
 log("bundling…");
 const serveUrl = await bundle({ entryPoint: path.join(root, "src/index.ts"), rspack: true, publicDir: slim, outDir: path.join(root, ".tmp/hybrid_any/bundle_" + compId + (PART ? "_p" + PART : "")), onProgress: () => {} });
 // Chrome never plays the videos, but Remotion downloads the files of <Audio> elements from the bundle: hard-link (zero copy) the real videos into it
-const linkVideos = (src, dst) => { for (const e of fs.readdirSync(src, { withFileTypes: true })) { const s2 = path.join(src, e.name), d2 = path.join(dst, e.name); if (e.isDirectory()) { fs.mkdirSync(d2, { recursive: true }); linkVideos(s2, d2); } else if (VID.test(e.name) && !fs.existsSync(d2)) { try { fs.linkSync(s2, d2); } catch (err) { log("link failed " + e.name + ": " + err.message); } } } };
+const linkVideos = (src, dst) => { for (const e of fs.readdirSync(src, { withFileTypes: true })) { const s2 = path.join(src, e.name), d2 = path.join(dst, e.name); if (e.isDirectory() || (e.isSymbolicLink() && fs.statSync(s2).isDirectory())) { fs.mkdirSync(d2, { recursive: true }); linkVideos(s2, d2); } else if (VID.test(e.name) && !fs.existsSync(d2)) { try { fs.linkSync(s2, d2); } catch (err) { log("link failed " + e.name + ": " + err.message); } } } };
 linkVideos(path.join(root, "public"), path.join(serveUrl, "public"));
 // --fr name1,name2 : hard-link these extracted-frame folders (public/fr/<name>) into the bundle for <MaskedVideo> windows (his isolated cut-out is drawn by Remotion into the graphics layer; it needs JPEG frames of the cut and of each matte)
 const FR = String(arg("fr", "")).split(",").filter(Boolean);

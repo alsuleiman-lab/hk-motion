@@ -13,7 +13,7 @@ const ROOT = process.cwd(), SRC = path.join(ROOT, "src"), PUB = path.join(ROOT, 
 const ENTRY = path.resolve(process.env.ENTRY ?? "src/index.ts");
 const MEDIA = /\.(mp4|webm|mov|m4v|png|jpe?g|svg|gif|webp|avif|wav|mp3|m4a|ogg|ttf|otf|woff2?|json|txt|csv)$/i;
 const readSrc = (f) => { try { return fs.readFileSync(f, "utf8"); } catch { return ""; } };
-const walk = (dir) => { const out = []; for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name); if (e.isDirectory()) { for (const q of walk(p)) out.push(q); } else out.push(p); } return out; };
+const walk = (dir) => { const out = []; for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name); if (e.isDirectory() || (e.isSymbolicLink() && fs.statSync(p).isDirectory())) { for (const q of walk(p)) out.push(q); } else out.push(p); } return out; };
 const resolveImport = (from, spec) => {
   const base = path.resolve(path.dirname(from), spec);
   for (const c of [base, base + ".tsx", base + ".ts", base + ".jsx", base + ".js", path.join(base, "index.tsx"), path.join(base, "index.ts")]) {
@@ -77,7 +77,7 @@ export function neededAssets(id, manifest, manifestOnly = false) {
   const prefix = (pre) => { // `kh/alpha_${n}.webm` -> every public file whose path starts with "kh/alpha_"
     // `fr/${base}/…` (a folder per video): only the folders the montage's own spec names (all projects' extracted frames = 94k files)
     if (pre.endsWith("/") && specText) {
-      let subs = []; try { subs = fs.readdirSync(path.join(PUB, pre), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name); } catch { /* none */ }
+      let subs = []; try { subs = fs.readdirSync(path.join(PUB, pre), { withFileTypes: true }).filter((d) => d.isDirectory() || (d.isSymbolicLink() && fs.statSync(path.join(PUB, pre, d.name)).isDirectory())).map((d) => d.name); } catch { /* none */ }
       for (const d of subs) if (specText.includes(d)) add(pre + d);
       return;
     }

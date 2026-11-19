@@ -57,7 +57,7 @@ const sync = (src, dst) => {
   fs.mkdirSync(dst, { recursive: true });
   for (const e of fs.readdirSync(src, { withFileTypes: true })) {
     const s = path.join(src, e.name), d = path.join(dst, e.name);
-    if (e.isDirectory()) { if (src === path.join(root, "public") && /^(fr|_vprobe_fr|matte_cache)$/.test(e.name)) continue; sync(s, d); continue; }
+    if (e.isDirectory() || (e.isSymbolicLink() && fs.statSync(s).isDirectory())) { if (src === path.join(root, "public") && /^(fr|_vprobe_fr|matte_cache)$/.test(e.name)) continue; sync(s, d); continue; }
     if (VID.test(e.name)) continue;
     const st = fs.statSync(s);
     if (st.size > 12e6) continue;
@@ -73,7 +73,7 @@ log("bundling…");
 /* --bundle <dir>: reuse a bundle made earlier (tests: the same build for every run; it is kept) */
 const KEEP = arg("bundle", null);
 const serveUrl = KEEP && KEEP !== true ? path.resolve(root, KEEP) : await bundle({ entryPoint: path.join(root, "src/index.ts"), rspack: true, publicDir: slim, outDir: path.join(root, ".tmp/gpu_render/" + (process.env.GR_KEEP_BUNDLE ? "bundle_keep_" : "bundle_") + compId), onProgress: () => {} });
-const linkVideos = (src, dst) => { for (const e of fs.readdirSync(src, { withFileTypes: true })) { const s2 = path.join(src, e.name), d2 = path.join(dst, e.name); if (e.isDirectory()) { fs.mkdirSync(d2, { recursive: true }); linkVideos(s2, d2); } else if (VID.test(e.name) && !fs.existsSync(d2)) { try { fs.linkSync(s2, d2); } catch (err) { log("link failed " + e.name + ": " + err.message); } } } };
+const linkVideos = (src, dst) => { for (const e of fs.readdirSync(src, { withFileTypes: true })) { const s2 = path.join(src, e.name), d2 = path.join(dst, e.name); if (e.isDirectory() || (e.isSymbolicLink() && fs.statSync(s2).isDirectory())) { fs.mkdirSync(d2, { recursive: true }); linkVideos(s2, d2); } else if (VID.test(e.name) && !fs.existsSync(d2)) { try { fs.linkSync(s2, d2); } catch (err) { log("link failed " + e.name + ": " + err.message); } } } };
 if (!KEEP) linkVideos(path.join(root, "public"), path.join(serveUrl, "public"));   // hard links: zero copy (audio assets of <Audio>/<Video> point into the bundle)
 timing.bundleSec = (Date.now() - t) / 1000;
 if (!process.env.GR_KEEP_BUNDLE && !KEEP) process.on("exit", () => { try { fs.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });

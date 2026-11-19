@@ -57,4 +57,8 @@ export const COMPOSITION_TITLES: Record<string, string> = {
   "Hadra-Khatib-L": "حضرة عبد العزيز الخطيب (عرضي)",
   "Hadra-Khatib-Both": "حضرة عبد العزيز الخطيب (طولي وعرضي معاً)",
   "Individual-Religiosity": "يقول التدين الفردي لا ينجيك يوم القيامة (طولي)",
+  "Mufti-Hiraba": "مفتي الأردن والحرابة (طولي)",
+  "Mufti-Hiraba-L": "مفتي الأردن والحرابة (عرضي)",
+  "Mufti-Hiraba-Both": "مفتي الأردن والحرابة (طولي وعرضي معاً)",
+  "Mufti-Hiraba-BothV": "مفتي الأردن والحرابة (طولي وعرضي معاً للجوال)",
 };

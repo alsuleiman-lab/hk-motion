@@ -24,6 +24,10 @@ const Archive: React.FC = SHOW_ARCHIVE ? // eslint-disable-next-line @typescript
 
 import { MontageFromSpec, specFrames } from "./MontageSpec";
 import type { MontageSpec } from "./MontageSpec";
+import muftiHirabaSpec from "../data/specs/mufti-hiraba.json";
+const MuftiHirabaComp: React.FC = () => <MontageFromSpec spec={muftiHirabaSpec as unknown as MontageSpec} />;
+const MuftiHirabaBothVComp: React.FC = () => <MontageBoth spec={muftiHirabaSpec as unknown as MontageSpec} phone />;
+const MuftiHirabaBothComp: React.FC = () => <MontageBoth spec={muftiHirabaSpec as unknown as MontageSpec} />;
 import hadraKhatibSpec from "../data/specs/hadra-khatib.json";
 const HadraKhatibComp: React.FC = () => <MontageFromSpec spec={hadraKhatibSpec as unknown as MontageSpec} />;
 const HadraKhatibBothComp: React.FC = () => <MontageBoth spec={hadraKhatibSpec as unknown as MontageSpec} />;
@@ -65,6 +69,10 @@ export const RemotionRoot: React.FC = () => {
     <ByRecency>
 
       <Folder name="مونتاج الجلسة">
+        <Composition id="Mufti-Hiraba" component={MuftiHirabaComp} durationInFrames={specFrames(muftiHirabaSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
+        <Composition id="Mufti-Hiraba-L" component={MuftiHirabaComp} durationInFrames={specFrames(muftiHirabaSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
+        <Composition id="Mufti-Hiraba-Both" component={MuftiHirabaBothComp} durationInFrames={specFrames(muftiHirabaSpec as unknown as MontageSpec)} fps={30} width={BOTH.W} height={BOTH.H} />
+        <Composition id="Mufti-Hiraba-BothV" component={MuftiHirabaBothVComp} durationInFrames={specFrames(muftiHirabaSpec as unknown as MontageSpec)} fps={30} width={BOTHV.W} height={BOTHV.H} />
         <Composition id="Hadra-Khatib" component={HadraKhatibComp} durationInFrames={specFrames(hadraKhatibSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
         <Composition id="Hadra-Khatib-L" component={HadraKhatibComp} durationInFrames={specFrames(hadraKhatibSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
         <Composition id="Hadra-Khatib-Both" component={HadraKhatibBothComp} durationInFrames={specFrames(hadraKhatibSpec as unknown as MontageSpec)} fps={30} width={BOTH.W} height={BOTH.H} />

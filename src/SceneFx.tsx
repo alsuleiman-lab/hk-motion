@@ -7,6 +7,7 @@
  *          room) break off and fall, leaving a dark void — a claim that crumbles. Pieces come only from the wall beside him (x < avoid[0] or x > avoid[1]).
  *   beam   the room sinks into darkness from `at`, and a shaft of light falls on him at `beamAt` (dust in it) — a moment of truth, a text of revelation.
  *   bars   iron bars drop from the top behind him at `at` and stay — prison, captivity.
+ *   ripple rings of pressure leave him at each of `pulses` and run across the room — consequences that spread.
  */
 import React from "react";
 import { AbsoluteFill, staticFile, useCurrentFrame } from "remotion";
@@ -17,7 +18,7 @@ const outCubic = (x: number) => 1 - Math.pow(1 - clamp(x), 3);
 const inCubic = (x: number) => Math.pow(clamp(x), 3);
 const rnd = (n: number) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };   /* deterministic noise: never a state between frames */
 
-export type SceneFxItem = { t: "scenefx"; fx: "crack" | "beam" | "bars"; from: number; to: number; at?: number; crackAt?: number; fallAt?: number; beamAt?: number; still?: string; avoid?: [number, number]; seed?: number; side?: "left" | "right" | "both" };
+export type SceneFxItem = { t: "scenefx"; fx: "crack" | "beam" | "bars" | "ripple"; pulses?: number[]; from: number; to: number; at?: number; crackAt?: number; fallAt?: number; beamAt?: number; still?: string; avoid?: [number, number]; seed?: number; side?: "left" | "right" | "both" };
 
 /* ── crack: the wall beside him is broken into irregular pieces; the CRACKS are the pieces' own edges, opening outward from a point (so the wall later breaks
    exactly where it cracked), and at `fallAt` the pieces drop, leaving a dark hollow. Every edge is a zigzag shared by its two pieces. */
@@ -120,4 +121,27 @@ const Bars: React.FC<{ it: SceneFxItem }> = ({ it }) => {
   );
 };
 
-export const SceneFx: React.FC<{ it: SceneFxItem }> = ({ it }) => it.fx === "crack" ? <Crack it={it} /> : it.fx === "beam" ? <Beam it={it} /> : <Bars it={it} />;
+/* ── ripple: consequences spreading — a ring of pressure leaves him at each of `pulses` and runs across the room (the room bends a little in its band) */
+const Ripple: React.FC<{ it: SceneFxItem }> = ({ it }) => {
+  const t = useCurrentFrame() / FPS, cx = 960, cy = 760, pulses = it.pulses ?? [it.at ?? it.from], LIFE = 2.6;
+  const fade = 1 - clamp((t - (it.to - 0.5)) / 0.5);
+  return (
+    <AbsoluteFill style={{ opacity: fade }}>
+      <AbsoluteFill style={{ background: "radial-gradient(circle at 50% 44%, rgba(0,0,0,.15) 0%, rgba(0,0,0,.6) 65%)", opacity: outCubic((t - it.from) / 0.6) }} />
+      <svg width={W} height={H} style={{ position: "absolute", inset: 0 }}>
+        <defs><filter id="rpb"><feGaussianBlur stdDeviation="10" /></filter><filter id="rpw"><feGaussianBlur stdDeviation="28" /></filter></defs>
+        {pulses.flatMap((p0, k) => [0, 0.3].map((lag, j) => {
+          const u = (t - p0 - lag) / LIFE; if (u <= 0 || u >= 1) return null;
+          const r = 420 + u * 1100, op = Math.pow(1 - u, 0.7) * (j ? 0.5 : 1);   /* an even speed, so the ring is seen crossing the room; centred on his chest and never small: a ring round his head would read as a halo */
+          return <g key={`${k}_${j}`} opacity={op}>
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,214,150,.35)" strokeWidth={j ? 30 : 70} filter="url(#rpw)" />
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,226,170,.95)" strokeWidth={j ? 5 : 12} filter="url(#rpb)" />
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,248,228,1)" strokeWidth={j ? 2 : 3.5} />
+          </g>;
+        }))}
+      </svg>
+    </AbsoluteFill>
+  );
+};
+
+export const SceneFx: React.FC<{ it: SceneFxItem }> = ({ it }) => it.fx === "crack" ? <Crack it={it} /> : it.fx === "beam" ? <Beam it={it} /> : it.fx === "ripple" ? <Ripple it={it} /> : <Bars it={it} />;

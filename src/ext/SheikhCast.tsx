@@ -3,7 +3,8 @@
    كل جزء (رأس، لحية، ذراع، ساق، جهاز) مرسوم منفصلاً بمفاصل مسماة ليُحرَّك لاحقاً.
    عشر نسخ للاختيار: الإطار رقم n = النسخة n. */
 import React from "react";
-import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Audio, Freeze, Img, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
+import { SALADIN_MOUTH } from "./rudoodMouth";
 
 export const SHEIKH_CAST_FRAMES = 10;
 const INK = "#2a1c14";
@@ -16,7 +17,7 @@ type Arm = "beard" | "rest";
 type Design = {
   skin: string; hair: string; hairStyle: Hair; beard: string; beardShape: "spade" | "point" | "wave"; beardLen: number; beardW: number;
   top: Top; c1: string; c2: string; pants: string; shoe: string; shoeAcc: string; chair: string; chairStyle: "club" | "modern" | "wing";
-  device: Dev; arm: Arm; wall: string; wall2: string; floor: string; decor: ("shelf" | "lamp" | "plant" | "window" | "art")[];
+  device: Dev; arm: Arm; glasses?: boolean; lightMustache?: boolean; wall: string; wall2: string; floor: string; decor: ("shelf" | "lamp" | "plant" | "window" | "art")[];
 };
 
 const DESIGNS: Design[] = [
@@ -160,7 +161,7 @@ const ChairFront: React.FC<{ d: Design; cx: number }> = ({ d, cx }) => {
 };
 
 /* اللحية الطويلة الكبيرة: تبدأ من السالفين وتحيط بالفك، ويبقى الخدان والأنف ظاهرين، ثم تنسدل على الصدر */
-const Beard: React.FC<{ d: Design; hx: number; hy: number }> = ({ d, hx, hy }) => {
+const Beard: React.FC<{ d: Design; hx: number; hy: number; mouth?: number }> = ({ d, hx, hy, mouth = 0 }) => {
   const L = d.beardLen * 0.78, W = d.beardW * 0.86, c = shade(d.beard, 0.05), lt = shade(d.beard, 0.4), dk = shade(d.beard, -0.45);
   const tip = d.beardShape === "point"
     ? `C${hx - W * 0.6},${hy + L * 0.9} ${hx - 14},${hy + L} ${hx + 4},${hy + L + 26} C${hx + 22},${hy + L} ${hx + W * 0.6},${hy + L * 0.9}`
@@ -177,8 +178,15 @@ const Beard: React.FC<{ d: Design; hx: number; hy: number }> = ({ d, hx, hy }) =
         <Line key={i} d={`M${hx + k * W * 0.8},${hy + 50 + (i % 3) * 14} C${hx + k * W * 1.05},${hy + L * 0.35} ${hx + k * W * 0.75},${hy + L * 0.6} ${hx + k * W * 0.6},${hy + L * 0.86}`} c={i % 2 ? dk : lt} w={i % 2 ? 3.5 : 3} o={0.8} />
       ))}
       {[-0.5, 0.05, 0.45].map((k, i) => <Line key={"h" + i} d={`M${hx + k * W},${hy + 70} q${8 - i * 6},40 ${2},80`} c={lt} w={5} o={0.45} />)}
+      {/* الفم: يظهر بين الشارب واللحية وينفتح بمستوى الصوت */}
+      {mouth > 0.06 ? (
+        <g>
+          <ellipse cx={hx + 12} cy={hy + 66} rx={13 + 5 * mouth} ry={2 + 11 * mouth} fill="#3a1410" stroke={INK} strokeWidth={2.5} />
+          {mouth > 0.4 && <ellipse cx={hx + 12} cy={hy + 70 + 4 * mouth} rx={8} ry={3 + 2 * mouth} fill="#b8524a" />}
+        </g>
+      ) : <Line d={`M${hx},${hy + 66} Q${hx + 12},${hy + 70} ${hx + 26},${hy + 66}`} c="#3a1410" w={3.5} />}
       {/* الشارب تحت الأنف */}
-      <path d={`M${hx + 14},${hy + 38} Q${hx - 14},${hy + 28} ${hx - 40},${hy + 54} Q${hx - 14},${hy + 52} ${hx + 14},${hy + 56} Q${hx + 42},${hy + 52} ${hx + 66},${hy + 54} Q${hx + 42},${hy + 28} ${hx + 14},${hy + 38} Z`} fill={shade(d.beard, 0.3)} stroke={INK} strokeWidth={3} strokeLinejoin="round" />
+      {d.lightMustache ? <path d={`M${hx + 14},${hy + 44} Q${hx - 4},${hy + 38} ${hx - 22},${hy + 52} Q${hx - 4},${hy + 50} ${hx + 14},${hy + 53} Q${hx + 34},${hy + 50} ${hx + 50},${hy + 52} Q${hx + 32},${hy + 38} ${hx + 14},${hy + 44} Z`} fill={shade(d.beard, 0.3)} stroke={INK} strokeWidth={2.5} strokeLinejoin="round" /> : <path d={`M${hx + 14},${hy + 38} Q${hx - 14},${hy + 28} ${hx - 40},${hy + 54} Q${hx - 14},${hy + 52} ${hx + 14},${hy + 56} Q${hx + 42},${hy + 52} ${hx + 66},${hy + 54} Q${hx + 42},${hy + 28} ${hx + 14},${hy + 38} Z`} fill={shade(d.beard, 0.3)} stroke={INK} strokeWidth={3} strokeLinejoin="round" />}
     </g>
   );
 };
@@ -207,6 +215,15 @@ const Head: React.FC<{ d: Design; hx: number; hy: number }> = ({ d, hx, hy }) =>
       {hair[d.hairStyle]}
       {d.hairStyle !== "curly" && d.hairStyle !== "beanie" && <Line d={`M${hx - 30},${hy - 76} Q${hx + 10},${hy - 92} ${hx + 44},${hy - 74}`} c={hl} w={4} o={0.7} />}
       {d.hairStyle !== "beanie" && <Line d={`M${hx - 58},${hy - 10} Q${hx - 52},${hy - 40} ${hx - 34},${hy - 52}`} c={hd} w={3} o={0.5} />}
+      {d.glasses && (
+        <g fill="none" stroke="#1a1a1a" strokeLinecap="round">
+          {/* نظارة أنيقة: إطار رفيع شبه مربع بلا زجاج */}
+          <path d={`M${hx - 56},${hy - 22} L${hx - 66},${hy - 10} M${hx + 70},${hy - 22} L${hx + 72},${hy - 10}`} strokeWidth={3} />
+          <rect x={hx - 54} y={hy - 40} width={50} height={34} rx={7} strokeWidth={3.5} />
+          <rect x={hx + 20} y={hy - 40} width={50} height={34} rx={7} strokeWidth={3.5} />
+          <path d={`M${hx - 4},${hy - 30} Q${hx + 8},${hy - 36} ${hx + 20},${hy - 30}`} strokeWidth={3} />
+        </g>
+      )}
       {/* الأنف فقط — بلا عيون ولا حواجب */}
       <path d={`M${hx + 16},${hy - 14} Q${hx + 40},${hy + 14} ${hx + 28},${hy + 28} Q${hx + 16},${hy + 34} ${hx + 4},${hy + 26}`} fill={shade(sk, -0.08)} stroke={INK} strokeWidth={3.5} strokeLinecap="round" />
     </g>
@@ -296,7 +313,7 @@ const Screen: React.FC<{ x: number; y: number; w: number; h: number; id: string 
   </g>
 );
 
-const Figure: React.FC<{ d: Design; i: number }> = ({ d, i }) => {
+const Figure: React.FC<{ d: Design; i: number; mouth?: number }> = ({ d, i, mouth = 0 }) => {
   const cx = 430, hx = cx + 8, hy = 318, sk = d.skin, sleeve = d.top === "puffer" ? d.c2 : d.c1;
   const pantsDk = shade(d.pants, -0.22);
   /* المفاصل */
@@ -334,7 +351,7 @@ const Figure: React.FC<{ d: Design; i: number }> = ({ d, i }) => {
       <rect x={hx - 26} y={hy + 50} width={52} height={70} fill={sk} stroke={INK} strokeWidth={SW} />
       <g transform={`translate(${hx},${hy}) scale(1.16) translate(${-hx},${-hy})`}>
         <Head d={d} hx={hx} hy={hy} />
-        <Beard d={d} hx={hx} hy={hy} />
+        <Beard d={d} hx={hx} hy={hy} mouth={mouth} />
       </g>
       <ChairFront d={d} cx={cx} />
       {/* الرِّجل المغروسة */}
@@ -438,6 +455,85 @@ export const SheikhRudood: React.FC = () => {
         </g>
         <g transform={`translate(${540 - 430 * 1.15},${FL + 20 - 905 * 1.15}) scale(1.15)`}><Figure d={d} i={99} /></g>
       </svg>
+    </AbsoluteFill>
+  );
+};
+
+/* ===== فيديو «شيخ الردود» يرد على مقطع «صلاح الدين» (طولي) =====
+   المكان رقم ١ والشخصية رقم ٤ (أمر المستخدم 2026-11-20) بنظارة سوداء كبيرة شبه مربعة وشارب أخف، والفم يتحرك بصوته.
+   يشغّل مقطعها (وجهها مطموس) على الشاشة الكبيرة، ثم يتوقف المقطع ويرد بالصوت المعتمد. */
+const RUDOOD4: Design = { ...DESIGNS[3], chair: DESIGNS[0].chair, chairStyle: DESIGNS[0].chairStyle, wall: DESIGNS[0].wall, wall2: DESIGNS[0].wall2, floor: DESIGNS[0].floor, decor: DESIGNS[0].decor, device: "wall", arm: "rest", glasses: true, lightMustache: true };
+const ON = 15, CLIP = 276, REPLY_AT = ON + CLIP + 12, REPLY = SALADIN_MOUTH.length;
+export const RUDOOD_SALADIN_FRAMES = REPLY_AT + REPLY + 36;
+const SX = 74, SY = 168, SWD = 932, SHT = 532;
+export const RudoodSaladin: React.FC = () => {
+  const f = useCurrentFrame(), d = RUDOOD4, FL = 884 + 760;
+  const r = f - REPLY_AT, mouth = r >= 0 && r < REPLY ? SALADIN_MOUTH[r] : 0;
+  /* الكاميرا: تقترب قليلاً من الشاشة أثناء مقطعها، ثم تنزل إليه حين يرد */
+  const zIn = interpolate(f, [ON, ON + 60], [1, 1.05], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const toHim = interpolate(f, [REPLY_AT - 10, REPLY_AT + 25], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const z = zIn + 0.03 * toHim, oy = interpolate(toHim, [0, 1], [420, 1180]);
+  const bob = mouth * 3;
+  const flash = interpolate(f, [ON - 2, ON + 2, ON + 8], [0, 0.85, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const paused = f >= ON + CLIP;
+  return (
+    <AbsoluteFill style={{ background: d.wall, overflow: "hidden" }}>
+      <AbsoluteFill style={{ transform: `scale(${z})`, transformOrigin: `540px ${oy}px` }}>
+        <svg viewBox="0 0 1080 1920" width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
+          <rect x={0} y={0} width={1080} height={FL} fill={d.wall} />
+          {Array.from({ length: 9 }).map((_, i) => <rect key={i} x={i * 130 - 20} y={0} width={64} height={FL} fill={d.wall2} opacity={0.35} />)}
+          <rect x={0} y={FL - 26} width={1080} height={26} fill={shade(d.wall, -0.18)} />
+          <rect x={0} y={FL} width={1080} height={1920 - FL} fill={d.floor} />
+          {Array.from({ length: 10 }).map((_, i) => <Line key={i} d={`M0,${FL + 16 + i * 28} L1080,${FL + 16 + i * 28}`} c={shade(d.floor, -0.15)} w={2} />)}
+          <ellipse cx={540} cy={FL + 110} rx={420} ry={64} fill={shade(d.floor, 0.25)} stroke={INK} strokeWidth={3} />
+          <ellipse cx={540} cy={FL + 110} rx={376} ry={48} fill="none" stroke={shade(d.floor, -0.1)} strokeWidth={6} strokeDasharray="14 10" />
+          <ellipse cx={540} cy={430} rx={560} ry={330} fill="#fff6d8" opacity={f >= ON ? 0.16 : 0.04} />
+          <Ink d="M56,150 h968 v568 h-968 Z" fill="#26211d" sw={6} />
+          <rect x={SX} y={SY} width={SWD} height={SHT} fill="#141210" />
+          <Ink d="M500,718 h80 v22 h-80 Z" fill="#3b332c" sw={3} />
+          <g transform="translate(24,910) scale(0.95)">
+            <Ink d="M0,0 h170 v560 h-170 Z" fill="#7a4b2c" />
+            {[0, 1, 2, 3].map((rr) => (
+              <g key={rr}>
+                <rect x={10} y={20 + rr * 135} width={150} height={110} fill="#5d3820" />
+                {Array.from({ length: 7 }).map((_, k) => { const h = 70 + ((k * 37 + rr * 11) % 35), cols = ["#a8442f", "#3f6b5a", "#c9a34f", "#3d4f6e", "#8a5a3b", "#6e2f3f", "#d9c9a2"];
+                  return <rect key={k} x={16 + k * 20} y={128 + rr * 135 - h} width={17} height={h} fill={cols[(k + rr * 3) % 7]} stroke={INK} strokeWidth={2} />; })}
+                <rect x={0} y={128 + rr * 135} width={170} height={10} fill="#8f5a35" stroke={INK} strokeWidth={2} />
+              </g>
+            ))}
+          </g>
+          <g transform="translate(990,1060)">
+            <Ink d="M-56,0 L56,0 L74,104 L-74,104 Z" fill="#f2d79a" />
+            <ellipse cx={0} cy={104} rx={74} ry={13} fill="#f7e6b8" stroke={INK} strokeWidth={3} />
+            <Line d={`M0,104 V${FL - 1060 + 2}`} w={7} />
+            <ellipse cx={0} cy={FL - 1056} rx={44} ry={9} fill="#3b2a20" />
+            <ellipse cx={0} cy={150} rx={150} ry={76} fill="#fff3cc" opacity={0.18} />
+          </g>
+          <g transform={`translate(${540 - 430 * 1.15},${FL + 20 - 905 * 1.15 - bob}) scale(1.15)`}><Figure d={d} i={98} mouth={mouth} /></g>
+        </svg>
+        {/* الشاشة: مقطعها يعمل ثم يتوقف عند آخر إطار */}
+        <div style={{ position: "absolute", left: SX, top: SY, width: SWD, height: SHT, overflow: "hidden", background: "#141210" }}>
+          <Sequence from={ON} durationInFrames={CLIP} layout="none">
+            <OffthreadVideo src={staticFile("rudood1/girl_saladin_blur.mp4")} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 60%" }} />
+          </Sequence>
+          {paused && (
+            <Freeze frame={CLIP - 1}>
+              <OffthreadVideo muted src={staticFile("rudood1/girl_saladin_blur.mp4")} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 60%", filter: "brightness(.55) saturate(.7)" }} />
+            </Freeze>
+          )}
+          {paused && (
+            <div style={{ position: "absolute", left: "50%", top: "50%", transform: `translate(-50%,-50%) scale(${interpolate(f, [ON + CLIP, ON + CLIP + 8], [1.4, 1], { extrapolateRight: "clamp" })})`, display: "flex", gap: 22 }}>
+              {[0, 1].map((k) => <div key={k} style={{ width: 34, height: 110, background: "rgba(255,255,255,.92)", borderRadius: 6, boxShadow: "0 4px 18px rgba(0,0,0,.4)" }} />)}
+            </div>
+          )}
+          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 14, background: "rgba(0,0,0,.45)" }} />
+          <div style={{ position: "absolute", left: 8, bottom: 5, height: 4, width: (SWD - 16) * interpolate(f, [ON, ON + CLIP], [0.04, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }), background: "#e2423a" }} />
+          <div style={{ position: "absolute", inset: 0, background: "#fff", opacity: flash }} />
+        </div>
+      </AbsoluteFill>
+      <Sequence from={ON - 3} durationInFrames={20}><Audio src={staticFile("ref_sfx/tap.wav")} volume={0.05} /></Sequence>
+      <Sequence from={ON + CLIP} durationInFrames={20}><Audio src={staticFile("ref_sfx/tap.wav")} volume={0.05} /></Sequence>
+      <Sequence from={REPLY_AT} durationInFrames={REPLY + 30}><Audio src={staticFile("rudood1/reply.wav")} /></Sequence>
     </AbsoluteFill>
   );
 };

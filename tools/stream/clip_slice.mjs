@@ -73,7 +73,22 @@ if (parentMap.model === "cut_model") {
     const vj = rd(path.join(T, "vad.json")); vj.speech = sp; fs.writeFileSync(path.join(T, "vad.json"), JSON.stringify(vj));
   } catch (e) { console.log(`⚠ parent speech stretches not mapped: ${e.message}`); }
 }
-const vad = rd(path.join(T, "vad.json")).speech;
+/* (2026-11-20, ريل gta6-intro-reel) the transcript's segments are the PARENT's transcript segments (each already merged by its own rule, tools/transcribe_vad_segments.py
+   --merge 0.3 in source time) carried through the parent cut and the slice; the pieces of one parent segment that touch on the child timeline stay one segment.
+   Built from the raw stretches instead, a join left slivers (0.05 s of a stretch whose words the cut removed, a breath split from its sentence) with no word, which
+   the gate read as «hallucinated text» though the episode's own gate had judged the same sound inside its sentence. */
+let vad = rd(path.join(T, "vad.json")).speech;
+if (parentMap.model === "cut_model") {
+  try {
+    const ptr = rd(path.join(TP, "tr_vad.json")), segs = Array.isArray(ptr) ? ptr : ptr.segments ?? [], out = [];
+    for (const [pi, sg] of segs.entries()) for (const g of parentMap.segments) { const lo = Math.max(sg.s, g.a), hi = Math.min(sg.e, g.b); if (hi - lo <= 0.02) continue;
+      const c0 = g.n + (lo - g.a), c1 = g.n + (hi - g.a);
+      for (let k = 0; k < pieces.length; k++) { const l2 = Math.max(c0, pieces[k][0]), h2 = Math.min(c1, pieces[k][1]); if (h2 - l2 > 0.02) out.push([+(l2 - pieces[k][0] + off[k]).toFixed(3), +(h2 - pieces[k][0] + off[k]).toFixed(3), pi]); } }
+    out.sort((x, y) => x[0] - y[0]);
+    const m = []; for (const [s, e, pi] of out) { const l = m[m.length - 1]; if (l && l[2] === pi && s - l[1] < 0.3) l[1] = Math.max(l[1], e); else m.push([s, e, pi]); }
+    if (m.length) vad = m.map(([s, e]) => [s, e]);
+  } catch (e) { console.log(`⚠ parent transcript segments not mapped: ${e.message}`); }
+}
 const tr = vad.map(([s, e], i) => { const ws = cw.filter((w) => (w.s + w.e) / 2 >= s - 0.05 && (w.s + w.e) / 2 <= e + 0.05); return { i, s, e, text: ws.map((w) => w.w).join(" "), words: ws }; });
 fs.writeFileSync(path.join(T, "tr_vad.json"), JSON.stringify(tr));
 const parentCfg = fs.existsSync(path.join(TP, "prep_config.json")) ? rd(path.join(TP, "prep_config.json")) : {};

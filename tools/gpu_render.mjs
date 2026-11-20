@@ -74,6 +74,10 @@ t = Date.now();
 log("bundling…");
 /* --bundle <dir>: reuse a bundle made earlier (tests: the same build for every run; it is kept) */
 const KEEP = arg("bundle", null);
+/* (2026-11-20) a read-only file in public (a font) is copied read-only into the bundle; the next bundle into the same folder then failed (EPERM copyfile):
+   every file left in this comp's bundle folders is made writable first */
+const unlock = (d) => { try { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const q = path.join(d, e.name); if (e.isDirectory()) unlock(q); else if (e.isFile()) try { fs.chmodSync(q, 0o666); } catch { /* gone */ } } } catch { /* no folder */ } };
+for (const b of ["bundle_", "bundle_keep_"]) unlock(path.join(root, ".tmp/gpu_render", b + compId));
 const serveUrl = KEEP && KEEP !== true ? path.resolve(root, KEEP) : await bundle({ entryPoint: path.join(root, "src/index.ts"), rspack: true, publicDir: slim, outDir: path.join(root, ".tmp/gpu_render/" + (process.env.GR_KEEP_BUNDLE ? "bundle_keep_" : "bundle_") + compId), onProgress: () => {} });
 const linkVideos = (src, dst) => { for (const e of fs.readdirSync(src, { withFileTypes: true })) { const s2 = path.join(src, e.name), d2 = path.join(dst, e.name); if (e.isDirectory() || (e.isSymbolicLink() && fs.statSync(s2).isDirectory())) { fs.mkdirSync(d2, { recursive: true }); linkVideos(s2, d2); } else if (VID.test(e.name) && !fs.existsSync(d2)) { try { fs.linkSync(s2, d2); } catch (err) { log("link failed " + e.name + ": " + err.message); } } } };
 if (!KEEP) linkVideos(path.join(root, "public"), path.join(serveUrl, "public"));   // hard links: zero copy (audio assets of <Audio>/<Video> point into the bundle)

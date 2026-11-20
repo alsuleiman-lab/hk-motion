@@ -101,7 +101,7 @@ const gateAtoms = async (f, p) => {
   const n1 = await runGate(["tools/spec_normalize.mjs", f, "--o", "land", "--dry"]);
   const n2 = await runGate(["tools/spec_normalize.mjs", f, "--o", "port", "--dry"]);
   /* (user 2026-11-20: «يجب ببساطة أن تلتزم بالموقع على الشبكة») + where each element is DRAWN, as numbers (tools/slot_boxes.mjs, ¼ s, no render) */
-  const outs = await Promise.all([["tools/writing_sync.mjs", f], ["tools/element_slots.mjs", p], ["tools/coverage_check.mjs", f], ["--experimental-strip-types", "--no-warnings", "tools/slot_boxes.mjs", p]].map(runGate));
+  const outs = await Promise.all([["tools/writing_sync.mjs", f], ["tools/element_slots.mjs", p], ["tools/coverage_check.mjs", f], ["tools/late_check.mjs", f], ["--experimental-strip-types", "--no-warnings", "tools/slot_boxes.mjs", p]].map(runGate));
   return atomsOf([n1, n2, ...outs].join("\n"));
 };
 const hashOf = (f) => crypto.createHash("sha1").update(read(f)).digest("hex");

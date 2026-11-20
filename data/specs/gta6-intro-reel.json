@@ -27,134 +27,129 @@
  "shake": [],
  "items": [
   {
-   "id": "qw96",
-   "t": "full",
-   "from": 0.1,
-   "to": 5.22,
-   "src": "gta6/news_cbs_clip.png"
+   "id": "ddgm",
+   "t": "news",
+   "at": 0.1,
+   "until": 5,
+   "src": "gta6/news_cbs_clip.png",
+   "source": "CBS News — 27 يوليو 2005",
+   "headline": "جدّة تقاضي شركة لعبة فيديو",
+   "ratio": 0.6429,
+   "slot": {
+    "land": "left"
+   }
   },
   {
-   "id": "z6r2",
-   "t": "pick",
-   "el": "FlapBoard",
-   "at": 5.75,
-   "until": 9.35,
-   "rows": [
-    {
-     "text": "لابنها 14 سنة",
-     "at": 5.75
-    }
-   ]
+   "id": "zakb",
+   "t": "tphoto",
+   "at": 5.25,
+   "until": 9.15,
+   "src": "gta6-intro-reel/img_3.jpg",
+   "name": "لعبة جي تي اي",
+   "ratio": 0.5625,
+   "slot": {
+    "land": "left"
+   }
   },
   {
-   "id": "u2c5",
-   "t": "timeline",
-   "from": 9.4,
-   "to": 14.8,
-   "stages": [
-    {
-     "at": 9.4,
-     "date": "2004",
-     "title": "اشترت اللعبة"
-    },
-    {
-     "at": 10.9,
-     "date": "2005",
-     "title": "وجدت فيها مشاهد جنسية"
-    }
-   ]
+   "id": "k25w",
+   "t": "date",
+   "at": 9.4,
+   "until": 15.75,
+   "text": "2005 م",
+   "from": 2004,
+   "slot": {
+    "land": "left"
+   }
   },
   {
-   "id": "m30j",
-   "t": "full",
-   "from": 14.87,
-   "to": 18.55,
-   "src": "gta6-intro-reel/img_1.png"
+   "id": "xw8w",
+   "t": "tphoto",
+   "at": 16,
+   "until": 18.35,
+   "src": "gta6-intro-reel/img_1.png",
+   "name": "روكستار",
+   "ratio": 0.9208,
+   "slot": {
+    "land": "left"
+   }
   },
   {
-   "id": "vtoi",
-   "t": "pick",
-   "el": "InkQuote",
+   "id": "j25q",
+   "t": "scraps",
    "at": 18.59,
-   "until": 30.6,
-   "source": "لورانس كوهين",
-   "lines": [
-    {
-     "text": "مصنفة للمراهقين",
-     "at": 18.59
-    },
-    {
-     "text": "والواقع أن فيها مشاهد جنسية",
-     "at": 20
-    },
-    {
-     "text": "لا يصح لمراهق أن يشاهدها",
-     "at": 23.1
-    }
+   "until": 30.4,
+   "text": "مصنّفة للمراهقين وفيها مشاهد جنسية",
+   "times": [
+    18.59,
+    19.05,
+    21.16,
+    21.48,
+    22.14
    ]
   },
   {
-   "id": "x8q2",
-   "t": "stamp",
+   "id": "b8ho",
+   "t": "torn",
    "at": 30.65,
-   "until": 33.75,
+   "until": 33.55,
    "text": "وهي التي رفعت دعوة"
   },
   {
-   "id": "qznv",
-   "t": "full",
-   "from": 33.78,
-   "to": 41.1,
-   "src": "gta6/news_cbs_ao_clip.png"
+   "id": "z12b",
+   "t": "news",
+   "at": 33.78,
+   "until": 40.9,
+   "src": "gta6/news_cbs_ao_clip.png",
+   "source": "CBS News — 21 يوليو 2005",
+   "headline": "اللعبة صارت «للبالغين فقط»",
+   "ratio": 0.5333,
+   "slot": {
+    "land": "left"
+   }
   },
   {
-   "id": "bfm2",
-   "t": "stamp",
-   "at": 41.15,
-   "until": 45,
-   "text": "واضطرت روكستار"
-  },
-  {
-   "id": "pk1u",
-   "t": "pick",
-   "el": "FlapBoard",
-   "at": 45.07,
-   "until": 50.45,
+   "id": "mbb8",
+   "t": "rows",
+   "from": 41.15,
+   "to": 50.3,
+   "title": {
+    "at": 41.15,
+    "text": "واضطرت روكستار"
+   },
    "rows": [
     {
-     "text": "اعتذاراً رسمياً",
-     "at": 45.07
+     "at": 45.07,
+     "label": "اعتذاراً رسمياً"
     },
     {
-     "text": "واعتذار عام",
-     "at": 47.8
+     "at": 47.8,
+     "label": "واعتذار عام"
     }
    ]
   },
   {
-   "id": "vssn",
-   "t": "timeline",
-   "from": 50.54,
-   "to": 58.05,
-   "stages": [
-    {
-     "at": 50.54,
-     "date": "2005",
-     "title": "المشاهد في بدايتها"
-    },
-    {
-     "at": 56.2,
-     "date": "اليوم",
-     "title": "صدرت جي تي اي 6"
-    }
-   ]
+   "id": "unsm",
+   "t": "date",
+   "at": 50.54,
+   "until": 57.85,
+   "text": "2005 م",
+   "sub": "وكانت المشاهد في بدايتها",
+   "slot": {
+    "land": "left"
+   }
   },
   {
-   "id": "gfpv",
-   "t": "full",
-   "from": 58.1,
-   "to": 64.2,
-   "src": "gta6-intro-reel/img_4.webp"
+   "id": "enip",
+   "t": "tphoto",
+   "at": 58.1,
+   "until": 64,
+   "src": "gta6-intro-reel/img_4.webp",
+   "name": "جي تي اي 6",
+   "ratio": 0.6125,
+   "slot": {
+    "land": "left"
+   }
   },
   {
    "id": "rxjy",
@@ -203,86 +198,112 @@
    ]
   },
   {
-   "id": "rr8l",
+   "id": "b2eu",
+   "t": "tphoto",
+   "at": 81.75,
+   "until": 86.15,
+   "src": "gta6-intro-reel/img_2.png",
+   "name": "التصنيف",
+   "ratio": 0.7797,
+   "slot": {
+    "land": "left"
+   }
+  },
+  {
+   "id": "v11x",
+   "t": "torn",
+   "at": 86.39,
+   "until": 89.3,
+   "text": "زائد 18"
+  },
+  {
+   "id": "v6aw",
    "t": "pick",
-   "el": "InkQuote",
-   "at": 82.66,
-   "until": 92.3,
-   "lines": [
+   "el": "Iceberg",
+   "at": 92.5,
+   "until": 100.35,
+   "top": [
+    "صور"
+   ],
+   "hidden": [
+    "كل الحركات",
+    "والأمور هذه موجودة فيها"
+   ],
+   "revealAt": 97.13
+  },
+  {
+   "id": "jv1l",
+   "t": "scraps",
+   "at": 100.59,
+   "until": 104.95,
+   "text": "هذه اللعبة بمراقصها بفسادها بالعار",
+   "times": [
+    100.59,
+    100.83,
+    101.44,
+    102.32,
+    103.11
+   ]
+  },
+  {
+   "id": "aq9e",
+   "t": "rows",
+   "from": 107.57,
+   "to": 119.7,
+   "title": {
+    "at": 107.77,
+    "text": "دخلت إلى بيوت من يعرف"
+   },
+   "rows": [
     {
-     "text": "هو تماما كتصنيف الأفلام الجنسية",
-     "at": 82.66
+     "at": 110.96,
+     "label": "لله حقّه"
     },
     {
-     "text": "زائد 18",
-     "at": 86.39
+     "at": 112.86,
+     "label": "للأخلاق حقّها"
+    },
+    {
+     "at": 115.08,
+     "label": "للكرامة حقّها"
+    },
+    {
+     "at": 117.37,
+     "label": "لنفسه حقّها"
     }
    ]
   },
   {
-   "id": "qrpz",
-   "t": "pick",
-   "el": "WordCloud",
-   "at": 97.13,
-   "until": 105,
-   "title": "كل الحركات",
-   "titleAt": 97.13,
-   "words": [
-    {
-     "text": "بمراقصها",
-     "weight": 3,
-     "at": 101.44
-    },
-    {
-     "text": "بفسادها",
-     "weight": 3,
-     "at": 102.32
-    },
-    {
-     "text": "بالعار",
-     "weight": 3,
-     "at": 103.11
-    }
-   ]
+   "id": "hkf9",
+   "t": "torn",
+   "at": 122.39,
+   "until": 126.3,
+   "text": "مصنف الكبار فقط"
   },
   {
-   "id": "utlg",
-   "t": "pick",
-   "el": "MindMap",
-   "at": 107.2,
-   "until": 119.6,
-   "center": "دخلت إلى بيوت المسلمين",
-   "nodes": [
-    {
-     "text": "لله حقه",
-     "at": 110.96
-    },
-    {
-     "text": "للأخلاق حقها",
-     "at": 112.86
-    },
-    {
-     "text": "للكرامة حقها",
-     "at": 115.08
-    },
-    {
-     "text": "لنفسه حقها",
-     "at": 117.37
-    }
-   ]
-  },
-  {
-   "id": "erdr",
+   "id": "kdr5",
    "t": "pick",
    "el": "Crossroads",
-   "at": 122.39,
-   "until": 140,
+   "at": 126.5,
+   "until": 138.2,
    "right": "يفتح له كتاب يتعلم",
    "left": "يروح يلعب جي تي اي",
    "signsAt": 130.62,
    "go": "right",
    "goAt": 135.3,
    "rightGood": true
+  },
+  {
+   "id": "uyrz",
+   "t": "tphoto",
+   "at": 138.45,
+   "until": 141.1,
+   "src": "gta6-intro-reel/img_4.webp",
+   "name": "جي تي اي",
+   "ratio": 0.6125,
+   "slot": {
+    "land": "left"
+   }
   },
   {
    "id": "ktjj",
@@ -316,5 +337,18 @@
   "id": "wall",
   "at": 145.93,
   "end": true
+ },
+ "skipMentions": [
+  "لبنان"
+ ],
+ "skipRequired": [
+  "لبنان@93"
+ ],
+ "skipReasons": {
+  "لبنان@93": "خطأ تفريغ: «صور لبنان» ليست في كلامه، لا ذكر لبلد"
+ },
+ "waiverOK": {
+  "لبنان": "المستخدم 2026-11-20: «نعم، أعفِها» (خطأ تفريغ، لم يقلها)",
+  "لبنان@93": "المستخدم 2026-11-20: «نعم، أعفِها» (خطأ تفريغ، لم يقلها)"
  }
 }

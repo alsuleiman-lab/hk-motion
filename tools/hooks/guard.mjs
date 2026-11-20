@@ -17,6 +17,9 @@ try { input = JSON.parse(fs.readFileSync(0, "utf8") || "{}"); } catch { /* no st
 const norm = (p) => String(p ?? "").replace(/\\/g, "/");
 const rel = (p) => { const n = norm(p), r = norm(ROOT); return n.toLowerCase().startsWith(r.toLowerCase() + "/") ? n.slice(r.length + 1) : n; };
 const emit = (obj) => { process.stdout.write(JSON.stringify(obj)); process.exit(0); };
+/* HEARTBEAT (2026-11-20, gta6 analysis): the montage session was opened in E:\apps\New remotion, so NOT ONE of these hooks ran for hours (Claude Code reads
+   .claude/settings.json of the session folder only). Every run leaves a stamp; tools/montage_kickoff.mjs refuses to call the session «guarded» without a fresh one. */
+try { fs.mkdirSync(path.join(ROOT, ".tmp"), { recursive: true }); fs.writeFileSync(path.join(ROOT, ".tmp", "hooks_alive.json"), JSON.stringify({ at: Date.now(), mode, cwd: input.cwd ?? process.cwd(), session: input.session_id ?? "", agent: input.agent_id ?? null })); } catch { /* never block */ }
 
 /** files that ARE the rules: any change needs the user's yes (the agent cannot rewrite its own rules silently) */
 const RULE_FILES = [
@@ -63,6 +66,17 @@ if (mode === "prompt") {
     contract.push("• هذا عمل فيديو: اقرأ (لكل فيديو من جديد، ولو قرأتها لفيديو سابق في الجلسة) `القواعد_العامة.md` ← `شجرة_العمليات.md` ← مهارة `router` ← مهارة كل مرحلة حين تصلها (ومعها `video-montage/critical-rules.md` و`workflow-plan.md`، و`montage-orders` لتعليمات «مونتاج» المنطوقة). الأسئلة الأولى بالنقر أول فعل (مهارة `first-questions`)، ومعها `tools/stage.mjs prep` في الخلفية.");
     const b = spawnSync("node", ["tools/brief_check.mjs"], { cwd: ROOT, encoding: "utf8" });
     if (b.status !== 0) contract.push("• تنبيه: " + (b.stdout || "").trim());
+    // PARALLEL WORK IS MANDATORY (user 2026-11-20, gta6: «تأخرت، يجب تشغيل أكثر من مهمة معاً… لماذا لا تقرأ كل التعليمات؟»)
+    contract.push("• التوازي إلزامي (القواعد §3، أمر المستخدم 2026-11-20): المونتاج يبدأ بأمر واحد `node tools/montage_kickoff.mjs <المشروع> \"<الفيديو>\"` (التجهيز ثم معاً: اقتراح القص، وطابور البحث المبكر، وموجز الغلاف) — و`stage.mjs prep` المباشر مرفوض. ثم في الوقت نفسه: أسئلة البداية، وقراءة القائمة كاملة (ومعها مهارات first-questions وvideo-cutting وgallery-placement وchecking وdelivery-links)، ووكلاء البحث والغلاف والعناصر الخاصة في الخلفية حين تقول اللوحة «جاهز». كل أمر طويل بـrun_in_background (الأمر الطويل في المقدمة مرفوض). عائق يفشل 3 مرات أو يأخذ 6 دقائق ← `montage_kickoff.mjs park` ثم غيره. العناصر: `node tools/el_rules.mjs rules <العناصر>` قبل كتابة الخطة، والدفعة لا تُطبَّق قبل plan-check.");
+  }
+  // THE BOARD of every montage of the last 12 hours (tools/montage_kickoff.mjs): what runs, what is ready and NOT started, what is parked — on every prompt
+  for (const ap of activeProjects()) {
+    try {
+      const bf = path.join(ROOT, ".tmp", ap, "board.json");
+      if (!fs.existsSync(bf) || Date.now() - fs.statSync(bf).mtimeMs > 12 * 3600e3) continue;
+      const r = spawnSync("node", ["tools/montage_kickoff.mjs", "board", ap, "--brief"], { cwd: ROOT, encoding: "utf8", timeout: 4000 });
+      if ((r.stdout || "").trim()) contract.push("• " + r.stdout.trim());
+    } catch { /* never block a prompt */ }
   }
   emit({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: contract.join("\n") } });
 }
@@ -135,6 +149,19 @@ if (mode === "pre") {
   }
   if (tool === "Bash" || tool === "PowerShell") {
     const c = String(ti.command ?? "");
+    /* KICKOFF (user 2026-11-20, gta6): a montage starts with tools/montage_kickoff.mjs, which runs the prep AND every independent lane together in the
+       background; a bare `stage.mjs prep` is how the serial montage began */
+    if (/\bstage\.mjs\s+prep\b/.test(c) && !/montage_kickoff/.test(c) && !/--help/.test(c)) {
+      const m = c.match(/stage\.mjs\s+prep\s+["']?([\w-]+)["']?\s+("[^"]+"|'[^']+'|\S+)?(.*)$/);
+      deny(`التجهيز وحده مرفوض (أمر المستخدم 2026-11-20: «يجب تشغيل أكثر من مهمة معاً»): ابدأ المونتاج بأمر الإطلاق، فيعمل التجهيز وبعده معاً اقتراح القص وطابور البحث المبكر وموجز الغلاف، ولوحة بما يجري:\n  node tools/montage_kickoff.mjs ${m?.[1] ?? "<المشروع>"} ${m?.[2] ?? "\"<الفيديو>\""}${m?.[3]?.trim() ? " -- " + m[3].trim().replace(/\s*2>&1.*$|\s*\|.*$/, "") : ""}\n(خيارات التجهيز بعد --؛ وأعد التجهيز بـ --redo)`);
+    }
+    /* NO LONG COMMAND IN THE FOREGROUND OF A MONTAGE (user 2026-11-20, gta6: a 4-min transcription, a 4-min reel build and the cut in bg.sh all ran in the
+       foreground while nothing else moved). A command of a registered montage that runs a known long tool must go with run_in_background. */
+    const LONG = /\bstage\.mjs\s+(prep|cut|check)\b|reel_from_episode\.mjs|gpu_render\.mjs|render_project\.sh|judder_(probe|check)\.mjs|final_review\.mjs|transcribe_\w+\.py|WhisperModel|faster_whisper|words_table\.py|diarize\.py|cut_blocks?\.mjs|smooth_dups\.py|cut_build_gpu\.py|hybrid_\w+\.mjs|comfy_still\.mjs|bumper_at\.mjs|research\.mjs|speech_loss_audit\.mjs|asr_audit\.mjs|full_tr\.py/;
+    // a sub-agent (input.agent_id) already runs beside the main session: its foreground is the main session's background, so it is not refused
+    if (LONG.test(c) && !ti.run_in_background && !input.agent_id && !/--help|--dry-run/.test(c) && projectOf(c)) {
+      deny(`أمر طويل في المقدمة أثناء مونتاج «${projectOf(c)}» (أمر المستخدم 2026-11-20: «يجب تشغيل أكثر من مهمة معاً»): أعده بـrun_in_background (ويُبلَّغ بانتهائه)، واعمل في الأثناء على ما في اللوحة: node tools/montage_kickoff.mjs board ${projectOf(c)}`);
+    }
     // rule 6 (AGENTS.md): work on S:; exports go only to C:\Users\mshms\Videos\جاهز\<title>.mp4 (user order 2026-10-26) — any other C: target is refused
     const cOther = c.replace(/[Cc]:[\\/]+Users[\\/]+mshms[\\/]+Videos[\\/]+جاهز[\\/]+[^\\/"']+\.mp4/g, "");
     if (/\b(node|npx|bash|sh)\b[^;&|]*(render_final|render_chunked|render_clip|hybrid_full)\.(mjs|sh)|\bnpx\s+remotion\s+render\b/i.test(c) && /(^|[\s"'=])[Cc]:[\\/]/.test(cOther)) {
@@ -185,6 +212,62 @@ if (mode === "post") {
     const out = (r.stdout || r.stderr || "").trim();
     const failed = /(^|\n)FAIL/.test(out) || r.status !== 0;
     emit({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: `rules_audit بعد تعديل ${rel(f)} — ${failed ? "فيه إخفاق: أصلحه الآن قبل أي عمل آخر" : "نجح"}:\n${out.split("\n").slice(-12).join("\n")}${inWorktree(f) ? "\n• عُدِّل في نسخة الجلسة: احفظه وادمجه في master في الدورة نفسها، فالجلسات الأخرى تقرأ المجلد الرئيسي." : ""}` } });
+  }
+  const tool = input.tool_name;
+  /* AN AGENT STARTED = its lane on the board is running (tools/montage_kickoff.mjs), so «ready and not started» never nags about work that is under way */
+  if ((tool === "Agent" || tool === "Task") && activeProjects().length) {
+    try {
+      const txt = `${ti.description ?? ""} ${ti.prompt ?? ""}`.slice(0, 4000);
+      const boards = activeProjects().filter((ap) => fs.existsSync(path.join(ROOT, ".tmp", ap, "board.json")));
+      const ap = boards.find((x) => txt.toLowerCase().includes(x.toLowerCase())) ?? (boards.length === 1 ? boards[0] : null);
+      const lane = /غلاف|cover|thumbnail/i.test(txt) ? "cover" : /بحث|تحقق|شاملة|research|verif|hadith|shamela/i.test(txt) ? "research" : /عنصر|عناصر|element|effect|mosaic|build/i.test(txt) ? "elements" : null;
+      if (ap && lane) spawnSync("node", ["tools/montage_kickoff.mjs", "lane", ap, lane, "start"], { cwd: ROOT, encoding: "utf8", timeout: 4000 });
+    } catch { /* never block */ }
+    process.exit(0);
+  }
+  /* TIME BOX (user 2026-11-20, gta6: 15 minutes on one click at a cut join, alone, while nothing else ran; six refused element batches in a row).
+     A blocker = a gate failure of a montage tool. 3 failures, or 6 minutes since its first failure without a success, → a loud order to PARK it and go on with the
+     rest; it repeats (at most every 90 s) on every command until it is solved or parked (node tools/montage_kickoff.mjs park). And a lane that is ready and not
+     started for 2 minutes (the board) is named, at most every 3 minutes. */
+  if ((tool === "Bash" || tool === "PowerShell") && activeProjects().length) {
+    try {
+      const c = String(ti.command ?? ""), r = input.tool_response ?? {};
+      const outTxt = typeof r === "string" ? r : [r.stdout, r.stderr, r.output, typeof r.content === "string" ? r.content : ""].filter(Boolean).join("\n");
+      const p = projectOf(c) ?? projectOf(outTxt.slice(0, 4000));
+      if (!p) process.exit(0);
+      const KEYS = [
+        ["el", /✘ رُفض (الدفعة|إضافة|تعديل|حذف|نقل)|✘ plan-check|✘ لم تُطبَّق الدفعة/, /✔ طُبّقت الدفعة|✔ أُضيف|✔ عُدّل|✔ حُذف|✔ نُقل|✔ plan-check/, "عناصر الخطة"],
+        ["cut", /✘ audio_gate|\[cut\] FAILED/, /\[cut\] OK|audio_gate ✔/, "القص وبوابة الصوت"],
+        ["check", /\[check\] FAILED|✘ الحارس/, /\[check\] OK|✔ الحارس/, "الفحص"],
+        ["prep", /\[prep\] FAILED/, /\[prep\] OK/, "التجهيز"],
+        ["reel", /✘ لم يُبنَ الريل/, /✔ .*الريل/, "بناء الريل"],
+      ];
+      const tf = path.join(ROOT, ".tmp", p, "timebox.json"); let tb = {}; try { tb = JSON.parse(fs.readFileSync(tf, "utf8")); } catch { /* none */ }
+      const now = Date.now(); let changed = false, newFail = null;
+      for (const [k, bad, good, ar] of KEYS) {
+        if (good.test(outTxt) && !bad.test(outTxt)) { if (tb[k]) { delete tb[k]; changed = true; } continue; }
+        if (bad.test(outTxt)) { const e = tb[k] ?? { n: 0, first: now, ar }; e.n++; e.last = now; e.msg = (outTxt.split(/\r?\n/).find((l) => bad.test(l)) ?? "").trim().slice(0, 200); delete e.parked; tb[k] = e; changed = true; newFail = k; }
+      }
+      const msgs = [];
+      for (const [k, e] of Object.entries(tb)) {
+        if (e.parked) continue;
+        const age = (now - e.first) / 60e3;
+        if ((e.n >= 3 || age >= 6) && (k === newFail || now - (e.nagAt ?? 0) > 90e3)) {
+          msgs.push(`⛔ حدّ الوقت (أمر المستخدم 2026-11-20: «لا أقبل مونتاجاً يطول»): «${e.ar}» فشل ${e.n} مرات خلال ${age.toFixed(1)} دقيقة (آخرها: ${e.msg}). توقف عن محاولته الآن: اركنه بـ node tools/montage_kickoff.mjs park ${p} "${e.ar}: …" أو أعطه وكيلاً في الخلفية، واعمل فوراً على غيره (اللوحة: node tools/montage_kickoff.mjs board ${p}). وقل للمستخدم سطراً بما ركنتَ.${k === "el" ? " للعناصر: node tools/el_rules.mjs rules <العناصر> ثم plan-check مرة واحدة بالخطة كلها." : ""}`);
+          e.nagAt = now; changed = true;
+        }
+      }
+      if (changed) { fs.mkdirSync(path.dirname(tf), { recursive: true }); fs.writeFileSync(tf, JSON.stringify(tb, null, 1)); }
+      // the board: a lane ready and not started (at most every 3 minutes)
+      const bf = path.join(ROOT, ".tmp", p, "board.json"), nf = path.join(ROOT, ".tmp", p, "nudge_at");
+      let last = 0; try { last = Number(fs.readFileSync(nf, "utf8")) || 0; } catch { /* first */ }
+      if (fs.existsSync(bf) && now - last > 3 * 60e3) {
+        fs.writeFileSync(nf, String(now));
+        const n = spawnSync("node", ["tools/montage_kickoff.mjs", "board", p, "--nudge"], { cwd: ROOT, encoding: "utf8", timeout: 4000 });
+        if ((n.stdout || "").trim()) msgs.push(n.stdout.trim());
+      }
+      if (msgs.length) emit({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: msgs.join("\n") } });
+    } catch { /* the time box never breaks a command */ }
   }
   process.exit(0);
 }

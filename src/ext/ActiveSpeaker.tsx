@@ -12,7 +12,7 @@ import { back } from "./PaperSteps";
  */
 export const ACTIVE_FRAMES = 1080; // 36 ثانية
 const W = 1080, H = 1920;
-const C = { cream: "#ece3d3", maroon: "#6b1b2b", teal: "#1f6b66", ink: "#2a1518" };
+export const C = { cream: "#ece3d3", maroon: "#6b1b2b", teal: "#1f6b66", ink: "#2a1518" };
 
 /* مسار الصورة: [زمن بالثواني، يسار، أعلى، عرض، ارتفاع] */
 const KF: number[][] = [
@@ -34,19 +34,19 @@ const KF: number[][] = [
   [32.5, 270, 120, 540, 960],
   [40.0, 270, 120, 540, 960],
 ];
-const frameBox = (t: number): number[] => {
-  for (let i = 0; i < KF.length - 1; i++) {
-    const a = KF[i], b = KF[i + 1];
+export const frameBox = (t: number, kf: number[][] = KF): number[] => {
+  for (let i = 0; i < kf.length - 1; i++) {
+    const a = kf[i], b = kf[i + 1];
     if (t >= a[0] && t < b[0]) {
       const k = easeInOut((t - a[0]) / (b[0] - a[0]));
       return [1, 2, 3, 4].map((j) => lerp(a[j], b[j], k));
     }
   }
-  return KF[KF.length - 1].slice(1);
+  return kf[kf.length - 1].slice(1);
 };
 
 /** كلمة تدخل بوهج وانكماش ثم تخرج بالتلاشي */
-const Word: React.FC<{ at: number; out?: number; x: number; y: number; w?: number; size: number; text: string; color?: string; shadow?: string; font?: Parameters<typeof ff>[0]; stretch?: number }> = ({ at, out, x, y, w = 1080, size, text, color = C.cream, shadow = C.maroon, font = "rakkas", stretch = 0 }) => {
+export const Word: React.FC<{ at: number; out?: number; x: number; y: number; w?: number; size: number; text: string; color?: string; shadow?: string; font?: Parameters<typeof ff>[0]; stretch?: number }> = ({ at, out, x, y, w = 1080, size, text, color = C.cream, shadow = C.maroon, font = "rakkas", stretch = 0 }) => {
   const t = useCurrentFrame() / 30;
   if (t < at || (out !== undefined && t >= out)) return null;
   const k = back((t - at) / 0.22, 1.6);
@@ -57,7 +57,7 @@ const Word: React.FC<{ at: number; out?: number; x: number; y: number; w?: numbe
 };
 
 /** خط يُرسم بين نقطتين (يصل الكلمة بالصورة) */
-const Line: React.FC<{ at: number; x1: number; y1: number; x2: number; y2: number }> = ({ at, x1, y1, x2, y2 }) => {
+export const Line: React.FC<{ at: number; x1: number; y1: number; x2: number; y2: number }> = ({ at, x1, y1, x2, y2 }) => {
   const t = useCurrentFrame() / 30;
   const k = easeOut((t - at) / 0.4);
   if (t < at || t > at + 1.2) return null;
@@ -73,19 +73,19 @@ const BOX_KF: number[][] = [
   [25.2, 240, 1400, 600, 150],
   [26.0, 240, 1400, 600, 150],
 ];
-const MovingBox: React.FC = () => {
+export const MovingBox: React.FC<{ kf?: number[][]; until?: number }> = ({ kf = BOX_KF, until = 26.0 }) => {
   const t = useCurrentFrame() / 30;
-  if (t < BOX_KF[0][0] || t >= 26.0) return null;
-  let [x, y, w, h] = BOX_KF[BOX_KF.length - 1].slice(1);
-  for (let i = 0; i < BOX_KF.length - 1; i++) {
-    const a = BOX_KF[i], b = BOX_KF[i + 1];
+  if (t < kf[0][0] || t >= until) return null;
+  let [x, y, w, h] = kf[kf.length - 1].slice(1);
+  for (let i = 0; i < kf.length - 1; i++) {
+    const a = kf[i], b = kf[i + 1];
     if (t >= a[0] && t < b[0]) {
       const k = easeInOut((t - a[0]) / (b[0] - a[0]));
       [x, y, w, h] = [1, 2, 3, 4].map((j) => lerp(a[j], b[j], k));
       break;
     }
   }
-  const draw = easeOut((t - BOX_KF[0][0]) / 0.5);
+  const draw = easeOut((t - kf[0][0]) / 0.5);
   return (
     <div style={{ position: "absolute", left: x, top: y, width: w, height: h, border: `7px solid ${C.maroon}`, borderRadius: 14, boxSizing: "border-box", clipPath: `inset(0 ${(1 - draw) * 100}% 0 0)`, boxShadow: "0 8px 18px rgba(0,0,0,.25)" }} />
   );
@@ -97,7 +97,7 @@ const MovingBox: React.FC = () => {
  *  grow = خط عمودي رفيع في الوسط يتسع إلى مستطيل ثم إلى الشاشة كلها، بميل يستقيم؛
  *  none = بلا دخول (تنكشف حين تخرج التي فوقها)؛
  *  exitUp = الكاميرا تنزل: الشاشة تخرج إلى أعلى بضبابية حركة في آخر ٠٫٣٥ ث. */
-const SlideScreen: React.FC<{ at: number; until: number; color: string; out?: boolean; enter?: "iris" | "grow" | "none"; ox?: number; oy?: number; exitUp?: boolean; children: React.ReactNode }> = ({ at, until, color, out, enter = "none", ox = 140, oy = 1700, exitUp, children }) => {
+export const SlideScreen: React.FC<{ at: number; until: number; color: string; out?: boolean; enter?: "iris" | "grow" | "none"; ox?: number; oy?: number; exitUp?: boolean; children: React.ReactNode }> = ({ at, until, color, out, enter = "none", ox = 140, oy = 1700, exitUp, children }) => {
   const t = useCurrentFrame() / 30;
   if (t < at || t >= until) return null;
   const u = t - at;
@@ -122,20 +122,20 @@ const SlideScreen: React.FC<{ at: number; until: number; color: string; out?: bo
     </div>
   );
 };
-const Counter: React.FC<{ at: number; to: number }> = ({ at, to }) => {
+export const Counter: React.FC<{ at: number; to: number }> = ({ at, to }) => {
   const t = useCurrentFrame() / 30;
   if (t < at) return null;
   const n = Math.round(to * easeOut((t - at) / 1.4));
   return <div style={{ position: "absolute", left: 0, width: W, top: 460, textAlign: "center", fontFamily: ff("rakkas"), fontSize: 240, color: C.cream, textShadow: `10px 10px 0 ${C.ink}`, direction: "rtl" }}>{n.toLocaleString("ar-EG")} ساعة</div>;
 };
-const Bar: React.FC<{ at: number; i: number; text: string }> = ({ at, i, text }) => {
+export const Bar: React.FC<{ at: number; i: number; text: string }> = ({ at, i, text }) => {
   const t = useCurrentFrame() / 30;
   if (t < at) return null;
   const k = back((t - at) / 0.3, 1.4);
   const col = [C.maroon, C.cream, C.ink, C.maroon][i];
   return <div style={{ position: "absolute", left: 140 + (1 - Math.min(1, k)) * 900, top: 1640 - i * 150, width: 800, height: 120, background: col, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: ff("ruqaa"), fontSize: 80, color: col === C.cream ? C.ink : C.cream, boxShadow: "0 10px 20px rgba(0,0,0,.3)", direction: "rtl" }}>{text}</div>;
 };
-const Button: React.FC<{ at: number }> = ({ at }) => {
+export const Button: React.FC<{ at: number }> = ({ at }) => {
   const t = useCurrentFrame() / 30;
   if (t < at) return null;
   const k = back((t - at) / 0.3, 2.2), pulse = 1 + 0.04 * Math.sin((t - at) * 6);

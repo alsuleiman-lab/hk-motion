@@ -85,9 +85,24 @@ timing.bundleSec = (Date.now() - t) / 1000;
 if (!process.env.GR_KEEP_BUNDLE && !KEEP) process.on("exit", () => { try { fs.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
 /* --props '<json>' (or env RENDER_PROPS): the composition's own input props (silent reactions, probes…), under the renderer's own keys */
 const PROPS = (() => { const s = arg("props", null); const j = s && s !== true ? s : process.env.RENDER_PROPS; try { return j ? JSON.parse(j) : {}; } catch { console.error("--props is not valid JSON"); process.exit(1); } })();
-const inputProps = { ...PROPS, hybrid: "top", hybridPort: GEOM_PORT, hybridLayers: true };   /* hybridLayers: <HyLayer>/<VSlot z> active (GPU renderer only) */
+/* BUMPER INSIDE THE MONTAGE (user 2026-11-20: «ما يضاف في طابور الرندر هو يضاف في المونتاج، يعني يضاف داخل المونتاج»): spec.bumper {id, at | end} is drawn by
+   the composition itself (src/MontageSpec.tsx, input prop withBumper) exactly as the Studio shows it — the render renders the montage, it splices nothing.
+   A full render turns it on; a partial range (--start/--end/--frames) keeps the plain cut timeline of the check tools unless --with-bumper is given. */
+const BSPEC_ID = [arg("spec", null), arg("name", null)].find((x) => x && x !== true) ?? projectOfComp(compId);
+const BSPEC = (() => { try { return BSPEC_ID ? JSON.parse(fs.readFileSync(path.join(root, "data/specs", `${BSPEC_ID}.json`), "utf8")) : null; } catch { return null; } })();
+const BUMP = (() => {
+  const b = BSPEC?.bumper; if (!b || b.position === "none" || BSPEC.kind === "reel" || process.env.BUMPER_POSITION === "none" || process.argv.includes("--no-bumper")) return null;
+  if (["--start", "--end", "--frames"].some((a) => process.argv.includes(a)) && !process.argv.includes("--with-bumper")) return null;
+  let man = null; try { man = JSON.parse(fs.readFileSync(path.join(root, "public/fawasel/manifest.json"), "utf8")).bumpers.find((x) => x.id === b.id); } catch { /* none */ }
+  if (!man) { log(`✘ spec.bumper has no known id («${b.id ?? ""}»): write it in the montage (node tools/bumper_at.mjs ${BSPEC_ID} --write) — the old after-render splice is used this time`); return null; }
+  const end = !!b.end || b.position === "end"; if (!end && typeof b.at !== "number") return null;
+  return { id: b.id, title: man.title, seconds: 5, at: end ? null : b.at, end, G: end ? BSPEC.frames : Math.round(b.at * 30), N: 150 };
+})();
+const inputProps = { ...PROPS, hybrid: "top", hybridPort: GEOM_PORT, hybridLayers: true, ...(BUMP ? { withBumper: true } : {}) };   /* hybridLayers: <HyLayer>/<VSlot z> active (GPU renderer only) */
 const composition = await selectComposition({ serveUrl, id: compId, inputProps, chromiumOptions: { gl: "angle" } });
 const W = composition.width, H = composition.height, FPS = composition.fps;
+if (BUMP) { if (composition.durationInFrames !== BSPEC.frames + BUMP.N) { console.error(`✘ ${compId} is ${composition.durationInFrames} frames, the montage + its bumper should be ${BSPEC.frames + BUMP.N}: the composition did not take the bumper in — not rendered`); process.exit(1); }
+  log(`bumper inside the montage: «${BUMP.title}» frames ${BUMP.G}-${BUMP.G + BUMP.N - 1} (${BUMP.end ? "at the end" : `at ${BUMP.at}s of the cut`})`); }
 /* NVENC H.264 refuses tiny frames (measured 2026-11-13: 140×140 "Frame Dimension less than the minimum"): such a composition is an image asset — a still */
 if (W < 160 || H < 160) { console.error(`✘ ${compId} is ${W}×${H}: too small for the NVENC video encoder — it is an image asset; render it as a still (node tools/stills.mjs ${compId} <dir> x:0 --scale 1)`); process.exit(2); }
 /* --frames "f,f,…" --frames-dir <dir> (2026-11-13): only these scattered frames, each written as a PNG (gp_<frame>.png) into the dir — no video, no audio (check sheets) */
@@ -172,7 +187,9 @@ const underArg = (() => {
   if (process.argv.includes("--under")) return String(arg("under", "") === true ? "" : arg("under", ""));
   try { const pj = projectOfComp(compId); if (!pj) return ""; const r = spawnSync(process.execPath, ["tools/window_frames.mjs", pj, "under", /-L$|Both/i.test(compId) ? "L" : "R"], { encoding: "utf8", cwd: root }); return r.status === 0 ? r.stdout.trim().split(/\s+/).pop() ?? "" : ""; } catch { return ""; }
 })();
-const UNDER = String(underArg).split(",").filter(Boolean).map((r) => r.split("-").map(Number)).map(([a, b]) => [Math.max(a, start), Math.min(b, end)]).filter(([a, b]) => b >= a);
+/* the under-him windows are frames of the CUT timeline (tools/window_frames.mjs): with the bumper inside the montage every frame from G on moves by 150 */
+const bShift = ([a, b]) => (!BUMP || BUMP.end || b < BUMP.G ? [[a, b]] : a >= BUMP.G ? [[a + BUMP.N, b + BUMP.N]] : [[a, BUMP.G - 1], [BUMP.G + BUMP.N, b + BUMP.N]]);
+const UNDER = String(underArg).split(",").filter(Boolean).map((r) => r.split("-").map(Number)).flatMap(bShift).map(([a, b]) => [Math.max(a, start), Math.min(b, end)]).filter(([a, b]) => b >= a);
 const NU = UNDER.reduce((n, [a, b]) => n + b - a + 1, 0);
 if (NU) log(`under-him layer: ${NU} frames (${UNDER.map(([a, b]) => a + "-" + b).join(", ")})`);
 const LEVELS = Math.max(0, Number(arg("levels", 3)) || 0);
@@ -331,7 +348,21 @@ logProgress(`DONE ${out}`);
      put a random bumper at the END of mufti-hiraba although the montage had it at 0:44 */
   else if (!bEnv.BUMPER_POSITION) { bEnv.BUMPER_POSITION = "none"; if (spec && !["paper", "ad", "explainer", "cartoon"].includes(spec?.kind)) log("✘ no spec.bumper: the montage has no bumper — none added (write it: node tools/bumper_at.mjs <p> --write, check it in the Studio)"); }
   if (bEnv.BUMPER_POSITION === "none" && !partial) log("bumper: none (spec.bumper / kind) — no bumper added");
-  if (!partial && bEnv.BUMPER_POSITION !== "none" && !compId.startsWith("Fasel-") && !/^(Stick|Dodo)-/.test(compId) && !process.argv.includes("--no-bumper")) {
+  if (BUMP) {   /* the bumper is already in the montage: nothing spliced. For the gates (final_review, judder on the bumper-free picture) the same record
+                   prepend_bumper wrote, and the bumper-free copy the judder gate reads (.tmp/bumper_orig/<file>) */
+    if (!partial) {
+      const name = String(arg("name", path.basename(out, path.extname(out)))), keepDir = path.join(root, ".tmp", "bumper_orig"); fs.mkdirSync(keepDir, { recursive: true });
+      const orig = path.join(keepDir, path.basename(out)), a0 = BUMP.G / FPS, a1 = (BUMP.G + BUMP.N) / FPS;
+      const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-i", out, "-vf", `select='not(between(n,${BUMP.G},${BUMP.G + BUMP.N - 1}))',setpts=N/FRAME_RATE/TB`, "-af", `aselect='not(between(t,${a0},${a1 - 1e-4}))',asetpts=N/SR/TB`,
+        "-c:v", "h264_nvenc", "-preset", "p5", "-cq", "18", "-c:a", "aac", "-b:a", "192k", orig], { cwd: root, stdio: "inherit" });
+      if (r.status !== 0) log("✘ bumper-free check copy failed: the judder gate will read the full file");
+      const { contentId } = await import("./cut_model.mjs");
+      const gate = path.join(root, ".tmp", "gates", `${name}.bumper.json`); fs.mkdirSync(path.dirname(gate), { recursive: true });
+      fs.writeFileSync(gate, JSON.stringify({ id: BUMP.id, title: BUMP.title, seconds: BUMP.seconds, originalSize: r.status === 0 ? fs.statSync(orig).size : null, originalId: r.status === 0 ? contentId(orig) : null, size: fs.statSync(out).size, at: BUMP.end ? +(BSPEC.frames / FPS).toFixed(3) : BUMP.at, position: BUMP.end ? "end" : "start", inMontage: true, date: new Date().toISOString() }, null, 2));
+      try { const mf = path.join(root, "public/fawasel/manifest.json"), d = JSON.parse(fs.readFileSync(mf, "utf8")); d.last = BUMP.id; fs.writeFileSync(mf, JSON.stringify(d, null, 2) + "\n"); } catch { /* ignore */ }
+      log(`bumper: rendered inside the montage («${BUMP.title}» at ${BUMP.end ? "the end" : BUMP.at + "s"}); gate ${path.relative(root, gate)}`);
+    }
+  } else if (!partial && bEnv.BUMPER_POSITION !== "none" && !compId.startsWith("Fasel-") && !/^(Stick|Dodo)-/.test(compId) && !process.argv.includes("--no-bumper")) {
     /* render_job.sh sets BUMPER_AT (seconds: before his first greeting, tools/bumper_at.mjs) and BUMPER_ID (the bumper chosen for this project); BUMPER_POSITION=end is read by prepend_bumper itself — same arguments as hybrid_any */
     spawnSync("node", ["tools/prepend_bumper.mjs", out, "--name", String(arg("name", path.basename(out, path.extname(out)))),
       ...(Number(bEnv.BUMPER_AT) > 0 ? ["--at", String(bEnv.BUMPER_AT)] : []), ...(bEnv.BUMPER_ID ? ["--id", bEnv.BUMPER_ID] : [])], { cwd: root, stdio: "inherit", env: { ...process.env, ...bEnv } });

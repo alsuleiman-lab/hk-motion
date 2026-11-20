@@ -35,7 +35,7 @@ import type { PickAllName as PickName } from "./PickKit2";
 import type { BrandName } from "./brand";
 import { MaskedVideo } from "./MaskedVideo";
 import { DEBATE_LAYOUTS, CalcPaperFlow } from "./DebateLayouts";
-import { HybridHost, HybridBg, VSlot, HY, HYL, HyLayer, HyLevel, hyBg, UnderHim, GradeCtx } from "./hybrid/Slot";
+import { HybridHost, HybridBg, VSlot, HY, HYL, HyLayer, HyLevel, hyBg, UnderHim, GradeCtx, HyFrameOffset } from "./hybrid/Slot";
 import { gradeMatrix, isNeutralGrade, svgValues } from "./gradeMatrix";
 import type { PortIso } from "./GazaFx";
 import type { DebateLayoutName } from "./DebateLayouts";
@@ -783,11 +783,13 @@ const withHalfWays = (s: MontageSpec): MontageSpec => {
    Studio shows the same thing: the talk stops at `at`, the bumper plays 5 s with its sound, then the talk goes on. Composition frames in Studio = spec.frames + 150. */
 const FAWASEL: Record<string, { file: string; fileP: string }> = { press: { file: "fawasel/fasel_press.mp4", fileP: "fawasel/fasel_press_p.mp4" }, shelf: { file: "fawasel/fasel_shelf.mp4", fileP: "fawasel/fasel_shelf_p.mp4" }, wall: { file: "fawasel/fasel_wall.mp4", fileP: "fawasel/fasel_wall_p.mp4" }, notebook: { file: "fawasel/fasel_notebook.mp4", fileP: "fawasel/fasel_notebook_p.mp4" }, tear: { file: "fawasel/fasel_tear.mp4", fileP: "fawasel/fasel_tear_p.mp4" } };
 /* (user 2026-11-18 and again 2026-11-20: «الفاصل يُضاف في المونتاج في مواضعه، ولا علاقة لطابور الرندر به»، «هذا لازم يضاف من قبلك وليس من قبل الرندر»)
-   the bumper is a MONTAGE decision (spec.bumper, seen here in the Studio); tools/gpu_render.mjs only obeys it (never a default of its own) and splices
-   the same file at the same second. Input prop withBumper draws it inside the composition (GPU-ready: VSlot + Audio) for a future in-composition
-   render; every check tool (peek, face check, frames) keeps the plain cut timeline (no prop = no bumper) */
+   the bumper is PART OF THE MONTAGE (spec.bumper {id, at | end/position}): the Studio shows it, and the final render (tools/gpu_render.mjs passes the input
+   prop withBumper for a full render) renders it HERE, inside the composition, exactly where the Studio shows it — no splicing after the render.
+   Every check tool (peek, face check, frames, partial ranges) keeps the plain cut timeline (no prop = no bumper). */
 const withBumperProp = () => { try { return !getRemotionEnvironment().isPlayer && !!(getInputProps() as { withBumper?: boolean }).withBumper; } catch { return false; } };
-const studioBumper = (s: MontageSpec) => { const b = (s as { bumper?: { id: string; at: number; end?: boolean } }).bumper; return (getRemotionEnvironment().isStudio || withBumperProp()) && b && (b.at >= 1 || b.end) && FAWASEL[b.id] && (s as { kind?: string }).kind !== "reel" ? b : null; };
+/** the montage's bumper, normalised: { id, at (s), end } — position "end" (render_job style) = after the last frame; "none" = no bumper */
+export const specBumper = (s: MontageSpec) => { const b = (s as { bumper?: { id?: string; at?: number; end?: boolean; position?: string } }).bumper; if (!b || b.position === "none" || !b.id || !FAWASEL[b.id] || (s as { kind?: string }).kind === "reel") return null; const end = !!b.end || b.position === "end"; return end || (Number.isFinite(b.at) && (b.at as number) >= 0) ? { id: b.id, at: end ? 0 : (b.at as number), end } : null; };
+const studioBumper = (s: MontageSpec) => ((getRemotionEnvironment().isStudio || withBumperProp()) ? specBumper(s) : null);
 export const specFrames = (s: MontageSpec) => s.frames + (studioBumper(s) ? 150 : 0);
 /** `muted`: no sound from this copy (the side-by-side preview, src/MontageBoth.tsx, plays the sound from one side only) */
 const MontageFromSpecInner: React.FC<{ spec: MontageSpec; muted?: boolean }> = ({ spec, muted }) => {
@@ -801,8 +803,8 @@ const MontageFromSpecInner: React.FC<{ spec: MontageSpec; muted?: boolean }> = (
           the first cut off at the bumper (endAt), the second starting at the same second after it */}
       {G > 0 ? <Sequence durationInFrames={G}><MontageFromSpecBody spec={spec} muted={muted} noCutAudio /></Sequence> : null}
       {G > 0 && spec.cut ? <Audio key="voiceA" src={staticFile(spec.cut)} volume={(v) => (v < G ? 0.8 : 0)} muted={muted || fr >= G} /> : null}   {/* no endAt either (it wraps the tag in a Sequence that ends): it stays mounted, so the Studio keeps steering (and silencing) it */}
-      <Sequence from={G} durationInFrames={150}><AbsoluteFill style={{ background: "#000" }}>{HY ? <><VSlot src={width > height ? f.file : f.fileP} w={width} h={height} /><Audio src={staticFile(width > height ? f.file : f.fileP)} muted={muted} /></> : <Video muted={muted} src={staticFile(width > height ? f.file : f.fileP)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</AbsoluteFill></Sequence>   {/* GPU render: the bumper decoded on the GPU, its sound as an audio asset */}
-      <Sequence from={G + 150}><Sequence from={-G}><MontageFromSpecBody spec={spec} muted={muted} noCutAudio /></Sequence></Sequence>
+      <Sequence from={G} durationInFrames={150}><HyFrameOffset.Provider value={G}><HybridHost><AbsoluteFill style={{ background: hyBg("#000") }}>{HY ? <><VSlot src={width > height ? f.file : f.fileP} w={width} h={height} fit="cover" grow={0} /><Audio src={staticFile(width > height ? f.file : f.fileP)} muted={muted} /></> : <Video muted={muted} src={staticFile(width > height ? f.file : f.fileP)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</AbsoluteFill></HybridHost></HyFrameOffset.Provider></Sequence>   {/* GPU render: its own HybridHost (the body's is unmounted here) reports the bumper video to the compositor; the black backdrop vanishes in the top layer; its sound is an audio asset like any <Audio> */}
+      <Sequence from={G + 150}><Sequence from={-G}><HyFrameOffset.Provider value={150}><MontageFromSpecBody spec={spec} muted={muted} noCutAudio /></HyFrameOffset.Provider></Sequence></Sequence>
       {spec.cut ? <Sequence key="voiceB" from={G + 150}><Audio src={staticFile(spec.cut)} startFrom={G} volume={0.8} muted={muted || fr < G + 150} /></Sequence> : null}
     </>
   );

@@ -41,9 +41,12 @@ const flush = (frame: number) => {
   }
 };
 
+/** (2026-11-20, bumper inside the montage) a HybridHost inside a <Sequence> sees the Sequence's RELATIVE frame, but the GPU renderer waits for the geometry
+ *  of the ABSOLUTE frame: the offset (absolute − relative) of the Sequence that holds it. 0 = the host sits at the composition's top level. */
+export const HyFrameOffset = React.createContext(0);
 /** outermost element of a hybrid-capable composition */
 export const HybridHost: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const frame = useCurrentFrame();
+  const frame = useCurrentFrame() + React.useContext(HyFrameOffset);
   if (HY === "top" && G.frame !== frame) { G.frame = frame; G.slots = new Map(); G.under = false; }
   useLayoutEffect(() => {
     if (HY !== "top") return;

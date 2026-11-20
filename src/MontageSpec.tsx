@@ -40,6 +40,7 @@ import { gradeMatrix, isNeutralGrade, svgValues } from "./gradeMatrix";
 import type { PortIso } from "./GazaFx";
 import type { DebateLayoutName } from "./DebateLayouts";
 import { BgClip, HClip, Watermark, FxStage, HorrorVeil, TailFade, TvOff, WeightsOnBack } from "./GazaFx";
+import { MosaicCover } from "./ext/MosaicCover";
 
 /**
  * MontageSpec — a montage as DATA (idea of the user, 2026-10-26: «write each element once, copy it from a database, change one place and everything follows»).
@@ -141,6 +142,9 @@ export type SpecItem = Common & (
   | { t: "tvoff"; at: number; dur?: number }
   /** full-screen «الأوزار على ظهره» scene (src/GazaFx.tsx WeightsOnBack; user order inside «فضل شاكر», 2026-11-10) */
   | { t: "weights"; at: number; until: number; fig: string; crowd: string; n?: number }
+  /** full-screen «الفسيفساء تتجمع غلافاً» (src/ext/MosaicCover.tsx; the sheikh's order inside gta6, 2026-11-20): nine puzzle pieces of the cover `src`, each with its word,
+   *  arrive at the seconds of `words`, assemble, a lightning flash at `flashAt` wipes the words, the clean cover stays until `until` */
+  | { t: "mosaic"; at: number; until: number; words: { text: string; at: number }[]; src: string; ar?: number; flashAt?: number; sound?: boolean; soundVol?: number }
   /** the gallery BrushX: a red hand-brushed X over a picture he rejects (user 2026-11-10: «حط عليها اكس»); x/y/w/h are landscape px of the picture */
   | { t: "brushx"; at: number; x: number; y: number; w: number; h: number; until?: number }
   | { t: "stamp"; at: number; until?: number; text: string; x?: number; y?: number; size?: number; land?: { x?: number; y?: number } }
@@ -665,7 +669,7 @@ const MiniMe: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; 
 };
 
 /** every item type the renderer knows (= the elements approved in the gallery); anything else is an error, never silently skipped (user 2026-10-28) */
-const APPROVED_TYPES = new Set(["word", "pick", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "hadith", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date", "note", "bgclip", "hclip", "wm", "zoomblend", "horror", "tvoff", "brushx", "peek", "weights", "stamp", "scenefx"]);
+const APPROVED_TYPES = new Set(["word", "pick", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "hadith", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date", "note", "bgclip", "hclip", "wm", "zoomblend", "horror", "tvoff", "brushx", "peek", "weights", "stamp", "scenefx", "mosaic"]);
 
 /** one item's placement data (dx, dy, k): moved by (dx, dy) and scaled by k about the CENTRE OF WHAT IT DRAWS, measured once on screen
  *  (user 2026-11-09: «التكبير لم يعمل» — a fixed origin pushed left-column / top elements out of the frame); ox / oy, when given, win */
@@ -945,6 +949,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutA
       {o === "land" ? [...new Set([...hclips.flatMap((x) => hclips.filter((y) => y !== x && y.from - x.to > -0.01 && y.from - x.to < 1).map((y) => (x.to + y.from) / 2)), /* no curtain when a background clip ends or an isolation window (moved or not) starts/ends: the isolation just goes away (user 2026-11-11) */].map((v) => +v.toFixed(2)))].map((t) => <Curtain key={"gc" + t} at={t} />) : null}
       {horrors.length ? <HorrorVeil windows={horrors} /> : null}
       {mine("weights").map((x, i) => <WeightsOnBack key={"wt" + i} at={x.at} until={x.until} fig={x.fig} crowd={x.crowd} n={x.n} />)}
+      {mine("mosaic").map((x, i) => <MosaicCover key={"mo" + i} at={x.at} until={x.until} words={x.words} src={x.src} ar={x.ar} flashAt={x.flashAt} sound={x.sound} soundVol={x.soundVol} muted={muted} />)}
       {mine("tvoff").map((x, i) => <TvOff key={"tv" + i} at={x.at} dur={x.dur} />)}
       {cover && cover.style === "image" && f < THUMBPRO_END ? <PaperTear from={3} to={THUMBPRO_TEAR_END} sheet={<AbsoluteFill style={{ background: "#0d0f14" }}>{o === "land" ? null : <Img src={staticFile(cover.srcPort ?? cover.src)} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "blur(40px) brightness(.55)", transform: "scale(1.2)" }} />}<Img src={staticFile(o === "land" ? cover.src : (cover.srcPort ?? cover.src))} style={o === "land" ? { width: "100%", height: "100%", objectFit: "cover" } : { position: "absolute", left: 0, top: "50%", width: "100%", transform: "translateY(-50%)" }} /></AbsoluteFill>} /> : null}
       {cover && cover.style === "pro" && f < THUMBPRO_END ? <ThumbProOpen format={o === "land" ? "landscape" : "portrait"} tearOrder={cover.tearOrder} {...cover.pro} {...(o === "land" ? cover.proLand : {})} /> : null}

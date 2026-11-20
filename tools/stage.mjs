@@ -276,7 +276,12 @@ if (stage === "cut") {
      GPU path, uses the old chain below (cut, then the smoothing in the background). HK_SMOOTH=0 skips the duplicate-frame repair (the cut is then the frames of the recording exactly). */
   let merged = false;
   if (!process.env.CUT_BUILD_OLD) {
-    const gb = spawnSync("C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe", ["tools/cut_build_gpu.py", src, mapF, cutS, "--audio-from", wavClean, "--proxy", ...(process.env.HK_SMOOTH === "0" ? ["--no-smooth"] : [])], { encoding: "utf8", windowsHide: true, maxBuffer: 1 << 26 });
+    /* (user 2026-11-19: «ألا يمكن أن تنقل هذه إلى كرت الشاشة») the fall back to the CPU chain was one quiet «⚠» line: now its output goes to the stage log, a failure
+       in the middle of the pass (busy card, out of memory…) is tried ONCE more, and the fall back is a loud «✘» on stderr and in the log with the reason */
+    const gpuBuild = () => { log(`$ cut_build_gpu.py ${src} ${mapF} ${cutS}`); const r = spawnSync("C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe", ["tools/cut_build_gpu.py", src, mapF, cutS, "--audio-from", wavClean, "--proxy", ...(process.env.HK_SMOOTH === "0" ? ["--no-smooth"] : [])], { encoding: "utf8", windowsHide: true, maxBuffer: 1 << 26 }); log((r.stdout || "") + (r.stderr || "")); return r; };
+    const why = (r) => [(r.stdout || "").trim().split("\n").filter((l) => /^cut_build_gpu/.test(l)).slice(-2).join(" | "), r.error ? r.error.message : "", (r.stderr || "").trim().split("\n").filter(Boolean).slice(-2).join(" | ")].filter(Boolean).join(" | ") || "exit " + r.status;
+    let gb = gpuBuild();
+    if (gb.status !== 0 && !/GPU path unavailable/.test(gb.stdout || "")) { say(`⚠ the one-pass GPU build failed (${why(gb)}) — trying it once more`); gb = gpuBuild(); }
     const sum = (gb.stdout || "").trim().split("\n").filter((l) => /^cut_build_gpu/.test(l)).slice(-2).join(" | ");
     if (gb.status === 0) {
       merged = true; say(sum);
@@ -286,7 +291,7 @@ if (stage === "cut") {
         const ta = path.join(T, "cut_audio.wav"), r0 = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", wavClean, "-ar", "48000", "-c:a", "pcm_s16le", ta + ".part.wav"], { windowsHide: true });
         if (r0.status === 0) { fs.renameSync(ta + ".part.wav", ta); (await import("./cut_lazy.mjs")).markFresh(p); } else say("⚠ cut_audio.wav not written — the first lazy edit takes it from the cut video");
       } catch (e) { say(`⚠ lazy state not written: ${e.message}`); }
-    } else say(`⚠ the one-pass GPU build was not used (${sum || "exit " + gb.status}) → the old chain: cut, then smoothing in the background`);
+    } else { const m = `✘ GPU CUT BUILD FAILED → CPU FALLBACK: the one-pass GPU build (tools/cut_build_gpu.py) was not used — reason: ${why(gb)} (exit ${gb.status}). The OLD chain runs instead: a separate cut encode (tools/cut_edl.mjs), then tools/smooth_dups.py in the background (≈5 min more; on the processor if the card is unusable), no light Studio copy until check. Fix the GPU path.`; console.error(m); say(m); }
   }
   if (!merged) {
   try { fs.rmSync(cut, { force: true }); } catch { say(`⚠ ${cut} is held open (Studio?): rebuilt in place`); }

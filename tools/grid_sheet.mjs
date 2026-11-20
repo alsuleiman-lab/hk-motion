@@ -42,7 +42,8 @@ if (!argv.includes("--browser")) {
   }
 }
 if (!ok) {
-  const r = spawnSync("node", ["tools/stills.mjs", id, out, ...pts, "--scale", scale], { stdio: ["ignore", "ignore", "inherit"] });
+  /* --browser: here the engine was already tried above (or --browser was asked); stills.mjs would otherwise try the engine a second time (its default since 2026-11-20) */
+  const r = spawnSync("node", ["tools/stills.mjs", id, out, ...pts, "--scale", scale, "--browser"], { stdio: ["ignore", "ignore", "inherit"] });
   if (r.status !== 0) { console.error("stills failed"); process.exit(1); }
 }
 /* (2026-11-12) a sheet with frames missing passed as «OK» (2 of 18 drawn): every asked frame must exist, or the eye review did not happen */

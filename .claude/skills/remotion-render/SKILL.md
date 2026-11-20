@@ -146,7 +146,14 @@ For this Remotion workspace, follow `القواعد_العامة.md` و`شجرة
 Never run two renders at the same time (two videos, two orientations, or a video and its cover). Render strictly in sequence; if the user asks for parallel renders by mistake, warn them and decline. Check that no other render process is alive first, and kill a stopped batch's whole process tree. `tools/gpu_render.mjs` refuses to start while `.tmp/render.lock` holds a live PID (`tools/render_lock.mjs`); any new render script must use the same lock.
 
 ## اللقطات الثابتة
-- **عبر `stills.mjs` وحده:** `node tools/stills.mjs <id> <outDir> name:frame …` (متصفح واحد مشترك + حزمة مخزَّنة + أصول بالروابط الصلبة؛ التوازي أبطأ عندنا فالافتراضي إطار بعد إطار).
+- **عبر `stills.mjs` وحده:** `node tools/stills.mjs <id> <outDir> name:frame …`.
+- **على كرت الشاشة افتراضياً (2026-11-20، أمر المستخدم «ألا يمكن أن تنقل هذه إلى كرت الشاشة»):**
+  - يأخذ الإطارات من محرك الكرت (`gpu_render.mjs --frames … --frames-dir`)، وهي بكسلات الفيديو نفسها.
+  - الأسماء والمجلد والمقاس (`--scale`) كما كانت. والشفاف يخرج فوق أسود.
+  - إن فشل المحرك رجع إلى متصفح Remotion على المعالج بسطر تحذير صارخ «✘✘✘». هذا عطل يُصلَح، لا طريق عادي.
+  - `--browser` = المتصفح عمداً: المرجع عند مقارنة المحرك، أو PNG شفاف، أو أصل أصغر من 160 بكسل. وهو وحده يأخذ `--manifest`.
+  - المحرك يبني حزمته في كل مرة، فاللقطة الواحدة أبطأ من المتصفح بثوانٍ، لكن المعالج يرتاح.
+- **قصّ المرحلة (`stage.mjs`):** البناء الموحّد على الكرت (`cut_build_gpu.py`) يُعاد مرة إن فشل في وسطه. فإن فشل ثانية رجع إلى السلسلة القديمة بسطر «✘ GPU CUT BUILD FAILED → CPU FALLBACK» فيه السبب، على stderr وفي سجل المرحلة.
 
 ## التفصيل
 كل تفصيل هذه المهارة (الأرقام والجداول والأسماء الثابتة) في `references/detail.md` بجانبها، ملزم مثلها؛ يُبحث فيه بـGrep عند الحاجة.

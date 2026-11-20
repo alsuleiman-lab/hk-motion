@@ -31,9 +31,14 @@ if (EDL) process.env.HK_EDL_MAP = EDL.file;   // a FULL render is still one at a
 const PROJ = (await import("./lib/projdir.mjs")).projTmp(compId);   /* the project's own temporary folder: work frames and logs go there (user 2026-11-19) */
 const out = path.resolve(root, arg("out", `render_work/gpu/${compId}.mp4`));
 const logProgress = startMonitor(path.join(PROJ, "logs", `gpu_render_${compId}${process.argv.includes("--frames") ? "_frames" : ""}.log`), path.basename(out, path.extname(out)));   /* a frames run never overwrites the video render's log */
-const work = path.join(PROJ, "gpu_work", compId);   // in the project folder (was .tmp/gpu_render/work/<Comp>), 2026-11-19
+/* (2026-11-20) a --frames job (stills.mjs / grid_sheet.mjs, now on this engine by default) runs BESIDE a full render (render_lock small job): it must not wipe that
+   render's work folder or rebuild/delete its bundle — it gets its own of both, deleted when it ends */
+const FRAMES_JOB = process.argv.includes("--frames"), JOB_TAG = FRAMES_JOB ? `${compId}_frames_${process.pid}` : compId;
+const work = path.join(PROJ, "gpu_work", JOB_TAG);   // in the project folder (was .tmp/gpu_render/work/<Comp>), 2026-11-19
 fs.rmSync(work, { recursive: true, force: true });
 fs.mkdirSync(work, { recursive: true });
+{ const fd = arg("frames-dir", null);   /* a frames job's own work folder goes with it, whatever way it ends (unless its PNGs were asked inside it) */
+  if (FRAMES_JOB && fd && fd !== true && !path.resolve(root, String(fd)).startsWith(path.resolve(work) + path.sep)) process.on("exit", () => { try { fs.rmSync(work, { recursive: true, force: true }); } catch { /* a file still held: clean_temp takes it */ } }); }
 fs.mkdirSync(path.dirname(out), { recursive: true });
 const PORT_BASE = SMALL_JOB ? 47800 + 3 * Math.floor(Math.random() * 600) : 47751;   // a small job beside another render must not collide with its ports
 const CTL_PORT = Number(arg("ctl-port", PORT_BASE)), GEOM_PORT = Number(arg("geom-port", PORT_BASE + 1)), HTTP_PORT = Number(arg("http-port", PORT_BASE + 2));
@@ -78,7 +83,7 @@ const KEEP = arg("bundle", null);
    every file left in this comp's bundle folders is made writable first */
 const unlock = (d) => { try { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const q = path.join(d, e.name); if (e.isDirectory()) unlock(q); else if (e.isFile()) try { fs.chmodSync(q, 0o666); } catch { /* gone */ } } } catch { /* no folder */ } };
 for (const b of ["bundle_", "bundle_keep_"]) unlock(path.join(root, ".tmp/gpu_render", b + compId));
-const serveUrl = KEEP && KEEP !== true ? path.resolve(root, KEEP) : await bundle({ entryPoint: path.join(root, "src/index.ts"), rspack: true, publicDir: slim, outDir: path.join(root, ".tmp/gpu_render/" + (process.env.GR_KEEP_BUNDLE ? "bundle_keep_" : "bundle_") + compId), onProgress: () => {} });
+const serveUrl = KEEP && KEEP !== true ? path.resolve(root, KEEP) : await bundle({ entryPoint: path.join(root, "src/index.ts"), rspack: true, publicDir: slim, outDir: path.join(root, ".tmp/gpu_render/" + (process.env.GR_KEEP_BUNDLE ? "bundle_keep_" : "bundle_") + JOB_TAG), onProgress: () => {} });
 const linkVideos = (src, dst) => { for (const e of fs.readdirSync(src, { withFileTypes: true })) { const s2 = path.join(src, e.name), d2 = path.join(dst, e.name); if (e.isDirectory() || (e.isSymbolicLink() && fs.statSync(s2).isDirectory())) { fs.mkdirSync(d2, { recursive: true }); linkVideos(s2, d2); } else if (VID.test(e.name) && !fs.existsSync(d2)) { try { fs.linkSync(s2, d2); } catch (err) { log("link failed " + e.name + ": " + err.message); } } } };
 if (!KEEP) linkVideos(path.join(root, "public"), path.join(serveUrl, "public"));   // hard links: zero copy (audio assets of <Audio>/<Video> point into the bundle)
 timing.bundleSec = (Date.now() - t) / 1000;

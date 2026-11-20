@@ -13,8 +13,8 @@ import { Cue, SfxTrack } from "./sfx";
  * القطع حاد بين اللقطات (كل ١–١٫٥ ث في المرجع)، والضوء الذهبي يتنفّس فوق كل شيء، والكتابة تحت الوجه دائماً.
  */
 export type CineWordSpec = { at: number; text?: string; stretch?: [string, string]; size: number; font?: FontKey; gold?: boolean };
-export type CineLine = { y: number; until: number; words: CineWordSpec[] };
-export type CineShot = { a: number; b: number; kind: "speaker" | "page" | "rosette" | "cover" | "image"; img?: string; bw?: boolean; zoom?: number; shift?: number; lines: CineLine[] };
+export type CineLine = { y: number; until: number; words: CineWordSpec[]; deco?: "line" | "box" | "flicker"; decoAt?: number };
+export type CineShot = { a: number; b: number; kind: "speaker" | "page" | "rosette" | "cover" | "image" | "cutout"; img?: string; bw?: boolean; zoom?: number; shift?: number; lines: CineLine[] };
 
 const W = 1080, H = 1920;
 const GOLD = "#d9b24a";
@@ -68,6 +68,33 @@ const Still: React.FC<{ shot: CineShot }> = ({ shot }) => {
   );
 };
 
+/** قصاصة على زخرفة: النجمة تدور خلف صورة مقصوصة بدائرة ناعمة الحواف (ختام المرجع الرابع) */
+const Cutout: React.FC<{ shot: CineShot }> = ({ shot }) => {
+  const t = useCurrentFrame() / 30, p = clamp01((t - shot.a) / Math.max(0.1, shot.b - shot.a));
+  const lit = 0.6 + 0.4 * clamp01((t - shot.a) * 30 / 3);
+  return (
+    <AbsoluteFill>
+      <Rosette />
+      <div style={{ position: "absolute", left: 90, top: 380, width: 900, height: 1180, transform: `scale(${1 + 0.06 * p}) translateY(${-24 * p}px)`,
+        WebkitMaskImage: "radial-gradient(ellipse 48% 46% at 50% 50%, #000 62%, transparent 100%)", maskImage: "radial-gradient(ellipse 48% 46% at 50% 50%, #000 62%, transparent 100%)" }}>
+        <Img src={staticFile(shot.img ?? "")} style={{ width: "100%", height: "100%", objectFit: "cover", filter: `grayscale(1) contrast(1.2) brightness(${(0.95 * lit).toFixed(2)})` }} />
+      </div>
+    </AbsoluteFill>
+  );
+};
+/** زخرفة السطر: خط ذهبي يُرسم، أو مربع تحديد بمقابض، أو حروف تومض حتى تثبت */
+const Deco: React.FC<{ ln: CineLine }> = ({ ln }) => {
+  const t = useCurrentFrame() / 30, at = ln.decoAt ?? (ln.words[ln.words.length - 1]?.at ?? 0) + 0.25;
+  if (!ln.deco || ln.deco === "flicker" || t < at || t >= ln.until) return null;
+  const k = Math.min(1, (t - at) / 0.35), e = 1 - Math.pow(1 - k, 3);
+  if (ln.deco === "line") return <div style={{ position: "absolute", right: 0, bottom: -14, height: 9, width: `${e * 100}%`, background: "#d9b24a", borderRadius: 5, boxShadow: "0 0 18px rgba(217,178,74,.6)" }} />;
+  return (
+    <div style={{ position: "absolute", left: -28 + (1 - e) * 60, right: -28 + (1 - e) * 60, top: -14, bottom: -18, border: "4px solid #d9b24a", opacity: e }}>
+      {[[0, 0], [1, 0], [0, 1], [1, 1]].map(([a, b], i) => <div key={i} style={{ position: "absolute", left: a ? undefined : -12, right: a ? -12 : undefined, top: b ? undefined : -12, bottom: b ? -12 : undefined, width: 20, height: 20, background: "#0b0a08", border: "4px solid #d9b24a" }} />)}
+    </div>
+  );
+};
+
 export const CineSequence: React.FC<{ shots: CineShot[]; src: string; sfx?: Cue[] }> = ({ shots, src, sfx = [] }) => {
   useFonts(["mirza", "ruqaa", "amiri", "kafRuqaa"]);
   const f = useCurrentFrame(), t = f / 30;
@@ -91,12 +118,13 @@ export const CineSequence: React.FC<{ shots: CineShot[]; src: string; sfx?: Cue[
       {shot.kind === "rosette" && <Rosette />}
       {shot.kind === "cover" && <Cover a={shot.a} />}
       {shot.kind === "image" && <Still shot={shot} />}
+      {shot.kind === "cutout" && <Cutout shot={shot} />}
       {shot.lines.map((ln, i) => (
-        <Line key={i} y={ln.y}>
+        <Line key={i} y={ln.y}><span style={{ position: "relative", display: "inline-block", opacity: ln.deco === "flicker" ? (Math.floor(f / 2) % 3 === 0 && f / 30 - ln.words[0].at < 0.5 ? 0.25 : 1) : 1 }}>
           {ln.words.map((w, j) => w.stretch
             ? <StretchWord key={j} at={Math.round(w.at * 30)} until={Math.round(ln.until * 30)} a={w.stretch[0]} b={w.stretch[1]} size={w.size} font={w.font ?? "mirza"} />
             : <Word key={j} at={Math.round(w.at * 30)} until={Math.round(ln.until * 30)} text={w.text ?? ""} size={w.size} font={w.font ?? "mirza"} color={w.gold ? GOLD : undefined} />)}
-        </Line>
+        <Deco ln={ln} /></span></Line>
       ))}
       {f === Math.round(shots[1].a * 30) && <AbsoluteFill style={{ background: "rgba(235,240,255,.85)" }} />}
       <Leak />
@@ -109,7 +137,7 @@ export const CineSequence: React.FC<{ shots: CineShot[]; src: string; sfx?: Cue[
 const SHOTS: CineShot[] = [
   { a: 0.0, b: 1.2, kind: "image", img: "cine/hands_book.png", lines: [
     { y: 1250, until: 1.2, words: [{ at: 0.1, text: "نحن", size: 96, font: "ruqaa" }, { at: 0.3, text: "لسنا", size: 96, font: "ruqaa" }] },
-    { y: 1400, until: 1.2, words: [{ at: 0.5, stretch: ["أمّ", "ة"], size: 190 }, { at: 0.75, text: "اقرأ", size: 190 }] }] },
+    { y: 1400, until: 1.2, deco: "line", decoAt: 0.9, words: [{ at: 0.5, stretch: ["أمّ", "ة"], size: 190 }, { at: 0.75, text: "اقرأ", size: 190 }] }] },
   { a: 1.2, b: 2.8, kind: "speaker", zoom: 1.3, shift: 0.8, lines: [
     { y: 1130, until: 2.8, words: [{ at: 1.3, text: "الأمم", size: 104, font: "ruqaa" }, { at: 1.5, text: "الأخرى", size: 104, font: "ruqaa" }] },
     { y: 1250, until: 2.8, words: [{ at: 1.9, text: "أيضاً", size: 150 }, { at: 2.1, stretch: ["تقـ", "ـرأ"], size: 180 }] }] },
@@ -118,22 +146,22 @@ const SHOTS: CineShot[] = [
   { a: 4.6, b: 5.8, kind: "speaker", zoom: 1.12, lines: [
     { y: 1130, until: 5.8, words: [{ at: 4.7, text: "لكننا", size: 104, font: "ruqaa" }, { at: 4.9, text: "نحن", size: 104, font: "ruqaa" }] },
     { y: 1250, until: 5.8, words: [{ at: 5.1, stretch: ["أمّ", "ة"], size: 200 }] }] },
-  { a: 5.8, b: 7.0, kind: "speaker", zoom: 1.35, shift: -0.8, lines: [
-    { y: 1200, until: 7.0, words: [{ at: 5.9, text: "تقرأ", size: 200, gold: true }] }] },
+  { a: 5.8, b: 7.0, kind: "page", lines: [
+    { y: 300, until: 7.0, deco: "box", decoAt: 6.15, words: [{ at: 5.9, text: "تقرأ", size: 200, gold: true }] }] },
   { a: 7.0, b: 8.3, kind: "speaker", zoom: 1.22, lines: [
     { y: 1200, until: 8.3, words: [{ at: 7.1, text: "ولا", size: 130 }, { at: 7.3, text: "تنظر", size: 130 }, { at: 7.55, text: "للأمور", size: 130 }] }] },
   { a: 8.3, b: 9.1, kind: "speaker", zoom: 1.35, shift: 0.8, lines: [
     { y: 1200, until: 9.1, words: [{ at: 8.35, text: "بمعزل", size: 130 }, { at: 8.55, text: "عن", size: 130 }, { at: 8.75, text: "الخالق", size: 130, gold: true }] }] },
   { a: 9.1, b: 9.8, kind: "speaker", zoom: 1.12, shift: -0.6, lines: [
     { y: 1200, until: 9.8, words: [{ at: 9.15, text: "الذي", size: 130 }, { at: 9.35, text: "أنشأ", size: 130 }, { at: 9.55, text: "الخلق", size: 130 }] }] },
-  { a: 9.8, b: 11.3, kind: "image", img: "cine/reader_back_soft.png", bw: true, lines: [
-    { y: 1250, until: 11.3, words: [{ at: 9.9, text: "نحن", size: 130 }, { at: 10.1, text: "أمة", size: 130 }, { at: 10.35, text: "القراءة", size: 130, gold: true }] },
+  { a: 9.8, b: 11.3, kind: "cutout", img: "cine/reader_back_soft.png", lines: [
+    { y: 1600, until: 11.3, deco: "line", words: [{ at: 9.9, text: "نحن", size: 130 }, { at: 10.1, text: "أمة", size: 130 }, { at: 10.35, text: "القراءة", size: 130, gold: true }] },
   ] },
   { a: 11.3, b: 12.2, kind: "speaker", zoom: 1.3, lines: [
     { y: 1200, until: 12.2, words: [{ at: 11.35, text: "التي", size: 110, font: "ruqaa" }, { at: 11.55, text: "تربط", size: 110, font: "ruqaa" }, { at: 11.8, text: "المخلوق", size: 110, font: "ruqaa" }] },
   ] },
   { a: 12.2, b: 13.0, kind: "rosette", lines: [
-    { y: 1420, until: 13.0, words: [{ at: 12.2, stretch: ["بالخ", "الق"], size: 210, font: "kafRuqaa" }] }] },
+    { y: 1420, until: 13.0, deco: "flicker", words: [{ at: 12.2, stretch: ["بالخ", "الق"], size: 210, font: "kafRuqaa" }] }] },
 ];
 const SFX: Cue[] = [[2, "shimmer"], [84, "subdrop", 0.8], [294, "subdrop", 0.8], [366, "sting"]];
 export const CINE_SPEAKER_FRAMES = 390;

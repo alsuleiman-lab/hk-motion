@@ -56,7 +56,7 @@ const Speaker: React.FC<{ from: number; to: number }> = ({ from, to }) => {
 /** صفحة مصحف (سورة العلق ١–٣) يمرّ قلم التظليل على الآية الأولى. */
 export const Page: React.FC<{ at: number }> = ({ at }) => {
   const f = useCurrentFrame() - at;
-  const k = easeOut(f / 14), hl = easeInOut((f - 22) / 20), z = lerp(1.0, 1.08, clamp01(f / 110));
+  const k = easeOut(f / 14), hl = easeInOut((f - 3) / 9), z = lerp(1.0, 1.08, clamp01(f / 110));
   return (
     <AbsoluteFill style={{ background: "#0d0b08", alignItems: "center", justifyContent: "center" }}>
       <div style={{ width: 880, padding: "44px 46px", background: "#f1ead8", transform: `scale(${z * (0.9 + 0.1 * k)}) rotate(${(1 - k) * -4}deg)`, opacity: k, boxShadow: "0 30px 60px rgba(0,0,0,.6)", direction: "rtl", textAlign: "center", fontFamily: ff("amiri") }}>

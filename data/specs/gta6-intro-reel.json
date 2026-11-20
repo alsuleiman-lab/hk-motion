@@ -1,0 +1,320 @@
+{
+ "id": "gta6-intro-reel",
+ "title": "كلام مهم عن GTA 6",
+ "cut": "gta6-intro-reel_cut_s.mp4",
+ "duration": 145.933,
+ "frames": 4378,
+ "fps": 30,
+ "kind": "reel",
+ "showTitleBar": false,
+ "cams": [
+  {
+   "from": 0,
+   "to": 9999,
+   "cx": 942
+  }
+ ],
+ "zooms": [
+  {
+   "from": 8.5,
+   "to": 9.51
+  },
+  {
+   "from": 88.343,
+   "to": 90.133
+  }
+ ],
+ "shake": [],
+ "items": [
+  {
+   "id": "qw96",
+   "t": "full",
+   "from": 0.1,
+   "to": 5.22,
+   "src": "gta6/news_cbs_clip.png"
+  },
+  {
+   "id": "z6r2",
+   "t": "pick",
+   "el": "FlapBoard",
+   "at": 5.75,
+   "until": 9.35,
+   "rows": [
+    {
+     "text": "لابنها 14 سنة",
+     "at": 5.75
+    }
+   ]
+  },
+  {
+   "id": "u2c5",
+   "t": "timeline",
+   "from": 9.4,
+   "to": 14.8,
+   "stages": [
+    {
+     "at": 9.4,
+     "date": "2004",
+     "title": "اشترت اللعبة"
+    },
+    {
+     "at": 10.9,
+     "date": "2005",
+     "title": "وجدت فيها مشاهد جنسية"
+    }
+   ]
+  },
+  {
+   "id": "m30j",
+   "t": "full",
+   "from": 14.87,
+   "to": 18.55,
+   "src": "gta6-intro-reel/img_1.png"
+  },
+  {
+   "id": "vtoi",
+   "t": "pick",
+   "el": "InkQuote",
+   "at": 18.59,
+   "until": 30.6,
+   "source": "لورانس كوهين",
+   "lines": [
+    {
+     "text": "مصنفة للمراهقين",
+     "at": 18.59
+    },
+    {
+     "text": "والواقع أن فيها مشاهد جنسية",
+     "at": 20
+    },
+    {
+     "text": "لا يصح لمراهق أن يشاهدها",
+     "at": 23.1
+    }
+   ]
+  },
+  {
+   "id": "x8q2",
+   "t": "stamp",
+   "at": 30.65,
+   "until": 33.75,
+   "text": "وهي التي رفعت دعوة"
+  },
+  {
+   "id": "qznv",
+   "t": "full",
+   "from": 33.78,
+   "to": 41.1,
+   "src": "gta6/news_cbs_ao_clip.png"
+  },
+  {
+   "id": "bfm2",
+   "t": "stamp",
+   "at": 41.15,
+   "until": 45,
+   "text": "واضطرت روكستار"
+  },
+  {
+   "id": "pk1u",
+   "t": "pick",
+   "el": "FlapBoard",
+   "at": 45.07,
+   "until": 50.45,
+   "rows": [
+    {
+     "text": "اعتذاراً رسمياً",
+     "at": 45.07
+    },
+    {
+     "text": "واعتذار عام",
+     "at": 47.8
+    }
+   ]
+  },
+  {
+   "id": "vssn",
+   "t": "timeline",
+   "from": 50.54,
+   "to": 58.05,
+   "stages": [
+    {
+     "at": 50.54,
+     "date": "2005",
+     "title": "المشاهد في بدايتها"
+    },
+    {
+     "at": 56.2,
+     "date": "اليوم",
+     "title": "صدرت جي تي اي 6"
+    }
+   ]
+  },
+  {
+   "id": "gfpv",
+   "t": "full",
+   "from": 58.1,
+   "to": 64.2,
+   "src": "gta6-intro-reel/img_4.webp"
+  },
+  {
+   "id": "rxjy",
+   "t": "mosaic",
+   "at": 64.26,
+   "until": 80,
+   "src": "gta6/cover_blur.png",
+   "flashAt": 76.12,
+   "words": [
+    {
+     "text": "عنف",
+     "at": 64.26
+    },
+    {
+     "text": "كحول",
+     "at": 65.25
+    },
+    {
+     "text": "مخدرات",
+     "at": 66.37
+    },
+    {
+     "text": "جريمة",
+     "at": 67.45
+    },
+    {
+     "text": "نساء كاسيات عاريات",
+     "at": 68.19
+    },
+    {
+     "text": "رقص",
+     "at": 69.94
+    },
+    {
+     "text": "رقص جنسي",
+     "at": 71.17
+    },
+    {
+     "text": "ملامسة أجساد الراقصات",
+     "at": 72.79
+    },
+    {
+     "text": "أفعال ممنوعة",
+     "at": 75.23
+    }
+   ]
+  },
+  {
+   "id": "rr8l",
+   "t": "pick",
+   "el": "InkQuote",
+   "at": 82.66,
+   "until": 92.3,
+   "lines": [
+    {
+     "text": "هو تماما كتصنيف الأفلام الجنسية",
+     "at": 82.66
+    },
+    {
+     "text": "زائد 18",
+     "at": 86.39
+    }
+   ]
+  },
+  {
+   "id": "qrpz",
+   "t": "pick",
+   "el": "WordCloud",
+   "at": 97.13,
+   "until": 105,
+   "title": "كل الحركات",
+   "titleAt": 97.13,
+   "words": [
+    {
+     "text": "بمراقصها",
+     "weight": 3,
+     "at": 101.44
+    },
+    {
+     "text": "بفسادها",
+     "weight": 3,
+     "at": 102.32
+    },
+    {
+     "text": "بالعار",
+     "weight": 3,
+     "at": 103.11
+    }
+   ]
+  },
+  {
+   "id": "utlg",
+   "t": "pick",
+   "el": "MindMap",
+   "at": 107.2,
+   "until": 119.6,
+   "center": "دخلت إلى بيوت المسلمين",
+   "nodes": [
+    {
+     "text": "لله حقه",
+     "at": 110.96
+    },
+    {
+     "text": "للأخلاق حقها",
+     "at": 112.86
+    },
+    {
+     "text": "للكرامة حقها",
+     "at": 115.08
+    },
+    {
+     "text": "لنفسه حقها",
+     "at": 117.37
+    }
+   ]
+  },
+  {
+   "id": "erdr",
+   "t": "pick",
+   "el": "Crossroads",
+   "at": 122.39,
+   "until": 140,
+   "right": "يفتح له كتاب يتعلم",
+   "left": "يروح يلعب جي تي اي",
+   "signsAt": 130.62,
+   "go": "right",
+   "goAt": 135.3,
+   "rightGood": true
+  },
+  {
+   "id": "ktjj",
+   "t": "pick",
+   "el": "BigQuestion",
+   "at": 141.37,
+   "until": 145.9,
+   "text": "أيليق بك أن تلعبها بجانب أختك أو أمك؟",
+   "textAt": 141.37
+  }
+ ],
+ "date": "2026-11-20",
+ "fromEpisode": {
+  "project": "gta6",
+  "order": "user",
+  "ranges": [
+   {
+    "from": 45.161,
+    "to": 554.256,
+    "cutFrom": 0,
+    "cutTo": 145.93
+   }
+  ]
+ },
+ "brand": "kraft",
+ "galleryRef": true,
+ "forms": [
+  "port"
+ ],
+ "bumper": {
+  "id": "wall",
+  "at": 145.93,
+  "end": true
+ }
+}

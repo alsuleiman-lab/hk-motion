@@ -227,7 +227,9 @@ function check(rows) {
     if (skip.has(`${r.text}@${Math.round(r.t)}`) || [...skip].some((s) => s.split("@")[0] === r.text && Math.abs(Number(s.split("@")[1]) - r.t) < 3)) continue;
     /* a listing card whose row with a PHOTO names this person / thing at its word counts as its picture (2026-11-12: six names with their photos) */
     const rowPic = (r.kind === "person" || r.kind === "depict") && items.some((x) => x.t === "rows" && (x.i.rows ?? []).some((q) => q.photo && Math.abs(q.at - r.t) < 3 && (bare(q.label).includes(bare(r.text)) || bare(r.text).includes(bare(q.label)))));
-    if (!rowPic && !has(r.need, r.t - r.before, r.t + r.after)) miss.push(`${KIND[r.kind]}: «${r.text}» عند ${mm(r.t)} (${r.t.toFixed(1)}ث) بلا ${r.need.slice(0, 2).join("/")}${r.geo ? ` [${r.geo.lat},${r.geo.lon}]` : ""}`);
+    /* a mosaic (custom item: words that gather into a cover) shows each of its words[].text at its `at` — that word is pictured there, as a pic would (2026-11-20, gta6 «مخدرات» at 1:05) */
+    const mosaicPic = ["person", "depict", "state"].includes(r.kind) && items.some((x) => x.t === "mosaic" && (x.i.words ?? []).some((q) => q.text && typeof q.at === "number" && Math.abs(q.at - r.t) < 3 && (bare(q.text).includes(bare(r.text)) || bare(r.text).includes(bare(q.text)))));
+    if (!rowPic && !mosaicPic && !has(r.need, r.t - r.before, r.t + r.after)) miss.push(`${KIND[r.kind]}: «${r.text}» عند ${mm(r.t)} (${r.t.toFixed(1)}ث) بلا ${r.need.slice(0, 2).join("/")}${r.geo ? ` [${r.geo.lat},${r.geo.lon}]` : ""}`);
   }
   console.log(miss.length ? `✘ requirements: ${miss.length} من ${rows.length} لم يتحقق:\n  ` + miss.join("\n  ") : `✔ requirements: كل الصفوف (${rows.length}) متحققة في المواصفة`);
   if ((spec.skipRequired ?? []).length) console.log(`  ⚠ مستثنى بقرار (يُذكر للمستخدم مع الرابط): ${spec.skipRequired.join("، ")}`);

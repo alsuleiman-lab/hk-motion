@@ -140,6 +140,8 @@ export const edlSetup = (comp) => {
 export const projectOf = (comp) => {
   const base = String(comp ?? "").replace(/-(Both|BothV|L)$/i, "").toLowerCase();
   for (const c of [base, base.replace(/-/g, "_")]) if (fs.existsSync(R("data", "specs", `${c}.json`))) return c;
+  /* a spec with its own composition id (spec.compId, src/SpecComps.tsx) */
+  try { for (const f of fs.readdirSync(R("data", "specs"))) if (f.endsWith(".json") && String(rd(R("data", "specs", f), {})?.compId ?? "").toLowerCase() === base) return f.slice(0, -5); } catch { /* no specs */ }
   return null;
 };
 export const ensureCutForComp = (comp) => { const p = projectOf(comp); if (p) ensureCut(p); return p; };

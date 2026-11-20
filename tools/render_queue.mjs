@@ -13,6 +13,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { overlapFailures } from "./lib/overlap_gate.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 process.chdir(root);
@@ -31,6 +32,7 @@ const admit = (spec, orient) => {
   const s = JSON.parse(fs.readFileSync(f, "utf8")), o = orient === "L" ? "land" : "port";
   const outs = [sh("node", ["tools/coverage_check.mjs", f]), sh("node", ["tools/grid_plan.mjs", f, "--o", o]), sh("node", ["tools/mg_usage_audit.mjs", f, "--minutes", String(Math.max(0.2, s.frames / 1800))]), sh("node", ["tools/writing_sync.mjs", f])];
   const bad = outs.flatMap((r) => (r.stdout.match(/✘[^\n]*/g) || []));
+  bad.push(...overlapFailures(spec, o));   /* (user 2026-11-20) no two elements in one place, whoever wrote them: refused at the queue entry too */
   return bad.length ? bad.slice(0, 3).map((b) => b.slice(0, 140)).join(" | ") : "";
 };
 

@@ -40,33 +40,9 @@ const Archive: React.FC = SHOW_ARCHIVE ? // eslint-disable-next-line @typescript
   (require("./ArchiveComps") as { ArchiveComps: React.FC }).ArchiveComps : () => null;
 
 
-import { MontageBoth, BOTH, BOTHV } from "./MontageBoth";
-import { MontageFromSpec, specFrames } from "./MontageSpec";
-import type { MontageSpec } from "./MontageSpec";
-import muftiHirabaSpec from "../data/specs/mufti-hiraba.json";
-const MuftiHirabaComp: React.FC = () => <MontageFromSpec spec={muftiHirabaSpec as unknown as MontageSpec} />;
-const MuftiHirabaBothVComp: React.FC = () => <MontageBoth spec={muftiHirabaSpec as unknown as MontageSpec} phone />;
-const MuftiHirabaBothComp: React.FC = () => <MontageBoth spec={muftiHirabaSpec as unknown as MontageSpec} />;
-import c2598ReelSpec from "../data/specs/c2598-reel.json";
-const C2598ReelComp: React.FC = () => <MontageFromSpec spec={c2598ReelSpec as unknown as MontageSpec} />;
-import c2598Spec from "../data/specs/c2598.json";
-const C2598Comp: React.FC = () => <MontageFromSpec spec={c2598Spec as unknown as MontageSpec} />;
-import tirmidhi325Spec from "../data/specs/tirmidhi32_5.json";
-const Tirmidhi325Comp: React.FC = () => <MontageFromSpec spec={tirmidhi325Spec as unknown as MontageSpec} />;
-import tirmidhi324Spec from "../data/specs/tirmidhi32_4.json";
-const Tirmidhi324Comp: React.FC = () => <MontageFromSpec spec={tirmidhi324Spec as unknown as MontageSpec} />;
-import tirmidhi323Spec from "../data/specs/tirmidhi32_3.json";
-const Tirmidhi323Comp: React.FC = () => <MontageFromSpec spec={tirmidhi323Spec as unknown as MontageSpec} />;
-import tirmidhi322Spec from "../data/specs/tirmidhi32_2.json";
-const Tirmidhi322Comp: React.FC = () => <MontageFromSpec spec={tirmidhi322Spec as unknown as MontageSpec} />;
-import tirmidhi321Spec from "../data/specs/tirmidhi32_1.json";
-const Tirmidhi321Comp: React.FC = () => <MontageFromSpec spec={tirmidhi321Spec as unknown as MontageSpec} />;
-import urwaReelSpec from "../data/specs/urwa-reel.json";
-const UrwaReelComp: React.FC = () => <MontageFromSpec spec={urwaReelSpec as unknown as MontageSpec} />;
-import anchorKillsChildrenReelSpec from "../data/specs/anchor-kills-children-reel.json";
-const AnchorKillsChildrenReelComp: React.FC = () => <MontageFromSpec spec={anchorKillsChildrenReelSpec as unknown as MontageSpec} />;
-import anchorKillsChildrenSpec from "../data/specs/anchor-kills-children.json";
-const AnchorKillsChildrenComp: React.FC = () => <MontageFromSpec spec={anchorKillsChildrenSpec as unknown as MontageSpec} />;
+/* every montage spec (data/specs/*.json) registers itself — طولي، عرضي، الاثنان معاً، وللجوال (src/SpecComps.tsx): no spec is imported here by name any more,
+   so adding or deleting a spec never needs this file (2026-11-20) */
+import { SpecComps } from "./SpecComps";
 
 
 
@@ -86,19 +62,13 @@ export const RemotionRoot: React.FC = () => {
     <ByRecency>
 
       <Folder name="مونتاج الجلسة">
-        <Composition id="Mufti-Hiraba" component={MuftiHirabaComp} durationInFrames={specFrames(muftiHirabaSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="Mufti-Hiraba-L" component={MuftiHirabaComp} durationInFrames={specFrames(muftiHirabaSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
-        <Composition id="Mufti-Hiraba-Both" component={MuftiHirabaBothComp} durationInFrames={specFrames(muftiHirabaSpec as unknown as MontageSpec)} fps={30} width={BOTH.W} height={BOTH.H} />
-        <Composition id="Mufti-Hiraba-BothV" component={MuftiHirabaBothVComp} durationInFrames={specFrames(muftiHirabaSpec as unknown as MontageSpec)} fps={30} width={BOTHV.W} height={BOTHV.H} />
-        <Composition id="C2598-L" component={C2598Comp} durationInFrames={specFrames(c2598Spec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
-        <Composition id="Urwa-Reel" component={UrwaReelComp} durationInFrames={specFrames(urwaReelSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="Anchor-Kills-Children-L" component={AnchorKillsChildrenComp} durationInFrames={specFrames(anchorKillsChildrenSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
+        <SpecComps kind="full" />
       </Folder>
       <Folder name="البثوث">
         {/* بث للحوار مع المخالفين (1) */}
       </Folder>
       <Folder name="ريلز">
-        <Composition id="Anchor-Kills-Children-Reel" component={AnchorKillsChildrenReelComp} durationInFrames={specFrames(anchorKillsChildrenReelSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
+        <SpecComps kind="reel" />
       </Folder>
 
       {SHOW_REFERENCE && <Composition id="FamilyStickCast" component={FamilyStickCast} durationInFrames={180} fps={30} width={1080} height={1920} />}

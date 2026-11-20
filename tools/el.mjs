@@ -107,6 +107,9 @@ const gateAtoms = async (f, p) => {
 /* the cached baseline is valid only for the same spec AND the same gate tools: a changed check made an old baseline report false «new» failures (2026-11-20) */
 const GATE_TOOLS = ["tools/writing_sync.mjs", "tools/element_slots.mjs", "tools/coverage_check.mjs", "tools/late_check.mjs", "tools/slot_boxes.mjs", "tools/spec_normalize.mjs", "src/galleryRef.ts", "data/layout_grids.json", "data/element_priority.json"];
 const hashOf = (f) => { const h = crypto.createHash("sha1").update(read(f)); for (const t of GATE_TOOLS) { try { h.update(String(fs.statSync(t).mtimeMs)); } catch { /* absent */ } } return h.digest("hex"); };
+/* (user 2026-11-20: «يجب ان لا يقبله البرنامج حتى لو فعلته أنت») --no-gate is honoured only inside a batch (EL_BATCH_CHILD, the batch gates its whole
+   result once at the end); typed by hand it is refused — and the render queue and the full render check again anyway (tools/lib/overlap_gate.mjs) */
+if (process.argv.includes("--no-gate") && process.env.EL_BATCH_CHILD !== "1") { console.error("✘ --no-gate لا يُقبل: كل تعديل يُفحص (أمر المستخدم 2026-11-20)"); process.exit(2); }
 const GATE_OFF = process.argv.includes("--no-gate");
 const baseFile = (p) => path.join(".tmp", p, "gate_base.json");
 const gateBefore = async (f, p) => {
@@ -210,7 +213,7 @@ if (cmd === "list") {
   for (const [i, o] of ops.entries()) {
     const a = o.op === "add" ? ["add", p, o.code, ...asArgs(o.vals)] : o.op === "set" ? ["set", p, o.id, ...asArgs(o.vals)] : o.op === "del" ? ["del", p, o.id] : null;
     if (!a) { fs.writeFileSync(f, beforeText); console.error(`✘ العملية ${i + 1}: نوع غير معروف «${o.op}» — أُعيدت المواصفة`); process.exit(2); }
-    const r = spawnSync(process.execPath, [self, ...a, "--no-gate"], { encoding: "utf8" });
+    const r = spawnSync(process.execPath, [self, ...a, "--no-gate"], { encoding: "utf8", env: { ...process.env, EL_BATCH_CHILD: "1" } });
     const line = (r.stdout + r.stderr).trim().split(/\r?\n/).filter((l) => /^[✔✘]/.test(l.trim())).pop() ?? "";
     if (r.status !== 0) { fs.writeFileSync(f, beforeText); console.error(`✘ العملية ${i + 1} (${o.op} ${o.code ?? o.id}) فشلت: ${line || (r.stderr || "").trim().slice(0, 300)} — أُعيدت المواصفة كما كانت`); process.exit(1); }
     console.log(`  ${i + 1}. ${line}`);

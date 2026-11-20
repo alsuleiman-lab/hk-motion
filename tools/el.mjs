@@ -104,7 +104,9 @@ const gateAtoms = async (f, p) => {
   const outs = await Promise.all([["tools/writing_sync.mjs", f], ["tools/element_slots.mjs", p], ["tools/coverage_check.mjs", f], ["tools/late_check.mjs", f], ["--experimental-strip-types", "--no-warnings", "tools/slot_boxes.mjs", p]].map(runGate));
   return atomsOf([n1, n2, ...outs].join("\n"));
 };
-const hashOf = (f) => crypto.createHash("sha1").update(read(f)).digest("hex");
+/* the cached baseline is valid only for the same spec AND the same gate tools: a changed check made an old baseline report false «new» failures (2026-11-20) */
+const GATE_TOOLS = ["tools/writing_sync.mjs", "tools/element_slots.mjs", "tools/coverage_check.mjs", "tools/late_check.mjs", "tools/slot_boxes.mjs", "tools/spec_normalize.mjs", "src/galleryRef.ts", "data/layout_grids.json", "data/element_priority.json"];
+const hashOf = (f) => { const h = crypto.createHash("sha1").update(read(f)); for (const t of GATE_TOOLS) { try { h.update(String(fs.statSync(t).mtimeMs)); } catch { /* absent */ } } return h.digest("hex"); };
 const GATE_OFF = process.argv.includes("--no-gate");
 const baseFile = (p) => path.join(".tmp", p, "gate_base.json");
 const gateBefore = async (f, p) => {

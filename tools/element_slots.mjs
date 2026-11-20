@@ -93,7 +93,9 @@ for (let guard = 0; guard < 500; guard++) {
   C = clashes().filter(([x, y]) => !removed.has(x.i) && !removed.has(y.i));
   if (!C.length) break;
   const [x, y] = C[0];
-  const [hi, lo] = rank(x.it) > rank(y.it) ? [x, y] : rank(y.it) > rank(x.it) ? [y, x] : start(x.it) <= start(y.it) ? [x, y] : [y, x];
+  /* same rank → the SHORTER one stays (user 2026-11-20: «إذا كان عندي تعارض… أقصر زمن وحده»); same length → the earlier one */
+  const lenOf = (it) => end(it) - start(it);
+  const [hi, lo] = rank(x.it) > rank(y.it) ? [x, y] : rank(y.it) > rank(x.it) ? [y, x] : Math.abs(lenOf(x.it) - lenOf(y.it)) > 0.05 ? (lenOf(x.it) < lenOf(y.it) ? [x, y] : [y, x]) : start(x.it) <= start(y.it) ? [x, y] : [y, x];
   const H = hi.it, Lo = lo.it, len = end(Lo) - start(Lo), before = start(H) - start(Lo);
   if (before >= 1.5) { const keep = JSON.stringify(Lo); setEnd(Lo, start(H) - 0.05); if (end(Lo) <= start(H)) { log.push(`قُصّر «${Lo.t}» ليتنحّى عن «${H.t}» عند ${mm(start(H))}`); continue; } Object.assign(Lo, JSON.parse(keep)); }   /* a pick whose last event is later cannot be trimmed: dropped */
   removed.add(lo.i); log.push(`حُذف «${Lo.t}» عند ${mm(start(Lo))} (${len.toFixed(1)}ث) لأن «${H.t}» أهم في المساحة نفسها`);

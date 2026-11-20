@@ -133,6 +133,15 @@ if (missing.length) fails++;
   }
   console.log(miss.length ? `✘ كلام بلا عنصره المطلوب (${miss.length}): ${miss.join("، ")} — أضفه أو اكتب "skipRequired": ["<الاسم>@<الثانية>"] بسببه في الخطة` : `✔ كل رحلة وتاريخ وخبر وحلقة سابقة وآية لها عنصرها`);
   if (miss.length) fails++;
+  /* (user 2026-11-20, rules §2: «الاستثناء بنص المستخدم في رسالته الحالية ولهذا الفيديو وحده») a waiver I write myself is not a waiver: every skipRequired /
+     skipMentions / skipPicks entry needs `waiverOK["<entry>"]` = the user's own words that allowed it (and the date). 16 self-written waivers had hidden
+     missing elements on mufti-hiraba. A false find of a scanner (not a real mention) still needs his OK: show it to him, do not decide it alone. */
+  {
+    const ok = spec.waiverOK ?? {}, all = [...(spec.skipRequired ?? []), ...(spec.skipMentions ?? []), ...(spec.skipPicks ?? []).map((x) => (typeof x === "string" ? x : x.el))];
+    const self = all.filter((k) => !(typeof ok[k] === "string" && ok[k].trim().length >= 4));
+    console.log(self.length ? `✘ إعفاءات بلا إذن المستخدم (${self.length}): ${self.join("، ")} — أضف عنصرها، أو اعرضها عليه واكتب كلامه في "waiverOK"` : `✔ كل إعفاء بإذن المستخدم (${all.length})`);
+    if (self.length) fails++;
+  }
 }
 
 // 1b) a map shows the place BESIDE him, never behind his head (user 2026-11-11, said twice): in landscape every point of a full-frame map (pmap with a `behind` window)
@@ -173,12 +182,14 @@ if (missing.length) fails++;
 }
 
 // 2) empty stretches (any item or baked split counts as something on screen)
-const spans = [...items.map(span).filter(Boolean), ...(spec.splits ?? []).map((s) => [s.from, s.to]), ...(spec.zooms ?? []).map((z) => [z.from, z.to + 1.2]), ...(spec.shake ?? []).map((z) => [z.from, z.to])].sort((a, b) => a[0] - b[0]);   /* a push-in moves until it has zoomed back out (to + 1.2 s) */
+/* (user 2026-11-20: «في مواضع كثيرة لا تضع فيها شيئاً… مونتاجك سيء») a push-in or a shake is a camera MOVE, not an element: they no longer fill a gap
+   (21 automatic push-ins had hidden 3 minutes of empty screen on mufti-hiraba). The rule is «ولا 5 ثوانٍ بلا عنصر» (checking skill, item 18). */
+const spans = [...items.filter((x) => !["wm", "cover"].includes(x.t)).map(span).filter(Boolean), ...(spec.splits ?? []).map((s) => [s.from, s.to]), ...(spec.solos ?? []).map((s) => [s.from, s.to])].sort((a, b) => a[0] - b[0]);
 const gaps = [];
 let end = 0;
 for (const [a, b] of spans) { if (a - end > GAP) gaps.push([end, a]); end = Math.max(end, b); }
 if (dur - 3 - end > GAP) gaps.push([end, dur - 3]);
-console.log(gaps.length ? `✘ فراغ أطول من ${GAP} ث بلا عنصر ولا حركة (${gaps.length}): ${gaps.map(([a, b]) => `${mm(a)}–${mm(b)} (${Math.round(b - a)} ث)`).join("، ")}` : `✔ لا فراغ أطول من ${GAP} ث`);
+console.log(gaps.length ? `✘ فراغ أطول من ${GAP} ث بلا عنصر (التقريب لا يُعدّ عنصراً) (${gaps.length}): ${gaps.map(([a, b]) => `${mm(a)}–${mm(b)} (${Math.round(b - a)} ث)`).join("، ")}` : `✔ لا فراغ أطول من ${GAP} ث`);
 if (gaps.length) fails++;
 
 // 2a) the sheikh's name card (nameTag) appears alone: no other item or baked split overlaps it

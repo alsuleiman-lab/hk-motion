@@ -57,11 +57,16 @@
    "textAt": 12.7
   },
   {
-   "id": "c487",
-   "t": "stamp",
+   "id": "cn1k",
+   "t": "tphoto",
    "at": 19.14,
-   "until": 22.3,
-   "text": "وفي أمثالك نزل"
+   "until": 22.2,
+   "src": "gta6-dayyuth-reel/img_2.png",
+   "name": "قول الله",
+   "ratio": 0.7156,
+   "slot": {
+    "land": "left"
+   }
   },
   {
    "id": "ttl2",

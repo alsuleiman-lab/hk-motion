@@ -27,17 +27,36 @@
  "shake": [],
  "items": [
   {
-   "id": "ddgm",
-   "t": "news",
+   "id": "saov",
+   "t": "tphoto",
    "at": 0.1,
-   "until": 5,
+   "until": 3.05,
    "src": "gta6/news_cbs_clip.png",
-   "source": "CBS News — 27 يوليو 2005",
-   "headline": "جدّة تقاضي شركة لعبة فيديو",
+   "name": "لورانس كوهين",
    "ratio": 0.6429,
    "slot": {
     "land": "left"
    }
+  },
+  {
+   "id": "r8m3",
+   "t": "pmap",
+   "from": 3.29,
+   "to": 5,
+   "center": [
+    -98,
+    39
+   ],
+   "spanLat": 30,
+   "highlight": [
+    "USA"
+   ],
+   "highlightAt": {
+    "USA": 3.29
+   },
+   "atlas": true,
+   "flag": true,
+   "pts": []
   },
   {
    "id": "zakb",

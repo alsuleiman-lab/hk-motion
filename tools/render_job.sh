@@ -77,6 +77,10 @@ if true; then
     # hybrid_any already mixes the audio and prepends the opening bumper (user 2026-11-11): never replace its audio with the unshifted wav
     if [ -n "$hasA" ]; then ffmpeg -y -v error -i "$tmpv" -c copy -movflags +faststart "$out" >> .tmp/b2_render_$p.log 2>&1 && rm -f "$tmpv"
     else ffmpeg -y -v error -i "$tmpv" -i public/${p}_audio.wav -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 192k -movflags +faststart "$out" >> .tmp/b2_render_$p.log 2>&1 && rm -f "$tmpv"; [ "$bpos" = none ] || node tools/prepend_bumper.mjs "$out" --name $p ${BUMPER_AT:+--at $BUMPER_AT} ${BUMPER_ID:+--id $BUMPER_ID} >> .tmp/b2_render_$p.log 2>&1; fi
+    # (2026-11-20, end-to-end test) the bumper drawn in the montage is recorded by gpu_render under its temp output (hyb_<p>_<o>, with that file's size);
+    # the faststart remux above changes the size, so final_review found no record: it judged the 5 s bumper as a wrong cut and missed the judder proof.
+    # The record now names the delivered file and its size.
+    [ -s "$out" ] && node -e 'const fs=require("fs"),g=".tmp/gates/hyb_'"$p"'_'"$o"'.bumper.json";try{const b=JSON.parse(fs.readFileSync(g,"utf8"));if(b.inMontage){b.size=fs.statSync(process.argv[1]).size;b.file=process.argv[1];fs.writeFileSync(g,JSON.stringify(b,null,2))}}catch{}' "$out"
     # (user 2026-11-18, rules review) no bumper → the output itself is the original (a stale bumper_orig copy from an earlier render must not be judged)
     # (user 2026-11-20) the bumper-free copy lives in the project's own folder .tmp/<root>/bumper_orig/ (the shared .tmp/bumper_orig is only read for old renders)
     if [ "$bpos" = none ]; then chk="$out"; else kd=".tmp/$(node tools/project.mjs root $p)/bumper_orig"; chk="$kd/$(basename "$out")"; [ -f "$chk" ] || chk="$kd/hyb_${p}_$o.mp4"; [ -f "$chk" ] || chk=".tmp/bumper_orig/hyb_${p}_$o.mp4"; [ -f "$chk" ] || chk=".tmp/bumper_orig/$(basename "$out")"; [ -f "$chk" ] || chk="$out"; fi

@@ -17,7 +17,10 @@ import { CaseFile, CASE_FILE_FRAMES } from "./ext/CaseFile";
 import { FontSpecimen, FONT_SPECIMEN_FRAMES } from "./ext/FontSpecimen";
 import { KineticType, KINETIC_TYPE_FRAMES, KineticOver, KineticSplit, KINETIC_SPLIT_FRAMES } from "./ext/KineticType";
 import { ActiveSpeaker, ACTIVE_FRAMES } from "./ext/ActiveSpeaker";
+import { CineSpeaker, CINE_SPEAKER_FRAMES } from "./ext/CineKit";
+import { AqidaReel, AQIDA_FRAMES } from "./ext/AqidaReel";
 import { CineWords, CINE_WORDS_FRAMES } from "./ext/CineWords";
+import { AnimeScene, ANIME_FRAMES, ANIME_FPS } from "./ext/AnimeScene";
 import { JordanDetain, JORDAN_FRAMES } from "./JordanDetain";
 import { DubKmr, DubCkb, DUBKMR_FRAMES } from "./DubKmr";
 import { DubKmrBoard, DubCkbPanels } from "./DubShots";
@@ -34,27 +37,12 @@ const Archive: React.FC = SHOW_ARCHIVE ? // eslint-disable-next-line @typescript
 
 import { MontageFromSpec, specFrames } from "./MontageSpec";
 import type { MontageSpec } from "./MontageSpec";
-import c2598ReelSpec from "../data/specs/c2598-reel.json";
-const C2598ReelComp: React.FC = () => <MontageFromSpec spec={c2598ReelSpec as unknown as MontageSpec} />;
-import c2598Spec from "../data/specs/c2598.json";
-const C2598Comp: React.FC = () => <MontageFromSpec spec={c2598Spec as unknown as MontageSpec} />;
-import tirmidhi325Spec from "../data/specs/tirmidhi32_5.json";
-const Tirmidhi325Comp: React.FC = () => <MontageFromSpec spec={tirmidhi325Spec as unknown as MontageSpec} />;
-import tirmidhi324Spec from "../data/specs/tirmidhi32_4.json";
-const Tirmidhi324Comp: React.FC = () => <MontageFromSpec spec={tirmidhi324Spec as unknown as MontageSpec} />;
-import tirmidhi323Spec from "../data/specs/tirmidhi32_3.json";
-const Tirmidhi323Comp: React.FC = () => <MontageFromSpec spec={tirmidhi323Spec as unknown as MontageSpec} />;
-import tirmidhi322Spec from "../data/specs/tirmidhi32_2.json";
-const Tirmidhi322Comp: React.FC = () => <MontageFromSpec spec={tirmidhi322Spec as unknown as MontageSpec} />;
-import tirmidhi321Spec from "../data/specs/tirmidhi32_1.json";
-const Tirmidhi321Comp: React.FC = () => <MontageFromSpec spec={tirmidhi321Spec as unknown as MontageSpec} />;
 import urwaReelSpec from "../data/specs/urwa-reel.json";
 const UrwaReelComp: React.FC = () => <MontageFromSpec spec={urwaReelSpec as unknown as MontageSpec} />;
 import anchorKillsChildrenReelSpec from "../data/specs/anchor-kills-children-reel.json";
 const AnchorKillsChildrenReelComp: React.FC = () => <MontageFromSpec spec={anchorKillsChildrenReelSpec as unknown as MontageSpec} />;
 import anchorKillsChildrenSpec from "../data/specs/anchor-kills-children.json";
 const AnchorKillsChildrenComp: React.FC = () => <MontageFromSpec spec={anchorKillsChildrenSpec as unknown as MontageSpec} />;
-import { MontageBoth, BOTH, BOTHV } from "./MontageBoth";
 
 
 
@@ -74,21 +62,13 @@ export const RemotionRoot: React.FC = () => {
     <ByRecency>
 
       <Folder name="مونتاج الجلسة">
-        <Composition id="C2598-L" component={C2598Comp} durationInFrames={specFrames(c2598Spec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
         <Composition id="Urwa-Reel" component={UrwaReelComp} durationInFrames={specFrames(urwaReelSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
         <Composition id="Anchor-Kills-Children-L" component={AnchorKillsChildrenComp} durationInFrames={specFrames(anchorKillsChildrenSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
       </Folder>
       <Folder name="البثوث">
-        <Composition id="Tirmidhi325" component={Tirmidhi325Comp} durationInFrames={specFrames(tirmidhi325Spec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="Tirmidhi324" component={Tirmidhi324Comp} durationInFrames={specFrames(tirmidhi324Spec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="Tirmidhi323" component={Tirmidhi323Comp} durationInFrames={specFrames(tirmidhi323Spec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="Tirmidhi322" component={Tirmidhi322Comp} durationInFrames={specFrames(tirmidhi322Spec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="Tirmidhi321" component={Tirmidhi321Comp} durationInFrames={specFrames(tirmidhi321Spec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
         {/* بث للحوار مع المخالفين (1) */}
       </Folder>
       <Folder name="ريلز">
-        <Composition id="C2598-Reel" component={C2598ReelComp} durationInFrames={specFrames(c2598ReelSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="Tirmidhi322-L" component={Tirmidhi322Comp} durationInFrames={specFrames(tirmidhi322Spec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
         <Composition id="Anchor-Kills-Children-Reel" component={AnchorKillsChildrenReelComp} durationInFrames={specFrames(anchorKillsChildrenReelSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
       </Folder>
 
@@ -129,7 +109,10 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Ref-KineticOver" component={KineticOver} durationInFrames={KINETIC_TYPE_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-KineticSplit" component={KineticSplit} durationInFrames={KINETIC_SPLIT_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-ActiveSpeaker" component={ActiveSpeaker} durationInFrames={ACTIVE_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Ref-CineSpeaker" component={CineSpeaker} durationInFrames={CINE_SPEAKER_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Reel-Aqida-Mufassir" component={AqidaReel} durationInFrames={AQIDA_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-CineWords" component={CineWords} durationInFrames={CINE_WORDS_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Ref-AnimeScene" component={AnimeScene} durationInFrames={ANIME_FRAMES} fps={ANIME_FPS} width={1920} height={1080} />
       </Folder>
       <Folder name="موشن توضيحي مستقل">
         <Composition id="Jordan-Detain" component={JordanDetain} durationInFrames={JORDAN_FRAMES} fps={30} width={1080} height={1920} />

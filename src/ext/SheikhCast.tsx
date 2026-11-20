@@ -11,7 +11,7 @@ const SW = 4.5;
 type P = [number, number];
 type Top = "hoodie" | "bomber" | "denim" | "leather" | "sweater" | "plaid" | "puffer" | "track" | "cardigan" | "quarterzip";
 type Hair = "quiff" | "side" | "curly" | "crop" | "bun" | "beanie" | "wavy" | "slick";
-type Dev = "tablet" | "phone" | "tv" | "laptop" | "screen";
+type Dev = "tablet" | "phone" | "tv" | "laptop" | "screen" | "wall";
 type Arm = "beard" | "rest";
 type Design = {
   skin: string; hair: string; hairStyle: Hair; beard: string; beardShape: "spade" | "point" | "wave"; beardLen: number; beardW: number;
@@ -36,12 +36,6 @@ const DESIGNS: Design[] = [
 const shade = (hex: string, k: number) => {
   const n = parseInt(hex.slice(1), 16); const f = (c: number) => Math.max(0, Math.min(255, Math.round(k < 0 ? c * (1 + k) : c + (255 - c) * k)));
   return "#" + [f(n >> 16), f((n >> 8) & 255), f(n & 255)].map((c) => c.toString(16).padStart(2, "0")).join("");
-};
-/* طرف مستدق بين نقطتين (عظم بعرضين) مع نهايتين مستديرتين */
-const limb = (a: P, b: P, w1: number, w2: number) => {
-  const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
-  const p = (q: P, w: number, s: number): string => `${q[0] + nx * w * s},${q[1] + ny * w * s}`;
-  return `M${p(a, w1 / 2, 1)} L${p(b, w2 / 2, 1)} A${w2 / 2},${w2 / 2} 0 0 1 ${p(b, w2 / 2, -1)} L${p(a, w1 / 2, -1)} A${w1 / 2},${w1 / 2} 0 0 1 ${p(a, w1 / 2, 1)} Z`;
 };
 /* طرف من مفصلين أو ثلاثة: الحد الحبري كله أولاً ثم اللون، فلا يظهر خط عند المرفق أو الركبة */
 const Limb: React.FC<{ pts: P[]; w: number; fill: string }> = ({ pts, w, fill }) => {
@@ -310,7 +304,7 @@ const Figure: React.FC<{ d: Design; i: number }> = ({ d, i }) => {
   const elR: P = d.arm === "beard" ? [cx - 196, 626] : [cx - 205, 600];
   const haR: P = d.arm === "beard" ? [cx - 72, 528] : [cx - 214, 690];
   const holds = d.device === "tablet" || d.device === "phone";
-  const remote = d.device === "tv" || d.device === "screen";
+  const remote = d.device === "tv" || d.device === "screen" || d.device === "wall";
   const elL: P = holds ? [cx + 186, 612] : remote ? [cx + 196, 600] : [cx + 205, 600];
   const haL: P = holds ? [cx + 262, 560] : remote ? [cx + 268, 548] : [cx + 214, 690];
   /* الرجلان: اليسرى مغروسة، واليمنى فوقها على الركبة */
@@ -396,6 +390,53 @@ export const SheikhCast: React.FC = () => {
       <svg viewBox="0 0 1080 1080" width="100%" height="100%">
         <Room d={d} />
         <Figure d={d} i={f} />
+      </svg>
+    </AbsoluteFill>
+  );
+};
+
+/* المعتمد (2026-11-20): المكان رقم ١ والشخصية رقم ٦، طولي. الشاشة الكبيرة على الحائط في النصف الأعلى
+   (نرى المقطع معه)، وهو تحتها على كرسيه رِجلاً على رِجل وجهاز التحكم بيده. */
+export const SHEIKH_RUDOOD_FRAMES = 1;
+const RUDOOD: Design = { ...DESIGNS[5], chair: DESIGNS[0].chair, chairStyle: DESIGNS[0].chairStyle, wall: DESIGNS[0].wall, wall2: DESIGNS[0].wall2, floor: DESIGNS[0].floor, decor: DESIGNS[0].decor, device: "wall", arm: "rest" };
+export const SheikhRudood: React.FC = () => {
+  const d = RUDOOD, Y = 760, FL = 884 + Y;
+  return (
+    <AbsoluteFill style={{ background: d.wall }}>
+      <Img src={staticFile("broll_lib/religion_distorters/distorters_podcast.png")} style={{ position: "absolute", width: 2, height: 2, opacity: 0.01 }} />
+      <svg viewBox="0 0 1080 1920" width="100%" height="100%">
+        <rect x={0} y={0} width={1080} height={FL} fill={d.wall} />
+        {Array.from({ length: 9 }).map((_, i) => <rect key={i} x={i * 130 - 20} y={0} width={64} height={FL} fill={d.wall2} opacity={0.35} />)}
+        <rect x={0} y={FL - 26} width={1080} height={26} fill={shade(d.wall, -0.18)} />
+        <rect x={0} y={FL} width={1080} height={1920 - FL} fill={d.floor} />
+        {Array.from({ length: 10 }).map((_, i) => <Line key={i} d={`M0,${FL + 16 + i * 28} L1080,${FL + 16 + i * 28}`} c={shade(d.floor, -0.15)} w={2} />)}
+        <ellipse cx={540} cy={FL + 110} rx={420} ry={64} fill={shade(d.floor, 0.25)} stroke={INK} strokeWidth={3} />
+        <ellipse cx={540} cy={FL + 110} rx={376} ry={48} fill="none" stroke={shade(d.floor, -0.1)} strokeWidth={6} strokeDasharray="14 10" />
+        {/* الشاشة الكبيرة: نشاهد معه */}
+        <ellipse cx={540} cy={430} rx={560} ry={330} fill="#fff6d8" opacity={0.14} />
+        <Ink d="M56,150 h968 v568 h-968 Z" fill="#26211d" sw={6} />
+        <Screen x={74} y={168} w={932} h={532} id="rudood" />
+        <Ink d="M500,718 h80 v22 h-80 Z" fill="#3b332c" sw={3} />
+        {/* رف الكتب يساراً والمصباح يميناً */}
+        <g transform={`translate(24,${Y + 150}) scale(0.95)`}>
+          <Ink d="M0,0 h170 v560 h-170 Z" fill="#7a4b2c" />
+          {[0, 1, 2, 3].map((r) => (
+            <g key={r}>
+              <rect x={10} y={20 + r * 135} width={150} height={110} fill="#5d3820" />
+              {Array.from({ length: 7 }).map((_, k) => { const h = 70 + ((k * 37 + r * 11) % 35), cols = ["#a8442f", "#3f6b5a", "#c9a34f", "#3d4f6e", "#8a5a3b", "#6e2f3f", "#d9c9a2"];
+                return <rect key={k} x={16 + k * 20} y={128 + r * 135 - h} width={17} height={h} fill={cols[(k + r * 3) % 7]} stroke={INK} strokeWidth={2} />; })}
+              <rect x={0} y={128 + r * 135} width={170} height={10} fill="#8f5a35" stroke={INK} strokeWidth={2} />
+            </g>
+          ))}
+        </g>
+        <g transform={`translate(990,${Y + 300})`}>
+          <Ink d="M-56,0 L56,0 L74,104 L-74,104 Z" fill="#f2d79a" />
+          <ellipse cx={0} cy={104} rx={74} ry={13} fill="#f7e6b8" stroke={INK} strokeWidth={3} />
+          <Line d={`M0,104 V${FL - Y - 300 + 2}`} w={7} />
+          <ellipse cx={0} cy={FL - Y - 296} rx={44} ry={9} fill="#3b2a20" />
+          <ellipse cx={0} cy={150} rx={150} ry={76} fill="#fff3cc" opacity={0.18} />
+        </g>
+        <g transform={`translate(${540 - 430 * 1.15},${FL + 20 - 905 * 1.15}) scale(1.15)`}><Figure d={d} i={99} /></g>
       </svg>
     </AbsoluteFill>
   );

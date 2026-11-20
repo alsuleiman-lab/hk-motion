@@ -8,10 +8,6 @@
  *   beam    the room sinks into darkness from `at`, and a shaft of light falls on him at `beamAt` (dust in it) — a moment of truth, a text of revelation.
  *   bars    iron bars drop from the top behind him at `at` and stay — prison, captivity.
  *   ripple  rings of pressure leave him at each of `pulses` and run across the room — consequences that spread.
- *   squeeze (user 2026-11-20 «ضيق عليهم… مع صوت تضييق») iron walls close in on him from both sides and a ceiling comes down, in `steps` jerks over
- *           `closeDur` s from `at`, stopping at `avoid` (his shoulders) and `ceil` (fraction of the height); the room between them darkens — oppression, narrowing.
- *   water   (user 2026-11-20 «أمواج ماء») real water rises from the bottom at `at` over `riseDur` s to `level` (fraction of the height, from the top), its waves
- *           running across, foam on the crest, light and bubbles inside; it drains in the last 0.9 s — a flood, being drowned in something. (`ripple` is rings, not water.)
  * Every size comes from useVideoConfig(): the same item draws in landscape (1920×1080) and portrait (1080×1920); landscape output is unchanged.
  * SOUND (SceneFxSound): each kind has its own effect sound (public/ref_sfx, public/sfx — never music); `sound: false` silences it, `soundVol` scales it.
  * It is a separate component drawn OUTSIDE <UnderHim>/<Only> (MontageSpec, beside spec.sfx), so the GPU renderer's top pass collects its <Audio>.
@@ -26,12 +22,8 @@ const rnd = (n: number) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453;
 /* the frame's own size: sx/sy scale the landscape design (1920×1080) along each axis, u the strokes and particles (1 in both 1920×1080 and 1080×1920) */
 const useStage = () => { const { width: W, height: H, fps } = useVideoConfig(); return { W, H, fps, sx: W / 1920, sy: H / 1080, u: Math.min(W, H) / 1080, port: H > W }; };
 
-export type SceneFxKind = "crack" | "beam" | "bars" | "ripple" | "squeeze" | "water";
+export type SceneFxKind = "crack" | "beam" | "bars" | "ripple";
 export type SceneFxItem = { t: "scenefx"; fx: SceneFxKind; only?: "land" | "port" /* one orientation only (default: both) */; pulses?: number[]; from: number; to: number; at?: number; crackAt?: number; fallAt?: number; beamAt?: number; still?: string; avoid?: [number, number]; seed?: number; side?: "left" | "right" | "both";
-  /** squeeze: number of jerks (3), seconds to close (1.8), how low the ceiling comes (fraction of the height; 0.1 landscape, 0.18 portrait) */
-  steps?: number; closeDur?: number; ceil?: number;
-  /** water: the final surface (fraction of the height from the top; 0.5 landscape, 0.58 portrait) and the seconds it takes to rise (2) */
-  level?: number; riseDur?: number;
   /** the effect's own sound (on by default): false = silent; soundVol multiplies its level (1) */
   sound?: boolean; soundVol?: number };
 
@@ -165,99 +157,7 @@ const Ripple: React.FC<{ it: SceneFxItem }> = ({ it }) => {
   );
 };
 
-/* ── squeeze: iron walls close in from both sides and a ceiling comes down, in jerks (each jerk = a clunk in the sound), until they stand at his shoulders.
-   The room left between them darkens with every jerk; the walls hold, trembling a little, and draw back in the last 0.5 s. */
-const squeezeSteps = (it: SceneFxItem) => { const at = it.at ?? it.from, n = Math.max(1, Math.round(it.steps ?? 3)), dur = it.closeDur ?? 1.8; return Array.from({ length: n }, (_, k) => at + (dur * k) / n); };
-const SQ_MOVE = 0.24;   /* seconds each jerk takes */
-const ironPlate = (dir: "90deg" | "270deg" | "180deg") => [
-  "radial-gradient(circle, rgba(196,198,204,.7) 0 3px, rgba(0,0,0,.65) 4px, transparent 5.5px) 22px 26px / 104px 118px",   /* rivets */
-  "repeating-linear-gradient(90deg, rgba(0,0,0,.6) 0 3px, rgba(255,255,255,.07) 3px 5px, transparent 5px 104px)",          /* vertical plate seams */
-  "repeating-linear-gradient(180deg, rgba(0,0,0,.5) 0 3px, rgba(255,255,255,.06) 3px 5px, transparent 5px 236px)",         /* horizontal plate seams */
-  "repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 1px, transparent 1px 7px)",                                    /* brushed grain */
-  `linear-gradient(${dir}, #0d0d0f 0%, #26272b 55%, #3c3e43 100%)`,                                                        /* darker away from him, lit at the edge facing him */
-].join(", ");
-const Squeeze: React.FC<{ it: SceneFxItem }> = ({ it }) => {
-  const { W, H, fps, sx, u, port } = useStage();
-  const t = useCurrentFrame() / fps, steps = squeezeSteps(it), n = steps.length;
-  const [a0, a1] = it.avoid ?? (port ? [W * 0.24, W * 0.76] : [600 * sx, 1320 * sx]), ceilY = (it.ceil ?? (port ? 0.18 : 0.1)) * H;
-  const rel = inCubic((t - (it.to - 0.5)) / 0.5);
-  const p = steps.reduce((s, s0) => s + outCubic((t - s0) / SQ_MOVE) / n, 0) * (1 - rel);
-  /* a short tremble as each jerk lands (the iron hitting its stop), then a faint strain while it holds */
-  const jolt = steps.reduce((s, s0) => { const d = t - s0 - SQ_MOVE; return d > 0 && d < 0.2 ? s + Math.sin(d * 70) * 7 * u * (1 - d / 0.2) : s; }, 0) + (p > 0.98 ? Math.sin(t * 41) * 1.2 * u : 0);
-  const xL = a0 * p + jolt, xR = W - (W - a1) * p - jolt, yT = ceilY * p + jolt * 0.5;
-  const wl = a0 + 60 * u, wr = W - a1 + 60 * u, edge = 12 * u;
-  const dust = steps.flatMap((s0, k) => { const d = t - s0 - SQ_MOVE; if (d <= 0 || d > 0.9) return []; return Array.from({ length: 26 }, (_, i) => {
-    const j = k * 100 + i, onL = i % 3 === 0, onR = i % 3 === 1, x = onL ? xL + rnd(j) * 30 * u : onR ? xR - rnd(j) * 30 * u : xL + rnd(j + 1) * (xR - xL), y0 = onL || onR ? yT + rnd(j + 2) * (H - yT) : yT;
-    return <div key={"sd" + j} style={{ position: "absolute", left: x, top: y0 + d * d * 900 * u * (0.4 + rnd(j + 3)), width: (3 + rnd(j + 4) * 5) * u, height: (3 + rnd(j + 4) * 5) * u, borderRadius: 9, background: "rgba(190,184,172,.6)", opacity: (1 - d / 0.9) * 0.85, filter: "blur(1px)" }} />; }); });
-  if (p <= 0.001) return null;
-  return (
-    <AbsoluteFill>
-      {/* the room between the walls darkens as they close, the light pressed out of it */}
-      <AbsoluteFill style={{ background: "radial-gradient(ellipse 60% 70% at 50% 55%, rgba(0,0,0,.2) 0%, rgba(0,0,0,.72) 100%)", opacity: p }} />
-      {/* the ceiling (under the walls, between them) */}
-      <div style={{ position: "absolute", left: 0, top: yT - ceilY - 60 * u, width: W, height: ceilY + 60 * u, background: ironPlate("180deg"), boxShadow: `0 ${26 * u}px ${44 * u}px rgba(0,0,0,.75)` }}>
-        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: edge, background: "linear-gradient(180deg,#2a2b2f 0%,#9a9ca2 55%,#1a1a1d 100%)" }} />
-      </div>
-      {/* the side walls: each ends in a lit iron edge and throws a deep shadow toward him */}
-      <div style={{ position: "absolute", left: xL - wl, top: 0, width: wl, height: H, background: ironPlate("90deg"), boxShadow: `${30 * u}px 0 ${50 * u}px rgba(0,0,0,.8)` }}>
-        <div style={{ position: "absolute", top: 0, bottom: 0, right: 0, width: edge, background: "linear-gradient(90deg,#1a1a1d 0%,#a3a5ab 50%,#2a2b2f 100%)" }} />
-      </div>
-      <div style={{ position: "absolute", left: xR, top: 0, width: wr, height: H, background: ironPlate("270deg"), boxShadow: `${-30 * u}px 0 ${50 * u}px rgba(0,0,0,.8)` }}>
-        <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: edge, background: "linear-gradient(270deg,#1a1a1d 0%,#a3a5ab 50%,#2a2b2f 100%)" }} />
-      </div>
-      {dust}
-    </AbsoluteFill>
-  );
-};
-
-/* ── water: the room floods — layered waves rise from the bottom, run across, foam on the crest; light shimmers and bubbles rise inside; it drains at the end */
-const Water: React.FC<{ it: SceneFxItem }> = ({ it }) => {
-  const { W, H, fps, u, port } = useStage();
-  const t = useCurrentFrame() / fps, at = it.at ?? it.from, rise = it.riseDur ?? 2, level = (it.level ?? (port ? 0.58 : 0.5)) * H;
-  const up = outCubic((t - at) / rise), down = inCubic((t - (it.to - 0.9)) / 0.9), fill = up * (1 - down);
-  if (fill <= 0.001) return null;
-  const slosh = Math.sin((t - at) * 2.6) * 22 * u * Math.exp(-Math.max(0, t - at - rise * 0.5) * 0.8) * up;   /* the surge overshoots and settles */
-  const base = H + 80 * u + (level - H - 80 * u) * fill + slosh;
-  /* the surface of one layer: three travelling sines (long swell, a wave, a ripple), running left to right; the front layer is the tallest */
-  const surf = (x: number, ph: number, amp: number) => base + amp * u * (Math.sin(x / (W * 0.21) * 2 * Math.PI * 0.5 - t * 1.6 + ph) * 0.6 + Math.sin(x / (W * 0.083) * 2 * Math.PI * 0.5 - t * 2.9 + ph * 1.7) * 0.3 + Math.sin(x / (W * 0.031) * 2 * Math.PI * 0.5 - t * 4.3 + ph * 2.3) * 0.1);
-  const FA = 48, BA = 36, N = 64, xs = Array.from({ length: N + 1 }, (_, i) => (W * i) / N);
-  const line = (ph: number, amp: number, dy: number) => xs.map((x, i) => `${i ? "L" : "M"}${x.toFixed(1)} ${(surf(x, ph, amp) + dy * u).toFixed(1)}`).join(" ");
-  const body = (ph: number, amp: number, dy: number) => `${line(ph, amp, dy)} L${W} ${H + 10} L0 ${H + 10} Z`;
-  const depth = Math.max(1, H - base);
-  return (
-    <AbsoluteFill>
-      {/* a cold, dim cast on the room as the water comes */}
-      <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(6,22,40,.5) 0%, rgba(8,34,58,.25) 100%)", opacity: fill }} />
-      <svg width={W} height={H} style={{ position: "absolute", inset: 0 }}>
-        <defs>
-          <linearGradient id="wfa" x1="0" x2="0" gradientUnits="userSpaceOnUse" y1={base - 66 * u} y2={H}><stop offset="0%" stopColor="rgba(52,112,140,.72)" /><stop offset="100%" stopColor="rgba(4,20,34,.95)" /></linearGradient>
-          <linearGradient id="wfb" x1="0" x2="0" gradientUnits="userSpaceOnUse" y1={base - 40 * u} y2={H}><stop offset="0%" stopColor="rgba(96,170,196,.62)" /><stop offset="35%" stopColor="rgba(24,78,108,.78)" /><stop offset="100%" stopColor="rgba(3,16,28,.94)" /></linearGradient>
-          <filter id="wgl"><feGaussianBlur stdDeviation={6 * u} /></filter>
-          <filter id="wcs"><feGaussianBlur stdDeviation={2.2 * u} /></filter>
-        </defs>
-        {/* back wave (darker, offset), then the front wave */}
-        <path d={body(2.1, BA, -30)} fill="url(#wfa)" />
-        <path d={body(0, FA, 0)} fill="url(#wfb)" />
-        {/* caustics: thin wavering bands of light inside the water, fading with depth */}
-        {Array.from({ length: 6 }, (_, k) => { const dy = 40 + k * depth * 0.13; if (dy > depth - 20) return null;
-          return <path key={"c" + k} d={line(k * 1.3 + 0.7, 16 + k * 3, dy / u)} fill="none" stroke="rgba(190,236,255,.5)" strokeWidth={(2.6 - k * 0.3) * u} strokeDasharray={`${(90 + k * 30) * u} ${(60 + k * 25) * u}`} strokeDashoffset={-t * (70 + k * 15) * u} opacity={0.55 - k * 0.08} filter="url(#wcs)" />; })}
-        {/* the crest: a soft glow and a bright foam line on the front wave, a fainter one on the back wave */}
-        <path d={line(2.1, BA, -30)} fill="none" stroke="rgba(200,236,250,.45)" strokeWidth={2.5 * u} />
-        <path d={line(0, FA, 0)} fill="none" stroke="rgba(220,244,255,.55)" strokeWidth={12 * u} filter="url(#wgl)" />
-        <path d={line(0, FA, 0)} fill="none" stroke="rgba(244,252,255,.92)" strokeWidth={2.8 * u} />
-        <path d={line(0.4, FA * 0.9, 9)} fill="none" stroke="rgba(236,248,255,.5)" strokeWidth={4 * u} strokeLinecap="round" strokeDasharray={`${34 * u} ${21 * u} ${9 * u} ${28 * u} ${55 * u} ${17 * u}`} strokeDashoffset={-t * 120 * u} filter="url(#wcs)" />
-        {/* bubbles rising from the bottom, gone at the surface */}
-        {Array.from({ length: 34 }, (_, i) => { const x = rnd(i + 40) * W + Math.sin(t * 2 + i) * 8 * u, sp = (60 + rnd(i + 41) * 90) * u, y = H - ((rnd(i + 42) * H + (t - at) * sp) % (H * 0.9)), r = (2 + rnd(i + 43) * 5) * u;
-          return y > surf(x, 0, FA) + 14 * u ? <circle key={"b" + i} cx={x} cy={y} r={r} fill="rgba(210,240,255,.12)" stroke="rgba(225,246,255,.55)" strokeWidth={1.2 * u} /> : null; })}
-        {/* spray thrown off the crest while it surges */}
-        {t - at < rise ? Array.from({ length: 24 }, (_, i) => { const d = ((t - at) * 1.7 + rnd(i + 70)) % 1, x = rnd(i + 71) * W, y0 = surf(x, 0, FA);
-          return <circle key={"s" + i} cx={x + (rnd(i + 72) - 0.5) * 60 * u * d} cy={y0 - 90 * u * d + 140 * u * d * d} r={(2 + rnd(i + 73) * 3) * u} fill="rgba(235,250,255,.8)" opacity={(1 - d) * (1 - clamp((t - at) / rise))} />; }) : null}
-      </svg>
-    </AbsoluteFill>
-  );
-};
-
-export const SceneFx: React.FC<{ it: SceneFxItem }> = ({ it }) => it.fx === "crack" ? <Crack it={it} /> : it.fx === "beam" ? <Beam it={it} /> : it.fx === "ripple" ? <Ripple it={it} /> : it.fx === "squeeze" ? <Squeeze it={it} /> : it.fx === "water" ? <Water it={it} /> : <Bars it={it} />;
+export const SceneFx: React.FC<{ it: SceneFxItem }> = ({ it }) => it.fx === "crack" ? <Crack it={it} /> : it.fx === "beam" ? <Beam it={it} /> : it.fx === "ripple" ? <Ripple it={it} /> : <Bars it={it} />;
 
 /* ── SOUND: the effect's own sounds, at its moments (effect sounds only — never music). public/ref_sfx is softened to a −26 dBFS peak (src/ext/sfx.tsx), so
    those play at 1; river_stream (public/sfx) is a loud bed and plays low. Each cue: [file, second, length s, level]. */
@@ -269,8 +169,6 @@ export const sceneFxCues = (it: SceneFxItem): Cue[] => {
     case "beam": { const b = it.beamAt ?? at + 1.2; return [["ref_sfx/subdrop.wav", at, 1.2, 0.8], ["ref_sfx/swell.wav", Math.max(at, b - 0.4), 1.3, 1]]; }
     case "bars": return [["ref_sfx/swish.wav", at, 0.4, 1], ["ref_sfx/thud.wav", at + 0.42, 0.3, 1], ["ref_sfx/thud.wav", it.to - 0.5, 0.3, 0.6]];
     case "ripple": return (it.pulses ?? [at]).map((p): Cue => ["ref_sfx/subdrop.wav", p, 1.2, 0.7]);
-    case "squeeze": { const st = squeezeSteps(it); return [["ref_sfx/swell.wav", at, 1.3, 1], ...st.map((s0): Cue => ["ref_sfx/thud.wav", s0 + SQ_MOVE * 0.8, 0.3, 1]), ["ref_sfx/subdrop.wav", st[st.length - 1] + SQ_MOVE * 0.8, 1.2, 0.7]]; }
-    case "water": return [["ref_sfx/whoosh_big.wav", at, 1.2, 1], ["sfx/river_stream.wav", at + 0.15, Math.max(0.5, Math.min(14, it.to - at - 0.4)), 0.28]];
     default: return [];
   }
 };

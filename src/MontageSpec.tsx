@@ -112,7 +112,7 @@ export type SpecItem = Common & (
   /** a newspaper clipping of a real news screenshot (PaperKit NewsClip): the headline image, the outlet and date under it */
   | { t: "news"; src: string; source: string; headline?: string; at: number; until: number; x: number; y: number; w: number; h: number }
   /** the stronger family tree, NO frame (user 2026-10-29): drawn on the decorated base; put a `behind` window with his matte on the same span so he stands in front of it (landscape: `dx` moves him right) */
-  /** a scene effect behind him (src/SceneFx.tsx; user 2026-11-20): the room cracks and falls / darkens under a shaft of light / iron bars drop / rings spread / walls close in (squeeze) / water rises (water), each with its own sound (`sound: false`, `soundVol`) — over his video, under his cut-out (a `behind` window on the same span) */
+  /** a scene effect behind him (src/SceneFx.tsx; user 2026-11-20): the room cracks and falls / darkens under a shaft of light / iron bars drop / rings spread, each with its own sound (`sound: false`, `soundVol`) — over his video, under his cut-out (a `behind` window on the same span) */
   | SceneFxItem
   | { t: "treefx"; skin?: "parchment"; from: number; to: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number; nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number; titleSize?: number; land?: { x: number; y: number; w: number; h: number; titleSize?: number; nodeW?: number; nodeH?: number; font?: number } }
   /** the photo of a person he names, in a torn white border with tape (PaperKit TornPhoto; PREFERENCES «متى يُستعمل كل عنصر»: mandatory for every named person) */

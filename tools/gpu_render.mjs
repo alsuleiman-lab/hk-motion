@@ -113,6 +113,13 @@ if (BSPEC && !BSPEC.bumper && !["paper", "ad", "explainer", "cartoon"].includes(
 const inputProps = { ...PROPS, hybrid: "top", hybridPort: GEOM_PORT, hybridLayers: true, ...(BUMP ? { withBumper: true } : {}) };   /* hybridLayers: <HyLayer>/<VSlot z> active (GPU renderer only) */
 const composition = await selectComposition({ serveUrl, id: compId, inputProps, chromiumOptions: { gl: "angle" } });
 const W = composition.width, H = composition.height, FPS = composition.fps;
+/* (user 2026-11-20: «جمعت بين عنصرين فوق بعض… يجب ان لا يقبله البرنامج حتى لو فعلته أنت») a FULL render of a montage with two elements in one place, or an
+   element drawn where the grid refuses it, is refused — whoever wrote it, however it got into the spec. No switch: the montage is fixed (tools/lib/overlap_gate.mjs) */
+if (BSPEC && !["--start", "--end", "--frames"].some((a) => process.argv.includes(a))) {
+  const { overlapFailures } = await import("./lib/overlap_gate.mjs");
+  const bad = overlapFailures(BSPEC_ID, W > H ? "land" : W < H ? "port" : null);
+  if (bad.length) { console.error(`✘ ${compId}: ${bad.length} تراكب/مكان مرفوض في المونتاج — لا رندر حتى يُصلَح (node tools/el.mjs slot ${BSPEC_ID} #id <خانة>):\n  ${bad.slice(0, 8).join("\n  ")}`); process.exit(1); }
+}
 if (BUMP) { if (composition.durationInFrames !== BSPEC.frames + BUMP.N) { console.error(`✘ ${compId} is ${composition.durationInFrames} frames, the montage + its bumper should be ${BSPEC.frames + BUMP.N}: the composition did not take the bumper in — not rendered`); process.exit(1); }
   log(`bumper inside the montage: «${BUMP.title}» frames ${BUMP.G}-${BUMP.G + BUMP.N - 1} (${BUMP.end ? "at the end" : `at ${BUMP.at}s of the cut`})`); }
 /* NVENC H.264 refuses tiny frames (measured 2026-11-13: 140×140 "Frame Dimension less than the minimum"): such a composition is an image asset — a still */

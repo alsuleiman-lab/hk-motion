@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
 import { HybridHost, HybridBg, VSlot } from "../hybrid/Slot";
 import { FontKey, useFonts } from "./fonts";
 import { clamp01 } from "./motion";
@@ -14,7 +14,7 @@ import { Cue, SfxTrack } from "./sfx";
  */
 export type CineWordSpec = { at: number; text?: string; stretch?: [string, string]; size: number; font?: FontKey; gold?: boolean };
 export type CineLine = { y: number; until: number; words: CineWordSpec[] };
-export type CineShot = { a: number; b: number; kind: "speaker" | "page" | "rosette" | "cover"; zoom?: number; shift?: number; lines: CineLine[] };
+export type CineShot = { a: number; b: number; kind: "speaker" | "page" | "rosette" | "cover" | "image"; img?: string; bw?: boolean; zoom?: number; shift?: number; lines: CineLine[] };
 
 const W = 1080, H = 1920;
 const GOLD = "#d9b24a";
@@ -52,6 +52,18 @@ const Cover: React.FC<{ a: number }> = ({ a }) => {
   );
 };
 
+/** لقطة معنى بصورة مولّدة على الجهاز: تقريب بطيء (كن بيرنز) وتلوين داكن دافئ أو أبيض وأسود */
+const Still: React.FC<{ shot: CineShot }> = ({ shot }) => {
+  const t = useCurrentFrame() / 30;
+  const p = clamp01((t - shot.a) / Math.max(0.1, shot.b - shot.a));
+  return (
+    <AbsoluteFill style={{ overflow: "hidden", background: "#0b0a08" }}>
+      <Img src={staticFile(shot.img ?? "")} style={{ width: W, height: H, objectFit: "cover", transform: `scale(${1.04 + 0.08 * p}) translateY(${-20 * p}px)`, filter: shot.bw ? "grayscale(1) contrast(1.15) brightness(.85)" : "brightness(.82) contrast(1.12) saturate(.9) sepia(.15)" }} />
+      <AbsoluteFill style={{ background: "radial-gradient(ellipse 75% 60% at 50% 40%, rgba(0,0,0,0) 45%, rgba(0,0,0,.8) 100%)" }} />
+    </AbsoluteFill>
+  );
+};
+
 export const CineSequence: React.FC<{ shots: CineShot[]; src: string; sfx?: Cue[] }> = ({ shots, src, sfx = [] }) => {
   useFonts(["mirza", "ruqaa", "amiri", "kafRuqaa"]);
   const f = useCurrentFrame(), t = f / 30;
@@ -74,6 +86,7 @@ export const CineSequence: React.FC<{ shots: CineShot[]; src: string; sfx?: Cue[
       {shot.kind === "page" && <Page at={Math.round(shot.a * 30)} />}
       {shot.kind === "rosette" && <Rosette />}
       {shot.kind === "cover" && <Cover a={shot.a} />}
+      {shot.kind === "image" && <Still shot={shot} />}
       {shot.lines.map((ln, i) => (
         <Line key={i} y={ln.y}>
           {ln.words.map((w, j) => w.stretch
@@ -89,13 +102,13 @@ export const CineSequence: React.FC<{ shots: CineShot[]; src: string; sfx?: Cue[
 
 /* ───────── التمرين: المرجع الرابع بفيديو الشيخ ───────── */
 const SHOTS: CineShot[] = [
-  { a: 0.0, b: 1.2, kind: "cover", lines: [
+  { a: 0.0, b: 1.2, kind: "image", img: "cine/hands_book.png", lines: [
     { y: 1250, until: 1.2, words: [{ at: 0.1, text: "نحن", size: 96, font: "ruqaa" }, { at: 0.3, text: "لسنا", size: 96, font: "ruqaa" }] },
     { y: 1400, until: 1.2, words: [{ at: 0.5, stretch: ["أمّ", "ة"], size: 190 }, { at: 0.75, text: "اقرأ", size: 190 }] }] },
   { a: 1.2, b: 2.8, kind: "speaker", zoom: 1.3, shift: 0.8, lines: [
     { y: 1500, until: 2.8, words: [{ at: 1.3, text: "الأمم", size: 104, font: "ruqaa" }, { at: 1.5, text: "الأخرى", size: 104, font: "ruqaa" }] },
     { y: 1630, until: 2.8, words: [{ at: 1.9, text: "أيضاً", size: 150 }, { at: 2.1, stretch: ["تقـ", "ـرأ"], size: 180 }] }] },
-  { a: 2.8, b: 4.6, kind: "page", lines: [
+  { a: 2.8, b: 4.6, kind: "image", img: "cine/library.png", lines: [
     { y: 300, until: 4.6, words: [{ at: 3.0, text: "قد", size: 124 }, { at: 3.2, text: "تقرأ", size: 124 }, { at: 3.45, text: "أكثر", size: 124, gold: true }, { at: 3.7, text: "منا", size: 124 }] }] },
   { a: 4.6, b: 5.8, kind: "speaker", zoom: 1.12, lines: [
     { y: 1500, until: 5.8, words: [{ at: 4.7, text: "لكننا", size: 104, font: "ruqaa" }, { at: 4.9, text: "نحن", size: 104, font: "ruqaa" }] },
@@ -106,7 +119,7 @@ const SHOTS: CineShot[] = [
     { y: 1600, until: 8.3, words: [{ at: 7.1, text: "ولا", size: 130 }, { at: 7.3, text: "تنظر", size: 130 }, { at: 7.55, text: "للأمور", size: 130 }] },
     { y: 1600, until: 9.1, words: [{ at: 8.35, text: "بمعزل", size: 130 }, { at: 8.55, text: "عن", size: 130 }, { at: 8.75, text: "الخالق", size: 130, gold: true }] },
     { y: 1600, until: 9.8, words: [{ at: 9.15, text: "الذي", size: 130 }, { at: 9.35, text: "أنشأ", size: 130 }, { at: 9.55, text: "الخلق", size: 130 }] }] },
-  { a: 9.8, b: 13.0, kind: "rosette", lines: [
+  { a: 9.8, b: 13.0, kind: "image", img: "cine/reader_back_soft.png", bw: true, lines: [
     { y: 1250, until: 11.3, words: [{ at: 9.9, text: "نحن", size: 130 }, { at: 10.1, text: "أمة", size: 130 }, { at: 10.35, text: "القراءة", size: 130, gold: true }] },
     { y: 1250, until: 12.2, words: [{ at: 11.35, text: "التي", size: 110, font: "ruqaa" }, { at: 11.55, text: "تربط", size: 110, font: "ruqaa" }, { at: 11.8, text: "المخلوق", size: 110, font: "ruqaa" }] },
     { y: 1420, until: 13.0, words: [{ at: 12.2, stretch: ["بالخ", "الق"], size: 210, font: "kafRuqaa" }] }] },

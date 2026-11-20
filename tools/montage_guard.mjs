@@ -96,7 +96,12 @@ if (cmd === "stage") {
   /* (2026-11-13, user: «لا أزال أشوف الفيديو الخاص به موجود في المكان الأصلي») the ORIGINAL he sent goes to the Recycle Bin on approval — read its path
      from .tmp/<p>/prep_config.json BEFORE clean_temp erases that folder */
   { const orig = readJson(path.join(".tmp", project, "prep_config.json"), {}).original;
-    if (orig && fs.existsSync(orig)) {
+    /* (2026-11-20, gta6) ending a REEL cut from an episode trashed the EPISODE's original while the episode was still being edited. The original goes to the
+       bin only when no other project still uses it (another .tmp/<x>/prep_config.json naming the same file whose spec still exists). */
+    const norm = (p) => path.resolve(String(p)).toLowerCase();
+    const users = orig ? fs.readdirSync(".tmp").filter((d) => d !== project && fs.existsSync(path.join("data", "specs", `${d}.json`)) && (() => { try { return norm(readJson(path.join(".tmp", d, "prep_config.json"), {}).original ?? "") === norm(orig); } catch { return false; } })()) : [];
+    if (users.length) console.log(`✋ الأصل لا يُنقل إلى السلة: ما زال يستعمله ${users.join("، ")} — يُنقل حين يُعتمد آخرها`);
+    else if (orig && fs.existsSync(orig)) {
       const ps = (await import("node:child_process")).spawnSync("powershell", ["-NoProfile", "-Command", `Add-Type -AssemblyName Microsoft.VisualBasic; [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($env:MG_ORIG, 'OnlyErrorDialogs', 'SendToRecycleBin')`], { encoding: "utf8", env: { ...process.env, MG_ORIG: orig } });
       console.log(fs.existsSync(orig) ? `✘ الأصل لم يُنقل إلى السلة: ${orig} ${ps.stderr || ""}` : `✔ الأصل نُقل إلى سلة المحذوفات: ${orig}`);
       if (fs.existsSync(orig)) process.exitCode = 1;

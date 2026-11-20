@@ -345,7 +345,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
       return (
         <Only key={i} from={it.at} to={it.until}>
           <FlashCut at={it.at} x={L ? ov.x ?? G.x : it.x} y={L ? ov.y ?? G.y : it.y} w={w} h={h} beats={it.beats} crops={it.crops}>
-            <Pic src={it.src} style={{ width: w, height: h, objectFit: "cover" }} />
+            <div style={{ position: "relative", width: w, height: h }}><Pic src={it.src} style={{ width: w, height: h, objectFit: "cover" }} />{(it as { marks?: FlashMark[] }).marks?.map((m, j) => <HighlightMark key={j} m={m} kx={w / it.w} ky={h / it.h} />)}</div>
           </FlashCut>
           {it.name ? <div style={{ position: "absolute", left: L ? ov.x ?? G.x : it.x, top: (L ? ov.y ?? G.y : it.y) + h, width: w, height: 48, background: BRAND.navyDeep, color: "#fff", fontFamily: "Noto Kufi Arabic", fontSize: 30, textAlign: "center", direction: "rtl", lineHeight: "48px", whiteSpace: "nowrap", borderRadius: "0 0 10px 10px" }}>{it.name}</div> : null}
         </Only>
@@ -747,6 +747,11 @@ export const pickLastEvent = (it: PickItem): number => {
 };
 export const pickUntil = (it: PickItem) => Math.max(it.until, pickLastEvent(it) + PICK_HOLD);
 /** a picked element (PickKit) in landscape sits on the left half: the approved blended panel behind it, while he is slid right (shift window below) */
+/* (user 2026-11-20, frame 14963: «عند عرض الخبر لابد من عمل هايلايت على الكلام المقصود») a yellow marker drawn right-to-left over the words he means, in the
+   picture's own pixels (x, y, w, h of the source image), from `at` (cut seconds), over 0.5 s */
+type FlashMark = { x: number; y: number; w: number; h: number; at: number };
+const HighlightMark: React.FC<{ m: FlashMark; kx: number; ky: number }> = ({ m, kx, ky }) => { const t = useCurrentFrame() / 30, g = Math.max(0, Math.min(1, (t - m.at) / 0.5)); if (g <= 0) return null;
+  return <div style={{ position: "absolute", left: (m.x + m.w * (1 - g)) * kx, top: m.y * ky, width: m.w * g * kx, height: m.h * ky, background: "rgba(255,214,0,.55)", mixBlendMode: "multiply", borderRadius: 3 }} />; };
 const PickPanel: React.FC<{ at: number; until: number }> = ({ at, until }) => { const t = useT(); return <BlendPanel k={halfK(t, at - HALF_LEAD, until)} t={t} id={"pk" + at} />; };
 const isHalfWay = (it: SpecItem) => (it.t === "pick" && !(it.noShift ?? !!PICK_NOSPLIT[it.el]) && !PICK_FULL_FRAME.has(it.el)) || (it.t === "verse" && !it.full && (it.way === "noor" || it.way === "bigword")) || (it.t === "note" && !!it.phrases?.length && (it.way === "quote" || it.way === "books"));
 /** a note with only `title`: split the matn into short phrases (at punctuation, then ≤5 words) and spread them over the spoken span by length */

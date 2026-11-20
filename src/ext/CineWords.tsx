@@ -30,9 +30,10 @@ export const Leak: React.FC = () => {
 export const Word: React.FC<{ at: number; until: number; text: string; font: Parameters<typeof ff>[0]; size: number; color?: string }> = ({ at, until, text, font, size, color = "#fffaf0" }) => {
   const f = useCurrentFrame();
   if (f < at || f >= until) return null;
-  const i = easeOut((f - at) / 9), o = clamp01((until - f) / 6);
-  const k = Math.min(i, o);
-  return <span style={{ display: "inline-block", margin: "0 0.12em", fontFamily: ff(font), fontSize: size, color, opacity: k, filter: `blur(${(1 - k) * 10}px)`, transform: `translateY(${(1 - i) * 24}px)`, textShadow: `0 0 ${18 + 10 * k}px rgba(255,236,190,.45)` }}>{text}</span>;
+  /* كما في المرجع الرابع (§٣٣): الكلمة تولد باهتة (٣٠٪) وتشتد في ٤ إطارات، وتصعد ١٤ بكسل في ٦، وتخرج في ٣ */
+  const i = easeOut((f - at) / 6), o = clamp01((until - f) / 3);
+  const k = Math.min(0.3 + 0.7 * clamp01((f - at) / 4), o);
+  return <span style={{ display: "inline-block", margin: "0 0.12em", fontFamily: ff(font), fontSize: size, color, opacity: k, filter: `blur(${(1 - clamp01((f - at) / 4)) * 6}px)`, transform: `translateY(${(1 - i) * 14}px)`, textShadow: `0 0 ${18 + 10 * k}px rgba(255,236,190,.45)` }}>{text}</span>;
 };
 /** كلمة تمتد بالكشيدة بعد ظهورها (الأثر المميّز في المرجع). */
 export const StretchWord: React.FC<{ at: number; until: number; a: string; b: string; size: number; font: Parameters<typeof ff>[0] }> = ({ at, until, a, b, size, font }) => {

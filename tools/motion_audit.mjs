@@ -43,7 +43,11 @@ const lr = spawnSync("ffmpeg", ["-hide_banner", "-nostats", "-i", file, "-map", 
 const m = (lr.stderr || "").match(/\{[\s\S]*?\}/g);
 if (m) { try { const j = JSON.parse(m[m.length - 1]); loud = { I: +j.input_i, TP: +j.input_tp, LRA: +j.input_lra }; } catch { /* no audio */ } }
 
-const rep = { file, fps, frames: diffs.length + 1, firstMotion: firstMove < 0 ? null : t(firstMove + 1), longestStill: longest, stillPct: +((100 * stillN) / Math.max(1, diffs.length)).toFixed(1), cuts: cuts.map((c) => t(c)), medianShot: medShot, loudness: loud };
+/* --peaks N: أكبر N لحظات تغيّر (متباعدة ٠٫٥ ث على الأقل) لدراسة الانتقالات إطاراً بإطار حولها */
+const peaksN = Number(opt("peaks", "0"));
+const peaks = [];
+if (peaksN > 0) { const order = diffs.map((d, i) => [d, i]).sort((a, b) => b[0] - a[0]); for (const [d, i] of order) { if (peaks.length >= peaksN) break; if (peaks.every((p) => Math.abs(p - i) > fps * 0.5)) peaks.push(i); } peaks.sort((a, b) => a - b); }
+const rep = { file, fps, peaks: peaks.map((i) => t(i)), frames: diffs.length + 1, firstMotion: firstMove < 0 ? null : t(firstMove + 1), longestStill: longest, stillPct: +((100 * stillN) / Math.max(1, diffs.length)).toFixed(1), cuts: cuts.map((c) => t(c)), medianShot: medShot, loudness: loud };
 const fails = [];
 if (rep.firstMotion === null || rep.firstMotion > 0.4) fails.push(`أول حركة ${rep.firstMotion} ث (الحد 0.4)`);
 if (longest.len > MAX_STILL) fails.push(`سكون ${longest.len} ث من ${longest.s} إلى ${longest.e} (الحد ${MAX_STILL})`);
@@ -52,5 +56,6 @@ rep.fails = fails;
 if (opt("json")) fs.writeFileSync(opt("json"), JSON.stringify(rep, null, 1));
 console.log(`أول حركة: ${rep.firstMotion} ث | أطول سكون: ${longest.len} ث (${longest.s}–${longest.e}) | نسبة السكون: ${rep.stillPct}٪`);
 console.log(`القطع: ${cuts.length} | وسيط اللقطة: ${medShot ?? "—"} ث | الصوت: ${loud ? `${loud.I} LUFS، القمة ${loud.TP} dBTP، المدى ${loud.LRA}` : "لا صوت"}`);
+if (peaks.length) console.log(`لحظات التغيّر الكبرى: ${rep.peaks.join("، ")}`);
 console.log(fails.length ? "✘ " + fails.join("\n✘ ") : "✔ لا سكون فوق الحد، والحركة تبدأ في وقتها");
 process.exit(fails.length ? 1 : 0);

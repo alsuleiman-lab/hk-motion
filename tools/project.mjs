@@ -61,7 +61,8 @@ export const pathsOf = (root) => {
   for (const f of ls(bo)) { let s = -1; try { s = fs.statSync(path.join(bo, f)).size; } catch { /* gone */ } if (isComp(f.replace(/^hyb_/, ""), ids) || gateOrig.has(f) || gateSize.has(s)) add("legacy", path.join(bo, f)); }
   for (const f of ls(".tmp/hybrid_any/public_slim")) for (const i of ids) if (f === i || f.startsWith(`${i}_`)) add("legacy", path.join(".tmp/hybrid_any/public_slim", f));
   for (const f of ls(".tmp")) if (/\.(out|log)$/.test(f) && ids.some((i) => f.toLowerCase().includes(i.toLowerCase()))) add("legacy", path.join(".tmp", f));
-  const rw = (d) => { for (const f of ls(d)) { const p = path.join(d, f); if (isComp(f, ids)) add("legacy", p); else if (fs.statSync(p).isDirectory()) rw(p); } };
+  /* (2026-11-20) render reports are named gpu_render_<Comp>_<date>.json: the prefix is not part of the name */
+  const rw = (d) => { for (const f of ls(d)) { const p = path.join(d, f); if (isComp(f, ids) || isComp(f.replace(/^(gpu_render|hybrid_any|hybrid)_/, "").replace(/-(l|both|bothv)_/i, "_"), ids)) add("legacy", p); else if (fs.statSync(p).isDirectory()) rw(p); } };
   rw("render_work");
   return { ids, ...out };
 };

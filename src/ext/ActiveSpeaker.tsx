@@ -22,7 +22,7 @@ const KF: number[][] = [
   [2.6, 560, 520, 480, 853],
   [3.4, 270, 120, 540, 960],
   [9.0, 250, 100, 580, 1031],
-  [17.0, 270, 120, 540, 960],
+  [17.0, 175, 40, 730, 1298],
   [17.8, 560, 560, 432, 768],
   [20.0, 560, 560, 432, 768],
   [21.5, 1200, 560, 432, 768],
@@ -30,8 +30,8 @@ const KF: number[][] = [
   [23.4, 0, 0, 1080, 1920],
   [26.0, 0, 0, 1080, 1920],
   [26.5, -1300, 0, 1080, 1920],
-  [32.6, -1300, 120, 540, 960],
-  [33.3, 270, 120, 540, 960],
+  [31.8, -1300, 120, 540, 960],
+  [32.5, 270, 120, 540, 960],
   [40.0, 270, 120, 540, 960],
 ];
 const frameBox = (t: number): number[] => {
@@ -52,7 +52,7 @@ const Word: React.FC<{ at: number; out?: number; x: number; y: number; w?: numbe
   const k = back((t - at) / 0.22, 1.6);
   const fade = out !== undefined ? clamp01((out - t) / 0.12) : 1;
   return (
-    <div style={{ position: "absolute", left: x, top: y, width: w, textAlign: "center", fontFamily: ff(font), fontSize: size, lineHeight: 1.1, color, textShadow: `${Math.round(size * 0.05)}px ${Math.round(size * 0.05)}px 0 ${shadow}`, direction: "rtl", letterSpacing: stretch ? stretch * clamp01((t - at) / 1.2) : undefined, opacity: fade, transform: `scale(${0.6 + 0.4 * Math.max(0, k)})` }}>{text}</div>
+    <div style={{ position: "absolute", left: x, top: y, width: w, textAlign: "center", fontFamily: ff(font), fontSize: size, lineHeight: 1.1, color, textShadow: `${Math.round(size * 0.05)}px ${Math.round(size * 0.05)}px 0 ${shadow}`, direction: "rtl", letterSpacing: stretch ? stretch * clamp01((t - at) / 2.4) : undefined, opacity: fade, transform: `scale(${0.6 + 0.4 * Math.max(0, k)})` }}>{text}</div>
   );
 };
 
@@ -118,7 +118,7 @@ const SlideScreen: React.FC<{ at: number; until: number; color: string; out?: bo
   const grid = color === C.cream ? "rgba(42,28,31,.06)" : "rgba(255,255,255,.07)";
   return (
     <div style={{ position: "absolute", inset: 0, transform: tf || undefined, clipPath: clip, filter: blur ? `blur(${blur}px)` : undefined, boxShadow: "0 0 60px rgba(0,0,0,.3)", background: out ? "transparent" : color, backgroundImage: out ? undefined : `linear-gradient(${grid} 2px, transparent 2px), linear-gradient(90deg, ${grid} 2px, transparent 2px)`, backgroundSize: "54px 54px" }}>
-      {children}
+      <div style={{ position: "absolute", inset: 0, transform: `scale(${1 + 0.12 * clamp01(u / 3)})` }}>{children}</div>
     </div>
   );
 };
@@ -155,19 +155,17 @@ export const ActiveSpeaker: React.FC = () => {
   /* ميلان خفيف أثناء القلب يعطي إحساس البطاقة في الفراغ */
 
   /* الخلفية تتحول من الفيديو إلى السادة بعد أن تنزاح الصورة */
-  const plain = t >= 1.2;
   return (
     <HybridHost>
       <HybridBg>
-        <AbsoluteFill style={{ background: C.cream }} />
+        <AbsoluteFill style={{ background: C.cream, backgroundImage: "linear-gradient(rgba(42,28,31,.06) 2px, transparent 2px), linear-gradient(90deg, rgba(42,28,31,.06) 2px, transparent 2px)", backgroundSize: "54px 54px" }} />
       </HybridBg>
-      {plain && <AbsoluteFill style={{ background: C.cream, backgroundImage: "linear-gradient(rgba(42,28,31,.06) 2px, transparent 2px), linear-gradient(90deg, rgba(42,28,31,.06) 2px, transparent 2px)", backgroundSize: "54px 54px" }} />}
-      {w < 1000 && !flipping && <div style={{ position: "absolute", left: x - 14, top: y - 14, width: w + 28, height: h + 28, background: "#fffdf6", borderRadius: 26, boxShadow: "0 18px 34px rgba(0,0,0,.28)", transformOrigin: "50% 50%" }} />}
+      {w < 1000 && !flipping && <div style={{ position: "absolute", left: x - 14, top: y - 14, width: w + 28, height: h + 28, boxSizing: "border-box", border: "14px solid #fffdf6", borderRadius: 30, transformOrigin: "50% 50%" }} />}
       {!flipping && <VSlot src="dubkmr/src.mp4" w={w} h={h} radius={w > 1000 ? 0 : 26} vx={0} vy={0} vw={w} vh={h} style={{ left: x, top: y, transformOrigin: "50% 50%" }} grow={0} />}
 
       {flipping && (
         <div style={{ position: "absolute", left: x, top: y, width: w, height: h, perspective: 1600 }}>
-          <div style={{ position: "absolute", inset: 0, transformStyle: "preserve-3d", transform: `rotateY(${flipAng}deg)`, transformOrigin: "50% 50%" }}>
+          <div style={{ position: "absolute", inset: 0, transformStyle: "preserve-3d", transform: `rotateY(${flipAng}deg) scale(${1 + 0.06 * clamp01((t - 6.0) / 1.6)})`, transformOrigin: "50% 50%" }}>
             <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", borderRadius: 26, overflow: "hidden", boxShadow: "0 18px 34px rgba(0,0,0,.35)" }}>
               <Img src={staticFile("dubkmr/flip_still.jpg")} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </div>
@@ -225,14 +223,14 @@ export const ActiveSpeaker: React.FC = () => {
         <Counter at={26.6} to={14} />
         {["تصدير", "تحريك", "طبقات", "مونتاج"].map((s, i) => <Bar key={s} at={27.4 + i * 0.35} i={i} text={s} />)}
       </SlideScreen>
-      <SlideScreen at={29.9} until={32.7} color={C.maroon} enter="grow" exitUp>
+      <SlideScreen at={29.9} until={31.9} color={C.maroon} enter="grow" exitUp>
         <Word at={30.25} x={0} y={640} size={120} text="وكل هذا" color={C.cream} shadow={C.ink} font="ruqaa" />
-        <Word at={30.55} x={0} y={820} size={230} text="بضربة وحدة" color={C.cream} shadow={C.teal} stretch={24} />
+        <Word at={30.55} x={0} y={820} size={230} text="بضربة وحدة" color={C.cream} shadow={C.teal} stretch={40} />
       </SlideScreen>
-      <SlideScreen at={32.4} until={99} color={C.cream} out>
-        <Word at={33.4} x={0} y={1180} size={150} text="تبي إعلانك كذا؟" color={C.maroon} shadow={C.cream} />
-        <Word at={34.0} x={0} y={1380} size={90} text="فريقنا يسويه لك" color={C.teal} shadow={C.cream} font="ruqaa" />
-        <Button at={34.6} />
+      <SlideScreen at={31.6} until={99} color={C.cream} out>
+        <Word at={32.6} x={0} y={1180} size={150} text="تبي إعلانك كذا؟" color={C.maroon} shadow={C.cream} />
+        <Word at={33.2} x={0} y={1380} size={90} text="فريقنا يسويه لك" color={C.teal} shadow={C.cream} font="ruqaa" />
+        <Button at={33.8} />
       </SlideScreen>
 
       {/* من ٢٣ ثانية: الصورة كاملة والكتابة فوقها */}

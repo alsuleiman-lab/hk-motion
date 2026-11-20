@@ -27,7 +27,8 @@
   "text": 1,
   "title": 1,
   "words": 1,
-  "rows": 2
+  "rows": 2,
+  "clock": 3
  },
  "exempt": [
   "cover",
@@ -36,6 +37,8 @@
   "counter",
   "sfx",
   "zoom",
-  "shake"
+  "shake",
+  "credit",
+  "scenefx"
  ]
 }

@@ -21,6 +21,7 @@ import { FONT_TITLE, FONT_TEXT } from "./localFonts";
 import { BAR_WARM, WarmBase, Only, PopCard, Word, PhoneWin, SheikhLayers, PaperScene, PaperMap, FamilyTree, TreeFx, Parchment, miniEase, FullImage, Marker, RV, LANDSCAPE, clamp } from "./PortraitKit";
 import { KhBg } from "./KhKit";
 import type { TreeNode, TreeLink, MapPt, MapLeg } from "./PortraitKit";
+import { SceneFx, type SceneFxItem } from "./SceneFx";
 import { CoverKit, COVER_PALETTES, PaperCoverKit, PAPER_COVER_END } from "./CoverKit";
 import type { CoverProps } from "./CoverKit";
 import { ThumbProOpen, THUMBPRO_END, THUMBPRO_TEAR_END } from "./ThumbPro";
@@ -111,6 +112,8 @@ export type SpecItem = Common & (
   /** a newspaper clipping of a real news screenshot (PaperKit NewsClip): the headline image, the outlet and date under it */
   | { t: "news"; src: string; source: string; headline?: string; at: number; until: number; x: number; y: number; w: number; h: number }
   /** the stronger family tree, NO frame (user 2026-10-29): drawn on the decorated base; put a `behind` window with his matte on the same span so he stands in front of it (landscape: `dx` moves him right) */
+  /** a scene effect behind him (src/SceneFx.tsx; user 2026-11-20): the room cracks and falls / darkens under a shaft of light / iron bars drop — over his video, under his cut-out (a `behind` window on the same span) */
+  | SceneFxItem
   | { t: "treefx"; skin?: "parchment"; from: number; to: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number; nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number; titleSize?: number; land?: { x: number; y: number; w: number; h: number; titleSize?: number; nodeW?: number; nodeH?: number; font?: number } }
   /** the photo of a person he names, in a torn white border with tape (PaperKit TornPhoto; PREFERENCES «متى يُستعمل كل عنصر»: mandatory for every named person) */
   | { t: "tphoto"; shoe?: boolean; src: string; name?: string; at: number; until?: number; x?: number; y?: number; w?: number; h?: number; pos?: string; also?: { src: string; name?: string; at: number }[] }
@@ -391,6 +394,7 @@ const renderItemRaw = (it: SpecItem, i: number, o: Orient, bar: BarTheme): React
     }
     case "pmap": return L || it.iso ? null : <PaperMap key={i} at={it.from} until={it.to} x={it.x} y={it.y} w={it.w} h={it.h} center={it.center} spanLat={it.spanLat} highlight={it.highlight} highlightAt={it.highlightAt} geo={it.geo} atlas={it.atlas} pts={it.pts} legs={it.legs} carSrc={it.carSrc} carW={it.carW} moves={it.moves} flag={it.flag} />;
     case "mini": return null;
+    case "scenefx": return null;   /* drawn in the under layer (below) */
     case "treefx": return L ? null : <TreeFx key={i} skin={it.skin} from={it.from} until={it.to} x={it.x} y={it.y} w={it.w} h={it.h} title={it.title} titleAt={it.titleAt} nodes={it.nodes} links={it.links} nodeW={it.nodeW} nodeH={it.nodeH} font={it.font} titleSize={it.titleSize} />;   // landscape: base layer under him, see MontageFromSpec
     case "torn": {
       const size = L ? ov.size ?? 60 : it.size ?? 48, w = Math.min(L ? 1000 : 820, Math.max(360, Math.round(it.text.replace(/[ً-ٰٟۖ-ۭ]/g, "").length * size * 0.44 + 3.2 * size + 50)));   // TornNote: max 820px in portrait -> at least 130px margins on both sides
@@ -614,7 +618,7 @@ export const PORT_ISO_DEFAULT: PortIso = { boxX: 30, boxY: 90, boxW: 760, boxH: 
 /* (2026-11-12, user: «لا اريد التفادي») every isolation window is cut out on the GPU; a map / full picture / tree that overlaps one of this orientation's
    windows is drawn in the "under" layer (UnderHim), which the compositor puts between the videos and his cut-out. `mini` (a second Chrome cut-out) is not
    an under item: it is drawn above him as before. tools/window_frames.mjs `under` lists the same frames for hybrid_any --under. */
-export const UNDER_TYPES = new Set(["pmap", "full", "treefx"]);
+export const UNDER_TYPES = new Set(["pmap", "full", "treefx", "scenefx"]);
 const underHim = (spec: MontageSpec, o: Orient, x: { t?: string; from?: number; to?: number }) => UNDER_TYPES.has(x.t ?? "full") && ((spec.behind ?? []).some((w) => (w.matte ?? spec.matte) && (!w.only || w.only === o) && (o === "land" || w.dx === undefined) && (x.from ?? 0) < w.to && (x.to ?? 0) > w.from)
   /* (2026-11-12) a `mini` window (landscape) cuts him out on the GPU as well: its map lies under him (same test in tools/window_frames.mjs) */
   || (o === "land" && spec.items.some((m) => m.t === "mini" && (m.matte ?? spec.matte) && (x.from ?? 0) < m.to && (x.to ?? 0) > m.from)));
@@ -659,7 +663,7 @@ const MiniMe: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matte"]>; 
 };
 
 /** every item type the renderer knows (= the elements approved in the gallery); anything else is an error, never silently skipped (user 2026-10-28) */
-const APPROVED_TYPES = new Set(["word", "pick", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "hadith", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date", "note", "bgclip", "hclip", "wm", "zoomblend", "horror", "tvoff", "brushx", "peek", "weights", "stamp"]);
+const APPROVED_TYPES = new Set(["word", "pick", "blur", "nameTag", "phone", "crop", "pic", "scene", "full", "rewrite", "flash", "credit", "subscribe", "verse", "hadith", "rows", "scholar", "cover", "tree", "pmap", "mini", "timeline", "p2c", "torn", "news", "treefx", "tphoto", "scraps", "clock", "arc", "flag", "date", "note", "bgclip", "hclip", "wm", "zoomblend", "horror", "tvoff", "brushx", "peek", "weights", "stamp", "scenefx"]);
 
 /** one item's placement data (dx, dy, k): moved by (dx, dy) and scaled by k about the CENTRE OF WHAT IT DRAWS, measured once on screen
  *  (user 2026-11-09: «التكبير لم يعمل» — a fixed origin pushed left-column / top elements out of the frame); ox / oy, when given, win */
@@ -908,6 +912,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutA
       {spec.items.flatMap((it0, i0) => it0.t === "pmap" && !it0.only && (o === "land" || it0.iso) ? [it0, ...(it0.moves ?? []).filter((m) => m.from >= it0.to - 0.001 || (m.to ?? m.from) <= it0.from + 0.001).map((m) => ({ ...it0, from: m.from, to: m.to, center: m.center ?? it0.center, spanLat: m.spanLat ?? it0.spanLat, landCenter: m.landCenter ?? m.center ?? it0.landCenter, landSpan: m.landSpan ?? m.spanLat ?? it0.landSpan, highlight: m.highlight ?? it0.highlight, highlightAt: m.highlightAt ?? it0.highlightAt, pts: m.pts ?? it0.pts, flag: m.flag ?? it0.flag, moves: [] } as typeof it0))].map((it, k) => ({ it, i: i0 * 100 + k })) : []).map(({ it, i }) => it.t === "pmap" ? <UnderHim key={"pm" + i} active={underHim(spec, o, it)} from={it.from} to={it.to}>{placed(it, 1000 + i, o, <PaperMap key={"pm" + i} at={it.from} until={it.to} x={o === "land" ? it.land?.x ?? 0 : it.x} y={o === "land" ? it.land?.y ?? 0 : it.y} w={o === "land" ? it.land?.w ?? 1920 : it.w} h={o === "land" ? it.land?.h ?? 1080 : it.h} center={o === "land" ? it.landCenter ?? it.center : it.center} spanLat={o === "land" ? it.landSpan ?? it.spanLat : it.spanLat} highlight={it.highlight} highlightAt={it.highlightAt} geo={it.geo} atlas={it.atlas} pts={it.pts} legs={it.legs} carSrc={it.carSrc} carW={it.carW} moves={o === "land" ? (it.moves ?? []).map((m) => ({ ...m, center: m.landCenter ?? m.center, spanLat: m.landSpan ?? m.spanLat })) : it.moves} flag={it.flag} zoomFrom={(it as { zoomFrom?: number }).zoomFrom} zoomAt={(it as { zoomAt?: number }).zoomAt} zoomDur={(it as { zoomDur?: number }).zoomDur} />)}</UnderHim> : null)}
       {o === "land" && spec.cut ? spec.items.map((it, i) => it.t === "mini" && (it.matte ?? spec.matte) ? <Sequence key={"mi" + i} from={Math.round(it.from * 30)} durationInFrames={Math.round((it.to - it.from) * 30)}><MiniMe cut={spec.cut!} matte={(it.matte ?? spec.matte)!} it={it} /></Sequence> : null) : null}
       {o === "land" ? spec.items.map((it, i) => it.t === "treefx" && !it.only ? <UnderHim key={"tf" + i} active={underHim(spec, o, it)} from={it.from} to={it.to}><Only from={it.from} to={it.to}>{it.skin === "parchment" ? <Parchment /> : <AbsoluteFill><WarmBase /></AbsoluteFill>}{placed(it, 2000 + i, o, <TreeFx skin={it.skin} from={it.from} until={it.to} x={o === "land" ? it.land?.x ?? 20 : it.x} y={o === "land" ? it.land?.y ?? 50 : it.y} w={o === "land" ? it.land?.w ?? 880 : it.w} h={o === "land" ? it.land?.h ?? 980 : it.h} title={it.title} titleAt={it.titleAt} nodes={it.nodes} links={it.links} nodeW={o === "land" ? it.land?.nodeW ?? it.nodeW : it.nodeW} nodeH={o === "land" ? it.land?.nodeH ?? it.nodeH : it.nodeH} font={o === "land" ? it.land?.font ?? it.font : it.font} titleSize={o === "land" ? it.land?.titleSize ?? it.titleSize : it.titleSize} />)}</Only></UnderHim> : null) : null}
+      {o === "land" ? spec.items.map((it, i) => it.t === "scenefx" ? <UnderHim key={"sf" + i} active={underHim(spec, o, it)} from={it.from} to={it.to}><Only from={it.from} to={it.to}><SceneFx it={it} /></Only></UnderHim> : null) : null}
       {spec.cut ? (spec.behind ?? []).map((w, i) => { const mt = w.matte ?? spec.matte; return mt && (!w.only || w.only === o) && (o === "land" || w.dx === undefined) ? <Sequence key={i} from={Math.round(w.from * 30)} durationInFrames={Math.round((w.to - w.from) * 30)}><TailFade dur={w.to - w.from} fade={w.fade}><MaskedSheikh cut={spec.cut!} matte={mt} o={o} cams={spec.cams} zooms={spec.zooms} dx={o === "land" ? w.dx : 0} from={w.from} gpu pscale={o === "port" && bgUnder(w) ? portIso?.scale : undefined} pdx={o === "port" && bgUnder(w) ? portIso?.dx : undefined} pdy={o === "port" && bgUnder(w) ? portIso?.dy : undefined} /></TailFade></Sequence> : null; }) : null}
       </>)}
       <Gfx>

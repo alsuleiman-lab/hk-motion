@@ -41,6 +41,7 @@
    "hadith"
   ],
   "ignore": [
+   "scenefx",
    "credit",
    "mini",
    "cover",

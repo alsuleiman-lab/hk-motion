@@ -40,6 +40,7 @@ const Archive: React.FC = SHOW_ARCHIVE ? // eslint-disable-next-line @typescript
   (require("./ArchiveComps") as { ArchiveComps: React.FC }).ArchiveComps : () => null;
 
 
+import { MontageBoth, BOTH, BOTHV } from "./MontageBoth";
 import { MontageFromSpec, specFrames } from "./MontageSpec";
 import type { MontageSpec } from "./MontageSpec";
 import muftiHirabaSpec from "../data/specs/mufti-hiraba.json";

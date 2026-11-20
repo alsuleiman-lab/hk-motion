@@ -120,7 +120,12 @@ const gateBefore = async (f, p) => {
 /** after a change: new failures → restore `before` text and refuse; else remember the new baseline */
 const gateAfter = async (f, p, base, beforeText, what) => {
   if (GATE_OFF || !base) return;
-  const now = await gateAtoms(f, p), added = [...now].filter((a) => !base.has(a));
+  /* (2026-11-20, end-to-end test) an element put INSIDE an empty stretch splits it in two smaller ones: «لحظات بلا عنصر: 44.0–54.9» is then a part of the old
+     «40.9–54.9», not a new failure — a gap that lies inside a gap already there is not counted (the change made it smaller, never worse) */
+  const rng = (a) => { const m = /(\d+(?:\.\d+)?)\s*[–-]\s*(\d+(?:\.\d+)?)\s*ث?$/.exec(a); return /بلا عنصر|فراغ/.test(a) && m ? [+m[1], +m[2], a.slice(0, m.index)] : null; };
+  const oldGaps = [...base].map(rng).filter(Boolean);
+  const inOld = (a) => { const r = rng(a); return !!r && oldGaps.some(([s, e, k]) => k === r[2] && r[0] >= s - 0.05 && r[1] <= e + 0.05); };
+  const now = await gateAtoms(f, p), added = [...now].filter((a) => !base.has(a) && !inOld(a));
   if (added.length) {
     fs.writeFileSync(f, beforeText);
     console.error(`✘ رُفض ${what}: يضيف ${added.length} مخالفة لم تكن — أُعيدت المواصفة كما كانت:\n  ` + added.join("\n  "));

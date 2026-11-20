@@ -62,7 +62,10 @@ for (let round = 0; round < 6; round++) {
   if (s.items.length !== k0) ch++;
   // 6) kit kinds: fewer than 4 → the question as it is read/asked becomes a torn note (a real quote of the speech).
   //    NEVER a generated or filler picture (user 2026-11-11: «عم تستخدم صور من عندك»)
-  if (/ناقص/.test(mg()) && !s.items.some((i) => i.t === "torn")) {
+  /* (2026-11-20, end-to-end test) not when that scraps item is the only writing: it became a torn note that was then 100 % of the writing, and the same
+     run failed it («الملاحظة الممزقة فوق 50%») — the fix made the failure. Only when another writing item (scraps / rows) stays beside it. */
+  const writing = s.items.filter((i) => i.t === "scraps").length + s.items.filter((i) => i.t === "rows").reduce((n, i) => n + (i.rows?.length ?? 0), 0);
+  if (/ناقص/.test(mg()) && !s.items.some((i) => i.t === "torn") && writing >= 2) {
     const q = s.items.find((i) => i.t === "scraps" && i.text.split(" ").length >= 3 && !cards.some((c) => { const [a, b] = span(c); return i.at < b && i.until > a; }));
     if (q) { Object.assign(q, { t: "torn", size: 42, land: { x: 960, size: 30, y: 822 } }); delete q.times; ch++; notes.push(`torn@${q.at}`); } else notes.push("أنواع العناصر ناقصة ولا جملة تصلح ملاحظة: أضف عنصراً من الكلام في الخطة");
   }

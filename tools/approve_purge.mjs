@@ -61,6 +61,11 @@ if (deletedBases.length) for (const n of fs.readdirSync("src").filter((x) => /\.
   const kept = lines.filter((l) => !deletedBases.some((b) => new RegExp(`from\\s+["']\\./${b}["']`).test(l)) && ![...deletedExports].some((x) => new RegExp(`^\\s*<${x}\\b[^>]*/>\\s*$`).test(l)));
   if (kept.length !== lines.length) { wr(f, kept.join(E)); say(`✔ src/${n}: أُزيل استيراد/استعمال ${lines.length - kept.length} من المكوّن المحذوف`); }
 }
+/* (2026-11-20) a spec registers itself (src/SpecComps.tsx), so no Root line names its compositions any more: their ids come from the spec — compId, else
+   the file name with each «-» word capitalised — in its four forms; without this their Arabic titles stayed behind (found on mufti-hiraba) */
+for (const n of specs) { let cid = null; try { cid = JSON.parse(rd(path.join(specDir, n))).compId ?? null; } catch { /* unreadable */ }
+  const base = cid || n.replace(/\.json$/, "").split("-").map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w)).join("-");
+  for (const suf of ["", "-L", "-Both", "-BothV"]) ids.add(base + suf); }
 for (const n of specs) { del(path.join(specDir, n)); say(`✔ حُذف ملف البيانات data/specs/${n}`); }
 
 // 3) titles and dates of removed compositions

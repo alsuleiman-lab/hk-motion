@@ -14,7 +14,7 @@ import { Cue, SfxTrack } from "./sfx";
  */
 export type CineWordSpec = { at: number; text?: string; stretch?: [string, string]; size: number; font?: FontKey; gold?: boolean };
 export type CineLine = { y: number; until: number; words: CineWordSpec[] };
-export type CineShot = { a: number; b: number; kind: "speaker" | "page" | "rosette"; zoom?: number; lines: CineLine[] };
+export type CineShot = { a: number; b: number; kind: "speaker" | "page" | "rosette" | "cover"; zoom?: number; lines: CineLine[] };
 
 const W = 1080, H = 1920;
 const GOLD = "#d9b24a";
@@ -25,6 +25,30 @@ const speakerBox = (shot: CineShot, t: number) => {
   const s = (shot.zoom ?? 1) * (1 + 0.03 * p);
   const vw = W * s, vh = H * s;
   return { vw, vh, vx: -(vw - W) / 2, vy: -(vh - H) * 0.12 };
+};
+
+const Cover: React.FC<{ a: number }> = ({ a }) => {
+  const t = useCurrentFrame() / 30 - a;
+  const ry = -18 + 10 * Math.min(1, t / 1.4), rx = 8 - 4 * Math.min(1, t / 1.4), z = 0.92 + 0.06 * Math.min(1, t / 1.4);
+  const star = (r1: number, r2: number, n = 8) => Array.from({ length: n * 2 }, (_, i) => { const r = i % 2 ? r2 : r1, q = (Math.PI * i) / n; return `${(Math.cos(q) * r).toFixed(1)},${(Math.sin(q) * r).toFixed(1)}`; }).join(" ");
+  return (
+    <AbsoluteFill style={{ background: "radial-gradient(circle at 50% 38%, #2a1d0c, #070604 72%)", perspective: 1800 }}>
+      <div style={{ position: "absolute", left: W / 2 - 330, top: 260, width: 660, height: 900, transform: `rotateY(${ry}deg) rotateX(${rx}deg) scale(${z})`, transformStyle: "preserve-3d" }}>
+        <div style={{ position: "absolute", right: -26, top: 14, width: 30, height: 872, background: "linear-gradient(90deg,#efe6cf,#cbb98f)", transform: "rotateY(90deg)", transformOrigin: "left" }} />
+        <div style={{ position: "absolute", inset: 0, borderRadius: 18, background: "linear-gradient(135deg,#3a2414,#20140a 60%,#2e1c0f)", boxShadow: "0 40px 80px rgba(0,0,0,.7), inset 0 0 0 10px rgba(217,178,74,.55), inset 0 0 0 22px rgba(0,0,0,.35), inset 0 0 0 26px rgba(217,178,74,.35)" }}>
+          <svg width={660} height={900} viewBox="-330 -450 660 900" style={{ position: "absolute", inset: 0 }}>
+            <defs><linearGradient id="gld" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#f6dc8a" /><stop offset=".5" stopColor="#c89a35" /><stop offset="1" stopColor="#8a6418" /></linearGradient></defs>
+            {[230, 180, 130].map((r, i) => <polygon key={r} points={star(r, r * 0.74)} fill="none" stroke="url(#gld)" strokeWidth={i === 0 ? 7 : 4} transform={`rotate(${i * 11.25})`} />)}
+            <circle r={70} fill="none" stroke="url(#gld)" strokeWidth={5} />
+            <circle r={44} fill="url(#gld)" opacity={0.9} />
+            {[-1, 1].map((sy) => <rect key={sy} x={-240} y={sy * 380 - 6} width={480} height={12} rx={6} fill="url(#gld)" opacity={0.8} />)}
+          </svg>
+          <div style={{ position: "absolute", inset: 0, borderRadius: 18, background: `linear-gradient(${110 + t * 30}deg, rgba(255,240,200,0) 30%, rgba(255,240,200,.16) 45%, rgba(255,240,200,0) 60%)` }} />
+        </div>
+      </div>
+      {Array.from({ length: 26 }, (_, i) => { const px = (i * 397) % W, py = 1500 - ((t * 60 + i * 173) % 1500), sz = 3 + (i % 4); return <div key={i} style={{ position: "absolute", left: px, top: py, width: sz, height: sz, borderRadius: "50%", background: "#f2d27a", opacity: 0.25 + (i % 3) * 0.15, filter: "blur(1px)" }} />; })}
+    </AbsoluteFill>
+  );
 };
 
 export const CineSequence: React.FC<{ shots: CineShot[]; src: string; sfx?: Cue[] }> = ({ shots, src, sfx = [] }) => {
@@ -40,12 +64,15 @@ export const CineSequence: React.FC<{ shots: CineShot[]; src: string; sfx?: Cue[
       <VSlot src={src} w={W} h={H} radius={0} vx={box.vx} vy={box.vy} vw={box.vw} vh={box.vh} style={{ left: 0, top: 0 }} grow={0} />
       {shot.kind === "speaker" && (
         <>
-          <AbsoluteFill style={{ background: "linear-gradient(rgba(18,12,6,.30), rgba(18,12,6,.15) 40%, rgba(18,12,6,.70))" }} />
-          <AbsoluteFill style={{ background: "rgba(130,90,30,.10)", mixBlendMode: "multiply" }} />
+          <AbsoluteFill style={{ background: "rgba(14,9,4,.42)" }} />
+          <AbsoluteFill style={{ background: "rgba(70,42,12,.18)" }} />
+          <AbsoluteFill style={{ background: "radial-gradient(ellipse 70% 55% at 50% 30%, rgba(0,0,0,0) 40%, rgba(0,0,0,.82) 100%)" }} />
+          <AbsoluteFill style={{ background: "linear-gradient(rgba(4,3,1,0) 52%, rgba(4,3,1,.88) 66%, rgba(4,3,1,.97) 80%)" }} />
         </>
       )}
       {shot.kind === "page" && <Page at={Math.round(shot.a * 30)} />}
       {shot.kind === "rosette" && <Rosette />}
+      {shot.kind === "cover" && <Cover a={shot.a} />}
       {shot.lines.map((ln, i) => (
         <Line key={i} y={ln.y}>
           {ln.words.map((w, j) => w.stretch
@@ -61,20 +88,20 @@ export const CineSequence: React.FC<{ shots: CineShot[]; src: string; sfx?: Cue[
 
 /* ───────── التمرين: المرجع الرابع بفيديو الشيخ ───────── */
 const SHOTS: CineShot[] = [
-  { a: 0.0, b: 1.2, kind: "rosette", lines: [
+  { a: 0.0, b: 1.2, kind: "cover", lines: [
     { y: 1250, until: 1.2, words: [{ at: 0.1, text: "نحن", size: 96, font: "ruqaa" }, { at: 0.3, text: "لسنا", size: 96, font: "ruqaa" }] },
     { y: 1400, until: 1.2, words: [{ at: 0.5, stretch: ["أمّ", "ة"], size: 190 }, { at: 0.75, text: "اقرأ", size: 190 }] }] },
-  { a: 1.2, b: 2.8, kind: "speaker", zoom: 1.35, lines: [
+  { a: 1.2, b: 2.8, kind: "speaker", zoom: 1.55, lines: [
     { y: 1450, until: 2.8, words: [{ at: 1.3, text: "الأمم", size: 104, font: "ruqaa" }, { at: 1.5, text: "الأخرى", size: 104, font: "ruqaa" }] },
     { y: 1580, until: 2.8, words: [{ at: 1.9, text: "أيضاً", size: 150 }, { at: 2.1, stretch: ["تقـ", "ـرأ"], size: 180 }] }] },
   { a: 2.8, b: 4.6, kind: "page", lines: [
     { y: 300, until: 4.6, words: [{ at: 3.0, text: "قد", size: 124 }, { at: 3.2, text: "تقرأ", size: 124 }, { at: 3.45, text: "أكثر", size: 124, gold: true }, { at: 3.7, text: "منا", size: 124 }] }] },
-  { a: 4.6, b: 5.8, kind: "speaker", zoom: 1.0, lines: [
+  { a: 4.6, b: 5.8, kind: "speaker", zoom: 1.3, lines: [
     { y: 1450, until: 5.8, words: [{ at: 4.7, text: "لكننا", size: 104, font: "ruqaa" }, { at: 4.9, text: "نحن", size: 104, font: "ruqaa" }] },
     { y: 1580, until: 5.8, words: [{ at: 5.1, stretch: ["أمّ", "ة"], size: 200 }] }] },
-  { a: 5.8, b: 7.0, kind: "speaker", zoom: 1.7, lines: [
+  { a: 5.8, b: 7.0, kind: "speaker", zoom: 1.85, lines: [
     { y: 1560, until: 7.0, words: [{ at: 5.9, text: "تقرأ", size: 200, gold: true }] }] },
-  { a: 7.0, b: 9.8, kind: "speaker", zoom: 1.18, lines: [
+  { a: 7.0, b: 9.8, kind: "speaker", zoom: 1.42, lines: [
     { y: 1520, until: 8.3, words: [{ at: 7.1, text: "ولا", size: 130 }, { at: 7.3, text: "تنظر", size: 130 }, { at: 7.55, text: "للأمور", size: 130 }] },
     { y: 1520, until: 9.1, words: [{ at: 8.35, text: "بمعزل", size: 130 }, { at: 8.55, text: "عن", size: 130 }, { at: 8.75, text: "الخالق", size: 130, gold: true }] },
     { y: 1520, until: 9.8, words: [{ at: 9.15, text: "الذي", size: 130 }, { at: 9.35, text: "أنشأ", size: 130 }, { at: 9.55, text: "الخلق", size: 130 }] }] },

@@ -163,7 +163,15 @@ if (cmd === "list") {
   const it = { t: e.t, ...(e.el ? { el: e.el } : {}), ...(e.fixed ?? {}), ...vals };
   if (typeof it.src === "string" && ["tphoto", "scholar", "pic"].includes(it.t)) { const r = ratioOf(it.src); if (r) it.ratio = r; else { console.error(`✘ لا أقرأ الصورة public/${it.src}`); process.exit(2); } }
   const beforeText = read(f), base = await gateBefore(f, p);
-  const s = JSON.parse(read(f)); ensureIds(s); const id = newId(new Set(s.items.map((x) => x.id))); s.items.push({ id, ...it }); save(f, s); fixGeometry(f, s);
+  const s = JSON.parse(read(f)); ensureIds(s); const id = newId(new Set(s.items.map((x) => x.id)));
+  /* (user 2026-11-20: «يجب ببساطة أن تلتزم بالموقع على الشبكة») a new picture in a grid spec gets its landscape SLOT at once (it had none, so the old gallery
+     offset threw a picture off the screen): inside a split window the gap «panel», else the left column, or the right one when the left is taken then */
+  if (s.galleryRef && ["tphoto", "scholar", "pic", "news", "date", "flag", "clock"].includes(it.t) && !it.slot) {
+    const a = it.at ?? it.from, b = it.until ?? it.to ?? a + 6, over = (x) => { const xa = x.at ?? x.from, xb = x.until ?? x.to ?? (xa ?? 0) + 6; return xa != null && xa < b && xb > a; };
+    const inSplit = (s.splits ?? []).some((w) => a >= w.from - 0.05 && a < w.to), leftTaken = s.items.some((x) => x.slot?.land === "left" && over(x));
+    it.slot = { land: inSplit ? "panel" : leftTaken ? "right" : "left" };
+  }
+  s.items.push({ id, ...it }); save(f, s); fixGeometry(f, s);
   await gateAfter(f, p, base, beforeText, `إضافة ${code}`);
   const n = JSON.parse(read(f)).items.findIndex((x) => x.id === id);
   console.log(`✔ أُضيف ${code} #${id} (رقم ${n}) عند ${it.at ?? it.from}ث${s.galleryRef ? " (المكان والمقاس من المعرض)" : ""}`);

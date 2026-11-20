@@ -136,14 +136,14 @@ export const FlapBoard: React.FC<Base & { w?: number; size?: number; rows: { tex
 };
 
 /** 6 · شريط البحث — when he names one of HIS episodes or books: its picture above, then the search bar types how to find it (optional suggestion rows) */
-export const SearchBar: React.FC<Base & { w?: number; query: string; typeAt: number; cps?: number; img?: string; imgAt?: number; imgH?: number; imgCaption?: string; results?: string[]; resultsAt?: number }> = ({ at, until, x, y, w = 900, query, typeAt, cps = 12, img, imgAt, imgH = 380, imgCaption, results, resultsAt }) => {
-  const { t, k } = useK(); const top = img ? imgH + 40 : 0, h = 116;
+export const SearchBar: React.FC<Base & { w?: number; query: string; typeAt: number; cps?: number; img?: string; imgAt?: number; imgH?: number; imgRatio?: number; imgCaption?: string; results?: string[]; resultsAt?: number }> = ({ at, until, x, y, w = 900, query, typeAt, cps = 12, img, imgAt, imgH = 380, imgRatio, imgCaption, results, resultsAt }) => {
+  const { t, k } = useK(); const ih = imgRatio && imgRatio < 1 ? Math.round(imgH * 1.45) : imgH, top = img ? ih + 40 : 0, h = 116;   /* a tall picture gets a taller frame */
   const n = Math.max(0, Math.min(query.length, Math.floor((t - typeAt) * cps)));
   return (
     <div style={abs({ left: x, top: y, width: w })}>
-      {img ? <div style={abs({ left: w * 0.1, width: w * 0.8, top: 0, height: imgH, borderRadius: 14, overflow: "hidden", background: BRAND.base3, border: `6px solid ${BRAND.card}`, boxShadow: "0 20px 50px rgba(0,0,0,.5)", ...pop(k(imgAt ?? at, 0.4, until), 0.6) })}>
+      {img ? <div style={abs({ left: (w - (imgRatio ? Math.min(w * 0.8, ih * imgRatio) : w * 0.8)) / 2, width: imgRatio ? Math.min(w * 0.8, ih * imgRatio) : w * 0.8, top: 0, height: ih, /* (user 2026-11-20: «الفيديو طولي فيبقى العنصر طولي دائماً… الإطارات تبع الصور تتبع شكل الصورة») imgRatio = the picture's width/height: the frame takes its shape */ borderRadius: 14, overflow: "hidden", background: BRAND.base3, border: `6px solid ${BRAND.card}`, boxShadow: "0 20px 50px rgba(0,0,0,.5)", ...pop(k(imgAt ?? at, 0.4, until), 0.6) })}>
         <Pic src={img} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-        {imgCaption ? <div style={abs({ left: 0, right: 0, bottom: 0, padding: "10px 18px", background: BRAND.navy, color: BRAND.card, fontFamily: kufiF, fontSize: 32, textAlign: "center" })}>{imgCaption}</div> : null}
+        {imgCaption ? <div style={abs({ left: 0, right: 0, bottom: 0, padding: "10px 18px", background: BRAND.navy, color: BRAND.card, fontFamily: kufiF, fontSize: imgRatio && imgRatio < 1 ? 24 : 32, lineHeight: 1.35, textAlign: "center" })}>{imgCaption}</div> : null}
       </div> : null}
       <div style={abs({ left: 0, width: w, top, height: h, background: BRAND.card, borderRadius: h / 2, boxShadow: "0 16px 40px rgba(0,0,0,.45)", ...pop(k(typeAt - 0.4, 0.4, until), 0.7) })}>
         <svg viewBox="0 0 24 24" width={54} height={54} style={{ position: "absolute", right: 38, top: 31 }}><circle cx="10" cy="10" r="7" fill="none" stroke={BRAND.gray} strokeWidth="2.4" /><path d="M15 15 L21 21" stroke={BRAND.gray} strokeWidth="2.6" strokeLinecap="round" /></svg>

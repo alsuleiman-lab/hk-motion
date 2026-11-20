@@ -22,6 +22,7 @@ import { BAR_WARM, WarmBase, Only, PopCard, Word, PhoneWin, SheikhLayers, PaperS
 import { KhBg } from "./KhKit";
 import type { TreeNode, TreeLink, MapPt, MapLeg } from "./PortraitKit";
 import { SceneFx, SceneFxSound, type SceneFxItem } from "./SceneFx";
+import { VanishFade } from "./BehindFx";
 import { CoverKit, COVER_PALETTES, PaperCoverKit, PAPER_COVER_END } from "./CoverKit";
 import type { CoverProps } from "./CoverKit";
 import { ThumbProOpen, THUMBPRO_END, THUMBPRO_TEAR_END } from "./ThumbPro";
@@ -185,7 +186,9 @@ export type MontageSpec = {
   /** landscape split screen: his frame slides right by `dx` px between from and to (eased 0.4 s) so a left-hand panel (family tree) gets half the screen */
   shifts?: { from: number; to: number; dx: number; feather?: number }[];
   /** windows (cut seconds) where he is drawn over the full-screen pictures and the clip card (needs `matte`) */
-  behind?: { only?: "port" | "land"; from: number; to: number; matte?: { src: string; startFrom?: number; start?: number }; dx?: number; fade?: number /* his cut-out dissolves over the last `fade` s */ }[];
+  behind?: { only?: "port" | "land"; from: number; to: number; matte?: { src: string; startFrom?: number; start?: number }; dx?: number; fade?: number /* his cut-out dissolves over the last `fade` s */;
+    /** (user 2026-11-20, «أنا أختفي شوي شوي»): his cut-out fades out over [start, end] and stays out until the window ends — over a scenefx `badge` with a clean `plate` (src/BehindFx.tsx), so only the room is left */
+    vanish?: [number, number] }[];
   /** set by the gallery only: its item already carries the place being edited, so the saved gallery place is not added again */
   galleryOwn?: boolean;
   items: SpecItem[];
@@ -934,7 +937,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutA
       {o === "land" && spec.cut ? spec.items.map((it, i) => it.t === "mini" && (it.matte ?? spec.matte) ? <Sequence key={"mi" + i} from={Math.round(it.from * 30)} durationInFrames={Math.round((it.to - it.from) * 30)}><MiniMe cut={spec.cut!} matte={(it.matte ?? spec.matte)!} it={it} /></Sequence> : null) : null}
       {o === "land" ? spec.items.map((it, i) => it.t === "treefx" && !it.only ? <UnderHim key={"tf" + i} active={underHim(spec, o, it)} from={it.from} to={it.to}><Only from={it.from} to={it.to}>{it.skin === "parchment" ? <Parchment /> : <AbsoluteFill><WarmBase /></AbsoluteFill>}{placed(it, 2000 + i, o, <TreeFx skin={it.skin} from={it.from} until={it.to} x={o === "land" ? it.land?.x ?? 20 : it.x} y={o === "land" ? it.land?.y ?? 50 : it.y} w={o === "land" ? it.land?.w ?? 880 : it.w} h={o === "land" ? it.land?.h ?? 980 : it.h} title={it.title} titleAt={it.titleAt} nodes={it.nodes} links={it.links} nodeW={o === "land" ? it.land?.nodeW ?? it.nodeW : it.nodeW} nodeH={o === "land" ? it.land?.nodeH ?? it.nodeH : it.nodeH} font={o === "land" ? it.land?.font ?? it.font : it.font} titleSize={o === "land" ? it.land?.titleSize ?? it.titleSize : it.titleSize} />)}</Only></UnderHim> : null) : null}
       {spec.items.map((it, i) => it.t === "scenefx" && sfxIn(it, o) ? <UnderHim key={"sf" + i} active={underHim(spec, o, it)} from={it.from} to={it.to}><Only from={it.from} to={it.to}><SceneFx it={it} /></Only></UnderHim> : null)}
-      {spec.cut ? (spec.behind ?? []).map((w, i) => { const mt = w.matte ?? spec.matte; return mt && (!w.only || w.only === o) && (o === "land" || w.dx === undefined) ? <Sequence key={i} from={Math.round(w.from * 30)} durationInFrames={Math.round((w.to - w.from) * 30)}><TailFade dur={w.to - w.from} fade={w.fade}><MaskedSheikh cut={spec.cut!} matte={mt} o={o} cams={spec.cams} zooms={spec.zooms} dx={o === "land" ? w.dx : 0} from={w.from} gpu pscale={o === "port" && bgUnder(w) ? portIso?.scale : undefined} pdx={o === "port" && bgUnder(w) ? portIso?.dx : undefined} pdy={o === "port" && bgUnder(w) ? portIso?.dy : undefined} /></TailFade></Sequence> : null; }) : null}
+      {spec.cut ? (spec.behind ?? []).map((w, i) => { const mt = w.matte ?? spec.matte; return mt && (!w.only || w.only === o) && (o === "land" || w.dx === undefined) ? <Sequence key={i} from={Math.round(w.from * 30)} durationInFrames={Math.round((w.to - w.from) * 30)}><TailFade dur={w.to - w.from} fade={w.fade}><VanishFade from={w.from} vanish={w.vanish}><MaskedSheikh cut={spec.cut!} matte={mt} o={o} cams={spec.cams} zooms={spec.zooms} dx={o === "land" ? w.dx : 0} from={w.from} gpu pscale={o === "port" && bgUnder(w) ? portIso?.scale : undefined} pdx={o === "port" && bgUnder(w) ? portIso?.dx : undefined} pdy={o === "port" && bgUnder(w) ? portIso?.dy : undefined} /></VanishFade></TailFade></Sequence> : null; }) : null}
       </>)}
       <Gfx>
         {/* (user 2026-11-20, frame 404: «التظليل ما بدأ من الأعلى») the shade of a picked element is drawn OUTSIDE its placement layer: the item's own land dx/dy/k

@@ -8,12 +8,15 @@
  *   beam    the room sinks into darkness from `at`, and a shaft of light falls on him at `beamAt` (dust in it) — a moment of truth, a text of revelation.
  *   bars    iron bars drop from the top behind him at `at` and stay — prison, captivity.
  *   ripple  rings of pressure leave him at each of `pulses` and run across the room — consequences that spread.
+ *   badge   (src/BehindFx.tsx) an age-rating disc «+18» behind him; with his window's `vanish` he fades away over a clean plate of the room (no sound).
+ *   crowd   (src/BehindFx.tsx) `n` student figures appear, split into two labelled groups, the GTA group flares at `pulses` (no sound).
  * Every size comes from useVideoConfig(): the same item draws in landscape (1920×1080) and portrait (1080×1920); landscape output is unchanged.
  * SOUND (SceneFxSound): each kind has its own effect sound (public/ref_sfx, public/sfx — never music); `sound: false` silences it, `soundVol` scales it.
  * It is a separate component drawn OUTSIDE <UnderHim>/<Only> (MontageSpec, beside spec.sfx), so the GPU renderer's top pass collects its <Audio>.
  */
 import React from "react";
 import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { Badge, Crowd, type BehindFxFields } from "./BehindFx";   /* (2026-11-20, «GTA 6») badge: the +18 disc behind him while he fades away; crowd: 172 students who split in two */
 
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
 const outCubic = (x: number) => 1 - Math.pow(1 - clamp(x), 3);
@@ -22,10 +25,10 @@ const rnd = (n: number) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453;
 /* the frame's own size: sx/sy scale the landscape design (1920×1080) along each axis, u the strokes and particles (1 in both 1920×1080 and 1080×1920) */
 const useStage = () => { const { width: W, height: H, fps } = useVideoConfig(); return { W, H, fps, sx: W / 1920, sy: H / 1080, u: Math.min(W, H) / 1080, port: H > W }; };
 
-export type SceneFxKind = "crack" | "beam" | "bars" | "ripple";
+export type SceneFxKind = "crack" | "beam" | "bars" | "ripple" | "badge" | "crowd";
 export type SceneFxItem = { t: "scenefx"; fx: SceneFxKind; only?: "land" | "port" /* one orientation only (default: both) */; pulses?: number[]; from: number; to: number; at?: number; crackAt?: number; fallAt?: number; beamAt?: number; still?: string; avoid?: [number, number]; seed?: number; side?: "left" | "right" | "both";
   /** the effect's own sound (on by default): false = silent; soundVol multiplies its level (1) */
-  sound?: boolean; soundVol?: number };
+  sound?: boolean; soundVol?: number } & BehindFxFields;
 
 /* ── crack: the wall beside him is broken into irregular pieces; the CRACKS are the pieces' own edges, opening outward from a point (so the wall later breaks
    exactly where it cracked), and at `fallAt` the pieces drop, leaving a dark hollow. Every edge is a zigzag shared by its two pieces. */
@@ -157,7 +160,7 @@ const Ripple: React.FC<{ it: SceneFxItem }> = ({ it }) => {
   );
 };
 
-export const SceneFx: React.FC<{ it: SceneFxItem }> = ({ it }) => it.fx === "crack" ? <Crack it={it} /> : it.fx === "beam" ? <Beam it={it} /> : it.fx === "ripple" ? <Ripple it={it} /> : <Bars it={it} />;
+export const SceneFx: React.FC<{ it: SceneFxItem }> = ({ it }) => it.fx === "badge" ? <Badge it={it} /> : it.fx === "crowd" ? <Crowd it={it} /> : it.fx === "crack" ?<Crack it={it} /> : it.fx === "beam" ? <Beam it={it} /> : it.fx === "ripple" ? <Ripple it={it} /> : <Bars it={it} />;
 
 /* ── SOUND: the effect's own sounds, at its moments (effect sounds only — never music). public/ref_sfx is softened to a −26 dBFS peak (src/ext/sfx.tsx), so
    those play at 1; river_stream (public/sfx) is a loud bed and plays low. Each cue: [file, second, length s, level]. */

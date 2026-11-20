@@ -27,7 +27,7 @@ const rnd = (n: number) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453;
 const useStage = () => { const { width: W, height: H, fps } = useVideoConfig(); return { W, H, fps, sx: W / 1920, sy: H / 1080, u: Math.min(W, H) / 1080, port: H > W }; };
 
 export type SceneFxKind = "crack" | "beam" | "bars" | "ripple" | "squeeze" | "water";
-export type SceneFxItem = { t: "scenefx"; fx: SceneFxKind; pulses?: number[]; from: number; to: number; at?: number; crackAt?: number; fallAt?: number; beamAt?: number; still?: string; avoid?: [number, number]; seed?: number; side?: "left" | "right" | "both";
+export type SceneFxItem = { t: "scenefx"; fx: SceneFxKind; only?: "land" | "port" /* one orientation only (default: both) */; pulses?: number[]; from: number; to: number; at?: number; crackAt?: number; fallAt?: number; beamAt?: number; still?: string; avoid?: [number, number]; seed?: number; side?: "left" | "right" | "both";
   /** squeeze: number of jerks (3), seconds to close (1.8), how low the ceiling comes (fraction of the height; 0.1 landscape, 0.18 portrait) */
   steps?: number; closeDur?: number; ceil?: number;
   /** water: the final surface (fraction of the height from the top; 0.5 landscape, 0.58 portrait) and the seconds it takes to rise (2) */

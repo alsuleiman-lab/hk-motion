@@ -98,11 +98,13 @@ if (cmd === "scan") {
   /* ── المشاهد (scene effects behind him; user 2026-11-20: «لو قلت كلهم في السجن… قضبان سجن… لو قلت في الماء أمواج… ضيق عليهم… الخلفية تضيق») */
   const SCENE = { prison: ["سجن", "السجن", "سجون", "السجون", "يسجن", "سجنوا", "زنزانه", "قضبان", "معتقل"], water: ["ماء", "الماء", "البحر", "بحر", "غرق", "يغرق", "امواج", "الطوفان", "فيضان"], squeeze: ["ضيق", "يضيق", "ضيقوا", "ضيقت", "حصار", "حاصروا", "يخنق", "خنق"], fire: ["نار", "النار", "حريق", "احرق", "احرقوا", "يحرق"], dark: ["ظلام", "الظلام", "ظلمات", "الظلمات"] };
   const AR = { prison: "قضبان سجن تنزل خلفه", water: "أمواج ماء خلفه", squeeze: "الخلفية تضيق عليه", fire: "لهب خلفه", dark: "إظلام الخلفية" };
+  /* (2026-11-20) the scene word → the kind src/SceneFx.tsx draws (prison → bars, dark → beam); fire has no effect yet: it stays «waiting in the gallery» */
+  const KIND = { prison: "bars", water: "water", squeeze: "squeeze", dark: "beam" };
   const lastS = {};
   for (const w of words) { const n = norm(w.w); for (const [fx, list] of Object.entries(SCENE)) if (list.includes(n) && w.s - (lastS[fx] ?? -99) > 60) {
     lastS[fx] = w.s;
-    add({ layer: "المشاهد", at: +w.s.toFixed(2), until: +(w.s + 3).toFixed(2), words: text(words.filter((x) => x.s >= w.s - 2 && x.s < w.s + 3)), el: `scene:${fx}`, vals: { fx, at: +w.s.toFixed(2) }, note: AR[fx],
-      covered: covering(w.s - 0.3, w.s + 1, (x) => x.t === "scenefx" && x.fx === fx) });
+    add({ layer: "المشاهد", at: +w.s.toFixed(2), until: +(w.s + 3).toFixed(2), words: text(words.filter((x) => x.s >= w.s - 2 && x.s < w.s + 3)), el: `scene:${fx}`, vals: { fx: KIND[fx] ?? fx, at: +w.s.toFixed(2) }, note: AR[fx],
+      covered: covering(w.s - 0.3, w.s + 1, (x) => x.t === "scenefx" && x.fx === (KIND[fx] ?? fx)) });
   } }
   /* ── the layers with their own tools: what they found against what the spec shows */
   const J = (f) => { try { return JSON.parse(fs.readFileSync(path.join(".tmp", p, f), "utf8")); } catch { return null; } };

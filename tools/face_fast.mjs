@@ -62,7 +62,7 @@ const boxAt = (t) => { // nearest detection within 2 s (camera fixed), else the 
 
 // ---- 2) face zone in composition pixels (mirrors src/MontageSpec.tsx + PortraitKit.SheikhLayers; keep in sync)
 const clamp = (v) => Math.max(0, Math.min(1, v));
-const zoomAt = (t) => { const zz = (spec.zooms ?? []).find((z) => t >= z.from - 0.01 && t <= z.to + 0.5); return zz ? 1 + (zz.amt ?? 0.08) * Math.min(clamp((t - zz.from) / 0.35), clamp((zz.to + 0.5 - t) / 0.45)) : 1; };
+const zoomAt = (t, land = true) => { const zz = (spec.zooms ?? []).find((z) => t >= z.from - 0.01 && t <= z.to + 0.5); return zz ? 1 + (zz.amt ?? (land ? 0.104 : 0.08)) * Math.min(clamp((t - zz.from) / 0.35), clamp((zz.to + 0.5 - t) / 0.45)) : 1; };
 const CARD_BORDER = 14, CARD_H = 800;
 const zoneAt = (t, land, W, H) => {
   const [, x, y, w, h] = boxAt(t);
@@ -87,7 +87,7 @@ const zoneAt = (t, land, W, H) => {
   } else {            // portrait: 608-px slice around cam.cx scaled to 1920 high, push-in about 540,600
     const cams = spec.cams ?? [{ from: 0, to: 9999, cx: 990 }];
     const cam = cams.find((c) => t >= c.from && t < c.to) ?? cams[cams.length - 1];
-    const K = 1920 / 1080, z = zoomAt(t);
+    const K = 1920 / 1080, z = zoomAt(t, false);
     const pw = (spec.psplits ?? []).find((q) => t >= q.from - 0.01 && t <= q.to + 0.4), pk = pw ? Math.min(clamp((t - pw.from) / 0.4), clamp((pw.to + 0.4 - t) / 0.4)) : 0, ps = 1 + ((pw?.s ?? 0.66) - 1) * pk;   // portrait split screen: his video shrinks to the top (scale about 50% 0%)
     map = ([px, py]) => { const X = (px - (cam.cx - 304)) * K, Y = py * K, x1 = 540 + (X - 540) * z, y1 = 600 + (Y - 600) * z; return [540 + (x1 - 540) * ps, y1 * ps]; };
   }

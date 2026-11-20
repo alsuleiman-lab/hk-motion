@@ -474,7 +474,7 @@ const CropPolaroid: React.FC<{ cut: string; x: number; w: number; y?: number; h?
 };
 /** landscape: only his slice of a baked-split recording, centred on the decorated base (the clip beside him is never shown) */
 const SoloLand: React.FC<{ cut: string; sp: NonNullable<MontageSpec["solos"]>[number]; zooms?: MontageSpec["zooms"] }> = ({ cut, sp, zooms = [] }) => {
-  const t = useT(0), zz = zooms.find((q) => t >= q.from - 0.01 && t <= q.to + 1.2), zm = zz ? 1 + (zz.amt ?? 0.08) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1, s = sp.scale ?? 1, w = sp.sheikh.w * s, h = LANDSCAPE.H * s, centered = (sp.center ?? []).some((c) => t >= c.from && t < c.to);
+  const t = useT(0), zz = zooms.find((q) => t >= q.from - 0.01 && t <= q.to + 1.2), zm = zz ? 1 + (zz.amt ?? 0.104) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1, s = sp.scale ?? 1, w = sp.sheikh.w * s, h = LANDSCAPE.H * s, centered = (sp.center ?? []).some((c) => t >= c.from && t < c.to);
   if (HYL) {   /* GPU renderer (2026-11-12): the decorated base in layer 1, ABOVE his full-frame footage (level 0) and BELOW his slice (level 1), which the
                   compositor draws in the same box, the zoom (scale zm about 50% 28% of the box) applied to the picture. Box and picture snapped to whole
                   pixels as the browser draws them (unzoomed). */
@@ -602,7 +602,7 @@ export const LandFootage: React.FC<{ cut: string; zooms?: { from: number; to: nu
   if (sp) { const L = DEBATE_LAYOUTS[sp.layout ?? "dossier"]; return <L at={sp.from} main={sp.mainSrc ? { src: sp.mainSrc, aspect: sp.mainAspect ?? 16 / 9, t0: sp.from } : { src: cut, x: sp.sheikh.x, w: sp.sheikh.w, y: sp.sheikh.y, h: sp.sheikh.h }} guest={sp.clipSrc ? { src: sp.clipSrc, aspect: sp.clipAspect ?? 16 / 9, blur: sp.blur, t0: sp.from } : { src: cut, x: sp.clip.x, w: sp.clip.w, y: sp.clip.y, h: sp.clip.h, blur: sp.blur, marks: sp.page ? sp.marks : undefined, paper: sp.paper }} guestName={sp.clipName} url={sp.clipUrl} behind={behind} gaps={gaps} />; }
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 1.2);
   const pp = pips.find((q) => t >= q.at && t <= q.until), pu = pp ? pipK(t, pp.at, pp.until) : 0;   // PipSource (user 2026-11-14): he shrinks into the top-right corner window
-  const z = zz ? 1 + (zz.amt ?? 0.08) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1;
+  const z = zz ? 1 + (zz.amt ?? 0.104) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1;
   return (
     <AbsoluteFill style={{ background: hyBg(BRAND.base), transform: pu > 0 ? `scale(${1 - (1 - PIP.s) * pu})` : `translate3d(${dx}px, 0, 0) scale(${z})`, willChange: "transform", transformOrigin: pu > 0 ? `${PIP.W - PIP.m / (1 - PIP.s)}px ${PIP.m / (1 - PIP.s)}px` : LANDSCAPE.faceOrigin }}>
       {/* (user 2026-11-12, frame 6758) slid aside, his video's left part turns transparent and melts into the background (\`feather\` px): CSS mask here, the same ramp in the GPU compositor (fx.featherL) */}
@@ -626,7 +626,7 @@ const MaskedSheikh: React.FC<{ cut: string; matte: NonNullable<MontageSpec["matt
   const t = from + useCurrentFrame() / 30;     // inside a Sequence that starts at `from`
   const vStart = Math.round(from * 30), mStart = (matte.startFrom ?? 0) + Math.round((from - (matte.start ?? 0)) * 30);
   const zz = zooms.find((z) => t >= z.from - 0.01 && t <= z.to + 1.2);
-  const z = zz ? 1 + (zz.amt ?? 0.08) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1;
+  const z = zz ? 1 + (zz.amt ?? (o === "land" ? 0.104 : 0.08)) * smoother2(Math.min(clamp((t - zz.from) / 1.0), clamp((zz.to + 1.2 - t) / 1.2))) : 1;
   if (o === "land") return (
     <AbsoluteFill style={{ transform: `translate3d(${dx}px, 0, 0) scale(${z})`, willChange: "transform", transformOrigin: LANDSCAPE.faceOrigin }}>
       <MaskedVideo gpu={gpu} video={cut} matte={matte.src} videoStartFrom={vStart} matteStartFrom={mStart} width={LANDSCAPE.W} height={LANDSCAPE.H} floor={0.925} />

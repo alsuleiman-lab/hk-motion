@@ -44,6 +44,9 @@ for (const it of spec.items) {
   const d = b - a; if (d <= 7) continue;
   out.push(`${d > 10 ? "✘" : "⚠"} باقٍ طويلاً ${d.toFixed(1)} ث: #${it.id ?? "?"} «${String(it.name ?? it.src ?? "").slice(0, 40)}» ${mm(a)}–${mm(b)} — صورة تذهب حين تنتهي الحاجة إليها`);
 }
+/* (user 2026-11-20, frame 7976: «المؤثر الذي وضعته على الخلفية ثابت، وبقي مدة طويلة… المؤثرات على الخلفية تعبر عن الموضوع، فلا يسمح بمؤثر ثابت») a scene
+   effect lives a few seconds around its words and keeps moving: > 8 s refused */
+for (const it of spec.items.filter((x) => x.t === "scenefx")) { const d = it.to - it.from; if (d > 8) out.push(`✘ مؤثر خلفية طويل ${d.toFixed(1)} ث: #${it.id} ${it.fx} ${mm(it.from)}–${mm(it.to)} — المؤثر قصير متحرك عند كلماته`); }
 const bad = out.filter((l) => l.startsWith("✘")).length;
 console.log(out.length ? out.join("\n") : "✔ لا عنصر متأخر عن كلامه");
 if (bad) console.log(`✘ ${bad} مخالفة وقت: عنصر متأخر عن كلامه أكثر من 2.5 ث أو صورة باقية بعد الحاجة إليها`);

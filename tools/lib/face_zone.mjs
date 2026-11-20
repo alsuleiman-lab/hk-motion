@@ -33,7 +33,7 @@ export function faceZoner(spec) {
     }
     return sp ? [null, sp.sheikh.x + sp.sheikh.w / 2 - fallback[3] / 2, fallback[2], fallback[3], fallback[4]] : fallback;
   };
-  const zoomAt = (t) => { const zz = (spec.zooms ?? []).find((z) => t >= z.from - 0.01 && t <= z.to + 0.5); return zz ? 1 + (zz.amt ?? 0.08) * Math.min(clamp((t - zz.from) / 0.35), clamp((zz.to + 0.5 - t) / 0.45)) : 1; };
+  const zoomAt = (t, land = true) => { const zz = (spec.zooms ?? []).find((z) => t >= z.from - 0.01 && t <= z.to + 0.5); return zz ? 1 + (zz.amt ?? (land ? 0.104 : 0.08)) * Math.min(clamp((t - zz.from) / 0.35), clamp((zz.to + 0.5 - t) / 0.45)) : 1; };
   const CARD_BORDER = 14, CARD_H = 800;
   return (t, o) => {
     const land = o === "land", W = land ? 1920 : 1080, H = land ? 1080 : 1920;
@@ -59,7 +59,7 @@ export function faceZoner(spec) {
     } else {
       const cams = spec.cams ?? [{ from: 0, to: 9999, cx: 990 }];
       const cam = cams.find((c) => t >= c.from && t < c.to) ?? cams[cams.length - 1];
-      const K = 1920 / 1080, zm = zoomAt(t), ps = (spec.psplits ?? []).find((q) => t >= q.from - 0.01 && t <= q.to + 0.4), s = ps ? ps.s ?? 0.66 : 1;
+      const K = 1920 / 1080, zm = zoomAt(t, false), ps = (spec.psplits ?? []).find((q) => t >= q.from - 0.01 && t <= q.to + 0.4), s = ps ? ps.s ?? 0.66 : 1;
       map = ([px, py]) => { const X = (px - (cam.cx - 304)) * K, Y = py * K, a = 540 + (X - 540) * zm, b = 600 + (Y - 600) * zm; return [540 + (a - 540) * s, b * s]; };
     }
     const pad = (spec.shake ?? []).some((s) => t >= s.from && t <= s.to) ? 8 : 0;

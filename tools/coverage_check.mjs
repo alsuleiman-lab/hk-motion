@@ -181,6 +181,17 @@ if (missing.length) fails++;
   else console.log("✔ لا نافذة عزل داخل نافذة مقطع");
 }
 
+// 1d) (user 2026-11-20, frames 8122 and 9873: «تعارض بين الحديث والانقسام… غير مسموح»، «وضعت تقسيم الشاشة وأعطيت عنصراً متعلقاً بالوضع العادي…
+//     في تقسيم الشاشات مسموح لك أشياء بسيطة جداً: صورة في المنتصف، سبتايتل لبعض الكلمات المهمة») inside a split window (the clip on screen) only a picture in
+//     the gap and the words he stresses; any other element — a picked element, a hadith card, a list, a subscribe card — may not overlap it
+{
+  const OKS = new Set(["tphoto", "pic", "scholar", "news", "date", "flag", "clock", "brushx", "scraps", "torn", "word", "wm", "cover", "scenefx", "credit"]);
+  const bad = [];
+  for (const it of items) { const s = span(it); if (!s || OKS.has(it.t)) continue; for (const w of spec.splits ?? []) if (s[0] < w.to - 0.05 && s[1] > w.from + 0.05) { bad.push(`${it.t}${it.el ? " " + it.el : ""} ${mm(s[0])}–${mm(s[1])} في نافذة المقطع ${mm(w.from)}–${mm(w.to)}`); break; } }
+  console.log(bad.length ? `✘ عنصر عادي داخل نافذة المقطع (${bad.length}): ${bad.join("، ")} — المسموح صورة في الوسط وكلماته المهمة` : "✔ نوافذ المقطع: صورة في الوسط وكلمات مهمة فقط");
+  if (bad.length) fails++;
+}
+
 // 2) empty stretches (any item or baked split counts as something on screen)
 /* (user 2026-11-20: «في مواضع كثيرة لا تضع فيها شيئاً… مونتاجك سيء») a push-in or a shake is a camera MOVE, not an element: they no longer fill a gap
    (21 automatic push-ins had hidden 3 minutes of empty screen on mufti-hiraba). The rule is «ولا 5 ثوانٍ بلا عنصر» (checking skill, item 18). */

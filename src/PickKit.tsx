@@ -71,7 +71,10 @@ export const InkQuote: React.FC<Base & { w?: number; size?: number; lines: { tex
 /* (user 2026-11-17, frames 268 and 2903 of «مفتي الأردن»): the mark was the palette's accent on the same blue ground (no contrast) and 500 px tall, so the question under it ran off the bottom edge;
    now a light mark with a dark edge, a smaller mark (360) and the question in a bold light face with a dark shadow, up to two lines, always inside the frame */
 export const BigQuestion: React.FC<Base & { text: string; textAt: number; size?: number; w?: number }> = ({ at, until, x, y, text, textAt, size = 360, w = 960 }) => {
-  const { k } = useK(); const a = k(at, 0.7, until), fs = Math.max(72, Math.round(size * 0.22));
+  /* (user 2026-11-20, frame 7191: «الكتابة طالعة تحت الإطار… إذا كانت كثيرة تتصغر بحيث أن لها حد تنتهي عنده، ولا تخرج عن الشاشة») the question shrinks
+     until its lines fit between the mark and the bottom of the frame (never below 40 px) */
+  const { k } = useK(); const a = k(at, 0.7, until), room = Math.max(160, 1080 - (y ?? 0) - size * 1.1 - 24 - 70), len = [...text].length;
+  let fs = Math.max(72, Math.round(size * 0.22)); const lines = (f: number) => Math.ceil(len / Math.max(1, Math.floor((w - 80) / (f * 0.62))));   /* Arabic bold ≈ 0.62 em a letter */ while (fs > 40 && (lines(fs) > 3 || lines(fs) * fs * 1.35 > room)) fs -= 2;   /* three lines at most: the gallery offset may push it lower than y says */
   return (
     <div style={abs({ left: x, top: y, width: w })}>
       <div style={abs({ left: 0, width: w, top: 0, height: size * 1.1, lineHeight: `${size * 1.1}px`, textAlign: "center", fontFamily: kufiF, fontSize: size, color: BRAND.card, textShadow: `0 ${size * 0.035}px 0 ${BRAND.navyDeep}, 0 0 ${size * 0.08}px rgba(0,0,0,.45)`, visibility: a > 0 ? "visible" : "hidden", transform: `rotate(${(1 - back(a)) * -220}deg) scale(${0.2 + 0.8 * back(a)})` })}>؟</div>

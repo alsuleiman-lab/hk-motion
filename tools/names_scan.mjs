@@ -77,6 +77,9 @@ for (let i = 0; i < nw.length; i++) for (let n = Math.min(maxLen, 3); n >= 1; n-
   const tail = raw.slice(i + 1, i + n).join(" ");
   let pl = forms(raw[i]).map((f) => cities.get((f + (tail ? " " + tail : "")).trim())).find(Boolean) ?? places.get(nw.slice(i, i + n).join(" "));
   if (pl && pl.iso3 === "OMN" && n === 1 && nw[i] === "عمان" && jordanNear(words[i].s)) pl = AMMAN;
+  /* (user 2026-11-20, frame 3111: «الكلام عن مفتي الأردن وليس عن الأردن… مضاف ومضاف إليه») a country that only completes a title («مفتي الأردن»، «ملك
+     الأردن»، «وزير الأوقاف الأردني») names a PERSON, not a place: no map there */
+  if (pl && i > 0 && /^(مفتي|ملك|رئيس|امير|وزير|سفير|حاكم|سلطان|شيخ|علماء|مشايخ|دار|مجلس|محكمه|حكومه|جيش|شعب|قناه|اوقاف)$/.test(String(nw[i - 1]).replace(/^(و|ف|ب|ل)(?=..)/, "").replace(/^ال/, ""))) { i += n - 1; break; }
   if (pl) { hits.push({ ...pl, said: words.slice(i, i + n).map((w) => w.w).join(" "), at: +words[i].s.toFixed(2) }); i += n - 1; break; }
 }
 // group: mentions within 6 s → one window

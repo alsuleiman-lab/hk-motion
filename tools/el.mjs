@@ -167,6 +167,8 @@ if (cmd === "list") {
   const [p, code, ...rest] = args, f = specPath(p), e = find(catalog(), code);
   if (!e) { console.error(`✘ لا عنصر بهذا الاسم: ${code} (node tools/el.mjs list)`); process.exit(2); }
   const vals = kv(rest.filter((a) => a !== "--no-gate")), names = new Set(e.fields.map((x) => x.name));
+  /* (2026-11-20, gta6) a string field given digits («text=2005») was parsed as a number: the element then crashed the composition (text.trim) */
+  for (const fd of e.fields) if (/^string$/.test(fd.type) && typeof vals[fd.name] === "number") vals[fd.name] = String(vals[fd.name]);
   const editN = new Set(e.edit.map((x) => x.name)), bad = Object.keys(vals).filter((k) => (NOT_CONTENT.has(k) && !editN.has(k)) || !names.has(k));
   if (bad.length) { console.error(`✘ ${code}: لا يُضبط هنا ${bad.join("، ")} — المكان والمقاس من المعرض؛ الحقول: ${e.edit.map((x) => x.name).join(" ")}`); process.exit(2); }
   const missing = e.edit.filter((x) => !x.opt && vals[x.name] === undefined).map((x) => x.name);

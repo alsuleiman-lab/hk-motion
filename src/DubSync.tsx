@@ -21,23 +21,7 @@ type Item = { id: string; src: string; x: number; y: number; w: number; rot?: nu
   inAt: number; inK: "drop" | "slideL" | "slideR" | "rise" | "swing" | "pop";
   outAt?: number; outK?: "fall" | "sweepL" | "sweepR" | "up" | "crumple" | "far" | "tray"; tray?: [number, number, number, number, number]; ball?: boolean; acts?: Act[]; tag?: number };
 
-/* ───────── الأسوار مرسومة (نحاس مجسّم) ───────── */
-const Bangle: React.FC = () => (
-  <svg viewBox="0 0 400 584" style={{ width: "100%", display: "block", background: "radial-gradient(ellipse at 50% 45%, #4a2e22, #1a0f0a 75%)" }}>
-    <defs>
-      <linearGradient id="br1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#f6dd96" /><stop offset=".35" stopColor="#c7922f" /><stop offset=".6" stopColor="#7d5717" /><stop offset=".85" stopColor="#d9aa4c" /><stop offset="1" stopColor="#6b4610" /></linearGradient>
-      <linearGradient id="br2" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stopColor="#3b250c" /><stop offset="1" stopColor="#9a6c24" /></linearGradient>
-      <radialGradient id="shd" cx=".5" cy=".5" r=".5"><stop offset="0" stopColor="#000" stopOpacity=".55" /><stop offset="1" stopColor="#000" stopOpacity="0" /></radialGradient>
-    </defs>
-    <ellipse cx="200" cy="350" rx="170" ry="62" fill="url(#shd)" />
-    <ellipse cx="200" cy="300" rx="132" ry="60" fill="none" stroke="url(#br2)" strokeWidth="38" />
-    <path d="M68 300 A132 60 0 0 0 332 300" fill="none" stroke="url(#br1)" strokeWidth="38" strokeLinecap="round" />
-    <path d="M90 316 A112 48 0 0 0 310 316" fill="none" stroke="#fff3c8" strokeWidth="6" opacity=".55" />
-    <path d="M110 268 A100 40 0 0 1 290 268" fill="none" stroke="#e7c27a" strokeWidth="4" opacity=".35" />
-    {Array.from({ length: 9 }, (_, i) => { const q = Math.PI * (0.12 + (i / 8) * 0.76); return <circle key={i} cx={200 - Math.cos(q) * 132} cy={300 + Math.sin(q) * 60} r="6" fill="#4a300c" />; })}
-  </svg>
-);
-const Pic: React.FC<{ src: string }> = ({ src }) => src === "bangle" ? <Bangle /> : <Img src={staticFile(src)} style={{ width: "100%", display: "block" }} />;
+const Pic: React.FC<{ src: string }> = ({ src }) => <Img src={staticFile(src)} style={{ width: "100%", display: "block" }} />;
 
 /* ───────── عنصر بحركات دخوله وخروجه وأفعاله ───────── */
 const Thing: React.FC<{ it: Item; t: number }> = ({ it, t }) => {
@@ -148,11 +132,11 @@ const ITEMS: Item[] = [
   { id: "books", src: "cine/book_stack.png", x: 50, y: 1180, w: 470, inAt: 19.2, inK: "slideL", rot: -4, outAt: 20.15, outK: "sweepL" },
   { id: "books2", src: "cine/book_stack.png", x: 40, y: 110, w: 520, inAt: 20.6, inK: "slideL", rot: -4, outAt: 23.1, outK: "up" },
   /* «xelekek dît» رأى حلقة (أسوار) ← تسقط من الكاميرا ثم اقتراب */
-  { id: "bangle", tag: 4, src: "bangle", x: 40, y: 100, w: 560, inAt: 23.45, inK: "drop", rot: -2, acts: [{ at: 25.15, k: "old" }], outAt: 26.75, outK: "sweepL" },
+  { id: "bangle", tag: 4, src: "cine/bangle_brass.png", x: 40, y: 90, w: 500, inAt: 23.45, inK: "drop", rot: -2, acts: [{ at: 23.75, k: "push" }, { at: 25.15, k: "old" }], outAt: 26.75, outK: "sweepL" },
   /* «tilsim» التمائم ← الطلسم ينزلق */
-  { id: "tals", tag: 5, src: "cine/talisman.png", x: 540, y: 640, w: 520, inAt: 26.9, inK: "slideR", rot: 4, acts: [{ at: 30.75, k: "x" }], outAt: 31.2, outK: "fall" },
+  { id: "tals", tag: 5, src: "cine/hirz_triangle.png", x: 540, y: 640, w: 520, inAt: 26.9, inK: "slideR", rot: 4, acts: [{ at: 30.75, k: "x" }], outAt: 31.2, outK: "fall" },
   /* «ev xelek çi ye?» ما هذه الحلقة؟ ← الأسوار تصعد وعلامة استفهام؛ «lawaziyê» الوهن ← تذبل؛ «tilsimekê» ← تنقلب إلى طلسم؛ ثم تعود */
-  { id: "bangle2", tag: 4, src: "bangle", back: "cine/talisman.png", x: 30, y: 920, w: 600, inAt: 31.3, inK: "rise",
+  { id: "bangle2", tag: 4, src: "cine/bangle_brass.png", back: "cine/hirz_triangle.png", x: 30, y: 920, w: 600, inAt: 31.3, inK: "rise",
     acts: [{ at: 32.7, k: "q" }, { at: 35.0, k: "wilt" }, { at: 36.1, k: "flip" }, { at: 39.95, k: "flip" }, { at: 40.7, k: "push" }, { at: 42.0, k: "break" }], outAt: 44.6, outK: "fall" },
   /* «şifayê … hêzê» الشفاء والقوة ← الدواء ينزلق ويتوهج */
   { id: "med2", src: "cine/medicine.png", x: 640, y: 1120, w: 420, inAt: 37.8, inK: "slideR", rot: 5, acts: [{ at: 39.05, k: "glow" }], outAt: 39.95, outK: "sweepR" },
@@ -162,7 +146,7 @@ const ITEMS: Item[] = [
   /* «Xerezeyek şîn» خرزة زرقاء ← تقفز */
   { id: "beads", tag: 7, src: "cine/beads.png", x: 560, y: 1000, w: 500, inAt: 48.75, inK: "pop", rot: -4, outAt: 49.9, outK: "fall" },
   /* «Bila sûd bide» فلتنفعك ← الطلسم يسقط؛ «kaxez» هذه الورقة ← اقتراب؛ «Na» لا ← يُكرمش */
-  { id: "paper", tag: 5, src: "cine/talisman.png", x: 260, y: 1000, w: 640, inAt: 54.45, inK: "drop", rot: 3, outAt: 57.4, outK: "tray", ball: true, tray: [250, 1560, 200, 20, 61.5] },
+  { id: "paper", tag: 5, src: "cine/hirz_triangle.png", x: 260, y: 1000, w: 640, inAt: 54.45, inK: "drop", rot: 3, outAt: 57.4, outK: "tray", ball: true, tray: [250, 1560, 200, 20, 61.5] },
   /* «Kî girêdayî bibe» من تعلّق ← على حبل */
   { id: "hang3", src: "cine/amulet.png", x: 610, y: 660, w: 440, inAt: 58.65, inK: "swing", outAt: 60.35, outK: "up" },
   /* «rewayetekê … hedîsekê» رواية وحديث ← القارئ والمكتبة */
@@ -177,7 +161,7 @@ const ITEMS: Item[] = [
 /* صورة الشيخ: كاملة في المقدمة والمقطع المحروق، وبطاقة تتنقل بين الأركان بحسب مكان الأشياء */
 const VKF: number[][] = [
   [0, 0, 0, 1080, 1920], [4.45, 0, 0, 1080, 1920], [4.95, 40, 100, 560, 996], [20.1, 40, 100, 560, 996],
-  [20.45, 480, 820, 560, 996], [26.6, 480, 820, 560, 996], [26.95, 40, 100, 560, 996], [31.15, 40, 100, 560, 996],
+  [20.45, 480, 900, 560, 996], [26.6, 480, 900, 560, 996], [26.95, 40, 100, 560, 996], [31.15, 40, 100, 560, 996],
   [31.5, 480, 100, 560, 996], [44.6, 480, 100, 560, 996], [44.95, 40, 100, 560, 996], [49.95, 40, 100, 560, 996],
   [50.3, 0, 0, 1080, 1920], [53.85, 0, 0, 1080, 1920], [54.3, 40, 100, 560, 996], [62.8, 40, 100, 560, 996],
   [63.15, 260, 100, 560, 996], [71.5, 260, 100, 560, 996], [72.4, 200, 100, 600, 1067], [74.4, 200, 100, 600, 1067],
@@ -190,7 +174,7 @@ const SFX: Cue[] = [[S(1.3), "swish", 0.6], [S(3.35), "typing", 0.8], [S(20.0), 
 /* ───────── الكاميرا: تقترب إلى الشيء المهم ثم تعود ───────── */
 const CAM = [
   { a: 9.3, b: 9.95, cx: 650, cy: 1500, z: 1.2 },   // «vedike» الباب
-  { a: 23.6, b: 24.2, cx: 320, cy: 510, z: 1.18 },   // «xelekek» الأسوار
+   // «xelekek» الأسوار
   { a: 56.55, b: 57.45, cx: 580, cy: 1470, z: 1.18 }, // «kaxez» الورقة
 ];
 const camAt = (t: number) => {
@@ -244,8 +228,8 @@ export const DubKmrSync: React.FC = () => {
   const [x0, y0, w0, h0] = frameBox(t, VKF);
   const cm = full ? { z: 1, ox: 0, oy: 0 } : camAt(t);
   /* اقتراب الكاميرا لا يُخرج صورته من الإطار ولا يقصّ وجهه: البطاقة تُحبس داخل الشاشة */
-  const w = w0 * cm.z, h = h0 * cm.z;
-  const x = Math.min(Math.max(x0 * cm.z + cm.ox, 30), W - 30 - w), y = Math.min(Math.max(y0 * cm.z + cm.oy, 30), H - 30 - h);
+  const w = w0, h = h0;
+  const x = Math.min(Math.max(x0 * cm.z + cm.ox + (w0 * cm.z - w0) / 2, 30), W - 30 - w), y = Math.min(Math.max(y0 * cm.z + cm.oy + (h0 * cm.z - h0) / 2, 30), H - 30 - h);
   /* ارتجاف التحذير «ya herî xeternak e» (الأخطر) */
   const dx = Math.sin(t * 0.55) * 26, dy = Math.cos(t * 0.43) * 18;
   const sh0 = t > 63.5 && t < 64.0 ? Math.sin(t * 120) * (64.0 - t) * 40 : 0;
@@ -268,8 +252,8 @@ export const DubKmrSync: React.FC = () => {
         {rays > 0 && <AbsoluteFill style={{ background: `radial-gradient(ellipse 70% 55% at 60% 0%, rgba(255,240,200,${0.55 * rays}), transparent 70%)` }} />}
         {rays > 0 && <AbsoluteFill style={{ mixBlendMode: "screen", background: `conic-gradient(from 150deg at 62% -12%, transparent 0deg, rgba(255,214,130,${0.75 * rays}) 6deg, transparent 13deg, rgba(255,214,130,${0.6 * rays}) 20deg, transparent 26deg, rgba(255,214,130,${0.8 * rays}) 34deg, transparent 42deg, rgba(255,214,130,${0.55 * rays}) 50deg, transparent 58deg)`, transform: `rotate(${(t - 12.55) * 3}deg)`, transformOrigin: "62% -12%" }} />}
         {rays > 0 && Array.from({ length: 26 }, (_, j) => { const rr = mulberry32(j * 5 + 9); return <div key={"d" + j} style={{ position: "absolute", left: 300 + rr() * 700, top: 200 + rr() * 1400 + (t - 12.55) * (20 + rr() * 40), width: 5, height: 5, borderRadius: 3, background: "#fff6d8", opacity: rays * (0.4 + 0.6 * rr()), boxShadow: "0 0 8px #ffe9a8" }} />; })}
-        <Rain at={27.0} out={31.2} t={t} srcs={["cine/beads.png", "cine/amulet.png", "cine/talisman.png"]} seed={4} />
-        <Rain at={67.0} out={71.0} t={t} srcs={["cine/talisman.png", "cine/beads.png", "cine/amulet.png"]} seed={7} />
+        <Rain at={27.0} out={31.2} t={t} srcs={["cine/beads.png", "cine/amulet.png", "cine/hirz_triangle.png"]} seed={4} />
+        <Rain at={67.0} out={71.0} t={t} srcs={["cine/hirz_triangle.png", "cine/beads.png", "cine/amulet.png"]} seed={7} />
         {ITEMS.map((it) => <Thing key={it.id} it={it} t={t} />)}
         <Thread t={t} />
         {warn > 0 && <AbsoluteFill style={{ boxShadow: `inset 0 0 ${260 * warn}px rgba(170,30,20,${0.6 * warn})` }} />}

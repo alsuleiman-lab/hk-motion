@@ -77,7 +77,9 @@ export const Header: React.FC<{ surah: string; size: number; k: number; font?: s
 
 /** the half-screen panel in the video's palette: base colours + star tiling + turning rosette (ornament in the palette's light tone);
  *  its right side melts into his video by transparency — no seam. `k` = 0..1 slide-in; opaque up to `solid` of `w`, then fades to nothing. */
-export const BlendPanel: React.FC<{ k: number; t: number; w?: number; solid?: number; id: string; bleed?: number; children?: React.ReactNode }> = ({ k, t, w = 1560, solid = 0.58, id, bleed = 0, children }) => {
+/* (user 2026-11-20, mufti-hiraba 2:38: «تدرج التظليل يغطي الوجه بشكل مزعج») the fade ran to 1560 px while his face, slid right by HALF_DX, starts at
+   ≈ 1170: half-dark over his face. Now opaque to ≈ 860 and gone by 1200 — every panel's content sits left of 700, nothing is cut. */
+export const BlendPanel: React.FC<{ k: number; t: number; w?: number; solid?: number; id: string; bleed?: number; children?: React.ReactNode }> = ({ k, t, w = 1200, solid = 0.72, id, bleed = 0, children }) => {
   if (k <= 0) return null;
   const fade = bleed ? `linear-gradient(90deg, #000 0, #000 ${bleed + solid * w}px, rgba(0,0,0,.55) ${bleed + (solid + (1 - solid) * 0.45) * w}px, transparent ${bleed + w}px)` : `linear-gradient(90deg, #000 0%, #000 ${solid * 100}%, rgba(0,0,0,.55) ${(solid + (1 - solid) * 0.45) * 100}%, transparent 100%)`;
   return (

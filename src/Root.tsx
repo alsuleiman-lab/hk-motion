@@ -23,10 +23,12 @@ import { BoardTemplate, BOARD_FRAMES } from "./ext/BoardKit";
 import { AqidaReel, AQIDA_FRAMES } from "./ext/AqidaReel";
 import { CineWords, CINE_WORDS_FRAMES } from "./ext/CineWords";
 import { AnimeScene, ANIME_FRAMES, ANIME_FPS } from "./ext/AnimeScene";
+import { AnimeDuel, DUEL_FRAMES, DUEL_FPS } from "./ext/AnimeDuel";
 import { JordanDetain, JORDAN_FRAMES } from "./JordanDetain";
 import { DubKmr, DubCkb, DUBKMR_FRAMES } from "./DubKmr";
 import { DubKmrBoard, DubCkbPanels } from "./DubShots";
 import { DubKmrBoard2, DUBKMR_BOARD2_FRAMES } from "./DubBoard";
+import { DubKmrSync, DUBKMR_SYNC_FRAMES } from "./DubSync";
 import { TimelineDemo, TIMELINE_DEMO_FRAMES } from "./TimelineDemo";
 
 import { KhAlphaTrial, ALPHATRIAL_FRAMES } from "./KhAlphaTrial";
@@ -118,6 +120,7 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Reel-Aqida-Mufassir" component={AqidaReel} durationInFrames={AQIDA_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-CineWords" component={CineWords} durationInFrames={CINE_WORDS_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-AnimeScene" component={AnimeScene} durationInFrames={ANIME_FRAMES} fps={ANIME_FPS} width={1920} height={1080} />
+        <Composition id="Ref-AnimeDuel" component={AnimeDuel} durationInFrames={DUEL_FRAMES} fps={DUEL_FPS} width={1080} height={1920} />
       </Folder>
       <Folder name="موشن توضيحي مستقل">
         <Composition id="Jordan-Detain" component={JordanDetain} durationInFrames={JORDAN_FRAMES} fps={30} width={1080} height={1920} />
@@ -126,6 +129,7 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Dub-Kmr-Board" component={DubKmrBoard} durationInFrames={DUBKMR_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Dub-Ckb-Panels" component={DubCkbPanels} durationInFrames={DUBKMR_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Dub-Kmr-Board2" component={DubKmrBoard2} durationInFrames={DUBKMR_BOARD2_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Dub-Kmr-Sync" component={DubKmrSync} durationInFrames={DUBKMR_SYNC_FRAMES} fps={30} width={1080} height={1920} />
       </Folder>
       <ReelsComps />
       <Folder name="أدوات">

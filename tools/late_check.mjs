@@ -35,7 +35,16 @@ for (const it of spec.items) {
   const late = show - before.s;
   out.push(`${late > 2.5 ? "✘" : "⚠"} متأخر ${late.toFixed(1)} ث: #${it.id ?? "?"} «${label.slice(0, 40)}» يظهر ${mm(show)} والكلمة قيلت ${mm(before.s)} (${before.s.toFixed(2)})`);
 }
+/* (user 2026-11-20, frame 2765: «أبقيت اسم علي كثيراً، لا يسمح ببقاء عنصر كثيراً إلا إذا كان عنصراً شرحياً… صورة تبقى هيك غلط، انتهت الحاجة إليها»)
+   a PICTURE (person, place, photo) stays while it is spoken about: > 10 s is refused, 7–10 s warned. An explaining element (a calculation, a clip, a map
+   explained on, a news page read out) may stay longer: mark it "explain": true in the spec with the reason. */
+for (const it of spec.items) {
+  if (!["scholar", "tphoto", "pic"].includes(it.t) || it.explain) continue;
+  const a = it.at ?? it.from, b = it.until ?? it.to; if (a == null || b == null) continue;
+  const d = b - a; if (d <= 7) continue;
+  out.push(`${d > 10 ? "✘" : "⚠"} باقٍ طويلاً ${d.toFixed(1)} ث: #${it.id ?? "?"} «${String(it.name ?? it.src ?? "").slice(0, 40)}» ${mm(a)}–${mm(b)} — صورة تذهب حين تنتهي الحاجة إليها`);
+}
 const bad = out.filter((l) => l.startsWith("✘")).length;
 console.log(out.length ? out.join("\n") : "✔ لا عنصر متأخر عن كلامه");
-if (bad) console.log(`✘ ${bad} عنصر متأخر عن كلامه أكثر من 2.5 ث — قدّمه إلى وقت الكلمة`);
+if (bad) console.log(`✘ ${bad} مخالفة وقت: عنصر متأخر عن كلامه أكثر من 2.5 ث أو صورة باقية بعد الحاجة إليها`);
 process.exit(bad ? 1 : 0);

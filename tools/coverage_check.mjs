@@ -67,7 +67,7 @@ const span = (it) => {
   return a == null ? null : [a, b];
 };
 const items = (spec.items ?? []).filter((i) => i.t !== "cover").flatMap((i) => (i.t === "pmap" ? [i, ...(i.moves ?? []).map((m) => ({ t: "pmap", from: m.from, to: m.to, land: i.land, only: i.only, _move: true }))] : [i]));   /* map moves are map windows too (names_scan, 2026-11-19); a move is shown with its map's landscape geometry, so it is judged like it (2026-11-20) */
-const VISUAL = new Set(["bgclip", "peek", "pmap", "pic", "full", "flash", "crop", "scholar", "tphoto", "arc", "flag", "person", "phone", "scene"]);
+const VISUAL = new Set(["bgclip", "peek", "pmap", "pic", "full", "flash", "crop", "scholar", "tphoto", "arc", "flag", "person", "phone", "scene", "news"]);   /* a news clipping is the real picture of an event (user 2026-11-20: «هجوم كنيسة الكرك… حادثة… أداة الأخبار») */
 const visual = [...items.filter((i) => VISUAL.has(i.t)).map(span).filter(Boolean),
   /* (2026-11-12) a listing card item WITH a photo shows that person at its word */
   ...items.filter((i) => i.t === "rows").flatMap((i) => (i.rows ?? []).filter((r) => r.photo).map((r) => [r.at, (i.to ?? r.at + 3)]))];

@@ -108,13 +108,22 @@ export const WordScraps: React.FC<{ at: number; until?: number; x?: number; y?: 
 };
 
 /** a photo of the person or place in a torn white border with tape and a hand-written-style name strip */
-export const TornPhoto: React.FC<{ at: number; until?: number; x: number; y: number; w: number; h: number; src: string; name?: string; pos?: string; rot?: number }> = ({ at, until, x, y, w, h, src, name, pos = "50% 25%", rot = 2.5 }) => {
+export const TornPhoto: React.FC<{ at: number; until?: number; x: number; y: number; w: number; h: number; src: string; name?: string; pos?: string; rot?: number; round?: boolean }> = ({ at, until, x, y, w, h, src, name, pos = "50% 25%", rot = 2.5, round }) => {
   // no sliding across the frame (user 2026-10-31): it pops up in place from small and leaves the same way (shrinks back), never travelling over his face
   const t = useStep(), f = useCurrentFrame();
   if (t < at || (until !== undefined && t > until + 0.3)) return null;
   const grow = easeOut((t - at) / 0.4) * (until === undefined ? 1 : 1 - easeOut((t - until) / 0.3));
   const s = { transform: `scale(${0.15 + 0.85 * grow}) rotate(${rot + noise2D("tp" + src, f / 90, 0) * 0.6}deg)`, transformOrigin: "50% 50%", opacity: Math.min(1, grow * 2.5) } as React.CSSProperties;
   // the name strip grows with its lines so the text always sits in the white strip below the picture, never over it (user 2026-11-08)
+  /* (user 2026-11-20, frame 2355: «الصورة مكتوب فيها… إطار دائري مثلها، وفي نفس شكل هذا الإطار المتعرج») a round emblem that already carries the name
+     (calligraphy of Umar, Ali) takes a ROUND torn frame and no name strip */
+  if (round) {
+    const d = Math.min(w, h), pts = Array.from({ length: 72 }, (_, i) => { const a = (i / 72) * Math.PI * 2, j = 1 - 0.035 * (0.5 + 0.5 * Math.sin(i * 12.9898 + src.length * 7.1) * Math.cos(i * 4.1)), r = (d / 2) * j; return `${(d / 2 + Math.cos(a) * r).toFixed(1)}px ${(d / 2 + Math.sin(a) * r).toFixed(1)}px`; }).join(", ");
+    return (<div style={{ position: "absolute", left: x + (w - d) / 2, top: y, width: d, height: d, filter: shadow, ...s }}>
+      <div style={{ position: "absolute", inset: 0, background: BRAND.card, clipPath: `polygon(${pts})` }}><div style={{ position: "absolute", inset: 16, borderRadius: "50%", overflow: "hidden" }}><Pic src={src} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div></div>
+      <Tape x={d / 2 - 60} y={-14} rot={-4} />
+    </div>);
+  }
   const nameLines = name ? Math.max(1, Math.ceil([...name].length * 28 * 0.55 / (w - 24))) : 0;
   const H = h + (name ? Math.max(70, nameLines * 36 + 34) : 28);
   return (

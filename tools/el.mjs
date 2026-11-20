@@ -161,7 +161,7 @@ if (cmd === "list") {
   const missing = e.edit.filter((x) => !x.opt && vals[x.name] === undefined).map((x) => x.name);
   if (missing.length) { console.error(`✘ ${code}: ينقصه ${missing.join("، ")} (node tools/el.mjs show ${code})`); process.exit(2); }
   const it = { t: e.t, ...(e.el ? { el: e.el } : {}), ...(e.fixed ?? {}), ...vals };
-  if (typeof it.src === "string" && ["tphoto", "scholar", "pic"].includes(it.t)) { const r = ratioOf(it.src); if (r) it.ratio = r; else { console.error(`✘ لا أقرأ الصورة public/${it.src}`); process.exit(2); } }
+  if (typeof it.src === "string" && ["tphoto", "scholar", "pic", "news"].includes(it.t)) { const r = ratioOf(it.src); if (r) it.ratio = r; else { console.error(`✘ لا أقرأ الصورة public/${it.src}`); process.exit(2); } }
   const beforeText = read(f), base = await gateBefore(f, p);
   const s = JSON.parse(read(f)); ensureIds(s); const id = newId(new Set(s.items.map((x) => x.id)));
   /* (user 2026-11-20: «يجب ببساطة أن تلتزم بالموقع على الشبكة») a new picture in a grid spec gets its landscape SLOT at once (it had none, so the old gallery
@@ -192,7 +192,7 @@ if (cmd === "list") {
   const vals = kv(rest.filter((a) => a !== "--no-gate")), bad = Object.keys(vals).filter((k) => NOT_CONTENT.has(k) && !(k === "right" && typeof vals[k] === "string" && it.t === "pick"));
   if (bad.length) { console.error(`✘ لا يُضبط ${bad.join("، ")}: المكان والمقاس من المعرض`); process.exit(2); }
   Object.assign(it, vals);
-  if (vals.src && ["tphoto", "scholar", "pic"].includes(it.t)) { const r = ratioOf(it.src); if (r) it.ratio = r; }
+  if (vals.src && ["tphoto", "scholar", "pic", "news"].includes(it.t)) { const r = ratioOf(it.src); if (r) it.ratio = r; }
   save(f, s); fixGeometry(f, s); await gateAfter(f, p, base, beforeText, `تعديل #${it.id}`); console.log(`✔ عُدّل العنصر #${it.id} (${label(it)})`);
 } else if (cmd === "del") {
   const [p, n0] = args, f = specPath(p), beforeText = read(f), base = await gateBefore(f, p), s = JSON.parse(read(f)); ensureIds(s); const n = at(s, n0), it = n == null ? null : s.items[n];

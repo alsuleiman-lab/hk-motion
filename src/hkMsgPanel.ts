@@ -55,6 +55,7 @@ export const openMsgPanel = (ctx: GalleryCtx): void => {
       const j = (await res.json()) as { messages?: Msg[]; error?: string };
       if (!res.ok) throw new Error(j.error ?? String(res.status));
       ta.value = ""; paint(j.messages ?? []); say("✔ وصلت", "var(--hk-ok)");
+      window.setTimeout(() => { if (open) open.close(); }, 700);   /* (user 2026-11-20: «لما أرسل لك شيء تغلق إطار راسلني») the sheet closes itself once the message is in */
     } catch (e) { say(String((e as Error).message), "var(--hk-danger)"); }
     finally { sendB.disabled = false; }
   });

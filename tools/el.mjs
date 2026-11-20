@@ -217,6 +217,11 @@ if (cmd === "list") {
        node tools/el.mjs batch <p> <ops.json>     ops = [{"op":"add","code":"WordScraps","vals":{"at":40.6,"until":49,"text":"…"}},
                                                          {"op":"set","id":"#i5kc","vals":{"at":38.1}}, {"op":"del","id":"#kphg"}]
      every op runs through add/set/del (same validation), then the quick gates run ONCE: a failure the whole batch adds → the spec is put back exactly. */
+  /* (user 2026-11-20, gta6: six batches refused one hidden constraint at a time) the WHOLE plan is checked first against every element's constraints
+     (tools/el_rules.mjs plan-check: all problems at once, each with its fix, ~5 s) — nothing is applied while it fails */
+  { const pc = spawnSync(process.execPath, ["tools/el_rules.mjs", "plan-check", args[0], args[1]], { encoding: "utf8" });
+    if (pc.status !== 0) { console.error(((pc.stdout || "") + (pc.stderr || "")).trim() + "\n✘ لم تُطبَّق الدفعة: أصلح الخطة كلها ثم أعد"); process.exit(1); }
+    const warns = (pc.stdout || "").split(/\r?\n/).filter((l) => /^\s*⚠/.test(l)); if (warns.length) console.log(warns.join("\n")); }
   const [p, opsFile] = args, f = specPath(p), beforeText = read(f), base = await gateBefore(f, p);
   const ops = JSON.parse(read(opsFile)), self = process.argv[1];
   const asArgs = (vals) => Object.entries(vals ?? {}).map(([k, v]) => `${k}=${typeof v === "string" ? v : JSON.stringify(v)}`);

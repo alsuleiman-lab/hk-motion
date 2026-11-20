@@ -15,22 +15,22 @@ import { Cue, SfxTrack } from "./sfx";
  * تمزيق من الوسط، كرمشة، بطاقة ممزقة الحافة تصعد. الأرضية في طبقة الخلفية، وكل ما يغطي يكون ورقاً معتماً عمداً.
  */
 const W = 1080, H = 1920;
-const C = { board: "#e3d5b8", note: "#efe1c2", ink: "#2c2418", red: "#a8322a", edge: "#9fd3e0", tape: "rgba(231,206,140,.85)" };
+export const C = { board: "#e3d5b8", note: "#efe1c2", ink: "#2c2418", red: "#a8322a", edge: "#9fd3e0", tape: "rgba(231,206,140,.85)" };
 const S = (s: number) => Math.round(s * 30);
 export const BOARD_FRAMES = S(18);
 
-const Pin: React.FC<{ x: number; y: number; at: number }> = ({ x, y, at }) => {
+export const Pin: React.FC<{ x: number; y: number; at: number }> = ({ x, y, at }) => {
   const u = useCurrentFrame() / 30 - at;
   if (u < 0) return null;
   const k = easeOut(u / 0.22);
   return <div style={{ position: "absolute", left: x - 17, top: y - 17 - (1 - k) * 240, width: 34, height: 34, borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, #d0806a, #7a2a22)", boxShadow: `${(1 - k) * 26 + 3}px ${(1 - k) * 36 + 5}px ${(1 - k) * 12 + 4}px rgba(0,0,0,.35)`, transform: `scale(${1 + (1 - k) * 0.5})` }} />;
 };
-const Str: React.FC<{ a: [number, number]; b: [number, number]; at: number }> = ({ a, b, at }) => {
+export const Str: React.FC<{ a: [number, number]; b: [number, number]; at: number }> = ({ a, b, at }) => {
   const k = easeInOut((useCurrentFrame() / 30 - at) / 0.45);
   if (k <= 0) return null;
   return <svg width={W} height={H} style={{ position: "absolute", inset: 0 }}><path d={`M${a[0]} ${a[1]} Q${(a[0] + b[0]) / 2} ${(a[1] + b[1]) / 2 + 40} ${b[0]} ${b[1]}`} stroke={C.red} strokeWidth={5} fill="none" pathLength={1} strokeDasharray={`${k} 1`} /></svg>;
 };
-const Label: React.FC<{ x: number; y: number; text: string; at: number; size?: number; rot?: number }> = ({ x, y, text, at, size = 70, rot = -3 }) => {
+export const Label: React.FC<{ x: number; y: number; text: string; at: number; size?: number; rot?: number }> = ({ x, y, text, at, size = 70, rot = -3 }) => {
   const u = useCurrentFrame() / 30 - at;
   if (u < 0) return null;
   const k = back(u / 0.3, 1.8), w = text.length * size * 0.55 + 90;
@@ -39,7 +39,7 @@ const Label: React.FC<{ x: number; y: number; text: string; at: number; size?: n
     <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: ff("ruqaa"), fontWeight: 700, fontSize: size, color: C.ink, direction: "rtl" }}>{text}</div></div>;
 };
 /** بطل مقصوص: صورة بحدّ أزرق فاتح وظل، يدخل بهبوط من الكاميرا */
-const Hero: React.FC<{ src: string; x: number; y: number; w: number; at: number; rot?: number }> = ({ src, x, y, w, at, rot = -2 }) => {
+export const Hero: React.FC<{ src: string; x: number; y: number; w: number; at: number; rot?: number }> = ({ src, x, y, w, at, rot = -2 }) => {
   const u = useCurrentFrame() / 30 - at;
   if (u < 0) return null;
   const k = easeOut(u / 0.4);
@@ -57,7 +57,7 @@ const Note: React.FC<{ at: number; lines: string[]; x: number; y: number; w: num
       {lines.map((l, i) => <div key={i} style={{ fontSize: i ? 110 : 84, lineHeight: 1.2, whiteSpace: "nowrap" }}>{l}</div>)}</div></div>;
 };
 /** ختم يهبط ويضغط فتهتز اللوحة ويبقى الحبر */
-const Stamp: React.FC<{ at: number; text: string; x: number; y: number }> = ({ at, text, x, y }) => {
+export const Stamp: React.FC<{ at: number; text: string; x: number; y: number }> = ({ at, text, x, y }) => {
   const u = useCurrentFrame() / 30 - at;
   if (u < -0.35) return null;
   const sy = u < 0 ? lerp(-500, 0, easeInOut((u + 0.35) / 0.35)) : u < 0.12 ? 0 : -easeOut((u - 0.12) / 0.3) * 700;
@@ -69,7 +69,7 @@ const Stamp: React.FC<{ at: number; text: string; x: number; y: number }> = ({ a
   </>;
 };
 /** فوضى الأرشيف حول الأطراف: خطوط خريطة، قصاصات ورق ممزقة، صور قديمة بأشرطة، عمود صحيفة */
-const Clutter: React.FC<{ seed: number }> = ({ seed }) => {
+export const Clutter: React.FC<{ seed: number }> = ({ seed }) => {
   const r = mulberry32(seed * 97 + 3);
   const lf = useCurrentFrame() % 135; /* انجراف الكاميرا داخل كل لوحة (٤٫٥ ث) ويبدأ من جديد مع اللوحة التالية */
   const photos = ["cine/library.png", "cine/reader_back_soft.png", "cine/book_stack.png", "cine/pen_notebook.png", "cine/library.png"];

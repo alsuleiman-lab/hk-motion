@@ -26,6 +26,7 @@ import { AnimeScene, ANIME_FRAMES, ANIME_FPS } from "./ext/AnimeScene";
 import { JordanDetain, JORDAN_FRAMES } from "./JordanDetain";
 import { DubKmr, DubCkb, DUBKMR_FRAMES } from "./DubKmr";
 import { DubKmrBoard, DubCkbPanels } from "./DubShots";
+import { DubKmrBoard2, DUBKMR_BOARD2_FRAMES } from "./DubBoard";
 import { TimelineDemo, TIMELINE_DEMO_FRAMES } from "./TimelineDemo";
 
 import { KhAlphaTrial, ALPHATRIAL_FRAMES } from "./KhAlphaTrial";
@@ -124,6 +125,7 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Dub-Ckb-Hasad" component={DubCkb} durationInFrames={DUBKMR_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Dub-Kmr-Board" component={DubKmrBoard} durationInFrames={DUBKMR_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Dub-Ckb-Panels" component={DubCkbPanels} durationInFrames={DUBKMR_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Dub-Kmr-Board2" component={DubKmrBoard2} durationInFrames={DUBKMR_BOARD2_FRAMES} fps={30} width={1080} height={1920} />
       </Folder>
       <ReelsComps />
       <Folder name="أدوات">

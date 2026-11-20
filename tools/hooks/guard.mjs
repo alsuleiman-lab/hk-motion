@@ -38,6 +38,16 @@ const READ_PINNED = (p) => isRuleFile(p) || /^(القواعد_العامة|شج�
 const mainPath = (p) => norm(ROOT) + "/" + inner(p);
 const deny = (reason) => emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } });
 const ask = (reason) => emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: reason } });
+/* THE STUDIO «راسلني» MESSAGES ARE NEVER MISSED (user 2026-11-21, gta6: four notes sat unread in the inbox until he sent a screenshot — «ليش ما اشتغلت عليها؟»).
+   Every message of the last 24 h without a reply is handed to the agent on every prompt and after every tool, until it is answered (tools/hk_inbox.mjs reply). */
+const inboxOpen = () => {
+  try {
+    const f = path.join(ROOT, ".tmp", "hk_inbox.jsonl"); if (!fs.existsSync(f)) return "";
+    const open = fs.readFileSync(f, "utf8").split(/\r?\n/).filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } })
+      .filter((m) => m && !m.reply && Date.now() - Date.parse(m.at ?? 0) < 24 * 3600e3);
+    return open.length ? `📩 رسائل من الاستوديو بلا رد (${open.length}) — اعمل عليها الآن ثم ردّ بـ node tools/hk_inbox.mjs reply <id> "…":\n` + open.map((m) => `  #${m.id} ${m.comp ?? ""} إطار ${m.frame ?? "?"}: «${String(m.text ?? "").slice(0, 160)}»`).join("\n") : "";
+  } catch { return ""; }
+};
 /** the montage registered by `montage_guard.mjs start` (the first action of every montage); null = none registered */
 const activeProjects = () => { try { const r = JSON.parse(fs.readFileSync(path.join(ROOT, ".tmp", "active_montage.json"), "utf8")); return r.projects ?? (r.project ? [r.project] : []); } catch { return []; } };
 /** the registered project a file path / command line names (case-insensitive); null = it names none, so it is not that montage's business */
@@ -78,6 +88,7 @@ if (mode === "prompt") {
       if ((r.stdout || "").trim()) contract.push("• " + r.stdout.trim());
     } catch { /* never block a prompt */ }
   }
+  { const ib = inboxOpen(); if (ib) contract.push(ib); }
   emit({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: contract.join("\n") } });
 }
 
@@ -266,6 +277,7 @@ if (mode === "post") {
         const n = spawnSync("node", ["tools/montage_kickoff.mjs", "board", p, "--nudge"], { cwd: ROOT, encoding: "utf8", timeout: 4000 });
         if ((n.stdout || "").trim()) msgs.push(n.stdout.trim());
       }
+      { const ib = inboxOpen(); if (ib) msgs.push(ib); }
       if (msgs.length) emit({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: msgs.join("\n") } });
     } catch { /* the time box never breaks a command */ }
   }

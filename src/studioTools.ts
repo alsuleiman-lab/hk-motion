@@ -298,8 +298,18 @@ const installMobile = () => {
   const arrow = (dir: 1 | -1) => `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="transform:${dir === 1 ? "scaleX(-1)" : "none"}"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.2h4.2"/><text x="12" y="15.6" text-anchor="middle" font-size="8.5" font-weight="700" fill="currentColor" stroke="none" font-family="Arial,sans-serif">10</text></svg>`;
   const startSvg = `<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="5" width="2.6" height="14" rx="1"/><path d="M19 5.5v13a1 1 0 0 1-1.6.8l-9-6.5a1 1 0 0 1 0-1.6l9-6.5A1 1 0 0 1 19 5.5z"/></svg>`;
   const bStart = mk("__mt_start", "رجوع للبداية", startSvg, () => seekTo(0));
-  const bBack = mk("__mt_back", "رجوع 10 ثوانٍ", arrow(-1), () => { const n = frameNow(); if (n !== null) seekTo(n - 10 * FPS); });
-  const bFwd = mk("__mt_fwd", "تقديم 10 ثوانٍ", arrow(1), () => { const n = frameNow(); if (n !== null) seekTo(n + 10 * FPS); });
+  /* (user 2026-11-20: «تقديم وتأخير ١٠ ثوانٍ… لا يعمل أثناء التشغيل») while playing, the frame counter is not refreshed and Studio's player ignores a
+     seek: pause, read the frame, seek, then play again */
+  const skip = (sec: number) => {
+    const pauseB = document.querySelector<HTMLElement>('button[aria-label="Pause"]'), wasPlaying = !!pauseB;
+    if (wasPlaying) pauseB!.click();
+    window.setTimeout(() => {
+      const n = frameNow(); if (n !== null) seekTo(n + sec * FPS);
+      if (wasPlaying) window.setTimeout(() => { document.querySelector<HTMLElement>('button[aria-label="Play"]')?.click(); }, 120);
+    }, wasPlaying ? 120 : 0);
+  };
+  const bBack = mk("__mt_back", "رجوع 10 ثوانٍ", arrow(-1), () => skip(-10));
+  const bFwd = mk("__mt_fwd", "تقديم 10 ثوانٍ", arrow(1), () => skip(10));
   const bSpeed = mk("__mt_speed", "سرعة التشغيل", "", cycleRate);
   bSpeed.style.width = "42px"; bSpeed.style.height = "28px"; bSpeed.style.borderRadius = "14px";
   bSpeed.style.border = "1px solid rgba(255,255,255,.35)"; bSpeed.style.background = "rgba(22,54,92,.96)";
@@ -340,7 +350,19 @@ const installMobile = () => {
       // ---- buttons beside Play (only when Studio's own navigation buttons are not shown)
       const play = document.querySelector<HTMLElement>('button[aria-label="Play"], button[aria-label="Pause"]');
       const nat = document.querySelector<HTMLElement>('button[aria-label="Go to beginning"]');
-      if (!play || !window.matchMedia(MQ).matches || (nat && nat.getBoundingClientRect().width > 0)) { hideAll(); return; }
+      /* (user 2026-11-20: «غير موجود على الكمبيوتر») on a wide screen Studio shows its own navigation buttons: the ±10 s pair sits just outside them,
+         in their colour; start and speed stay the phone's only */
+      const natEnd = document.querySelector<HTMLElement>('button[aria-label="Go to end"]');
+      if (play && nat && natEnd && nat.getBoundingClientRect().width > 0) {
+        const a = nat.getBoundingClientRect(), z = natEnd.getBoundingClientRect(), col = getComputedStyle(nat).color, tp = Math.round(a.top + (a.height - BW) / 2);
+        for (const b of [bStart, bSpeed]) if (b.style.display !== "none") b.style.display = "none";
+        for (const b of [bBack, bFwd]) b.style.color = col;
+        show(bBack, Math.round(a.left - BW - 6), tp);
+        show(bFwd, Math.round(z.right + 6), tp);
+        return;
+      }
+      for (const b of [bBack, bFwd]) if (b.style.color !== "rgb(255, 255, 255)") b.style.color = "#fff";
+      if (!play || !window.matchMedia(MQ).matches) { hideAll(); return; }
       const pr = play.getBoundingClientRect();
       if (pr.width === 0) { hideAll(); return; }
       const pc = pr.left + pr.width / 2, top = Math.round(pr.top + (pr.height - BW) / 2);

@@ -21,7 +21,7 @@ import { FONT_TITLE, FONT_TEXT } from "./localFonts";
 import { BAR_WARM, WarmBase, Only, PopCard, Word, PhoneWin, SheikhLayers, PaperScene, PaperMap, FamilyTree, TreeFx, Parchment, miniEase, FullImage, Marker, RV, LANDSCAPE, clamp } from "./PortraitKit";
 import { KhBg } from "./KhKit";
 import type { TreeNode, TreeLink, MapPt, MapLeg } from "./PortraitKit";
-import { SceneFx, type SceneFxItem } from "./SceneFx";
+import { SceneFx, SceneFxSound, type SceneFxItem } from "./SceneFx";
 import { CoverKit, COVER_PALETTES, PaperCoverKit, PAPER_COVER_END } from "./CoverKit";
 import type { CoverProps } from "./CoverKit";
 import { ThumbProOpen, THUMBPRO_END, THUMBPRO_TEAR_END } from "./ThumbPro";
@@ -112,7 +112,7 @@ export type SpecItem = Common & (
   /** a newspaper clipping of a real news screenshot (PaperKit NewsClip): the headline image, the outlet and date under it */
   | { t: "news"; src: string; source: string; headline?: string; at: number; until: number; x: number; y: number; w: number; h: number }
   /** the stronger family tree, NO frame (user 2026-10-29): drawn on the decorated base; put a `behind` window with his matte on the same span so he stands in front of it (landscape: `dx` moves him right) */
-  /** a scene effect behind him (src/SceneFx.tsx; user 2026-11-20): the room cracks and falls / darkens under a shaft of light / iron bars drop — over his video, under his cut-out (a `behind` window on the same span) */
+  /** a scene effect behind him (src/SceneFx.tsx; user 2026-11-20): the room cracks and falls / darkens under a shaft of light / iron bars drop / rings spread / walls close in (squeeze) / water rises (water), each with its own sound (`sound: false`, `soundVol`) — over his video, under his cut-out (a `behind` window on the same span) */
   | SceneFxItem
   | { t: "treefx"; skin?: "parchment"; from: number; to: number; x: number; y: number; w: number; h: number; title: string; titleAt?: number; nodes: TreeNode[]; links: TreeLink[]; nodeW?: number; nodeH?: number; font?: number; titleSize?: number; land?: { x: number; y: number; w: number; h: number; titleSize?: number; nodeW?: number; nodeH?: number; font?: number } }
   /** the photo of a person he names, in a torn white border with tape (PaperKit TornPhoto; PREFERENCES «متى يُستعمل كل عنصر»: mandatory for every named person) */
@@ -894,6 +894,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutA
     <AbsoluteFill style={{ background: hyBg(BRAND.base) }}>
       {spec.cut && !noCutAudio ? <Audio src={staticFile(spec.cut)} volume={0.8} muted={muted} /> : null}
       {(spec.sfx ?? []).filter((x) => !x.only || x.only === o).map((x, i) => <Sequence key={"sfx" + i} from={Math.max(0, Math.round(x.at * 30))} durationInFrames={x.dur ? Math.round(x.dur * 30) : 45}><Audio src={staticFile(x.src)} volume={x.vol} muted={muted} /></Sequence>)}
+      {o === "land" ? spec.items.map((it, i) => it.t === "scenefx" ? <SceneFxSound key={"sfs" + i} it={it} muted={muted} /> : null) : null}   {/* a scene effect's own sound, beside the picture's condition below (src/SceneFx.tsx); outside <UnderHim>, collected like spec.sfx */}
       {o === "port" || !spec.cut ? (HY ? <HybridBg><WarmBase /></HybridBg> : <WarmBase />) : null}
       {/* the base's stars drift with the frame (KhBg): the GPU renderer renders this background's parts apart and its compositor drifts the stars (2026-11-12) */}
       {wrapStage(<>

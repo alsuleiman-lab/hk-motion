@@ -24,6 +24,11 @@ import { projectOf } from "./cut_lazy.mjs";
    data/render_queue/state.json) and the progress of every render (tools/render_progress.mjs state()) answered here, shown by the «الطابور» sheet of the
    Studio (src/hkQueuePanel.ts). Adding a montage from the Studio = the user asking for its render (rules: no render without his permission). The worker
    is started registered (tools/proc.mjs: listed, a 12-hour limit) and only when none runs; it exits by itself when the queue is empty. */
+/* «راسلني» (user 2026-11-20: «اجعل لي زر أراسلك من هناك… صحح أو غير العنصر… من صفحة ريموشن»): a message written in the Studio, with the composition,
+   the frame, the time and the elements on screen, is appended to .tmp/hk_inbox.jsonl; tools/hk_inbox.mjs wakes the agent's session (a background
+   wait that ends when a new message lands) and writes the reply back into the same line, shown under the message in the Studio. */
+const INBOX = ".tmp/hk_inbox.jsonl";
+const inbox = () => { try { return fs.readFileSync(INBOX, "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } };
 const QDEST = "C:/Users/mshms/Videos/جاهز", QSTATE = "data/render_queue/state.json", QLOCK = "data/render_queue/worker.pid";
 const pidAlive = (n) => { try { process.kill(Number(n), 0); return true; } catch (e) { return e.code === "EPERM"; } };
 const workerAlive = () => { try { const n = Number(fs.readFileSync(QLOCK, "utf8")); return n > 0 && pidAlive(n) ? n : 0; } catch { return 0; } };
@@ -169,6 +174,7 @@ http.createServer((req, res) => {
   const url = (req.url ?? "").split("?")[0];
   if (req.method === "GET" && url === "/api/alive") { lastSeen = Date.now(); return send(res, 200, { ok: true, idleMin: IDLE_MIN }); }
   if (req.method === "GET" && url === "/api/queue") { try { return send(res, 200, queueState()); } catch (e) { return send(res, 500, { error: String(e.message) }); } }
+  if (req.method === "GET" && url === "/api/msg") return send(res, 200, { messages: inbox().slice(-30) });
   if (req.method === "GET" && url === "/api/ping") return send(res, 200, { ok: true, name: "HK-Motion", busy: job?.state === "running" });
   if (req.method === "GET" && url === "/api/job") return send(res, 200, job ? { ...job, seconds: Math.round(((job.endedAt ?? Date.now()) - job.startedAt) / 1000), log: job.log.slice(-1200) } : { state: "idle" });
   if (req.method !== "POST") return send(res, 404, { error: "not found" });
@@ -179,6 +185,12 @@ http.createServer((req, res) => {
       if (url.startsWith("/api/gallery/")) return send(res, 200, gallery(url, body));
       if (url.startsWith("/api/grade/")) return send(res, 200, grade(url, body));
       if (url.startsWith("/api/queue/")) return send(res, 200, queue(url, body));
+      if (url === "/api/msg") {
+        const text = String(body.text ?? "").trim().slice(0, 4000); if (!text) throw new Error("اكتب الرسالة");
+        const m = { id: Date.now().toString(36), at: new Date().toISOString(), comp: String(body.comp ?? ""), frame: Number(body.frame ?? 0), time: String(body.time ?? ""), elements: String(body.elements ?? "").slice(0, 300), text, reply: null };
+        fs.mkdirSync(".tmp", { recursive: true }); fs.appendFileSync(INBOX, JSON.stringify(m) + "\n");
+        return send(res, 200, { ok: true, message: m, messages: inbox().slice(-30) });
+      }
       const { p, fa, fb } = parse(body), A = (fa / 30).toFixed(4), B = (fb / 30).toFixed(4), secs = ((fb - fa) / 30).toFixed(1);
       if (url === "/api/preview") {
         const inside = words(p).filter((w) => w.s >= fa / 30 - 0.03 && w.e <= fb / 30 + 0.03).map((w) => w.w);

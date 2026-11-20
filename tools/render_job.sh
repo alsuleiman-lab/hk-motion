@@ -13,10 +13,12 @@ plan=$(node -e '
 const fs=require("fs"),[p,o,title,explicit,comp]=process.argv.slice(1),W=(m)=>process.stderr.write(m+"\n");
 let s={};try{s=JSON.parse(fs.readFileSync(`data/specs/${p}.json`,"utf8"))}catch{}
 const cartoon=s.kind==="cartoon"||/^(Stick|Dodo)-/.test(comp||"");
-const b=s.bumper&&typeof s.bumper==="object"&&["start","end","none"].includes(s.bumper.position)?s.bumper:null;
+const b0=s.bumper&&typeof s.bumper==="object"?s.bumper:null;
+const b=b0&&["start","end","none"].includes(b0.position)?b0:b0&&b0.end?{...b0,position:"end"}:b0&&typeof b0.at==="number"?{...b0,position:"start"}:null;   /* the Studio and bumper_at --write store {id, at} or {id, at, end:true} */
 let pos,at="",bid="";
 if(b){pos=b.position;at=b.at??"";bid=b.id??"";if(explicit&&explicit!==pos)W(`bumper: spec.bumper.position=${pos} (the montage) wins over the argument «${explicit}»`);}
-else{W("no spec.bumper — legacy default");pos=["paper","ad","explainer","cartoon"].includes(s.kind)||cartoon?"none":explicit||(o==="R"&&s.kind==="reel"?"end":"start");}
+else if(Object.keys(s).length&&!(["paper","ad","explainer","cartoon"].includes(s.kind)||cartoon)){W(`✘ the montage ${p} has no bumper: write it in the montage (node tools/bumper_at.mjs ${p} --write) and check it in the Studio — the render queue never adds one (user 2026-11-20)`);pos="missing";}
+else{W("no spec.bumper — legacy default (no montage spec)");pos=["paper","ad","explainer","cartoon"].includes(s.kind)||cartoon?"none":explicit||(o==="R"&&s.kind==="reel"?"end":"start");}
 const et=s.exportTitle&&typeof s.exportTitle==="object"?(o==="L"?s.exportTitle.L??s.exportTitle.land:s.exportTitle.R??s.exportTitle.port):s.exportTitle;
 const strip=(t)=>String(t??"").replace(/[:?؟«»"]/g,"").replace(/\s*#محمد_بن_شمس_الدين\s*-?\s*$/u,"").replace(/\s*-\s*$/,"").trim();
 let name;
@@ -25,6 +27,7 @@ else if(cartoon)name=strip(title)+(o==="L"?"-":"")+".mp4";
 else name=strip(title)+(o==="R"?" #محمد_بن_شمس_الدين":" #محمد_بن_شمس_الدين-")+".mp4";
 process.stdout.write([pos,at,bid,name].join("\x1f"));' "$p" "$o" "$title" "$5" "$id")
 IFS=$'\x1f' read -r bpos bat bid name <<<"$plan"
+if [ "$bpos" = missing ]; then echo "$p $o: not rendered — the montage has no bumper (node tools/bumper_at.mjs $p --write)"; exit 1; fi
 if [ -n "$RENDER_PLAN_ONLY" ]; then echo "PLAN $p $o: bumper=$bpos at=${bat:-auto} id=${bid:-auto} -> $o/$name"; exit 0; fi
 # the opening bumper goes right before his first «بسم الله / السلام عليكم» (with «طيب»), not at second 0 when the video opens with a clip or a hook (2026-11-12)
 if [ "$bpos" = start ]; then [ -n "$bat" ] || bat=$(node tools/bumper_at.mjs $p); [ -n "$bid" ] || bid=$(node tools/bumper_at.mjs $p --id); fi
@@ -66,7 +69,8 @@ if true; then
     if [ -n "$hasA" ]; then ffmpeg -y -v error -i "$tmpv" -c copy -movflags +faststart "$out" >> .tmp/b2_render_$p.log 2>&1 && rm -f "$tmpv"
     else ffmpeg -y -v error -i "$tmpv" -i public/${p}_audio.wav -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 192k -movflags +faststart "$out" >> .tmp/b2_render_$p.log 2>&1 && rm -f "$tmpv"; [ "$bpos" = none ] || node tools/prepend_bumper.mjs "$out" --name $p ${BUMPER_AT:+--at $BUMPER_AT} ${BUMPER_ID:+--id $BUMPER_ID} >> .tmp/b2_render_$p.log 2>&1; fi
     # (user 2026-11-18, rules review) no bumper → the output itself is the original (a stale bumper_orig copy from an earlier render must not be judged)
-    if [ "$bpos" = none ]; then chk="$out"; else chk=".tmp/bumper_orig/hyb_${p}_$o.mp4"; [ -f "$chk" ] || chk=".tmp/bumper_orig/$(basename "$out")"; [ -f "$chk" ] || chk="$out"; fi
+    # (user 2026-11-20) the bumper-free copy lives in the project's own folder .tmp/<root>/bumper_orig/ (the shared .tmp/bumper_orig is only read for old renders)
+    if [ "$bpos" = none ]; then chk="$out"; else kd=".tmp/$(node tools/project.mjs root $p)/bumper_orig"; chk="$kd/$(basename "$out")"; [ -f "$chk" ] || chk="$kd/hyb_${p}_$o.mp4"; [ -f "$chk" ] || chk=".tmp/bumper_orig/hyb_${p}_$o.mp4"; [ -f "$chk" ] || chk=".tmp/bumper_orig/$(basename "$out")"; [ -f "$chk" ] || chk="$out"; fi
     node tools/judder_check.mjs "$chk" --src "$cutsrc" --offset 0 --name $p ${avoid:+--avoid "$avoid"} $crop --windows 10 >> .tmp/b2_probe_$p.log 2>&1 || node tools/judder_check.mjs "$chk" --src "$cutsrc" --offset 0 --name $p ${avoid:+--avoid "$avoid"} $crop --windows 14 >> .tmp/b2_probe_$p.log 2>&1 || node tools/judder_check.mjs "$chk" --src "$cutsrc" --offset 0 --name $p --at $freeat --len 90 $crop >> .tmp/b2_probe_$p.log 2>&1 || { echo "$p JUDDER FAIL"; tail -3 .tmp/b2_probe_$p.log; echo "judder gate failed" >> .tmp/b2_render_$p.log; false; }
   else echo "HYBRID FAILED — لا رندر بالقديم (أمر 2026-11-09)" >> .tmp/b2_render_$p.log; false
   fi

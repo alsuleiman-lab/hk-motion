@@ -49,9 +49,16 @@ export const pathsOf = (root) => {
   for (const i of ids) add("work", path.join(".tmp", i));
   for (const f of ls("public")) for (const i of ids) if (f === i || f.startsWith(`${i}_`)) add("media", path.join("public", f));
   for (const f of ls(path.join(".tmp", "gates"))) for (const i of ids) if (f.startsWith(`${i}.`)) add("gates", path.join(".tmp", "gates", f));
+  /* the render's gates are named after its output: hyb_<comp>_L.bumper.json, hyb_<comp>-reel_R.… — matched by the project of that name */
+  for (const f of ls(path.join(".tmp", "gates"))) { const n = f.split(".")[0].replace(/^hyb_/, "").replace(/_[LR]$/i, ""); if (n !== f.split(".")[0] && rootOf(n) === root) add("gates", path.join(".tmp", "gates", f)); }
   for (const d of [".tmp/stills_bundle", ".tmp/gpu_render/work"]) for (const f of ls(d)) if (isComp(f, ids) || isComp(f.replace(/^\./, "").replace(/_public_keep$/, ""), ids)) add("legacy", path.join(d, f));
   for (const f of ls(".tmp/render_logs")) if (isComp(f.replace(/^(gpu_render|hybrid_any|hybrid)_/, ""), ids)) add("legacy", path.join(".tmp/render_logs", f));
   for (const f of ls(".tmp/facetrack")) if (ids.some((i) => f.startsWith(`${i}_`))) add("legacy", path.join(".tmp/facetrack", f));
+  /* (user 2026-11-20: «كل حلقة لازم تكون بياناتها المؤقتة في مكان واحد») bumper-free copies written before they moved to .tmp/<root>/bumper_orig: by name,
+     or named after the episode title — found through the bumper gate of the project, which records the copy («orig») or the output size */
+  const bo = ".tmp/bumper_orig", gateOrig = new Set(), gateSize = new Set();
+  for (const g of out.gates) if (g.endsWith(".bumper.json")) { try { const j = JSON.parse(fs.readFileSync(g, "utf8")); if (j.orig) gateOrig.add(path.basename(j.orig)); if (j.originalSize) gateSize.add(j.originalSize); } catch { /* bad gate */ } }
+  for (const f of ls(bo)) { let s = -1; try { s = fs.statSync(path.join(bo, f)).size; } catch { /* gone */ } if (isComp(f.replace(/^hyb_/, ""), ids) || gateOrig.has(f) || gateSize.has(s)) add("legacy", path.join(bo, f)); }
   for (const f of ls(".tmp/hybrid_any/public_slim")) for (const i of ids) if (f === i || f.startsWith(`${i}_`)) add("legacy", path.join(".tmp/hybrid_any/public_slim", f));
   for (const f of ls(".tmp")) if (/\.(out|log)$/.test(f) && ids.some((i) => f.toLowerCase().includes(i.toLowerCase()))) add("legacy", path.join(".tmp", f));
   const rw = (d) => { for (const f of ls(d)) { const p = path.join(d, f); if (isComp(f, ids)) add("legacy", p); else if (fs.statSync(p).isDirectory()) rw(p); } };
@@ -69,7 +76,7 @@ const busy = (root, ids) => {
 if (cmd === "root") { console.log(rootOf(arg)); process.exit(0); }
 if (cmd === "ls" && !arg) {
   const roots = new Map();
-  for (const d of ls(".tmp")) { const full = path.join(".tmp", d); if (!fs.statSync(full).isDirectory() || /^(cache|gates|locks|models|look|hybrid_any|gpu_render|stills_bundle|render_logs|facetrack|node-compile-cache|stills_empty_public)$/.test(d) || /^run_/.test(d)) continue; roots.set(rootOf(d), 0); }
+  for (const d of ls(".tmp")) { const full = path.join(".tmp", d); if (!fs.statSync(full).isDirectory() || /^(cache|gates|locks|models|look|hybrid_any|gpu_render|stills_bundle|render_logs|facetrack|node-compile-cache|stills_empty_public|bumper_orig|from_next)$/.test(d) || /^run_/.test(d)) continue; roots.set(rootOf(d), 0); }
   for (const f of ls("public")) { const m = /^(.+?)_(src\.mp4|cut_s\.mp4|cut\.mp4)$/.exec(f); if (m) roots.set(rootOf(m[1]), 0); }
   const rows = [...roots.keys()].map((r) => { const p = pathsOf(r); return [r, [...p.work, ...p.media, ...p.gates, ...p.legacy].reduce((s, x) => s + sizeOf(x), 0)]; }).sort((a, b) => b[1] - a[1]);
   for (const [r, s] of rows) console.log(`${mb(s).padStart(9)}  ${r}`);

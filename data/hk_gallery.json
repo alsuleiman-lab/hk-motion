@@ -1,8 +1,8 @@
 {
- "version": 1,
- "builtAt": "2026-11-19T13:18:36.621Z",
- "hash": "2b476b836445",
- "count": 72,
+ "version": 2,
+ "builtAt": "2026-11-20T00:24:31.881Z",
+ "hash": "234c9065de36",
+ "count": 73,
  "sizePresets": {
   "presets": [
    {
@@ -931,7 +931,7 @@
     {
      "name": "moves",
      "required": false,
-     "type": "(import(\"./PortraitKit\").MapMove & { landCenter?: [number, number]; landSpan?: number })[]"
+     "type": "(import(\"./PortraitKit\").MapMove & { landCenter?: [number, number]; landSpan?: number; to?: number; highlightAt?: Record<string, number> })[]"
     },
     {
      "name": "flag",
@@ -1825,8 +1825,8 @@
      "type": "number"
     }
    ],
-   "status": "",
-   "note": "",
+   "status": "change",
+   "note": "اشارة الاقتباس بعيدة، ولا يوجد تباين لوني جيد في السطر الثاني",
    "request": "",
    "place": {
     "land": {
@@ -1840,7 +1840,7 @@
      "scale": 1
     }
    },
-   "uses": 7,
+   "uses": 29,
    "cost": null
   },
   "BigQuestion": {
@@ -1871,8 +1871,8 @@
      "type": "number"
     }
    ],
-   "status": "",
-   "note": "",
+   "status": "change",
+   "note": "استخدم الظل الأسود المتدرج دون انقسام شاشة",
    "request": "",
    "place": {
     "land": {
@@ -1886,7 +1886,7 @@
      "scale": 1
     }
    },
-   "uses": 4,
+   "uses": 12,
    "cost": null
   },
   "ChatThread": {
@@ -1968,7 +1968,7 @@
      "scale": 1
     }
    },
-   "uses": 6,
+   "uses": 30,
    "cost": null
   },
   "SearchBar": {
@@ -2044,7 +2044,7 @@
      "scale": 1
     }
    },
-   "uses": 5,
+   "uses": 8,
    "cost": null
   },
   "RingStat": {
@@ -2100,7 +2100,7 @@
      "scale": 1
     }
    },
-   "uses": 2,
+   "uses": 4,
    "cost": null
   },
   "LineGrowth": {
@@ -2166,7 +2166,7 @@
      "scale": 1
     }
    },
-   "uses": 0,
+   "uses": 1,
    "cost": null
   },
   "DecisionFlow": {
@@ -2238,7 +2238,7 @@
     }
    ],
    "status": "",
-   "note": "",
+   "note": "استعمل الظل المتدرج",
    "request": "",
    "place": {
     "land": {
@@ -2252,7 +2252,7 @@
      "scale": 1
     }
    },
-   "uses": 1,
+   "uses": 3,
    "cost": null
   },
   "MindMap": {
@@ -2298,7 +2298,7 @@
      "scale": 1
     }
    },
-   "uses": 3,
+   "uses": 9,
    "cost": null
   },
   "ViciousCycle": {
@@ -2344,7 +2344,7 @@
      "scale": 1
     }
    },
-   "uses": 0,
+   "uses": 1,
    "cost": null
   },
   "Footnote": {
@@ -2400,8 +2400,8 @@
      "type": "string"
     }
    ],
-   "status": "",
-   "note": "",
+   "status": "change",
+   "note": "انتبه للتباين اللوني مع الخلفية واتجاه الكتابة يمين في الصندوق ",
    "request": "",
    "place": {
     "land": {
@@ -2486,7 +2486,7 @@
      "scale": 1
     }
    },
-   "uses": 0,
+   "uses": 1,
    "cost": null
   },
   "BrokenIsnad": {
@@ -2542,7 +2542,7 @@
      "scale": 1
     }
    },
-   "uses": 0,
+   "uses": 1,
    "cost": null
   },
   "GradeLadder": {
@@ -2579,7 +2579,7 @@
     }
    ],
    "status": "",
-   "note": "",
+   "note": "استخدم الظل الأسود المتدرج بدل الخلفية، واجعل المثلث على اليمين وقرب الكتابة من اليسار ",
    "request": "",
    "place": {
     "land": {
@@ -2593,7 +2593,7 @@
      "scale": 1
     }
    },
-   "uses": 0,
+   "uses": 1,
    "cost": null
   },
   "YearsGap": {
@@ -2715,7 +2715,7 @@
      "scale": 1
     }
    },
-   "uses": 0,
+   "uses": 1,
    "cost": null
   },
   "Crossroads": {
@@ -2734,6 +2734,11 @@
      "name": "until",
      "required": true,
      "type": "number"
+    },
+    {
+     "name": "right",
+     "required": true,
+     "type": "string"
     },
     {
      "name": "left",
@@ -2776,7 +2781,7 @@
      "scale": 1
     }
    },
-   "uses": 3,
+   "uses": 6,
    "cost": null
   },
   "NeverMeet": {
@@ -2842,7 +2847,7 @@
      "scale": 1
     }
    },
-   "uses": 4,
+   "uses": 5,
    "cost": null
   },
   "RisingTimeline": {
@@ -3010,7 +3015,7 @@
      "scale": 1
     }
    },
-   "uses": 3,
+   "uses": 5,
    "cost": null
   },
   "ThoughtBubble": {
@@ -3137,7 +3142,7 @@
      "scale": 1
     }
    },
-   "uses": 0,
+   "uses": 4,
    "cost": null
   },
   "CopiedMessages": {
@@ -3259,7 +3264,7 @@
      "scale": 1
     }
    },
-   "uses": 1,
+   "uses": 2,
    "cost": null
   },
   "CommentsFlood": {
@@ -3361,7 +3366,7 @@
      "scale": 1
     }
    },
-   "uses": 0,
+   "uses": 2,
    "cost": null
   },
   "FillGlasses": {
@@ -3402,7 +3407,7 @@
      "scale": 1
     }
    },
-   "uses": 0,
+   "uses": 2,
    "cost": null
   },
   "PrisonBars": {
@@ -3454,6 +3459,67 @@
     }
    },
    "uses": 0,
+   "cost": null
+  },
+  "ChainLinks": {
+   "code": "ChainLinks",
+   "ar": "العرى المتسلسلة",
+   "group": "التدفق والربط",
+   "orient": "both",
+   "when": "(أمر المستخدم 2026-11-18، «فرسان الفجر») سلسلة كبيرة مثبتة بجدار تتكسر حلقاتها واحدة واحدة وتتطاير هباءً، وناس صغار متعلقون بها ينتقلون إلى التي تليها، وآخرها «الصلاة» فإذا انكسرت سقطوا: لكل ما يُنقض تباعاً ويتشبث الناس بما بقي («تنقض عرى الإسلام عروة عروة»).",
+   "fields": [
+    {
+     "name": "at",
+     "required": true,
+     "type": "number"
+    },
+    {
+     "name": "until",
+     "required": true,
+     "type": "number"
+    },
+    {
+     "name": "n",
+     "required": false,
+     "type": "number"
+    },
+    {
+     "name": "breaks",
+     "required": true,
+     "type": "{ i: number; at: number }[]"
+    },
+    {
+     "name": "labels",
+     "required": false,
+     "type": "{ i: number; text: string; at: number; gold?: boolean }[]"
+    },
+    {
+     "name": "people",
+     "required": false,
+     "type": "number"
+    },
+    {
+     "name": "hold",
+     "required": false,
+     "type": "number"
+    }
+   ],
+   "status": "",
+   "note": "",
+   "request": "",
+   "place": {
+    "land": {
+     "dx": 0,
+     "dy": 0,
+     "scale": 1
+    },
+    "port": {
+     "dx": 0,
+     "dy": 0,
+     "scale": 1
+    }
+   },
+   "uses": 1,
    "cost": null
   },
   "BlurRise": {
@@ -3680,7 +3746,7 @@
      "scale": 1
     }
    },
-   "uses": 0,
+   "uses": 5,
    "cost": null
   },
   "hclip": {

@@ -140,7 +140,7 @@ const grade = (url, body) => {
 };
 
 /* NOTHING LEFT RUNNING UNUSED (user 2026-11-19: «مطلوب منك أن توقف أي خدمة غير مستعملة حتى ما تستهلك موارد الجهاز»): every open Studio page calls
-   /api/alive once a minute (src/studioTools.ts). No page and no job for HK_IDLE_MIN minutes (default 45) → the Studio this server came with (its pid is
+   /api/alive once a minute (src/studioTools.ts). No page and no job for HK_IDLE_MIN minutes (default 30, user 2026-11-20: «خليه نص ساعة») → the Studio this server came with (its pid is
    the 2nd argument, passed by remotion.config.ts) is stopped with everything under it, then this server exits. */
 const IDLE_MIN = Number(process.env.HK_IDLE_MIN || 30), STUDIO_PID = Number(process.argv[3] || 0);
 let lastSeen = Date.now();

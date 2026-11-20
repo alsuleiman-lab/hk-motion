@@ -24,7 +24,7 @@ for o in ${GR_ONLY:-L R}; do
   echo "$o: exit $? in $(( $(date +%s) - t0 ))s  $(grep -a 'DONE [0-9]* frames' "$out/$o.log")"
   rep=$(ls -t render_work/gpu_render_${comp}_*.json | head -1)
   node -e "const j=require('./$rep');console.log('   ',JSON.stringify({frames:j.frames,totalMin:j.totalMinutes,fps:j.fpsGraphicsPlusComposite,fpsE2E:j.fpsEndToEnd,cpu:j.cpuDuringRender&&j.cpuDuringRender.mean,sizeMB:j.sizeMB,video:j.probe[0],audio:j.probe[1]&&j.probe[1].duration}))"
-  chk=.tmp/bumper_orig/$comp.mp4; [ -f "$chk" ] || chk="$out/$comp.mp4"
+  chk=".tmp/$(node tools/project.mjs root $p)/bumper_orig/$comp.mp4"; [ -f "$chk" ] || chk=.tmp/bumper_orig/$comp.mp4; [ -f "$chk" ] || chk="$out/$comp.mp4"
   if [ $o = R ]; then sx=$((cx - 163)); crop="--crop 250,300,580,700 --src-crop $sx,169,326,394"; else crop="--crop 700,150,520,520"; fi
   # judder is measured where his face is NOT moved aside by a half-screen element (tools/free_windows.mjs, user 2026-11-15); every window must pass at the same 96 % threshold.
   # No free window (a video of half-screen elements from start to end) → the old evenly spaced windows.

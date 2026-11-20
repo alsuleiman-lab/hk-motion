@@ -61,12 +61,13 @@ const fc = (AT > 0 && !END ? [
 const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", bumper, "-i", file, "-filter_complex", fc, "-map", "[v]", "-map", "[a]",
   "-c:v", "h264_nvenc", "-preset", "p7", "-rc", "vbr", "-cq", "15", "-b:v", "0", "-maxrate", "26M", "-bufsize", "52M", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", tmp], { stdio: "inherit" });
 if (r.status !== 0 || !fs.existsSync(tmp)) { try { fs.rmSync(tmp, { force: true }); } catch { /* ignore */ } console.error("[bumper] فشل الدمج: الملف الأصلي كما هو"); process.exit(1); }
-const keep = path.join(root, ".tmp", "bumper_orig"); fs.mkdirSync(keep, { recursive: true });
+/* (user 2026-11-20: «كل حلقة لازم تكون بياناتها المؤقتة في مكان واحد») the bumper-free original goes to the project's folder .tmp/<root>/bumper_orig/ */
+const keep = (await import("./lib/projdir.mjs")).projTmp(name, "bumper_orig");
 /** نقل ملف عبر قرصين مختلفين (C ↔ S): rename يفشل بـEXDEV فنُسخ ثم نحذف الأصل */
 const moveFile = (from, to) => { try { fs.renameSync(from, to); } catch (e) { if (e.code !== "EXDEV") throw e; fs.copyFileSync(from, to); fs.rmSync(from, { force: true }); } };
 moveFile(file, path.join(keep, path.basename(file)));
 moveFile(tmp, file);
 data.last = pick.id; fs.writeFileSync(mf, JSON.stringify(data, null, 2) + "\n");
 fs.mkdirSync(path.dirname(gate), { recursive: true });
-fs.writeFileSync(gate, JSON.stringify({ id: pick.id, title: pick.title, seconds: SEC, originalSize: size, originalId, size: fs.statSync(file).size, at: END ? +mainDur.toFixed(3) : AT, position: END ? "end" : "start", date: new Date().toISOString() }));
+fs.writeFileSync(gate, JSON.stringify({ id: pick.id, title: pick.title, seconds: SEC, originalSize: size, originalId, orig: path.relative(root, path.join(keep, path.basename(file))).replace(/\\/g, "/"), size: fs.statSync(file).size, at: END ? +mainDur.toFixed(3) : AT, position: END ? "end" : "start", date: new Date().toISOString() }));
 console.log(`[bumper] أُضيف فاصل «${pick.title}» (${SEC}ث) ${END ? "في آخر" : AT > 0 ? `عند ${AT}ث من` : "في أول"} ${path.basename(file)}`);

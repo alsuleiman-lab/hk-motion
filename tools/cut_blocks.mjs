@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 const [p, list, ...rest] = process.argv.slice(2);
+try { (await import("./cut_lazy.mjs")).notePixelEdits(p); } catch { /* untracked project */ }   // (2026-11-20) a blur written into the cut video is remembered before this tool rewrites it
 if (!p || !list) { console.error("usage: node tools/cut_blocks.mjs <p> A-B,C-D"); process.exit(2); }
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const spans = list.split(",").map((x) => x.split("-").map((v) => Math.round(Number(v) * 30))).sort((a, b) => a[0] - b[0]);

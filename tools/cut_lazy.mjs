@@ -29,7 +29,17 @@ export const info = (p) => {
 };
 const audioStamp = (f) => { try { const s = fs.statSync(f); return `${s.size}:${Math.floor(s.mtimeMs)}`; } catch { return "none"; } };
 export const stamp = (p) => { const i = info(p); return { map: fs.existsSync(i.mapF) ? sha(i.mapF) : "none", audio: audioStamp(i.audio) }; };
-export const markFresh = (p) => { const i = info(p); fs.mkdirSync(i.T, { recursive: true }); fs.writeFileSync(i.stateF, JSON.stringify({ ...stamp(p), at: Date.now() })); };
+/* PIXEL EDITS ON THE CUT VIDEO (2026-11-20, readiness audit): the women's blur (tools/blur_region.py, blur_faces_video.py) is written INTO the heavy cut file, and
+   clip_people_gate checks that file — but the render reads the ORIGINAL through the cut list (edlSetup) and a list change rebuilds the heavy file from the
+   original: both dropped the blur silently while the gate passed. A heavy file written after its build (mtime past state.at) carries edits the list does not
+   have: it is marked {pixelEdits: true}, the render then reads the heavy file itself, and a rebuild from the original is REFUSED (HK_DROP_PIXEL_EDITS=1 when
+   the blur will be applied again right after). The flag goes only when the heavy file is rebuilt from the original. */
+const heavyM = (i) => { try { return fs.statSync(i.heavy).mtimeMs; } catch { return 0; } };
+export const pixelEdits = (p) => { const i = info(p), st = rd(i.stateF, null); if (!st || !i.heavy) return false; return !!st.pixelEdits || (st.at && heavyM(i) > st.at + 120e3); };
+/** before a pipeline tool rewrites the heavy file itself (eager cut_block(s)): a blur written since the last build is remembered as a flag, since the new write hides its mtime */
+export const notePixelEdits = (p) => { const i = info(p), st = rd(i.stateF, null); if (st && !st.pixelEdits && pixelEdits(p)) fs.writeFileSync(i.stateF, JSON.stringify({ ...st, pixelEdits: true })); return pixelEdits(p); };
+/** `edits`: the heavy file just written still carries edits of its own (a remux that copied the picture, an eager splice of a blurred file) */
+export const markFresh = (p, { edits = false } = {}) => { const i = info(p); fs.mkdirSync(i.T, { recursive: true }); fs.writeFileSync(i.stateF, JSON.stringify({ ...stamp(p), at: Date.now(), ...(edits ? { pixelEdits: true } : {}) })); };
 
 /** "fresh" | "audio" (only the sound differs) | "video" (the list differs or the file is gone) | "legacy" (never tracked) */
 export const status = (p) => {
@@ -56,7 +66,7 @@ export const initLazy = (p) => {
 };
 
 /** an EAGER edit rewrote the heavy cut file itself: the audio truth is taken again from it and the state says «fresh» */
-export const resetFromHeavy = (p) => { const i = info(p); fs.rmSync(i.audio, { force: true }); fs.rmSync(i.stateF, { force: true }); initLazy(p); markFresh(p); };
+export const resetFromHeavy = (p) => { const i = info(p), pe = !!rd(i.stateF, {})?.pixelEdits; fs.rmSync(i.audio, { force: true }); fs.rmSync(i.stateF, { force: true }); initLazy(p); markFresh(p, { edits: pe }); };   /* an eager edit splices the heavy file itself: its blur (flagged by notePixelEdits before the write) is still in it */
 
 export const channels = (f) => Number(spawnSync("ffprobe", ["-v", "error", "-select_streams", "a:0", "-show_entries", "stream=channels", "-of", "csv=p=0", f], { encoding: "utf8", windowsHide: true }).stdout.trim()) || 1;
 
@@ -65,8 +75,8 @@ const replaceFile = (part, target) => { try { fs.renameSync(part, target); } cat
 /** make the heavy cut file match the list and the audio. Returns what was done. */
 export const ensureCut = (p, { quiet = false } = {}) => {
   const i = info(p), st = status(p);
-  if (st === "fresh" || st === "legacy") return st;
-  const say = quiet ? () => {} : log;
+  if (st === "fresh" || st === "legacy") { if (st === "fresh") notePixelEdits(p); return st; }
+  const say = quiet ? () => {} : log, pe0 = notePixelEdits(p);
   const t0 = Date.now(), part = i.heavy.replace(/\.mp4$/i, ".part.mp4");
   if (st === "audio") {
     say(`the sound changed since the cut video was built → only the sound of ${path.basename(i.heavy)} is replaced (the picture is copied)`);
@@ -74,6 +84,8 @@ export const ensureCut = (p, { quiet = false } = {}) => {
     if (r.status !== 0) throw new Error("remux failed: " + (r.stderr || "").slice(-400));
     replaceFile(part, i.heavy);
   } else {
+    if (fs.existsSync(i.heavy) && pe0 && process.env.HK_DROP_PIXEL_EDITS !== "1")
+      throw new Error(`${path.basename(i.heavy)} carries edits made on the cut video itself (a women's blur?) that the cut list does not have: building it again from the original would DROP them. Re-apply them after the rebuild: HK_DROP_PIXEL_EDITS=1 node tools/cut_lazy.mjs ensure ${p}, then the blur again, then clip_people_gate.`);
     say(`the cut list changed since the cut video was built → ${path.basename(i.heavy)} is built again from the original in one pass (about 4 minutes for 18)`);
     const args = ["tools/cut_build_gpu.py", i.src, i.mapF, i.heavy, ...(fs.existsSync(i.audio) ? ["--audio-from", i.audio] : []), ...(process.env.HK_SMOOTH === "0" ? ["--no-smooth"] : [])];
     const r = spawnSync(PY, args, { cwd: root, encoding: "utf8", windowsHide: true, maxBuffer: 1 << 26 });
@@ -84,7 +96,7 @@ export const ensureCut = (p, { quiet = false } = {}) => {
   try { const c0 = R("public", `${p}_cut.mp4`); if (fs.existsSync(c0) && path.resolve(c0) !== path.resolve(i.heavy)) { const tl = c0 + ".swap.mp4"; fs.rmSync(tl, { force: true }); fs.linkSync(i.heavy, tl); fs.renameSync(tl, c0); } } catch { /* held open: left as it is */ }
   const want = Math.round((i.spec?.frames ?? 0)), got = Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", i.heavy], { encoding: "utf8", windowsHide: true }).stdout.trim()) * 30;
   if (want && Math.abs(got - want) > 2) console.error(`cut_lazy: ⚠ the cut video has ${got.toFixed(0)} frames but the spec says ${want}: the list and the spec disagree`);
-  markFresh(p); syncProxy(p);
+  markFresh(p, { edits: st === "audio" && pe0 }); syncProxy(p);   /* the remux copies the picture (its blur stays); a rebuild from the original has none */
   say(`${st === "audio" ? "sound replaced" : "built"} in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   return st;
 };
@@ -112,7 +124,8 @@ export const isStaleHeavy = (rel) => {
 export const edlSetup = (comp) => {
   const p = projectOf(comp); if (!p) return null;
   const i = info(p), st = status(p);
-  const ok = process.env.HK_EDL !== "0" && st !== "legacy" && fs.existsSync(i.src) && fs.existsSync(i.mapF) && fs.existsSync(i.audio);
+  const pe = st !== "legacy" && notePixelEdits(p); if (pe) console.log(`cut_lazy: ${p} — the cut video carries its own edits (blur): rendered from the cut video, not from the original`);
+  const ok = !pe && process.env.HK_EDL !== "0" && st !== "legacy" && fs.existsSync(i.src) && fs.existsSync(i.mapF) && fs.existsSync(i.audio);
   const codec = ok ? spawnSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name", "-of", "csv=p=0", i.src], { encoding: "utf8", windowsHide: true }).stdout.trim() : "";
   if (!ok || !["h264", "hevc", "av1"].includes(codec)) { ensureCut(p); return null; }
   const file = path.join(i.T, "edl_map.json");

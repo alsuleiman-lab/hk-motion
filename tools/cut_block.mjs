@@ -10,6 +10,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 const [p, a0, b0] = process.argv.slice(2);
+try { (await import("./cut_lazy.mjs")).notePixelEdits(p); } catch { /* untracked project */ }   // (2026-11-20) a blur written into the cut video is remembered before this tool rewrites it
 if (!p || !a0 || !b0) { console.error("usage: node tools/cut_block.mjs <p> <A> <B>"); process.exit(2); }
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const sec = (x) => (/^f\d+/.test(x) ? Number(x.slice(1)) / 30 : Number(x));

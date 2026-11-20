@@ -111,6 +111,14 @@ const StepHeader: React.FC<{ s: StepSpec; i: number }> = ({ s, i }) => {
     </>
   );
 };
+/** التقشير المعتمد (افتتاح القالب): صفحة كريمية تتقشّر قطعتين على خط ممزق */
+const Peel: React.FC<{ p: number; seed: number; cover?: number }> = ({ p, seed, cover = 0 }) => {
+  const cut = tornLine(W * 0.62, -20, W * 0.3, H + 20, seed);
+  return <div style={{ position: "absolute", inset: 0, transform: `translateX(${(1 - cover) * W * 1.1}px)`, filter: cover < 1 ? "drop-shadow(-20px 0 24px rgba(0,0,0,.3))" : undefined }}>
+    <div style={{ position: "absolute", inset: 0, transform: `translate(${-p * 1000}px, ${p * 300}px) rotate(${-p * 14}deg)`, clipPath: `polygon(${poly(cut)},-40px ${H + 40}px,-40px -40px)`, background: C.cream, filter: "drop-shadow(8px 0 10px rgba(0,0,0,.25))" }} />
+    <div style={{ position: "absolute", inset: 0, transform: `translate(${p * 900}px, ${p * 700}px) rotate(${p * 16}deg)`, clipPath: `polygon(${poly(cut)},${W + 40}px ${H + 40}px,${W + 40}px -40px)`, background: C.cream, filter: "drop-shadow(-8px 0 10px rgba(0,0,0,.25))" }} />
+  </div>;
+};
 /* ───────── الانتقال بين الخطوات: لكل حدّ نوع مختلف، والخطوة التالية تحتها جاهزة ─────────
    ١→٢ تمزّق الصفحة نصفين، ٢→٣ تنقلب الصفحة لأعلى كدفتر، ٣→٤ تُكرمش كرةً وتُرمى، ٤→الختام تندفع الكاميرا داخل الرقم. */
 const OUTK = ["tear", "flip", "crumple", "zoom"] as const;
@@ -127,9 +135,7 @@ const StepLayer: React.FC<{ s: StepSpec; i: number; hole?: number[]; children: R
   );
   if (o <= 0) return sheet();
   const kind = OUTK[i % 4];
-  if (kind === "tear") { const cut = tornLine(W * 0.7, -20, W * 0.25, H + 20, 21);
-    return <>{sheet(`polygon(${poly(cut)},-40px ${H + 40}px,-40px -40px)`, `translate(${-e * 1150}px, ${e * 260}px) rotate(${-e * 16}deg)`, "a")}
-      {sheet(`polygon(${poly(cut)},${W + 40}px ${H + 40}px,${W + 40}px -40px)`, `translate(${e * 1050}px, ${e * 520}px) rotate(${e * 14}deg)`, "b")}</>; }
+  if (kind === "tear") return null; /* تغطيها ورقة التقشير (Peel) ثم تتقشّر عن الخطوة التالية */
   if (kind === "flip") return <AbsoluteFill style={{ transform: `perspective(1900px) rotateX(${e * 105}deg)`, transformOrigin: "50% 0%", filter: `brightness(${1 - 0.45 * e}) drop-shadow(0 30px 30px rgba(0,0,0,.35))` }}>{sheet()}</AbsoluteFill>;
   if (kind === "crumple") { const sq = easeInOut(clamp01(o / 0.6)), fly = clamp01((o - 0.55) / 0.45);
     return <AbsoluteFill style={{ transform: `translate(${-fly * fly * 900}px, ${fly * 700}px) scale(${1 - 0.86 * sq}) rotate(${sq * 200 + fly * 120}deg)`, borderRadius: `${sq * 50}%`, overflow: "hidden", filter: `contrast(${1 + 0.5 * sq}) drop-shadow(0 20px 20px rgba(0,0,0,.35))` }}>{sheet()}</AbsoluteFill>; }
@@ -157,7 +163,7 @@ const VKF: number[][] = [
   [10.4, 1200, 900, 500, 889], [10.85, 290, 900, 500, 889], [12.62, 250, 860, 580, 1031], [12.8, 250, -1300, 580, 1031],
   [99, 250, -1300, 580, 1031],
 ];
-const SFX: Cue[] = [[S(0.3), "tear"], [S(2.6), "whoosh_big"], [S(3.5), "popdeep", 0.8], [S(4.6), "swish"], [S(7.6), "tear"], [S(8.05), "hit", 0.6], [S(10.2), "swish"], [S(10.45), "tap"], [S(12.8), "popdeep"], [S(13.25), "glitch", 0.4], [S(15.4), "whoosh_big"], [S(17.7), "sting"]];
+const SFX: Cue[] = [[S(0.3), "tear"], [S(2.6), "whoosh_big"], [S(3.5), "popdeep", 0.8], [S(4.6), "swish"], [S(7.4), "swipe", 0.6], [S(7.65), "tear"], [S(8.05), "hit", 0.6], [S(10.2), "swish"], [S(10.45), "tap"], [S(12.8), "popdeep"], [S(13.25), "glitch", 0.4], [S(15.4), "whoosh_big"], [S(17.7), "shimmer", 0.3]];
 
 export const StepsTemplate: React.FC<{ script?: StepsScript; src?: string }> = ({ script = SCRIPT, src = "dubkmr/src.mp4" }) => {
   useFonts(["rakkas", "ruqaa"]);
@@ -182,10 +188,7 @@ export const StepsTemplate: React.FC<{ script?: StepsScript; src?: string }> = (
         <Cutout src="cine/pen_notebook.png" x={-40} y={120} w={300} rot={-12} at={1.2} from="l" />
       </>}
       {/* الصفحة الممزقة فوق كل شيء ثم تتقشّر قطعتين */}
-      {peel < 1 && <>
-        <div style={{ position: "absolute", inset: 0, transform: `translate(${-peel * 1000}px, ${peel * 300}px) rotate(${-peel * 14}deg)`, clipPath: `polygon(${poly(tornLine(W * 0.62, -20, W * 0.3, H + 20, 11))},-40px ${H + 40}px,-40px -40px)`, background: C.cream, filter: "drop-shadow(8px 0 10px rgba(0,0,0,.25))" }} />
-        <div style={{ position: "absolute", inset: 0, transform: `translate(${peel * 900}px, ${peel * 700}px) rotate(${peel * 16}deg)`, clipPath: `polygon(${poly(tornLine(W * 0.62, -20, W * 0.3, H + 20, 11))},${W + 40}px ${H + 40}px,${W + 40}px -40px)`, background: C.cream, filter: "drop-shadow(-8px 0 10px rgba(0,0,0,.25))" }} />
-      </>}
+      {peel < 1 && <Peel p={peel} seed={11} cover={1} />}
 
       {/* ٢) العنوان على صدر الشيخ (الشاشة كاملة) */}
       {t >= 3.1 && t < 4.7 && (() => { const k = back((t - 3.3) / 0.35, 1.6); return <div style={{ position: "absolute", left: W / 2 - 300, top: 1150, width: 600, height: 600, borderRadius: "50%", background: C.maroon, transform: `scale(${Math.max(0, k)})`, boxShadow: "0 18px 30px rgba(0,0,0,.3)" }}>
@@ -205,6 +208,8 @@ export const StepsTemplate: React.FC<{ script?: StepsScript; src?: string }> = (
           {s.img2 && <Cutout src={s.img2} x={620} y={1250} w={360} rot={i % 2 ? -8 : 8} at={s.a + 1.55} from={from[i % 4][1]} />}
         </StepLayer>; })}
 
+      {(() => { const T = script.steps[0].b; if (t < T - 0.22 || t > T + 0.55) return null;
+        return <Peel p={easeInOut((t - T - 0.05) / 0.45)} seed={11} cover={easeOut((t - (T - 0.22)) / 0.22)} />; })()}
       {/* ٤) الختام: سطور ثم مسح عمودي ثم الاسم */}
       {t >= 15.4 && (() => { const smear = clamp01((t - 17.4) / 0.25);
         return <>

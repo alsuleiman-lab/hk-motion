@@ -125,7 +125,10 @@ const gateAfter = async (f, p, base, beforeText, what) => {
   const rng = (a) => { const m = /(\d+(?:\.\d+)?)\s*[–-]\s*(\d+(?:\.\d+)?)\s*ث?$/.exec(a); return /بلا عنصر|فراغ/.test(a) && m ? [+m[1], +m[2], a.slice(0, m.index)] : null; };
   const oldGaps = [...base].map(rng).filter(Boolean);
   const inOld = (a) => { const r = rng(a); return !!r && oldGaps.some(([s, e, k]) => k === r[2] && r[0] >= s - 0.05 && r[1] <= e + 0.05); };
-  const now = await gateAtoms(f, p), added = [...now].filter((a) => !base.has(a) && !inOld(a));
+  /* an ADDED element can never make an empty stretch: whatever gap line is «new» after an add is a part of an old one (the gap line of coverage_check
+     names only its start, so the range test above cannot see it) */
+  const isGap = (a) => /فراغ|بلا عنصر|ناقص: استعمل أنواعاً/.test(a), adding = /^إضافة|^الدفعة/.test(what);
+  const now = await gateAtoms(f, p), added = [...now].filter((a) => !base.has(a) && !inOld(a) && !(adding && isGap(a)));
   if (added.length) {
     fs.writeFileSync(f, beforeText);
     console.error(`✘ رُفض ${what}: يضيف ${added.length} مخالفة لم تكن — أُعيدت المواصفة كما كانت:\n  ` + added.join("\n  "));

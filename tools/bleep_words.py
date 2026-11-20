@@ -13,6 +13,8 @@ except Exception:
 PATTERN = "|".join(map(re.escape, [r for r in T["roots"] + T.get("forms", []) if r not in _KEEP]))
 PHRASES = [tuple(x) for x in T.get("phrases", [])]
 PART = tuple(T.get("part", [0.25, 0.75]))
+# (user order in the gta6 recording 2026-11-20: «شيل حرف الثاء من ديوث وحرف الدال من قواد») --part a,b = the share of the word to cover for --word spots (0.7,1 = its last letter)
+WPART = tuple(map(float, sys.argv[sys.argv.index("--part") + 1].split(","))) if "--part" in sys.argv else None
 SR, FREQ, GAIN, FADE = 48000, float(T.get("tone_hz", 880)), 10 ** (float(T.get("gain_db", -16)) / 20), 0.012
 
 p, out = sys.argv[1], sys.argv[2]
@@ -64,10 +66,18 @@ for x in words:
     if not re.search(PATTERN, t) and not forced and not phrase:
         continue
     a, b = half(t, s, e)
+    if forced and WPART: a, b = s + (e - s) * WPART[0], s + (e - s) * WPART[1]
     ca, cb = to_cut(a), to_cut(b)
     print(f"src {s:7.2f}-{e:7.2f} -> cut {ca}-{cb}" if ca is not None else f"src {s:7.2f} outside the cut")
     if ca is not None and cb is not None:
         ranges.append((ca, cb))
+
+# --abs a-b,c-d (source seconds, measured): exactly that sound is covered (a letter: «شيل حرف الثاء من ديوث», gta6 2026-11-20)
+if "--abs" in sys.argv:
+    for r in sys.argv[sys.argv.index("--abs") + 1].split(","):
+        lo, hi = map(float, r.split("-")); ca, cb = to_cut(lo), to_cut(hi)
+        print(f"abs {lo:.2f}-{hi:.2f} -> cut {ca}-{cb}")
+        if ca is not None and cb is not None: ranges.append((ca, cb))
 
 INP = sys.argv[sys.argv.index("--in") + 1] if "--in" in sys.argv else f".tmp/{p}/cut.wav"   # (2026-11-17) --in = the denoised cut (cut_clean.wav): clean first, then bleep, then sfx
 with wave.open(INP) as f:

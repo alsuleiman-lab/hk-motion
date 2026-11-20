@@ -95,6 +95,12 @@ const apply = (s) => {
   const gone = [];
   for (const k of ["items", "zooms", "shake", "behind", "splits", "solos", "shifts", "psplits", "cams"]) if (Array.isArray(s[k])) s[k] = s[k].filter((it) => { if (it.t !== "cover" && inside(it)) { gone.push(`${k}:${it.t ?? ""}@${(span(it)[0] ?? 0).toFixed(1)}`); return false; } return true; }).map(shift);
   s.frames = s.frames - (fB - fA) + fL; s.cut = outName;
+  /* (2026-11-20, gta6) the bumper is part of the montage (spec.bumper.at, cut seconds): a deletion before it moved everything but the bumper,
+     which then fell 2 s after its greeting. It moves like any element; a bumper inside the deleted stretch goes to its start. */
+  if (s.bumper && typeof s.bumper.at === "number" && !s.bumper.end && s.bumper.position !== "end") {
+    const at = s.bumper.at, a = fA / 30, b = fB / 30, d = (fB - fA - fL) / 30;
+    if (at >= b) s.bumper.at = +(at - d).toFixed(3); else if (at > a) s.bumper.at = +a.toFixed(3);
+  }
   return gone;
 };
 const gone = apply(spec);

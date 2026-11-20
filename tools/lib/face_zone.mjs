@@ -38,7 +38,10 @@ export function faceZoner(spec) {
   return (t, o) => {
     const land = o === "land", W = land ? 1920 : 1080, H = land ? 1080 : 1920;
     const [, x, y, w, h] = boxAt(t);
-    const z0 = [x - 0.08 * w, y - 0.38 * h], z1 = [x + 1.08 * w, y + 1.9 * h];
+    /* (user rule 2026-11-18: «لا بأس أن يمسّ العنصرُ النصفَ الأسفل من اللحية من أسفل»; corrected 2026-11-20, gta6 reels) the zone is the face and the UPPER half
+       of the beard only. It ran to 1.9 face-heights under the top of the face box — his whole beard and his chest (portrait: y ≈ 1378 while the beard ends ≈ 1200),
+       so every lower-band item of a reel was refused. Measured on his stills: face box ends at 1.0h, beard at ≈1.6h → its upper half at ≈1.3h; 1.35h with a margin. */
+    const z0 = [x - 0.08 * w, y - 0.38 * h], z1 = [x + 1.08 * w, y + 1.35 * h];
     const sp = splitAt(t);
     let map;
     if (land && sp?.solo) {

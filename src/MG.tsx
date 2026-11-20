@@ -815,11 +815,19 @@ export const CollageAssemble: React.FC<{
  * times after the cut). Smooth pseudo-random sway (sum of sines, deterministic) ±amp px and ±rot°, eased in/out over 0.12 s so it starts and stops like a person bracing.
  * Keep each window ≤ the sentence itself (≈1–4 s); the frame edges are scaled 1.04 to hide the borders. Face/beard stay inside the frame (face_check after use).
  */
-export const HandheldShake: React.FC<{ windows: { from: number; to: number }[]; amp?: number; rot?: number; children: React.ReactNode }> = ({ windows, amp = 7, rot = 0.45, children }) => {
+/* (user 2026-11-20, frame 10623: «لما ضحكت… ضع مؤثر وكأنه كاميرا تصوير محمولة، من منظور مصور… استطرادية مزحة… مع تبهيت الألوان قليلاً») a window with
+   kind "photographer": a slow, wide handheld drift (a person holding the camera, not a tremble) and faded colours while it lasts */
+/** the washed-out colours of a «photographer» handheld window, drawn over the video in the graphics layer */
+export const PhotoFade: React.FC<{ windows: { from: number; to: number; kind?: string }[] }> = ({ windows }) => { const t = useT(0), w = windows.find((x) => x.kind === "photographer" && t >= x.from - 0.01 && t <= x.to + 0.12); if (!w) return null; const k = Math.min(ease((t - w.from) / 0.12), ease((w.to + 0.12 - t) / 0.12)); return <AbsoluteFill style={{ background: "rgba(150,140,126,.32)", opacity: k, pointerEvents: "none" }} />; };
+export const HandheldShake: React.FC<{ windows: { from: number; to: number; kind?: "photographer" }[]; amp?: number; rot?: number; children: React.ReactNode }> = ({ windows, amp = 7, rot = 0.45, children }) => {
   const t = useT(0), w = windows.find((x) => t >= x.from - 0.01 && t <= x.to + 0.12);
   if (!w) return <>{children}</>;
   const k = Math.min(ease((t - w.from) / 0.12), ease((w.to + 0.12 - t) / 0.12));
   const n = (s: number) => Math.sin(t * 9.1 * s + s * 1.7) * 0.5 + Math.sin(t * 15.3 * s + s * 4.1) * 0.3 + Math.sin(t * 23.7 * s + s * 2.3) * 0.2;
+  if (w.kind === "photographer") {   /* slow sway ×0.3 the frequency, ×2.6 the size, a little more zoom to hide the edges; the colours wash out (a warm grey veil) */
+    const m = (q: number) => Math.sin(t * 2.7 * q + q * 1.3) * 0.6 + Math.sin(t * 4.6 * q + q * 3.1) * 0.4;
+    return <AbsoluteFill style={{ transform: `translate(${m(1) * amp * 2.6 * k}px, ${m(1.29) * amp * 1.8 * k}px) rotate(${m(0.77) * rot * 2.2 * k}deg) scale(${1 + 0.07 * k})` }}>{children}</AbsoluteFill>;   /* the faded colours are drawn in the graphics layer (MontageSpec PhotoFade): a veil inside the video layer is lost in the GPU render */
+  }
   return <AbsoluteFill style={{ transform: `translate(${n(1) * amp * k}px, ${n(1.37) * amp * k}px) rotate(${n(0.83) * rot * k}deg) scale(${1 + 0.04 * k})` }}>{children}</AbsoluteFill>;
 };
 

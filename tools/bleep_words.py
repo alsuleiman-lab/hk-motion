@@ -37,11 +37,18 @@ def half(t, s, e):
     cs = s + (e - s) * lead / len(t)
     return cs + (e - cs) * PART[0], cs + (e - cs) * PART[1]
 
+# (user 2026-11-20, frame 11116: «جعلت كلمتي "يقتلوا" مشفرة، في القرآن هذا الفعل ممنوع») never a bleep inside a recitation (verse_scan source times);
+# a hadith he narrates is protected the same way by tools/bleep_fix.py on the cut sound (its times are cut seconds)
+try:
+    VERSES = [(v["times"][0] - 0.3, v["times"][-1] + 0.9) for v in json.load(open(f".tmp/{p}/verses.json", encoding="utf-8")) if v.get("times")]
+except Exception:
+    VERSES = []
 prev = None
 for x in words:
     t = (x.get("word") or x.get("w")).strip()
     s, e = x.get("start", x.get("s")), x.get("end", x.get("e"))
-    forced = any(lo <= s <= hi for lo, hi in only)   # --word a-b: a word the user asked to bleep at that exact source time
+    forced = any(lo <= s <= hi for lo, hi in only)
+    if any(lo <= s <= hi for lo, hi in VERSES): prev = (t, s, e); continue   # --word a-b: a word the user asked to bleep at that exact source time
     # (user answer 2026-11-17) «تنظيم القاعدة» = BOTH words bleeped; «القاعدة» or «الدولة» alone = never
     phrase = prev is not None and any(nz(prev[0]).endswith(nz(a)) and nz(t).endswith(nz(b)) for a, b in PHRASES)
     if phrase:

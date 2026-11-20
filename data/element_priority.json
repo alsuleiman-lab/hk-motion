@@ -28,7 +28,8 @@
   "title": 1,
   "words": 1,
   "rows": 2,
-  "clock": 3
+  "clock": 3,
+  "flash": 3
  },
  "exempt": [
   "cover",

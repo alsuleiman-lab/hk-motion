@@ -24,14 +24,14 @@ type Props = { main: DebateSrc; guest: DebateSrc; guestName?: string; title?: st
 
 const W = LANDSCAPE.W, H = LANDSCAPE.H;
 const K = W / 1450;   // the original's px are drawn on a 1450-wide stage (its enlarged view)
-type Win = { left: number; top: number; width: number; mid?: number };   // `mid` = the vertical centre of the window as a fraction of the height (overrides `top`)   // fractions of the stage, as in the original CSS
+type Win = { left: number; top: number; width: number; mid?: number; tall?: boolean };   /* tall: a book page may fill the height (user 2026-11-20: «بطاقة الكتاب يجب أن تكبرها… قريبة جداً من حواف الفيديو… مقروء») */   // `mid` = the vertical centre of the window as a fraction of the height (overrides `top`)   // fractions of the stage, as in the original CSS
 const ratio = (s: DebateSrc) => s.aspect ?? (s.w ? s.w / (s.h ?? 1080) : 16 / 9);
 /** the window is exactly the shown video's size (user 2026-10-29: «الإطار على أبعاد الفيديو المعروض، لا أكبر ولا أصغر»): the video's ratio fitted in the
  *  original's 4:3 slot (a taller video may grow to 1.4× the slot height), centred on the slot and kept inside the frame */
 const box = (w: Win, s: DebateSrc) => {
-  const r = ratio(s), sw = w.width * W, sh = (sw * 3) / 4, maxH = Math.min(sh * 1.4, H * 0.76);
-  const bw = Math.min(sw, maxH * r), bh = bw / r, m = 64;
-  const x = Math.min(Math.max(w.left * W + (sw - bw) / 2, m), W - m - bw), y = Math.min(Math.max(w.mid !== undefined ? w.mid * H - bh / 2 : w.top * H + (sh - bh) / 2, m), H - m - bh);
+  const r = ratio(s), sw = w.width * W, sh = (sw * 3) / 4, maxH = w.tall ? H * 0.93 : Math.min(sh * 1.4, H * 0.76);
+  const bw = Math.min(sw, maxH * r), bh = bw / r;
+  const m = w.tall ? 20 : 64, x = Math.min(Math.max(w.tall ? w.left * W + 20 : w.left * W + (sw - bw) / 2, m), W - m - bw), y = Math.min(Math.max(w.mid !== undefined ? w.mid * H - bh / 2 : w.top * H + (sh - bh) / 2, m), H - m - bh);
   return { x: Math.round(x), y: Math.round(y), w: Math.round(bw), h: Math.round(bh) };
 };
 
@@ -254,13 +254,13 @@ export const DebateDossier: React.FC<Props & { big?: boolean | "pair" }> = ({ ma
           const pw = b.w + 2 * PAD, sg = 1 - (1 - GAP_S) * gk, gx = gk * GAP_DX + (pw * (1 - sg)) / 2;
           return `translate(${(1 - mi) * (W / 2 - (b.x + b.w / 2))}px, ${(1 - mi) * (H / 2 - (b.y + b.h / 2))}px) rotate(${1.5 * mi}deg) scale(${1 + (s0 - 1) * (1 - mi)}) translateX(${gx}px) scale(${sg})`;
         }} />
-      <TornWindow w={pair ? { left: 0.03, top: 0.2, mid: 0.5, width: 0.45 } : big ? { left: 0.03, top: 0.1, width: 0.62 } : { left: 0.02, top: 0.27, width: 0.31 }} s={guest} seed="dossier-guest" tape z={1}
+      <TornWindow w={pair ? { left: 0.03, top: 0.2, mid: 0.5, width: 0.45 } : big ? { left: 0.02, top: 0.035, width: 0.62, tall: true } : { left: 0.02, top: 0.27, width: 0.31 }} s={guest} seed="dossier-guest" tape z={1}
         transform={(b) => `translateX(${-(1 - gi) * (b.x + b.w + 120)}px) rotate(${-5 * gi}deg)`} />
       {url ? (
         <div style={{ position: "absolute", left: W * 0.06, bottom: H * 0.06, transform: `rotate(-4deg) scale(${st})`, opacity: sp * 0.95, border: `${4 * K}px solid ${BRAND.mark}`, color: BRAND.mark,
           borderRadius: 8, padding: `${2 * K}px ${14 * K}px`, fontFamily: monoF, fontWeight: 700, fontSize: Math.round(20 * K), direction: "ltr", whiteSpace: "nowrap", background: alpha(BRAND.card, 0.9) }}>{url}</div>
       ) : null}
-      <Cap text={title} style={{ top: H * 0.1, left: W * 0.07, color: BRAND.ink, fontSize: Math.round(26 * K), opacity: mi }} />
+      <Cap text={title} style={{ top: big ? 170 : H * 0.1, left: big ? W * 0.7 : W * 0.07, /* a big page fills the left: the label sits over his card */ color: BRAND.ink, fontSize: Math.round(26 * K), opacity: mi }} />
     </AbsoluteFill>
   );
 };

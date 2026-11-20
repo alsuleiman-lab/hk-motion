@@ -8,7 +8,7 @@ import layoutGrids from "../data/layout_grids.json";
 import React from "react";
 import { AbsoluteFill, Audio, Img, Sequence, Video, continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig , getRemotionEnvironment, getInputProps } from "remotion";
 import { PaperTear } from "./PaperTear";
-import { Gfx, BrushX, Stamp, NoteCard, HandheldShake, SourceWalk, BlurRise, RewriteWindow, FlashCut, PinnedPhoto, TimelineTravel, PanelToCanvas, Clock, DashArc, useT } from "./MG";
+import { Gfx, BrushX, Stamp, NoteCard, HandheldShake, PhotoFade, SourceWalk, BlurRise, RewriteWindow, FlashCut, PinnedPhoto, TimelineTravel, PanelToCanvas, Clock, DashArc, useT } from "./MG";
 import { KeyChip, ReelVerseFull, VerseWords } from "./MGExtras";
 import { VerseNoorPanel, VerseBigWordPanel, halfShift, HALF_LEAD, BlendPanel, halfK } from "./VerseKit";
 import { HadithQuotePanel, HadithBooksPanel, HadithIsnad, HadithPortPanel } from "./HadithKit";
@@ -159,7 +159,7 @@ export type MontageSpec = {
   cams?: { from: number; to: number; cx: number }[];
   zooms?: { from: number; to: number; amt?: number }[];
   /** gallery grid mode only (user 2026-11-09): moves / resizes the whole graphics layer for elements whose fields carry no x / y / size; (ox, oy) = the scale origin */
-  shake?: { from: number; to: number }[];
+  shake?: { from: number; to: number; kind?: "photographer" }[];
   /** windows where the source recording has a baked-in split (clip left | him right): landscape = the reply model `layout` behind a curtain (default "dossier" = الملف, user 2026-10-30;
    *  blocks | dossier, src/DebateLayouts.tsx;); portrait = his slice + the clip as a tilted card at his shoulder (x/w are source px) */
   splits?: { from: number; to: number; clip: { x: number; w: number; y?: number; h?: number }; sheikh: { x: number; w: number; y?: number; h?: number /* (2026-11-19) his tile is a sub-rectangle of the source (shared-screen scenes) */ }; clipName?: string; mainSrc?: string /* a whole added clip in HIS window (the pair: the recorded clip beside an added clip) */; mainAspect?: number; clipAspect?: number; clipSrc?: string /* a whole added clip (public/ path, 16:9, silent) shown in the answered-clip window instead of the recording column */; clipUrl?: string; faceX?: number; blur?: number; layout?: DebateLayoutName; card?: { left: number; top: number; rot: number; innerH: number }; page?: boolean /* a shown PAGE (book/document): in a reel the page is drawn very large in the lower zone and his video shrinks to the top (user 2026-11-17) */; paper?: import("./DebateLayouts").DebatePaper; flow?: import("./DebateLayouts").PaperFlow; marks?: { at: number; x: number; y: number; w: number; h: number; z?: number; dur?: number }[] /* the text of the page he is talking about, in crop pixels: a marker sweeps over it at `at` (his word) and the page zooms onto it (user 2026-11-17, frame 1109) */ }[];
@@ -868,7 +868,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutA
   /* (user 2026-11-15) inside a split window the pictures go in the MIDDLE between the two screens, behind both frames, while he slides aside (DebateDossier behind/gaps) */
   const SPLIT_BEHIND = new Set(["tphoto", "pic", "scholar", "news", "date", "flag", "clock", "brushx"]);
   const inSplitWin = (it: SpecItem) => { const a = (it as { at?: number }).at; return a != null && (spec.splits ?? []).some((s) => a >= s.from - 0.05 && a < s.to); };
-  const behindIt = (it: SpecItem) => o === "land" && !!spec.cut && SPLIT_BEHIND.has(it.t) && it.only !== "port" && inSplitWin(it);
+  const behindIt = (it: SpecItem) => o === "land" && !!spec.cut && SPLIT_BEHIND.has(it.t) && it.only !== "port" && inSplitWin(it) && !(it as { front?: boolean }).front;   /* front: a picture placed by numbers in the gap of a BIG page window (book cover, emblem): drawn on top, his card does not slide */
   const behindGaps = spec.items.filter(behindIt).map((it) => { const a = (it as { at: number }).at, sp = (spec.splits ?? []).find((s) => a >= s.from - 0.05 && a < s.to)!; return { from: a - 0.05, to: Math.min((it as { until?: number }).until ?? a + 6, sp.to) }; });
   const behindNodes = spec.items.map((it, i) => (behindIt(it) ? renderItem(it, i, o, bar) : null));
   const body = o === "land"
@@ -919,6 +919,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutA
         {/* (user 2026-11-20, frame 404: «التظليل ما بدأ من الأعلى») the shade of a picked element is drawn OUTSIDE its placement layer: the item's own land dx/dy/k
             moved the shade down with it and left the top of the screen unshaded */}
         {o === "land" ? spec.items.map((it, i) => { if (it.t !== "pick" || behindIt(it)) return null; const ip = { ...it, until: pickUntil(it as PickItem) } as PickItem, ns = ip.noShift ?? !!PICK_NOSPLIT[ip.el]; if (PICK_FULL_FRAME.has(ip.el)) return null; return <Only key={"ps" + i} from={ip.at - HALF_LEAD} to={ip.until}>{ns ? <LeftShade at={ip.at} until={ip.until} /> : <PickPanel at={ip.at} until={ip.until} />}</Only>; }) : null}
+        {spec.shake?.some((w) => (w as { kind?: string }).kind === "photographer") ? <PhotoFade windows={spec.shake} /> : null}
         {spec.items.map((it, i) => (behindIt(it) ? null : renderItem(it, i, o, bar)))}
         {(spec.showTitleBar ?? spec.kind !== "reel") ? <TitleBar title={spec.title} sub={(spec as { titleSub?: string }).titleSub} theme={bar} date={spec.date} bottomHalf={o === "port"} /> : null}   {/* the counter bar is on in every episode by default (user 2026-11-16); lessons/streams set it false */}
       </Gfx>

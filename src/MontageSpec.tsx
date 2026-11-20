@@ -783,8 +783,9 @@ const withHalfWays = (s: MontageSpec): MontageSpec => {
    Studio shows the same thing: the talk stops at `at`, the bumper plays 5 s with its sound, then the talk goes on. Composition frames in Studio = spec.frames + 150. */
 const FAWASEL: Record<string, { file: string; fileP: string }> = { press: { file: "fawasel/fasel_press.mp4", fileP: "fawasel/fasel_press_p.mp4" }, shelf: { file: "fawasel/fasel_shelf.mp4", fileP: "fawasel/fasel_shelf_p.mp4" }, wall: { file: "fawasel/fasel_wall.mp4", fileP: "fawasel/fasel_wall_p.mp4" }, notebook: { file: "fawasel/fasel_notebook.mp4", fileP: "fawasel/fasel_notebook_p.mp4" }, tear: { file: "fawasel/fasel_tear.mp4", fileP: "fawasel/fasel_tear_p.mp4" } };
 /* (user 2026-11-18 and again 2026-11-20: «الفاصل يُضاف في المونتاج في مواضعه، ولا علاقة لطابور الرندر به»، «هذا لازم يضاف من قبلك وليس من قبل الرندر»)
-   the bumper is part of the MONTAGE: the final render draws it inside the composition exactly as the Studio shows it (input prop withBumper, set by
-   tools/gpu_render.mjs for a full render); every check tool (peek, face check, frames) keeps the plain cut timeline (no prop = no bumper) */
+   the bumper is a MONTAGE decision (spec.bumper, seen here in the Studio); tools/gpu_render.mjs only obeys it (never a default of its own) and splices
+   the same file at the same second. Input prop withBumper draws it inside the composition (GPU-ready: VSlot + Audio) for a future in-composition
+   render; every check tool (peek, face check, frames) keeps the plain cut timeline (no prop = no bumper) */
 const withBumperProp = () => { try { return !getRemotionEnvironment().isPlayer && !!(getInputProps() as { withBumper?: boolean }).withBumper; } catch { return false; } };
 const studioBumper = (s: MontageSpec) => { const b = (s as { bumper?: { id: string; at: number; end?: boolean } }).bumper; return (getRemotionEnvironment().isStudio || withBumperProp()) && b && (b.at >= 1 || b.end) && FAWASEL[b.id] && (s as { kind?: string }).kind !== "reel" ? b : null; };
 export const specFrames = (s: MontageSpec) => s.frames + (studioBumper(s) ? 150 : 0);

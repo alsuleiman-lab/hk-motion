@@ -45,6 +45,15 @@ freeat=$(node -e 'const s=JSON.parse(require("fs").readFileSync("'$spec'","utf8"
 fw=$(node tools/free_windows.mjs $p 2>/dev/null | awk '{print $1}'); [ -n "$fw" ] && freeat=$fw
 # (2026-11-17) the channel hashtag and the landscape dash: now decided in the plan at the top (spec.exportTitle first, user 2026-11-18, rules review)
 if [ "$o" = R ]; then
+  # (2026-11-20, end-to-end test) the portrait face crop is cut from the source at ONE camera (cx): it was the longest camera (1404) while the window
+  # (39.7 s) lay under another (990) → it compared his face with an empty wall: 0 % on a clean render. Now the camera is the one AT the window, and every
+  # stretch filmed by another camera is avoided by the evenly spaced windows too.
+  read -r cx2 camavoid <<<"$(node -e '
+const s=JSON.parse(require("fs").readFileSync("'$spec'","utf8")),d=s.frames/30,t=Number("'$freeat'")||0,cams=s.cams||[];
+const c=cams.find(x=>t>=x.from&&t<x.to)||cams.map(x=>({...x,d:Math.min(x.to,d)-x.from})).sort((a,b)=>b.d-a.d)[0];
+if(!c){console.log("");process.exit(0)}
+console.log(c.cx+" "+cams.filter(x=>x.cx!==c.cx&&x.from<d).map(x=>Math.max(0,x.from-0.5).toFixed(2)+"-"+(Math.min(x.to,d)+0.5).toFixed(2)).join(","));')"
+  [ -n "$cx2" ] && cx=$cx2; [ -n "$camavoid" ] && avoid="${avoid:+$avoid,}$camavoid"
   sx=$(node -e "console.log(Math.round($cx-163))"); crop="--crop 250,300,580,700 --src-crop $sx,169,326,394"
 else crop="--crop 700,150,520,520"; fi
 bash tools/render_guard.sh $p | tail -1

@@ -66,7 +66,7 @@ const span = (it) => {
   const b = it.until ?? it.to ?? (it.dur != null && a != null ? a + it.dur : null) ?? (a != null ? a + 3 : null);
   return a == null ? null : [a, b];
 };
-const items = (spec.items ?? []).filter((i) => i.t !== "cover").flatMap((i) => (i.t === "pmap" ? [i, ...(i.moves ?? []).map((m) => ({ t: "pmap", from: m.from, to: m.to, _move: true }))] : [i]));   /* map moves are map windows too (names_scan, 2026-11-19) */
+const items = (spec.items ?? []).filter((i) => i.t !== "cover").flatMap((i) => (i.t === "pmap" ? [i, ...(i.moves ?? []).map((m) => ({ t: "pmap", from: m.from, to: m.to, land: i.land, only: i.only, _move: true }))] : [i]));   /* map moves are map windows too (names_scan, 2026-11-19); a move is shown with its map's landscape geometry, so it is judged like it (2026-11-20) */
 const VISUAL = new Set(["bgclip", "peek", "pmap", "pic", "full", "flash", "crop", "scholar", "tphoto", "arc", "flag", "person", "phone", "scene"]);
 const visual = [...items.filter((i) => VISUAL.has(i.t)).map(span).filter(Boolean),
   /* (2026-11-12) a listing card item WITH a photo shows that person at its word */
@@ -141,7 +141,10 @@ if (missing.length) fails++;
   const bad = [];
   for (const it of spec.items ?? []) if (it.t === "pmap" && spec.kind !== "reel") {   /* landscape-only rule: a reel is portrait only (2026-11-17) */
     const w = it.land?.w ?? 1920, h = it.land?.h ?? 1080, [clon, clat] = it.landCenter ?? it.center, span = it.landSpan ?? it.spanLat;
-    const P = (lon, lat) => [w / 2 + (lon - clon) * Math.cos((clat * Math.PI) / 180) * (h / span), h / 2 - (lat - clat) * (h / span)];
+    /* (2026-11-20) the same projection as PaperMap (src/PortraitKit.tsx): a FULL landscape map puts its centre at 24 % of the width (the free side beside
+       him), not in the middle — judged at w/2 the check pushed the places off the left edge (Syria showed only its flag) */
+    const fx = it.atlas && (it.land?.x ?? 0) <= 0 && (it.land?.y ?? 0) <= 0 && w >= 1900 ? 0.24 : 0.5;   /* PaperMap's `full`: the country atlas only */
+    const P = (lon, lat) => [w * fx + (lon - clon) * Math.cos((clat * Math.PI) / 180) * (h / span), h / 2 - (lat - clat) * (h / span)];
     const win = (spec.behind ?? []).find((b) => (!b.only || b.only === "land") && b.from <= it.from + 0.01 && b.to >= it.to - 0.01), dx = win?.dx ?? 0;
     for (const p of (it.pts ?? []).filter((q) => !q.ctx)) {   /* context cities (ctx:true, 2026-11-19) are decor around the place: not judged */  const [x, y] = P(p.lon, p.lat); if (x > 700 + dx && x < 1500 + dx && y < 760) bad.push(`«${p.name}» عند ${mm(it.from)} خلف رأسه (x ${Math.round(x)})`); if (x < 30 || x > w - 30 || y < 30 || y > h - 30) bad.push(`«${p.name}» عند ${mm(it.from)} خارج الإطار`); }
   }
@@ -154,7 +157,8 @@ if (missing.length) fails++;
 {
   const inSplit = (t) => (spec.splits ?? []).some((w) => t >= w.from - 0.05 && t < w.to);
   const bad = [];
-  for (const it of items.filter((x) => x.t === "pmap" && !x._move && !x.only && spec.kind !== "reel" && !inSplit(x.from ?? 0))) {   /* reel = portrait only: the landscape-map rule does not apply (2026-11-17) */
+  /* (2026-11-20, mufti-hiraba 3:05) a MOVE re-shows the map full frame later — without its own isolation window he vanished behind it: moves are judged too */
+  for (const it of items.filter((x) => x.t === "pmap" && !x.only && spec.kind !== "reel" && !inSplit(x.from ?? 0))) {   /* reel = portrait only: the landscape-map rule does not apply (2026-11-17) */
     const L = it.land ?? {}, full = (L.w ?? 0) >= 1900 && (L.h ?? 0) >= 1060 && (L.x ?? 0) <= 10 && (L.y ?? 0) <= 10;
     const win = (spec.behind ?? []).some((w) => (w.only === "land" || !w.only) && w.from <= (it.from ?? 0) + 0.3 && w.to >= (it.to ?? 0) - 0.3);
     if (!full || !win) bad.push(`${mm(it.from ?? 0)} ${!full ? "ليست ملء الإطار" : ""}${!full && !win ? " و" : ""}${!win ? "بلا نافذة عزل خلفها" : ""}`);

@@ -61,7 +61,9 @@ const areasOf = (it, o) => {
   return ALL[o];   /* exclusive, grid-ignored (bgclip, peek…) or unknown kinds take every area: the old global rule */
 };
 
-const live = () => spec.items.map((it, i) => ({ it, i })).filter(({ it }) => typeof start(it) === "number" && end(it) != null && !PR.exempt.includes(it.t));
+/* (user 2026-11-20, mufti-hiraba 3:05: «جمعت بين عنصرين فوق بعض وهذا ممنوع، يجب أن لا يقبله البرنامج حتى لو فعلته أنت») a map's `moves` show the
+   map AGAIN later, in their own from–to: each move is judged as an item of its own (it was invisible here: a word cloud and a map shared the screen) */
+const live = () => spec.items.flatMap((it, i) => [{ it, i }, ...(it.t === "pmap" ? (it.moves ?? []).filter((m) => typeof m.from === "number" && typeof m.to === "number").map((m) => ({ it: { ...it, ...m, moves: undefined, _move: true }, i })) : [])]).filter(({ it }) => typeof start(it) === "number" && end(it) != null && !PR.exempt.includes(it.t));
 const mm = (s) => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
 const AR = { key: "الكتابة", left: "اليسار", right: "اليمين", band: "الشريط السفلي", video: "الفيديو", land: "عرضي", port: "طولي" };
 const clashes = () => {

@@ -17,10 +17,18 @@ import { CaseFile, CASE_FILE_FRAMES } from "./ext/CaseFile";
 import { FontSpecimen, FONT_SPECIMEN_FRAMES } from "./ext/FontSpecimen";
 import { KineticType, KINETIC_TYPE_FRAMES, KineticOver, KineticSplit, KINETIC_SPLIT_FRAMES } from "./ext/KineticType";
 import { ActiveSpeaker, ACTIVE_FRAMES } from "./ext/ActiveSpeaker";
+import { CineSpeaker, CINE_SPEAKER_FRAMES } from "./ext/CineKit";
+import { StepsTemplate, STEPS_FRAMES } from "./ext/StepsKit";
+import { BoardTemplate, BOARD_FRAMES } from "./ext/BoardKit";
+import { AqidaReel, AQIDA_FRAMES } from "./ext/AqidaReel";
 import { CineWords, CINE_WORDS_FRAMES } from "./ext/CineWords";
+import { AnimeScene, ANIME_FRAMES, ANIME_FPS } from "./ext/AnimeScene";
+import { AnimeDuel, DUEL_FRAMES, DUEL_FPS } from "./ext/AnimeDuel";
 import { JordanDetain, JORDAN_FRAMES } from "./JordanDetain";
 import { DubKmr, DubCkb, DUBKMR_FRAMES } from "./DubKmr";
 import { DubKmrBoard, DubCkbPanels } from "./DubShots";
+import { DubKmrBoard2, DUBKMR_BOARD2_FRAMES } from "./DubBoard";
+import { DubKmrSync, DUBKMR_SYNC_FRAMES } from "./DubSync";
 import { TimelineDemo, TIMELINE_DEMO_FRAMES } from "./TimelineDemo";
 
 import { KhAlphaTrial, ALPHATRIAL_FRAMES } from "./KhAlphaTrial";
@@ -58,7 +66,6 @@ import anchorKillsChildrenReelSpec from "../data/specs/anchor-kills-children-ree
 const AnchorKillsChildrenReelComp: React.FC = () => <MontageFromSpec spec={anchorKillsChildrenReelSpec as unknown as MontageSpec} />;
 import anchorKillsChildrenSpec from "../data/specs/anchor-kills-children.json";
 const AnchorKillsChildrenComp: React.FC = () => <MontageFromSpec spec={anchorKillsChildrenSpec as unknown as MontageSpec} />;
-import { MontageBoth, BOTH, BOTHV } from "./MontageBoth";
 
 
 
@@ -87,16 +94,9 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Anchor-Kills-Children-L" component={AnchorKillsChildrenComp} durationInFrames={specFrames(anchorKillsChildrenSpec as unknown as MontageSpec)} fps={30} width={1920} height={1080} />
       </Folder>
       <Folder name="البثوث">
-        <Composition id="Tirmidhi325" component={Tirmidhi325Comp} durationInFrames={specFrames(tirmidhi325Spec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="Tirmidhi324" component={Tirmidhi324Comp} durationInFrames={specFrames(tirmidhi324Spec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="Tirmidhi323" component={Tirmidhi323Comp} durationInFrames={specFrames(tirmidhi323Spec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="Tirmidhi322" component={Tirmidhi322Comp} durationInFrames={specFrames(tirmidhi322Spec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="Tirmidhi321" component={Tirmidhi321Comp} durationInFrames={specFrames(tirmidhi321Spec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
         {/* بث للحوار مع المخالفين (1) */}
       </Folder>
       <Folder name="ريلز">
-        <Composition id="C2598-Reel" component={C2598ReelComp} durationInFrames={specFrames(c2598ReelSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
-        <Composition id="Tirmidhi322-L" component={Tirmidhi322Comp} durationInFrames={specFrames(tirmidhi322Spec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
         <Composition id="Anchor-Kills-Children-Reel" component={AnchorKillsChildrenReelComp} durationInFrames={specFrames(anchorKillsChildrenReelSpec as unknown as MontageSpec)} fps={30} width={1080} height={1920} />
       </Folder>
 
@@ -137,7 +137,13 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Ref-KineticOver" component={KineticOver} durationInFrames={KINETIC_TYPE_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-KineticSplit" component={KineticSplit} durationInFrames={KINETIC_SPLIT_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-ActiveSpeaker" component={ActiveSpeaker} durationInFrames={ACTIVE_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Ref-CineSpeaker" component={CineSpeaker} durationInFrames={CINE_SPEAKER_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Ref-StepsTemplate" component={StepsTemplate} durationInFrames={STEPS_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Ref-BoardTemplate" component={BoardTemplate} durationInFrames={BOARD_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Reel-Aqida-Mufassir" component={AqidaReel} durationInFrames={AQIDA_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-CineWords" component={CineWords} durationInFrames={CINE_WORDS_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Ref-AnimeScene" component={AnimeScene} durationInFrames={ANIME_FRAMES} fps={ANIME_FPS} width={1920} height={1080} />
+        <Composition id="Ref-AnimeDuel" component={AnimeDuel} durationInFrames={DUEL_FRAMES} fps={DUEL_FPS} width={1080} height={1920} />
       </Folder>
       <Folder name="موشن توضيحي مستقل">
         <Composition id="Jordan-Detain" component={JordanDetain} durationInFrames={JORDAN_FRAMES} fps={30} width={1080} height={1920} />
@@ -145,6 +151,8 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Dub-Ckb-Hasad" component={DubCkb} durationInFrames={DUBKMR_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Dub-Kmr-Board" component={DubKmrBoard} durationInFrames={DUBKMR_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Dub-Ckb-Panels" component={DubCkbPanels} durationInFrames={DUBKMR_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Dub-Kmr-Board2" component={DubKmrBoard2} durationInFrames={DUBKMR_BOARD2_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Dub-Kmr-Sync" component={DubKmrSync} durationInFrames={DUBKMR_SYNC_FRAMES} fps={30} width={1080} height={1920} />
       </Folder>
       <ReelsComps />
       <Folder name="أدوات">

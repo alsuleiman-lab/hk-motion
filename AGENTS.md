@@ -10,5 +10,5 @@
   - المحتوى: `extraction` (الأسماء والآيات والأحاديث والأخبار والحلقات المذكورة)، `video-sections`، `identity` (النمط والفاصل وشريط الحلقة)، `thumbnail-design`.
   - البناء: `video-montage`، `gallery-placement`، `source-display`، `motion-graphics`، `pixabay-search`، `collage-broll-local`.
   - التسليم: `checking` (وفيها قائمة المراجعة)، `delivery-links`، `remotion-render`، `approval`، `publishing`.
-  - أنواع خاصة: `lessons-and-streams`، `silent-reaction`، `paper-montage`، `cartoon-animation`، `advertising-video`، `explainer-motion` (الموشن التوضيحي من صوت، مسار مستقل)، `dubbing` (دبلجة فيديو إلى لغة أخرى: كل جملة في نافذتها، تُسرَّع أو تُبطَّأ أو تُطال سكتاتها لتتوازن مع الفيديو).
+  - أنواع خاصة: `lessons-and-streams`، `silent-reaction`، `paper-montage`، `cartoon-animation`، `advertising-video`، `explainer-motion` (الموشن التوضيحي من صوت، مسار مستقل)، `scholars-motion` («موشن مشايخ»: ريل طولي بالأسلوب المعتمد من مقطع شيخ، بعد التجهيز والقص الرسميين)، `dubbing` (دبلجة فيديو إلى لغة أخرى: كل جملة في نافذتها، تُسرَّع أو تُبطَّأ أو تُطال سكتاتها لتتوازن مع الفيديو).
 - **الحاسم:** لا موسيقى، لا نساء، لا عنصر قبل نطقه، عنصر واحد في كل مساحة في كل وقت، لا تغطية لوجهه ولا للنصف الأعلى من لحيته، العمل على S والتصدير MP4 إلى `C:\Users\mshms\Videos\جاهز` وحده، ولا رندر دون إذن (عدا الدروس والبثوث: آلياً، أمر المستخدم 2026-11-18).

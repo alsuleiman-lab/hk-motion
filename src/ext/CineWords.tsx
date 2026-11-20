@@ -12,10 +12,10 @@ import { ff, useFonts } from "./fonts";
  */
 export const CINE_WORDS_FRAMES = 420;
 const W = 1080, H = 1920;
-const GOLD = "#d9b24a";
+export const GOLD = "#d9b24a";
 
 /** ضوء ذهبي يتسرّب من زاوية ويتنفّس، وحبيبات خفيفة. */
-const Leak: React.FC = () => {
+export const Leak: React.FC = () => {
   const f = useCurrentFrame();
   const a = 0.5 + 0.15 * Math.sin(f / 23) + 0.08 * Math.sin(f / 7.3);
   return (
@@ -27,21 +27,22 @@ const Leak: React.FC = () => {
 };
 
 /** كلمة تظهر بضبابية وصعود خفيف ووهج؛ تخرج بضبابية. */
-const Word: React.FC<{ at: number; until: number; text: string; font: Parameters<typeof ff>[0]; size: number; color?: string }> = ({ at, until, text, font, size, color = "#fffaf0" }) => {
+export const Word: React.FC<{ at: number; until: number; text: string; font: Parameters<typeof ff>[0]; size: number; color?: string }> = ({ at, until, text, font, size, color = "#fffaf0" }) => {
   const f = useCurrentFrame();
   if (f < at || f >= until) return null;
-  const i = easeOut((f - at) / 9), o = clamp01((until - f) / 6);
-  const k = Math.min(i, o);
-  return <span style={{ display: "inline-block", margin: "0 0.12em", fontFamily: ff(font), fontSize: size, color, opacity: k, filter: `blur(${(1 - k) * 10}px)`, transform: `translateY(${(1 - i) * 24}px)`, textShadow: `0 0 ${18 + 10 * k}px rgba(255,236,190,.45)` }}>{text}</span>;
+  /* كما في المرجع الرابع (§٣٣): الكلمة تولد باهتة (٣٠٪) وتشتد في ٤ إطارات، وتصعد ١٤ بكسل في ٦، وتخرج في ٣ */
+  const i = easeOut((f - at) / 6), o = clamp01((until - f) / 3);
+  const k = Math.min(0.3 + 0.7 * clamp01((f - at) / 4), o);
+  return <span style={{ display: "inline-block", margin: "0 0.12em", fontFamily: ff(font), fontSize: size, color, opacity: k, filter: `blur(${(1 - clamp01((f - at) / 4)) * 6}px)`, transform: `translateY(${(1 - i) * 14}px)`, textShadow: `0 0 ${18 + 10 * k}px rgba(255,236,190,.45)` }}>{text}</span>;
 };
 /** كلمة تمتد بالكشيدة بعد ظهورها (الأثر المميّز في المرجع). */
-const StretchWord: React.FC<{ at: number; until: number; a: string; b: string; size: number; font: Parameters<typeof ff>[0] }> = ({ at, until, a, b, size, font }) => {
+export const StretchWord: React.FC<{ at: number; until: number; a: string; b: string; size: number; font: Parameters<typeof ff>[0] }> = ({ at, until, a, b, size, font }) => {
   const f = useCurrentFrame();
   const n = Math.round(easeInOut((f - at - 6) / 18) * 6);
   return <Word at={at} until={until} text={a + "ـ".repeat(Math.max(0, n)) + b} font={font} size={size} />;
 };
 /** سطر من كلمات متتابعة. */
-const Line: React.FC<{ y: number; children: React.ReactNode }> = ({ y, children }) => (
+export const Line: React.FC<{ y: number; children: React.ReactNode }> = ({ y, children }) => (
   <div style={{ position: "absolute", left: 0, width: W, top: y, textAlign: "center", direction: "rtl", whiteSpace: "nowrap", lineHeight: 1.2 }}>{children}</div>
 );
 
@@ -53,9 +54,9 @@ const Speaker: React.FC<{ from: number; to: number }> = ({ from, to }) => {
 };
 
 /** صفحة مصحف (سورة العلق ١–٣) يمرّ قلم التظليل على الآية الأولى. */
-const Page: React.FC<{ at: number }> = ({ at }) => {
+export const Page: React.FC<{ at: number }> = ({ at }) => {
   const f = useCurrentFrame() - at;
-  const k = easeOut(f / 14), hl = easeInOut((f - 22) / 20), z = lerp(1.0, 1.08, clamp01(f / 110));
+  const k = easeOut(f / 14), hl = easeInOut((f - 3) / 9), z = lerp(1.0, 1.08, clamp01(f / 110));
   return (
     <AbsoluteFill style={{ background: "#0d0b08", alignItems: "center", justifyContent: "center" }}>
       <div style={{ width: 880, padding: "44px 46px", background: "#f1ead8", transform: `scale(${z * (0.9 + 0.1 * k)}) rotate(${(1 - k) * -4}deg)`, opacity: k, boxShadow: "0 30px 60px rgba(0,0,0,.6)", direction: "rtl", textAlign: "center", fontFamily: ff("amiri") }}>
@@ -74,7 +75,7 @@ const Page: React.FC<{ at: number }> = ({ at }) => {
 };
 
 /** نجمة زخرفية ذهبية بثماني نقاط تدور ببطء خلف الكلمات. */
-const Rosette: React.FC = () => {
+export const Rosette: React.FC = () => {
   const f = useCurrentFrame();
   const star = (r1: number, r2: number, n = 8) => Array.from({ length: n * 2 }, (_, i) => { const r = i % 2 ? r2 : r1, a = (Math.PI * i) / n; return `${(Math.cos(a) * r).toFixed(1)},${(Math.sin(a) * r).toFixed(1)}`; }).join(" ");
   return (

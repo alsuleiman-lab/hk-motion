@@ -19,6 +19,7 @@ import { KineticType, KINETIC_TYPE_FRAMES, KineticOver, KineticSplit, KINETIC_SP
 import { ActiveSpeaker, ACTIVE_FRAMES } from "./ext/ActiveSpeaker";
 import { CineSpeaker, CINE_SPEAKER_FRAMES } from "./ext/CineKit";
 import { StepsTemplate, STEPS_FRAMES } from "./ext/StepsKit";
+import { SheikhCast, SHEIKH_CAST_FRAMES } from "./ext/SheikhCast";
 import { BoardTemplate, BOARD_FRAMES } from "./ext/BoardKit";
 import { CineWords, CINE_WORDS_FRAMES } from "./ext/CineWords";
 import { AnimeScene, ANIME_FRAMES, ANIME_FPS } from "./ext/AnimeScene";
@@ -109,6 +110,7 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Ref-KineticSplit" component={KineticSplit} durationInFrames={KINETIC_SPLIT_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-ActiveSpeaker" component={ActiveSpeaker} durationInFrames={ACTIVE_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-CineSpeaker" component={CineSpeaker} durationInFrames={CINE_SPEAKER_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Ref-SheikhCast" component={SheikhCast} durationInFrames={SHEIKH_CAST_FRAMES} fps={30} width={1080} height={1080} />
         <Composition id="Ref-StepsTemplate" component={StepsTemplate} durationInFrames={STEPS_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-BoardTemplate" component={BoardTemplate} durationInFrames={BOARD_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-CineWords" component={CineWords} durationInFrames={CINE_WORDS_FRAMES} fps={30} width={1080} height={1920} />

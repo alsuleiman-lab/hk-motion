@@ -26,8 +26,10 @@ const KF: number[][] = [
   [17.8, 560, 560, 432, 768],
   [20.0, 560, 560, 432, 768],
   [21.5, 1200, 560, 432, 768],
-  [22.4, 1200, 560, 432, 768],
-  [23.4, 0, 0, 1080, 1920],
+  [21.59, 1200, 560, 432, 768],
+  [21.6, 1080, 0, 1080, 1920],
+  [21.9, 1080, 0, 1080, 1920],
+  [23.0, 0, 0, 1080, 1920],
   [26.0, 0, 0, 1080, 1920],
   [26.5, -1300, 0, 1080, 1920],
   [31.8, -1300, 120, 540, 960],
@@ -66,12 +68,12 @@ export const Line: React.FC<{ at: number; x1: number; y1: number; x2: number; y2
 
 /* مربع التحديد الذي يتحرك بين الكلمات (كما في المرجع): يُرسم بخط ثخين ويتنقّل بين الهدفين بإطار الكتابة */
 const BOX_KF: number[][] = [
-  [21.6, 220, 1380, 640, 170],
-  [22.4, 220, 1380, 640, 170],
-  [23.0, 180, 1280, 760, 200],
-  [23.8, 180, 1280, 760, 200],
-  [25.2, 240, 1400, 600, 150],
-  [26.0, 240, 1400, 600, 150],
+  [21.6, 220, 620, 640, 200],
+  [21.9, 220, 620, 640, 200],
+  [23.0, 1260, 1280, 760, 200],
+  [23.8, 1260, 1280, 760, 200],
+  [25.2, 1320, 1400, 600, 150],
+  [26.0, 1320, 1400, 600, 150],
 ];
 export const MovingBox: React.FC<{ kf?: number[][]; until?: number }> = ({ kf = BOX_KF, until = 26.0 }) => {
   const t = useCurrentFrame() / 30;
@@ -214,8 +216,13 @@ export const ActiveSpeaker: React.FC = () => {
       <Word at={19.6} out={21.5} x={20} y={1090} w={520} size={70} text="فريقنا يسويه لك" color={C.teal} shadow={C.cream} font="ruqaa" />
 
       {/* من ٢٠ ثانية: شاشة الكتابة فقط، ومربع يتحرك بخط بين الكلمات */}
-      <Word at={20.6} out={21.8} x={0} y={640} size={150} text="كتابة بس" color={C.teal} shadow={C.cream} />
-      <MovingBox />
+      {t >= 20.5 && t < 26.0 && (() => { const camX = 1080 * easeInOut((t - 21.9) / 1.1);
+        const grid = "linear-gradient(rgba(42,28,31,.06) 2px, transparent 2px), linear-gradient(90deg, rgba(42,28,31,.06) 2px, transparent 2px)";
+        return <div style={{ position: "absolute", left: 0, top: 0, width: 2160, height: H, transform: `translateX(${-camX}px)` }}>
+          {t < 23.0 && t >= 21.6 && <div style={{ position: "absolute", left: 0, top: 0, width: 2160, height: H, background: C.cream, backgroundImage: grid, backgroundSize: "54px 54px", clipPath: `path(evenodd, "M0 0 H2160 V${H} H0 Z M1080 0 H2160 V${H} H1080 Z")` }} />}
+          {t < 23.0 && <Word at={20.6} x={0} y={640} size={150} text="كتابة بس" color={C.teal} shadow={C.cream} />}
+          <MovingBox />
+        </div>; })()}
 
       {/* من ٢٦ ثانية: شاشات تنزلق فوق بعضها بميل (كما في المرجع) */}
       <SlideScreen at={26.0} until={29.9} color={C.teal} enter="iris" ox={140} oy={1700} exitUp>

@@ -25,8 +25,11 @@ const YES = process.argv.includes("--yes"), FORCE = process.argv.includes("--for
 const ls = (d) => { try { return fs.readdirSync(d); } catch { return []; } };
 // a hard-linked file (the cut and its «_cut.mp4» twin, the bundle copies) is counted ONCE: the size shown is the space the deletion frees
 // (when its last link goes — a link kept elsewhere, e.g. in the main tree, keeps the bytes; the listing says which)
-const seen = new Set();
-const sizeOf = (p) => { let s = 0; try { const st = fs.lstatSync(p, { bigint: true }); if (st.isSymbolicLink()) return 0; if (!st.isDirectory()) { const k = `${st.dev}:${st.ino}`; if (seen.has(k)) return 0; seen.add(k); return Number(st.size); } for (const f of fs.readdirSync(p)) s += sizeOf(path.join(p, f)); } catch { /* gone */ } return s; };
+const seen = new Set(), links = new Map();   // file id → [size, links in the whole disk, links met in this project]
+const sizeOf = (p) => { let s = 0; try { const st = fs.lstatSync(p, { bigint: true }); if (st.isSymbolicLink()) return 0; if (!st.isDirectory()) { const k = `${st.dev}:${st.ino}`; const e = links.get(k) ?? [Number(st.size), Number(st.nlink), 0]; e[2]++; links.set(k, e); if (seen.has(k)) return 0; seen.add(k); return Number(st.size); } for (const f of fs.readdirSync(p)) s += sizeOf(path.join(p, f)); } catch { /* gone */ } return s; };
+/* (2026-11-20) the space a deletion REALLY frees: a file whose other links live outside the project (another project, the main tree) keeps its bytes —
+   «4.29 GB deleted» was printed for a copy made of links to another project's files */
+const freed = () => [...links.values()].reduce((s, [size, n, met]) => s + (met >= n ? size : 0), 0);
 const newest = (p) => { let m = 0; try { const st = fs.lstatSync(p); m = st.mtimeMs; if (st.isDirectory() && !st.isSymbolicLink()) for (const f of fs.readdirSync(p)) m = Math.max(m, newest(path.join(p, f))); } catch { /* gone */ } return m; };
 const mb = (b) => (b >= 1073741824 ? `${(b / 1073741824).toFixed(2)} GB` : `${Math.round(b / 1048576)} MB`);
 
@@ -84,7 +87,7 @@ if ((cmd === "ls" || cmd === "clean") && arg) {
     console.log(`\n${label}${skip ? " — يبقى (--keep-media)" : ""}:`);
     for (const x of p[k]) { const s = sizeOf(x); console.log(`  ${mb(s).padStart(9)}  ${x}`); if (!skip) { total += s; list.push(x); } }
   }
-  console.log(`\nالمجموع${cmd === "clean" ? " الذي يُحذف" : ""}: ${mb(total)} في ${list.length} موضعاً`);
+  console.log(`\nالمجموع${cmd === "clean" ? " الذي يُحذف" : ""}: ${mb(total)} في ${list.length} موضعاً — يتحرّر من القرص فعلاً ${mb(freed())} (الباقي ملفات لها روابط خارج المشروع)`);
   if (cmd === "ls") process.exit(0);
   if (!YES) { console.log("(تجربة فقط — لم يُحذف شيء. للحذف: --yes)"); process.exit(0); }
   const why = busy(root, p.ids), young = list.filter((x) => Date.now() - newest(x) < 3 * 60e3);

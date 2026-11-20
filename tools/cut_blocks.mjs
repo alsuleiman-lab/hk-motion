@@ -56,23 +56,29 @@ if (!process.env.CUT_BLOCKS_EAGER) {
   const base0 = src.replace(/\.mp4$/, ""), pv0 = `${base0}_prev_${v0}.mp4`, pa0 = `${base0}_prev_${v0}.m4a`;
   let I = null; try { I = fs.existsSync(pv0) ? L.initLazy(p) : null; } catch (e) { console.log("cut_blocks: lazy cut not possible (" + e.message + ") → eager"); }
   if (I) {
+    const T0 = Date.now(), tm = {}, lap = (k) => { tm[k] = ((Date.now() - (tm._ ?? T0)) / 1000).toFixed(1); tm._ = Date.now(); };   /* (2026-11-20) where the time goes, printed at the end */
     const v1 = Date.now().toString(36), pv1 = `${base0}_prev_${v1}.mp4`, pa1 = `${base0}_prev_${v1}.m4a`;
     const rp = spawnSync(lazyPY, ["tools/cut_splice.py", pv0, pv1, "--keep", keepArg0, "--kind", "proxy"], { encoding: "utf8", windowsHide: true, maxBuffer: 1 << 26 });
+    lap("لصق النسخة الخفيفة");
     if (rp.status === 0) {
       const ffl = (args) => { const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", ...args], { encoding: "utf8" }); if (r.status !== 0) { console.error(r.stderr); process.exit(1); } };
       const ap = keep.map(([s, e], i) => { const d = (e - s) / 30; return `[0:a]atrim=start=${(s / 30).toFixed(4)}:end=${(e / 30).toFixed(4)},asetpts=PTS-STARTPTS${i > 0 ? ",afade=t=in:st=0:d=0.012" : ""}${i < keep.length - 1 ? `,afade=t=out:st=${Math.max(0, d - 0.012).toFixed(4)}:d=0.012` : ""}[a${i}]`; });
       ffl(["-i", I.audio, "-filter_complex", [...ap, keep.map((_, i) => `[a${i}]`).join("") + `concat=n=${keep.length}:v=0:a=1[a]`].join(";"), "-map", "[a]", "-c:a", "pcm_s16le", I.audio + ".new.wav"]);
-      fs.renameSync(I.audio + ".new.wav", I.audio);
-      ffl(["-i", I.audio, "-vn", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", pa1]);
+      fs.renameSync(I.audio + ".new.wav", I.audio); lap("قص الصوت");
+      ffl(["-i", I.audio, "-vn", "-c:a", "aac", "-aac_coder", "fast", "-b:a", "128k", "-movflags", "+faststart", pa1]);
+      lap("ترميز صوت المعاينة");
       px0[rel0] = v1; fs.writeFileSync(LIST0, JSON.stringify(px0, null, 1));
       for (const f2 of [pv0, pa0]) { try { fs.rmSync(f2, { force: true }); } catch { /* the Studio still reads it: the next proxy run removes it */ } }
       ffl(["-i", I.audio, "-ac", "1", "-ar", "48000", path.join(T, "cut.wav")]);
       ffl(["-i", path.join(T, "cut.wav"), "-ar", "16000", "-ac", "1", path.join(T, "cut16k.wav")]);
+      lap("نسختا الصوت");
       console.log(`cut_blocks: ${spans.length} blocks (${(spans.reduce((s, [a, b]) => s + b - a, 0) / 30).toFixed(2)} s) taken out of the LIST, the audio and the light copy; the heavy video is not touched (built again only when something needs it)`);
       for (const [a, b] of [...spans].reverse()) {
         const r = spawnSync(process.execPath, ["tools/cut_block.mjs", p, `f${a}`, `f${b}`, ...rest.filter((x) => x !== "--snap-words" && x !== "--force"), "--force"], { encoding: "utf8", env: { ...process.env, CUT_BLOCK_JSON_ONLY: "1", CUT_BLOCK_OUT: path.basename(src) } });
         console.log((r.stdout || "").trim().split("\n").slice(-2).join(" | ")); if (r.status !== 0) { console.error(r.stderr || r.stdout); process.exit(1); }
       }
+      lap("ممر البيانات");
+      console.log(`cut_blocks: الأزمنة (ث): ${Object.entries(tm).filter(([k]) => k !== "_").map(([k, v]) => `${k} ${v}`).join(" · ")} · المجموع ${((Date.now() - T0) / 1000).toFixed(1)}`);
       console.log("cut_blocks: DONE (lazy)");
       process.exit(0);
     }
@@ -103,7 +109,7 @@ if (!process.env.CUT_BLOCKS_FULL) {
         const v1 = Math.floor(fs.statSync(out).mtimeMs / 1000).toString(36), base1 = out.replace(/\.mp4$/, ""), pv1 = `${base1}_prev_${v1}.mp4`, pa1 = `${base1}_prev_${v1}.m4a`;
         const rp = spawnSync(PYG, ["tools/cut_splice.py", pv0, pv1, "--keep", keepArg, "--kind", "proxy"], { encoding: "utf8", windowsHide: true, maxBuffer: 1 << 26 });
         if (rp.status === 0) {
-          ff(["-i", out, "-vn", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", pa1]);
+          ff(["-i", out, "-vn", "-c:a", "aac", "-aac_coder", "fast", "-b:a", "128k", "-movflags", "+faststart", pa1]);
           for (const f2 of fs.readdirSync("public").filter((x) => x.startsWith(`${p}_cut_s_b${n}_prev_`) && !x.startsWith(`${p}_cut_s_b${n}_prev_${v1}.`))) { try { fs.rmSync(path.join("public", f2)); } catch { /* open */ } }
           px[`${outName}`] = v1; fs.writeFileSync(LIST, JSON.stringify(px, null, 1)); console.log("cut_blocks: light copy spliced →", path.basename(pv1));
         } else console.log("cut_blocks: the light copy was not spliced (" + (rp.stdout || "").trim().split("\n").slice(-1)[0] + ") — stage check makes a new one");

@@ -187,7 +187,11 @@ http.createServer((req, res) => {
       if (url.startsWith("/api/queue/")) return send(res, 200, queue(url, body));
       if (url === "/api/msg") {
         const text = String(body.text ?? "").trim().slice(0, 4000); if (!text) throw new Error("اكتب الرسالة");
-        const m = { id: Date.now().toString(36), at: new Date().toISOString(), comp: String(body.comp ?? ""), frame: Number(body.frame ?? 0), time: String(body.time ?? ""), elements: String(body.elements ?? "").slice(0, 300), text, reply: null };
+        /* (2026-11-20) the Studio inserts the 5-s break (spec.bumper.at) into its timeline: the frame he sees is ahead of the cut by 150 frames after it —
+           the cut time is written with the message, so the agent never misreads a frame (it did: 6.5 s instead of 5) */
+        const fr = Number(body.frame ?? 0), pj = projectOf(String(body.comp ?? ""));
+        let cut = fr / 30; try { const b = pj ? JSON.parse(fs.readFileSync(path.join("data", "specs", `${pj}.json`), "utf8")).bumper : null; if (b && b.at >= 1 && !b.end && fr / 30 >= b.at) cut = fr / 30 < b.at + 5 ? b.at : fr / 30 - 5; } catch { /* no spec */ }
+        const m = { id: Date.now().toString(36), at: new Date().toISOString(), comp: String(body.comp ?? ""), frame: fr, time: String(body.time ?? ""), cutTime: +cut.toFixed(2), elements: String(body.elements ?? "").slice(0, 300), text, reply: null };
         fs.mkdirSync(".tmp", { recursive: true }); fs.appendFileSync(INBOX, JSON.stringify(m) + "\n");
         return send(res, 200, { ok: true, message: m, messages: inbox().slice(-30) });
       }

@@ -206,6 +206,14 @@ if (cmd === "list") {
   }
   await gateAfter(f, p, base, beforeText, `الدفعة (${ops.length} عملية)`);
   console.log(`✔ طُبّقت الدفعة كلها (${ops.length} عملية)`);
+  /* (2026-11-20) --peek <Comp>: the changed elements drawn by the GPU engine into one sheet, to LOOK at before telling the user «done» (every defect he
+     found on mufti-hiraba was visible and passed every gate) */
+  const pk = process.argv.includes("--peek") ? process.argv[process.argv.indexOf("--peek") + 1] : null;
+  if (pk) {
+    const now = JSON.parse(read(f)), oldIds = new Set(JSON.parse(beforeText).items.map((x) => x.id));
+    const ids = [...new Set([...ops.filter((o) => o.op === "set").map((o) => String(o.id).replace(/^#/, "")), ...now.items.filter((x) => !oldIds.has(x.id)).map((x) => x.id)])].filter((id) => now.items.some((x) => x.id === id));
+    if (ids.length) { const r = spawnSync(process.execPath, ["tools/peek.mjs", p, pk, "--ids", ids.join(",")], { encoding: "utf8" }); console.log(((r.stdout || "") + (r.stderr || "")).trim()); }
+  }
 } else if (cmd === "size") {
   /* (user 2026-11-19, HK-Motion: «أريحية المقاسات») an element's OWN size and nudge, on top of the gallery's: port = the item's dx/dy/k, land = its land.dx/dy/k (src/MontageSpec.tsx withGallery adds the gallery on top of both) */
   const [p, n0, ...rest] = args, f = specPath(p), s = JSON.parse(read(f)); ensureIds(s); const n = at(s, n0), it = n == null ? null : s.items[n];

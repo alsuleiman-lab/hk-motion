@@ -51,7 +51,10 @@ export function faceZoner(spec) {
       map = ([px, py]) => [left + (px - sp.sheikh.x) * k, top + py * k];
     } else if (land) {
       const zm = zoomAt(t), ox = 0.516 * W, oy = 0.305 * H;
-      const bw = (spec.behind ?? []).find((b) => b.dx !== undefined && t >= b.from && t < b.to), dx = bw ? bw.dx : 0;
+      /* (2026-11-20) `shifts` slide his whole video right (half-screen ways): judged at its slid place, like a shifted isolation window */
+      const bw = (spec.behind ?? []).find((b) => b.dx !== undefined && t >= b.from && t < b.to);
+      const sh = (spec.shifts ?? []).find((s) => t >= s.from && t <= s.to + 0.4), shK = sh ? Math.min(Math.max(0, Math.min(1, (t - sh.from) / 0.4)), Math.max(0, Math.min(1, (sh.to + 0.4 - t) / 0.4))) : 0;
+      const dx = bw ? bw.dx : sh ? sh.dx * shK : 0;
       map = ([px, py]) => [ox + (px - ox) * zm + dx, oy + (py - oy) * zm];
     } else {
       const cams = spec.cams ?? [{ from: 0, to: 9999, cx: 990 }];

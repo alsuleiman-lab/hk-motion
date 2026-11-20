@@ -25,6 +25,7 @@ process.chdir(root);
 try { os.setPriority(process.pid, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch {} // every child (Electron, its GPU process, python, ffmpeg) inherits BelowNormal
 const SMALL_JOB = arg("frames", false) !== false || (arg("start", false) !== false && arg("end", false) !== false && Number(arg("end", 0)) - Number(arg("start", 0)) <= 900);   // a short span / scattered frames may run beside another render (user 2026-11-15)
 acquireRenderLock("gpu " + compId, { small: SMALL_JOB });
+const { projectOf: projectOfComp } = await import("./cut_lazy.mjs");
 const EDL = (await import("./cut_lazy.mjs")).edlSetup(compId);   // a tracked project is read from the original through its cut list (tools/gpu/edl_stream.py); any other: the cut video is made current first (tools/cut_lazy.mjs)
 if (EDL) process.env.HK_EDL_MAP = EDL.file;   // a FULL render is still one at a time, like every other render entry point
 const PROJ = (await import("./lib/projdir.mjs")).projTmp(compId);   /* the project's own temporary folder: work frames and logs go there (user 2026-11-19) */
@@ -160,7 +161,14 @@ if (!fs.existsSync(path.join(root, "tools/gpu/bridge.dll"))) {
   if (r.status !== 0 || !fs.existsSync(path.join(root, "tools/gpu/bridge.dll"))) { console.error("could not build tools/gpu/bridge.dll"); process.exit(1); }
 }
 // ---- compositor ----
-const UNDER = String(arg("under", "") === true ? "" : arg("under", "")).split(",").filter(Boolean).map((r) => r.split("-").map(Number)).map(([a, b]) => [Math.max(a, start), Math.min(b, end)]).filter(([a, b]) => b >= a);
+/* (2026-11-20, mufti-hiraba) without --under the maps under him were simply not drawn: the check sheets (grid_sheet, peek) showed no map and him twice
+   while the export (render_job.sh passes --under) would have them — a check that shows another picture than the export. Not given → computed here,
+   the same way render_job.sh does (tools/window_frames.mjs <p> under <o>). --under "" (explicitly empty) keeps it off. */
+const underArg = (() => {
+  if (process.argv.includes("--under")) return String(arg("under", "") === true ? "" : arg("under", ""));
+  try { const pj = projectOfComp(compId); if (!pj) return ""; const r = spawnSync(process.execPath, ["tools/window_frames.mjs", pj, "under", /-L$|Both/i.test(compId) ? "L" : "R"], { encoding: "utf8", cwd: root }); return r.status === 0 ? r.stdout.trim().split(/\s+/).pop() ?? "" : ""; } catch { return ""; }
+})();
+const UNDER = String(underArg).split(",").filter(Boolean).map((r) => r.split("-").map(Number)).map(([a, b]) => [Math.max(a, start), Math.min(b, end)]).filter(([a, b]) => b >= a);
 const NU = UNDER.reduce((n, [a, b]) => n + b - a + 1, 0);
 if (NU) log(`under-him layer: ${NU} frames (${UNDER.map(([a, b]) => a + "-" + b).join(", ")})`);
 const LEVELS = Math.max(0, Number(arg("levels", 3)) || 0);

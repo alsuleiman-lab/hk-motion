@@ -79,7 +79,10 @@ const zoneAt = (t, land, W, H) => {
     map = ([px, py]) => [left + (px - sp.sheikh.x) * k, top + py * k];
   } else if (land) {  // whole frame, push-in about faceOrigin 51.6% 30.5%
     const z = zoomAt(t), ox = 0.516 * W, oy = 0.305 * H;
-    const bw = (spec.behind ?? []).find((b) => b.dx !== undefined && t >= b.from && t < b.to), dx = bw ? bw.dx : 0;   // isolated and shifted right inside a `behind` window
+    const bw = (spec.behind ?? []).find((b) => b.dx !== undefined && t >= b.from && t < b.to);   // isolated and shifted right inside a `behind` window
+    /* (2026-11-20) a `shifts` window slides his WHOLE video right (the half-screen verse/hadith ways; LandFootage, ramp 0.4 s): his face moves too */
+    const sh = (spec.shifts ?? []).find((s) => t >= s.from && t <= s.to + 0.4), shK = sh ? Math.min(Math.max(0, Math.min(1, (t - sh.from) / 0.4)), Math.max(0, Math.min(1, (sh.to + 0.4 - t) / 0.4))) : 0;
+    const dx = bw ? bw.dx : sh ? sh.dx * shK : 0;
     map = ([px, py]) => [ox + (px * W / 1920 - ox) * z + dx, oy + (py * H / 1080 - oy) * z];
   } else {            // portrait: 608-px slice around cam.cx scaled to 1920 high, push-in about 540,600
     const cams = spec.cams ?? [{ from: 0, to: 9999, cx: 990 }];

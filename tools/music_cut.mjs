@@ -58,7 +58,7 @@ if (LAZY) {   // the new sound is the audio truth; the light copy gets a new ver
   fs.renameSync(out, I0.audio);
   const v1 = Date.now().toString(36), pv1 = `${base0}_prev_${v1}.mp4`, pa1 = `${base0}_prev_${v1}.m4a`;
   try { fs.linkSync(pv0, pv1); } catch { fs.copyFileSync(pv0, pv1); }
-  ff(["-i", I0.audio, "-vn", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", pa1]);
+  ff(["-i", I0.audio, "-vn", "-c:a", "aac", "-aac_coder", "fast", "-b:a", "128k", "-movflags", "+faststart", pa1]);
   px0[rel0] = v1; fs.writeFileSync(path.join("data", "preview_proxies.json"), JSON.stringify(px0, null, 1));
   for (const f2 of [pv0, pa0]) { try { fs.rmSync(f2, { force: true }); } catch { /* the Studio still reads it: the next proxy run removes it */ } }
   ff(["-i", I0.audio, "-ac", "1", "-ar", "48000", path.join(T, "cut.wav")]);
@@ -83,7 +83,7 @@ try {
     const v1 = Math.floor(fs.statSync(dst).mtimeMs / 1000).toString(36), base = dst.replace(/\.mp4$/, "");
     const pv1 = `${base}_prev_${v1}.mp4`, pa1 = `${base}_prev_${v1}.m4a`;
     try { fs.linkSync(pv0, pv1); } catch { fs.copyFileSync(pv0, pv1); }
-    ff(["-i", out, "-vn", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", pa1]);
+    ff(["-i", out, "-vn", "-c:a", "aac", "-aac_coder", "fast", "-b:a", "128k", "-movflags", "+faststart", pa1]);
     px[outName] = v1; fs.writeFileSync(LIST, JSON.stringify(px, null, 1));
   }
 } catch (e) { console.log("light copy skipped:", e.message); }

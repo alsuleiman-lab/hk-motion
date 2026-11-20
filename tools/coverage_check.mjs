@@ -165,6 +165,11 @@ if (missing.length) fails++;
   }
   console.log(bad.length ? `✘ الخريطة في العرضي ملء الإطار خلفه وهو معزول: ${bad.join("، ")}` : "✔ كل خريطة في العرضي ملء الإطار خلفه وهو معزول");
   if (bad.length) fails++;
+  /* (2026-11-20, mufti-hiraba 10:51) an isolation window inside a clip window (split screen): the clip is shown and him twice (his split-screen copy +
+     the isolated one) — never accepted */
+  const clash = (spec.behind ?? []).filter((b) => (spec.splits ?? []).some((w) => b.from < w.to - 0.05 && b.to > w.from + 0.05));
+  if (clash.length) { fails++; console.log(`✘ نافذة عزل داخل نافذة مقطع (يظهر الشيخ مرتين): ${clash.map((b) => `${mm(b.from)}–${mm(b.to)}`).join("، ")}`); }
+  else console.log("✔ لا نافذة عزل داخل نافذة مقطع");
 }
 
 // 2) empty stretches (any item or baked split counts as something on screen)

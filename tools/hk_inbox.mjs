@@ -12,7 +12,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const F = path.join(ROOT, ".tmp", "hk_inbox.jsonl");
 const read = () => { try { return fs.readFileSync(F, "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } };
 const open = () => read().filter((m) => !m.reply);
-const show = (m) => `#${m.id} · ${m.comp} · ${m.time} (الإطار ${m.frame})${m.elements ? ` · على الشاشة: ${m.elements}` : ""}\n  «${m.text}»`;
+const show = (m) => `#${m.id} · ${m.comp} · ${m.time} (الإطار ${m.frame}${m.cutTime != null ? ` = ثانية القص ${m.cutTime}` : ""})${m.elements ? ` · على الشاشة: ${m.elements}` : ""}\n  «${m.text}»`;
 const [cmd, ...a] = process.argv.slice(2);
 
 if (cmd === "wait") {

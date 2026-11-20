@@ -33,6 +33,8 @@ let run = 0, best = 0, bestEnd = 0, stillN = 0;
 const endHold = Math.round(2.7 * fps), lastCheck = diffs.length - endHold;
 diffs.forEach((d, i) => { if (d < STILL) { stillN++; if (i < lastCheck) { run++; if (run > best) { best = run; bestEnd = i; } } } else run = 0; });
 const longest = { s: t(bestEnd - best + 1), e: t(bestEnd + 1), len: +(best / fps).toFixed(2) };
+/* كل فترات السكون فوق الحد (لا الأطول وحده) لتُصلح كلها في مرور واحد */
+const stills = []; { let r = 0; diffs.forEach((d, i) => { if (d < STILL && i < lastCheck) r++; else { if (r / fps > MAX_STILL) stills.push({ s: t(i - r), e: t(i), len: +(r / fps).toFixed(2) }); r = 0; } }); if (r / fps > MAX_STILL) stills.push({ s: t(diffs.length - r), e: t(diffs.length), len: +(r / fps).toFixed(2) }); }
 const med = [...diffs].sort((a, b) => a - b)[Math.floor(diffs.length / 2)] || 0;
 const cuts = []; diffs.forEach((d, i) => { if (i > 0 && d > Math.max(14, 6 * med) && d > 1.8 * diffs[i - 1] && (!cuts.length || i - cuts[cuts.length - 1] > 3)) cuts.push(i); });
 const shots = cuts.map((c, i) => (c - (i ? cuts[i - 1] : 0)) / fps).sort((a, b) => a - b);
@@ -47,7 +49,7 @@ if (m) { try { const j = JSON.parse(m[m.length - 1]); loud = { I: +j.input_i, TP
 const peaksN = Number(opt("peaks", "0"));
 const peaks = [];
 if (peaksN > 0) { const order = diffs.map((d, i) => [d, i]).sort((a, b) => b[0] - a[0]); for (const [d, i] of order) { if (peaks.length >= peaksN) break; if (peaks.every((p) => Math.abs(p - i) > fps * 0.5)) peaks.push(i); } peaks.sort((a, b) => a - b); }
-const rep = { file, fps, peaks: peaks.map((i) => t(i)), frames: diffs.length + 1, firstMotion: firstMove < 0 ? null : t(firstMove + 1), longestStill: longest, stillPct: +((100 * stillN) / Math.max(1, diffs.length)).toFixed(1), cuts: cuts.map((c) => t(c)), medianShot: medShot, loudness: loud };
+const rep = { file, fps, peaks: peaks.map((i) => t(i)), frames: diffs.length + 1, firstMotion: firstMove < 0 ? null : t(firstMove + 1), longestStill: longest, stills, stillPct: +((100 * stillN) / Math.max(1, diffs.length)).toFixed(1), cuts: cuts.map((c) => t(c)), medianShot: medShot, loudness: loud };
 const fails = [];
 if (rep.firstMotion === null || rep.firstMotion > 0.4) fails.push(`أول حركة ${rep.firstMotion} ث (الحد 0.4)`);
 if (longest.len > MAX_STILL) fails.push(`سكون ${longest.len} ث من ${longest.s} إلى ${longest.e} (الحد ${MAX_STILL})`);
@@ -56,6 +58,7 @@ rep.fails = fails;
 if (opt("json")) fs.writeFileSync(opt("json"), JSON.stringify(rep, null, 1));
 console.log(`أول حركة: ${rep.firstMotion} ث | أطول سكون: ${longest.len} ث (${longest.s}–${longest.e}) | نسبة السكون: ${rep.stillPct}٪`);
 console.log(`القطع: ${cuts.length} | وسيط اللقطة: ${medShot ?? "—"} ث | الصوت: ${loud ? `${loud.I} LUFS، القمة ${loud.TP} dBTP، المدى ${loud.LRA}` : "لا صوت"}`);
+if (stills.length > 1) console.log(`كل فترات السكون فوق الحد: ${stills.map((x) => `${x.s}–${x.e}`).join("، ")}`);
 if (peaks.length) console.log(`لحظات التغيّر الكبرى: ${rep.peaks.join("، ")}`);
 console.log(fails.length ? "✘ " + fails.join("\n✘ ") : "✔ لا سكون فوق الحد، والحركة تبدأ في وقتها");
 process.exit(fails.length ? 1 : 0);

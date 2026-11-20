@@ -34,20 +34,31 @@ const KF: number[][] = [
   [0, ...FULL], [3.77, ...FULL],
   [4.09, 560, 520, 460, 620], [5.45, 540, 500, 480, 648],
   [7.03, 540, 500, 480, 648], [8.61, 540, 500, 480, 648],
-  [9.06, 190, 120, 700, 460], [12.08, 160, 100, 760, 500],
-  [16.41, 160, 100, 760, 500], [16.72, 40, 520, 460, 620], [22.08, 20, 490, 500, 675],
+  [9.06, 190, 120, 700, 460], [12.08, 110, 64, 860, 566],
+  [16.41, 160, 100, 760, 500], [16.72, 40, 520, 460, 620], [22.08, 10, 450, 520, 702],
   [22.6, ...FULL], [25.7, ...FULL],
-  [35.01, ...FULL], [35.27, 190, 120, 700, 460], [41.02, 150, 95, 780, 513],
-  [55.2, 150, 95, 780, 513],
+  [35.01, ...FULL], [35.27, 190, 120, 700, 460], [41.02, 100, 64, 880, 579],
+  [55.2, 100, 64, 880, 579],
 ];
 const boxAt = (t: number) => {
   for (let i = 0; i < KF.length - 1; i++) {
     const a = KF[i], b = KF[i + 1];
-    if (t >= a[0] && t < b[0]) { const k = easeInOut((t - a[0]) / (b[0] - a[0])); return [1, 2, 3, 4].map((j) => lerp(a[j], b[j], k)); }
+    if (t >= a[0] && t < b[0]) { const u = (t - a[0]) / (b[0] - a[0]), k = b[0] - a[0] >= 0.7 ? u : easeInOut(u); return [1, 2, 3, 4].map((j) => lerp(a[j], b[j], k)); } /* الثبات انجراف منتظم بلا تباطؤ، والانتقال بتسارع وتباطؤ */
   }
   return KF[KF.length - 1].slice(1);
 };
 /* اقتراب بطيء في اللقطات الكاملة (نحو ٤٪ في الثانية) حتى لا تسكن */
+/* اقتراب مستمر داخل البطاقة أثناء ثباتها (٣٫٥٪ في الثانية، حتى ٢٠٪)، ويرجع بنعومة أثناء انتقالها فلا قفزة ولا سكون */
+const HOLD_MIN = 0.7, CARD_PUSH = 0.05;
+const holdPush = (i: number) => (i >= 0 && KF[i + 1][0] - KF[i][0] >= HOLD_MIN ? Math.min(0.25, CARD_PUSH * (KF[i + 1][0] - KF[i][0])) : 0);
+/* الاقتراب موزّع على الثبات كله فلا يبلغ حدّه ويقف قبل نهايته */
+const cardPush = (t: number) => {
+  for (let i = 0; i < KF.length - 1; i++) {
+    const a = KF[i][0], b = KF[i + 1][0];
+    if (t >= a && t < b) return b - a >= HOLD_MIN ? 1 + holdPush(i) * ((t - a) / (b - a)) : 1 + holdPush(i - 1) * (1 - easeInOut((t - a) / (b - a)));
+  }
+  return 1;
+};
 const fullPush = (t: number) => (t < 3.77 ? 1 + 0.04 * t : t >= 22.6 && t < 25.7 ? 1 + 0.04 * (t - 22.6) : 1);
 
 /** كلمة تدخل بانكماش من الكبير وتخرج بالتلاشي (كلمة كلمة، لا حرفاً حرفاً) */
@@ -76,7 +87,8 @@ const Screen: React.FC<{ at: number; until: number; color: string; enter: "iris"
   if (e > 0) { tf += ` translateY(${-e * e * 2100}px)`; blur = e * 14; }
   return (
     <div style={{ position: "absolute", inset: 0, transform: tf || undefined, clipPath: clip, filter: blur ? `blur(${blur}px)` : undefined, background: color, backgroundImage: "linear-gradient(rgba(255,255,255,.07) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,.07) 2px, transparent 2px)", backgroundSize: "54px 54px", backgroundPosition: `${u * 18}px ${u * 30}px` }}>
-      <div style={{ position: "absolute", inset: 0, transform: `scale(${1 + 0.1 * clamp01(u / 3)})` }}>{children}</div>
+      <svg width={1080} height={1920} viewBox="-540 -960 1080 1920" style={{ position: "absolute", inset: 0, opacity: 0.3 }}><g transform={`rotate(${u * 22})`}>{[520, 400, 280].map((rr, i) => <polygon key={rr} points={Array.from({ length: 16 }, (_, j) => { const q = (Math.PI * j) / 8, R = j % 2 ? rr * 0.72 : rr; return `${(Math.cos(q) * R).toFixed(1)},${(Math.sin(q) * R).toFixed(1)}`; }).join(" ")} fill="none" stroke="#f2d27a" strokeWidth={4} transform={`rotate(${i * 11.25})`} />)}</g></svg>
+      <div style={{ position: "absolute", inset: 0, transform: `scale(${1 + 0.1 * clamp01(u / 3) + 0.012 * Math.max(0, u - 3)}) translateY(${-6 * Math.max(0, u - 3)}px)` }}>{children}</div>
     </div>
   );
 };
@@ -87,7 +99,9 @@ const MovingBox: React.FC<{ kf: number[][]; until: number }> = ({ kf, until }) =
   let r = kf[kf.length - 1].slice(1);
   for (let i = 0; i < kf.length - 1; i++) { const a = kf[i], b = kf[i + 1]; if (t >= a[0] && t < b[0]) { const k = easeInOut((t - a[0]) / (b[0] - a[0])); r = [1, 2, 3, 4].map((j) => lerp(a[j], b[j], k)); break; } }
   const draw = easeOut((t - kf[0][0]) / 0.5);
-  return <div style={{ position: "absolute", left: r[0], top: r[1], width: r[2], height: r[3], border: `7px solid ${C.maroon}`, borderRadius: 16, boxSizing: "border-box", clipPath: `inset(0 ${(1 - draw) * 100}% 0 0)` }} />;
+  /* خط ذهبي يجري على الإطار بلا توقف (المربع الذي له خط يتحرك في المرجع) */
+  const sw = ((t - kf[0][0]) / 1.4) % 1, a0 = Math.max(0, sw * 130 - 30), a1 = Math.min(100, sw * 130);
+  return <><div style={{ position: "absolute", left: r[0], top: r[1], width: r[2], height: r[3], border: `7px solid ${C.maroon}`, borderRadius: 16, boxSizing: "border-box", clipPath: `inset(0 ${(1 - draw) * 100}% 0 0)` }} />{draw >= 1 && <div style={{ position: "absolute", left: r[0], top: r[1], width: r[2], height: r[3], border: `7px solid ${C.gold}`, borderRadius: 16, boxSizing: "border-box", clipPath: `inset(0 ${100 - a1}% 0 ${a0}%)` }} />}</>;
 };
 /** خط أحمر يُرسم فوق كلمة مرفوضة */
 const Strike: React.FC<{ at: number; until: number; x: number; y: number; w: number }> = ({ at, until, x, y, w }) => {
@@ -110,7 +124,7 @@ export const AqidaReel: React.FC = () => {
   const t = useCurrentFrame() / 30;
   const [x, y, w, h] = boxAt(t);
   const full = w > 1000 && y < 420;
-  const p = full ? fullPush(t) : 1;
+  const p = full ? fullPush(t) : cardPush(t);
   const r = srcRect(w, h);
   /* قلب البطاقة ٦٫٤–٨٫٦: ظهرها «تفسيره» */
   const flipping = t >= 5.5 && t < 7.03;
@@ -120,7 +134,7 @@ export const AqidaReel: React.FC = () => {
       <HybridBg>
         <AbsoluteFill style={{ background: C.cream, backgroundImage: "linear-gradient(rgba(42,28,31,.06) 2px, transparent 2px), linear-gradient(90deg, rgba(42,28,31,.06) 2px, transparent 2px)", backgroundSize: "54px 54px" }} />
       </HybridBg>
-      <Audio src={staticFile("aqida-mufassir_cut_s.mp4")} />
+      <Audio src={staticFile("aqida-mufassir_cut_s.mp4")} volume={0.63} />
       {!flipping && <VSlot src="aqida-mufassir_cut_s.mp4" w={w} h={h} radius={full ? 0 : 26} vx={r.vx - (r.vw * (p - 1)) / 2} vy={r.vy - (r.vh * (p - 1)) * 0.3} vw={r.vw * p} vh={r.vh * p} style={{ left: x, top: y }} grow={0} />}
       {!full && !flipping && <div style={{ position: "absolute", left: x - 12, top: y - 12, width: w + 24, height: h + 24, boxSizing: "border-box", border: "12px solid #fffdf6", borderRadius: 30 }} />}
 
@@ -171,7 +185,8 @@ export const AqidaReel: React.FC = () => {
       <Word at={18.3} out={22.19} x={520} y={720} w={540} size={120} text="ابن جرير" color={C.teal} />
       <Word at={19.2} out={22.19} x={520} y={900} w={540} size={120} text="ابن سعدي" />
       <Word at={20.1} out={22.19} y={1260} size={100} text="وعامة علماء السلف" color={C.teal} />
-      <MovingBox kf={[[17.4, 560, 545, 460, 160], [18.1, 560, 545, 460, 160], [18.38, 560, 725, 460, 160], [19.04, 560, 725, 460, 160], [19.31, 560, 905, 460, 160], [19.99, 560, 905, 460, 160], [20.43, 120, 1255, 840, 150], [22.19, 120, 1255, 840, 150]]} until={22.19} />
+      <Word at={21.27} out={22.19} y={1440} size={110} text="المفسّرين" font="ruqaa" />
+      <MovingBox kf={[[17.4, 560, 545, 460, 160], [18.1, 560, 545, 460, 160], [18.38, 560, 725, 460, 160], [19.04, 560, 725, 460, 160], [19.31, 560, 905, 460, 160], [19.99, 560, 905, 460, 160], [20.43, 120, 1255, 840, 150], [21.2, 120, 1255, 840, 150], [21.55, 90, 1235, 900, 345], [22.19, 80, 1228, 920, 360]]} until={22.19} />
       <NameTag at={16.86} until={22.19} x={20} y={1150} w={480} />
       {/* ٨) ٢٤٫٣–٢٧٫٦: فوق الرأس */}
       <Word at={22.4} out={25.75} y={90} size={120} text="هو الذي يجيء" />
@@ -188,7 +203,7 @@ export const AqidaReel: React.FC = () => {
       <Word at={35.22} out={41.1} y={700} size={110} text="هو الذي يجيء" />
       <Word at={36.5} out={41.1} y={900} size={80} text="وينزل في الثلث الأخير من الليل" font="ruqaa" color={C.teal} />
       <Word at={39} out={41.1} y={1080} size={110} text="ويدنو عشية عرفة" />
-      <MovingBox kf={[[35.33, 190, 700, 700, 150], [36.38, 190, 700, 700, 150], [36.72, 60, 895, 960, 120], [38.78, 60, 895, 960, 120], [39.17, 140, 1080, 800, 150], [41.1, 140, 1080, 800, 150]]} until={41.1} />
+      <MovingBox kf={[[35.33, 190, 700, 700, 150], [36.38, 190, 700, 700, 150], [36.72, 60, 895, 960, 120], [38.78, 110, 880, 860, 150], [39.17, 140, 1080, 800, 150], [41.1, 140, 1080, 800, 150]]} until={41.1} />
       {/* ١١) ٤٥٫٩–النهاية: قول المعطّلة */}
       <Screen at={41.1} until={99} color={C.maroon} enter="grow">
         <Word at={41.22} y={480} size={96} text="لا يُقال:" font="ruqaa" color={C.cream} shadow={C.ink} />

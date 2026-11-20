@@ -28,7 +28,13 @@ export type MosaicCoverProps = {
   muted?: boolean;
   /** مستطيل في الصورة لا تغطيه الكلمات ([x, y, w, h] نسبةً إلى الصورة): الافتراضي مربع «18» في غلاف gta6/cover_blur.png، فتُرفع الكلمة فوقه ليبقى ظاهراً */
   keep?: [number, number, number, number];
+  /** (أمر الشيخ 2026-11-21، الإطار 2154: «أنا أحطني على جنب وحط هاي على جنب») "side" في العرضي: الغلاف في النصف الأيسر الخالي وحده، بلا أرضية ملء الشاشة،
+   *  والشيخ يُزاح يميناً بنافذة spec.shifts (dx + feather، القاعدة 26) فيبقى وجهه ظاهراً؛ القطع تدخل من اليسار ولا تعبر وجهه، والبرق داخل النصف نفسه.
+   *  الافتراضي "full" (ملء الشاشة كما كان) */
+  mode?: "full" | "side";
 };
+/** عرض النصف الأيسر في وضع "side": ما بعده يتلاشى (قناع) فيذوب في حافة فيديو الشيخ المزاح */
+const SIDE_W = 1120, SIDE_FADE = 240;
 
 const N = 3;                       // 3 × 3 = تسع قطع
 const FLY = 0.55;                  // زمن طيران القطعة إلى مكانها
@@ -91,7 +97,7 @@ const GEOM = (() => {
 const polyCss = (poly: Pt[], W: number, H: number) => `polygon(${poly.map(([x, y]) => `${(x * W).toFixed(1)}px ${(y * H).toFixed(1)}px`).join(", ")})`;
 const polyAttr = (poly: Pt[], W: number, H: number) => poly.map(([x, y]) => `${(x * W).toFixed(1)},${(y * H).toFixed(1)}`).join(" ");
 
-export const MosaicCover: React.FC<MosaicCoverProps> = ({ at, until, words, src, ar = 1182 / 966, flashAt, sound = true, soundVol = 1, muted, keep = [0.02, 0.8, 0.16, 0.19] }) => {
+export const MosaicCover: React.FC<MosaicCoverProps> = ({ at, until, words, src, ar = 1182 / 966, flashAt, sound = true, soundVol = 1, muted, keep = [0.02, 0.8, 0.16, 0.19], mode = "full" }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
   const t = frame / fps;
@@ -103,13 +109,15 @@ export const MosaicCover: React.FC<MosaicCoverProps> = ({ at, until, words, src,
   if (t < at - 0.001 || t > until) return snd;
 
   const land = width > height;
-  /* الغلاف في وسط الإطار: العرضي بارتفاع 960، والطولي بعرض 1000 */
-  const BH0 = land ? Math.min(960, height * 0.89) : Math.min(1000 * ar, height * 0.66);
+  const side = land && mode === "side";
+  /* الغلاف في وسط الإطار: العرضي بارتفاع 960، والطولي بعرض 1000؛ وفي "side" بارتفاع 880 في وسط النصف الأيسر الواضح (قبل منطقة التلاشي) */
+  const BH0 = side ? Math.min(880, height * 0.82) : land ? Math.min(960, height * 0.89) : Math.min(1000 * ar, height * 0.66);
   const BW = Math.round(BH0 / ar), BH = Math.round(BH0);
-  const BX = Math.round((width - BW) / 2), BY = Math.round((height - BH) / 2) + (land ? 0 : -20);
+  const BX = side ? Math.round((SIDE_W - SIDE_FADE - BW) / 2) : Math.round((width - BW) / 2), BY = Math.round((height - BH) / 2) + (land ? 0 : -20);
   const cellW = BW / N;
-  const fontBase = Math.round(cellW * 0.24);
-  const dist = land ? 980 : 1200;
+  const fontBase = Math.round(cellW * (side ? 0.26 : 0.24));
+  const dist = side ? 760 : land ? 980 : 1200;
+  const sideMask = side ? `linear-gradient(to right, black 0px, black ${SIDE_W - SIDE_FADE}px, transparent ${SIDE_W}px)` : undefined;
 
   const tIn = clamp01((t - at) / 0.3);
   const tOut = clamp01((t - (until - EXIT)) / EXIT);
@@ -135,9 +143,9 @@ export const MosaicCover: React.FC<MosaicCoverProps> = ({ at, until, words, src,
   return (
     <>
       {snd}
-      <AbsoluteFill style={{ opacity: appear, overflow: "hidden", background: "#120b1c" }}>
-        {/* الأرضية: الغلاف نفسه مطموساً معتماً (صورة لا لون سادة) */}
-        <Img src={staticFile(src)} style={{ position: "absolute", left: -60, top: -60, width: width + 120, height: height + 120, objectFit: "cover", filter: "blur(38px) brightness(.32) saturate(1.25)" }} />
+      <AbsoluteFill style={{ opacity: appear, overflow: "hidden", ...(side ? { width: SIDE_W, WebkitMaskImage: sideMask, maskImage: sideMask } : { background: "#120b1c" }) }}>
+        {/* الأرضية: الغلاف نفسه مطموساً معتماً (صورة لا لون سادة)؛ في "side" تغطي النصف الأيسر وحده وتذوب يميناً في حافة فيديوه */}
+        <Img src={staticFile(src)} style={{ position: "absolute", left: -60, top: -60, width: (side ? SIDE_W : width) + 120, height: height + 120, objectFit: "cover", filter: "blur(38px) brightness(.32) saturate(1.25)" }} />
         <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 50%, rgba(10,4,20,0) 35%, rgba(6,2,12,.7) 100%)" }} />
 
         <div style={{ position: "absolute", left: BX, top: BY, width: BW, height: BH, transform: `scale(${push * exitK})`, transformOrigin: "50% 50%" }}>
@@ -157,7 +165,8 @@ export const MosaicCover: React.FC<MosaicCoverProps> = ({ at, until, words, src,
             const land1 = clamp01((t - ta - FLY) / 0.18);
             const bump = land1 > 0 && land1 < 1 ? 0.03 * Math.sin(Math.PI * land1) : 0;
             const s = 1 + 0.2 * (1 - e) - bump;
-            const dx = fl.ux * dist * (1 - e), dy = fl.uy * dist * (1 - e), rot = fl.rot * (1 - e);
+            /* "side": every piece comes in from the left (never across his face on the right) */
+            const dx = (side ? -Math.abs(fl.ux) - 0.25 : fl.ux) * dist * (1 - e), dy = fl.uy * dist * (1 - e), rot = fl.rot * (1 - e);
             const cx = p.c[0] * BW, cy = p.c[1] * BH;
             const glow = land1 > 0 ? 1 - land1 : 0;
             const word = wordOf(cell);

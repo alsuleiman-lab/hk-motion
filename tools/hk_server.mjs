@@ -195,6 +195,26 @@ http.createServer((req, res) => {
         fs.mkdirSync(".tmp", { recursive: true }); fs.appendFileSync(INBOX, JSON.stringify(m) + "\n");
         return send(res, 200, { ok: true, message: m, messages: inbox().slice(-30) });
       }
+      /* «تحريك» (user 2026-11-20: «التحريك لا يحتاج إلى الوصف، يحتاج فقط إلى حساب مواقع»): the elements on screen at the playhead with the grid slots they may
+         take (/api/slots), and the move itself (/api/slot → tools/el.mjs slot: the place gates judge the drawn box as numbers, ~1 s, refused moves are undone) */
+      if (url === "/api/slots" || url === "/api/slot") {
+        const comp = String(body.comp ?? ""), pj = projectOf(comp); if (!pj) throw new Error(`لا مشروع لهذا التركيب: ${comp}`);
+        const o = /(-P|Reel|reel|Port|port)$/.test(comp) || /reel/i.test(pj) ? "port" : "land", sf = path.join("data", "specs", `${pj}.json`), spec = JSON.parse(fs.readFileSync(sf, "utf8"));
+        if (url === "/api/slot") {
+          const id = String(body.id ?? "").replace(/[^a-z0-9]/gi, ""), slot = String(body.slot ?? "").replace(/[^a-z]/gi, ""); if (!id || !slot) throw new Error("اختر العنصر والخانة");
+          const r = spawnSync(process.execPath, ["tools/el.mjs", "slot", pj, `#${id}`, slot, `--${o}`], { encoding: "utf8", windowsHide: true });
+          const out = ((r.stdout || "") + (r.stderr || "")).trim().split(/\r?\n/).filter((l) => /^\s*[✔✘]/.test(l)).join("\n");
+          return send(res, r.status === 0 ? 200 : 409, r.status === 0 ? { ok: true, text: out } : { error: out || "رُفض" });
+        }
+        const fr = Number(body.frame ?? 0); let t = fr / 30; const b = spec.bumper; if (b && b.at >= 1 && !b.end && t >= b.at) t = t < b.at + 5 ? b.at : t - 5;
+        const grids = JSON.parse(fs.readFileSync(path.join("data", "layout_grids.json"), "utf8")), names = [];
+        for (const g of Object.values(grids[o] ?? {})) for (const sn of Object.keys(g?.slots ?? {})) if (!names.includes(sn) && sn !== "back") names.push(sn);
+        const span = (x) => { const a = x.at ?? x.from ?? x.times?.[0]; return a == null ? null : [a, x.until ?? x.to ?? (x.dur != null ? a + x.dur : a + 6)]; };
+        const live = spec.items.filter((x) => { const s = span(x); return x.id && x.slot?.[o] && (!x.only || x.only === o) && s && t >= s[0] && t < s[1]; });
+        const items = live.map((x) => { const s = span(x), taken = new Set(spec.items.filter((y) => y !== x && y.slot?.[o] && (!y.only || y.only === o) && (() => { const q = span(y); return q && q[0] < s[1] && q[1] > s[0]; })()).map((y) => y.slot[o]));
+          return { id: x.id, name: String(x.name ?? x.text ?? x.title ?? x.el ?? x.t).slice(0, 40), slot: x.slot[o], choices: names.map((n) => ({ name: n, state: n === x.slot[o] ? "here" : taken.has(n) ? "taken" : "free" })) }; });
+        return send(res, 200, { project: pj, o, t: +t.toFixed(2), items });
+      }
       const { p, fa, fb } = parse(body), A = (fa / 30).toFixed(4), B = (fb / 30).toFixed(4), secs = ((fb - fa) / 30).toFixed(1);
       if (url === "/api/preview") {
         const inside = words(p).filter((w) => w.s >= fa / 30 - 0.03 && w.e <= fb / 30 + 0.03).map((w) => w.w);

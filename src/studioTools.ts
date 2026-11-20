@@ -5,6 +5,7 @@ import { openGalleryPanel } from "./hkGalleryPanel";
 import { openColorPanel } from "./hkColorPanel";
 import { openQueuePanel } from "./hkQueuePanel";
 import { openMsgPanel } from "./hkMsgPanel";
+import { openMovePanel } from "./hkMovePanel";
 import { installTheme, toggleTheme, currentTheme } from "./hkTheme";
 
 type FilterSettings = { brightness: number; contrast: number; saturation: number; sepia: number; temperature: number; tint: number; shadowLift: number; highlightRollOff: number; warmth: number; vignette: number; glow: number };
@@ -664,11 +665,13 @@ const installHK = () => {
   row.style.cssText = "flex:0 0 36px;height:36px;position:relative;display:none;box-sizing:border-box;align-items:center;gap:6px;padding:0 8px;background:var(--hk-bg2);border-top:1px solid var(--hk-line-strong);direction:rtl;font:600 12px Tahoma,Arial,sans-serif;color:var(--hk-text);overflow-x:auto;overflow-y:hidden;white-space:nowrap";
   const mk = (label: string, bg: string) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.style.cssText = `flex:0 0 auto;height:26px;padding:0 10px;border:1px solid var(--hk-line-strong);border-radius:7px;background:${bg};color:var(--hk-text);font:700 12px Tahoma,Arial,sans-serif;cursor:pointer`; return b; };
   const tag = document.createElement("span"); tag.textContent = "HK"; tag.style.cssText = "flex:0 0 auto;color:var(--hk-accent);font:800 12px Arial,sans-serif;letter-spacing:.5px";
-  const bA = mk("بداية", "var(--hk-btn)"), bB = mk("نهاية", "var(--hk-btn)"), bDel = mk("حذف", "var(--hk-danger)"), bMus = mk("حذف موسيقى", "var(--hk-btn-on)"), bGal = mk("المعرض", "var(--hk-btn)"), bCol = mk("ألوان", "var(--hk-btn)"), bQue = mk("الطابور", "var(--hk-btn)"), bMsg = mk("راسلني", "var(--hk-accent)"), bTheme = mk(currentTheme() === "night" ? "نهاري" : "ليلي", "var(--hk-btn)");
+  const bA = mk("بداية", "var(--hk-btn)"), bB = mk("نهاية", "var(--hk-btn)"), bDel = mk("حذف", "var(--hk-danger)"), bMus = mk("حذف موسيقى", "var(--hk-btn-on)"), bGal = mk("المعرض", "var(--hk-btn)"), bCol = mk("ألوان", "var(--hk-btn)"), bQue = mk("الطابور", "var(--hk-btn)"), bMsg = mk("راسلني", "var(--hk-accent)"), bMove = mk("تحريك", "var(--hk-btn-on)"), bTheme = mk(currentTheme() === "night" ? "نهاري" : "ليلي", "var(--hk-btn)");
   const info = document.createElement("span"); info.style.cssText = "flex:1 0 auto;min-width:80px;overflow:hidden;text-overflow:ellipsis;user-select:text;-webkit-user-select:text";
-  row.append(tag, bMsg, bA, bB, bDel, bMus, bGal, bCol, bQue, bTheme, info);
+  row.append(tag, bMsg, bMove, bA, bB, bDel, bMus, bGal, bCol, bQue, bTheme, info);
   bMsg.title = "اكتب لي ملاحظة على هذه اللحظة: تُرسل مع الإطار والعناصر الظاهرة";
   bMsg.addEventListener("click", () => { try { openMsgPanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // «راسلني» (src/hkMsgPanel.ts)
+  bMove.title = "انقل عنصراً ظاهراً الآن إلى خانة أخرى من الشبكة: يُحسب مكانه بالأرقام ويُرفض ما يغطي الوجه أو عنصراً آخر";
+  bMove.addEventListener("click", () => { try { openMovePanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // «تحريك» (src/hkMovePanel.ts)
   bQue.title = "طابور الرندر وتقدّمه: أضف المونتاج المفتوح، وتابع كل إخراج";
   bQue.addEventListener("click", () => { try { openQueuePanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // the render queue sheet (src/hkQueuePanel.ts)
   bCol.addEventListener("click", () => { try { openColorPanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // the colour sheet (src/hkColorPanel.ts), the colour tool for every montage

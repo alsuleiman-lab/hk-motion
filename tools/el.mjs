@@ -100,7 +100,8 @@ const gateAtoms = async (f, p) => {
      and only then the read-only gates, together. */
   const n1 = await runGate(["tools/spec_normalize.mjs", f, "--o", "land", "--dry"]);
   const n2 = await runGate(["tools/spec_normalize.mjs", f, "--o", "port", "--dry"]);
-  const outs = await Promise.all([["tools/writing_sync.mjs", f], ["tools/element_slots.mjs", p], ["tools/coverage_check.mjs", f]].map(runGate));
+  /* (user 2026-11-20: «يجب ببساطة أن تلتزم بالموقع على الشبكة») + where each element is DRAWN, as numbers (tools/slot_boxes.mjs, ¼ s, no render) */
+  const outs = await Promise.all([["tools/writing_sync.mjs", f], ["tools/element_slots.mjs", p], ["tools/coverage_check.mjs", f], ["--experimental-strip-types", "--no-warnings", "tools/slot_boxes.mjs", p]].map(runGate));
   return atomsOf([n1, n2, ...outs].join("\n"));
 };
 const hashOf = (f) => crypto.createHash("sha1").update(read(f)).digest("hex");
@@ -227,6 +228,31 @@ if (cmd === "list") {
     else for (const [k, v] of Object.entries(vals)) { if (k === "k" && v === 1) delete tgt.k; else if ((k === "dx" || k === "dy") && v === 0) delete tgt[k]; else tgt[k] = v; }
   }
   save(f, s); console.log(`✔ ${rest.includes("--reset") ? "أُعيد مقاس" : "ضُبط مقاس"} العنصر #${it.id} (${label(it)}) — ${o.map((x) => (x === "land" ? "العرضي" : "الطولي")).join(" و")}`);
+} else if (cmd === "slot") {
+  /* (user 2026-11-20: «التحريك لا يحتاج إلى الوصف، يحتاج فقط إلى حساب مواقع») MOVE = name another slot of the grid (data/layout_grids.json); the gate (slot_boxes
+     included) judges where it is then drawn, as numbers, before it is kept. Without a slot name: the slots of that orientation, and which are taken at its time.
+       node tools/el.mjs slot <p> <#id> [--land|--port]          node tools/el.mjs slot <p> <#id> <slot> [--land|--port] */
+  const [p, n0, name] = args.filter((a) => !a.startsWith("--")), f = specPath(p), s0 = JSON.parse(read(f)); ensureIds(s0);
+  const n = at(s0, n0), it0 = n == null ? null : s0.items[n]; if (!it0) { console.error(`✘ لا عنصر ${n0}`); process.exit(2); }
+  const o = args.includes("--port") ? "port" : "land", grids = JSON.parse(read("data/layout_grids.json")), names = {};
+  for (const [mode, g] of Object.entries(grids[o] ?? {})) for (const [sn, sl] of Object.entries(g?.slots ?? {})) names[sn] ??= { mode, rect: sl.rect };
+  const a0 = it0.at ?? it0.from ?? it0.times?.[0] ?? 0, b0 = it0.until ?? it0.to ?? a0 + 6;
+  if (!name) {
+    const taken = Object.fromEntries(s0.items.filter((x) => x !== it0 && x.slot?.[o] && (x.at ?? x.from ?? 0) < b0 && (x.until ?? x.to ?? (x.at ?? 0) + 6) > a0).map((x) => [x.slot[o], `#${x.id}`]));
+    console.log(`خانات ${o === "land" ? "العرضي" : "الطولي"} — العنصر #${it0.id} الآن في «${it0.slot?.[o] ?? "—"}»:`);
+    for (const [sn, v] of Object.entries(names)) console.log(`  ${sn.padEnd(10)} [${v.rect}]  ${taken[sn] ? "مشغولة بـ " + taken[sn] : sn === it0.slot?.[o] ? "← هنا" : "فارغة"}`);
+    process.exit(0);
+  }
+  if (!names[name]) { console.error(`✘ لا خانة «${name}» في ${o === "land" ? "العرضي" : "الطولي"}: ${Object.keys(names).join("، ")}`); process.exit(2); }
+  /* a move changes neither time nor text: only the place gates run (element_slots: one element per space; slot_boxes: the drawn box) — about a second */
+  const placeAtoms = async () => atomsOf((await Promise.all([["tools/element_slots.mjs", p], ["--experimental-strip-types", "--no-warnings", "tools/slot_boxes.mjs", p]].map(runGate))).join("\n"));
+  const beforeText = read(f), base = await placeAtoms(), s = JSON.parse(read(f)); ensureIds(s); const it = s.items[at(s, n0)];
+  (it.slot ??= {})[o] = name; save(f, s);
+  const added = [...(await placeAtoms())].filter((x) => !base.has(x));
+  if (added.length) { fs.writeFileSync(f, beforeText); console.error(`✘ رُفض نقل #${it.id} إلى «${name}» — أُعيد كما كان:\n  ` + added.join("\n  ")); process.exit(1); }
+  const r = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "tools/slot_boxes.mjs", p, "--list"], { encoding: "utf8" });
+  const line = String(r.stdout).split(/\r?\n/).find((l) => l.includes(`#${it.id} `) && l.includes(o === "land" ? "عرضي" : "طولي"));
+  console.log(`✔ نُقل #${it.id} (${label(it)}) إلى «${name}»${line ? " — يُرسم في " + line.split(": ").pop() : ""}`);
 } else if (cmd === "gsize") {
   /* the gallery's own size/place of an element type (data/gallery_notes.json place.land|port {dx,dy,scale}, applied by the engine to EVERY item of that type in every video) */
   const [code, ...rest] = args, e = find(catalog(), code); if (!e) { console.error(`✘ لا عنصر بهذا الاسم: ${code}`); process.exit(2); }

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { galleryPlace } from "./galleryPlace";
-import { resolveGalleryRef } from "./galleryRef";
+import { resolveGalleryRef, slotFit } from "./galleryRef";
 import { usePublishOnScreen } from "./elementNames";
 import type { GalleryGeo, Grids } from "./galleryRef";
 import galleryGeo from "../data/gallery_geo.json";
@@ -236,7 +236,8 @@ const boxCentre = (it: SpecItem, o: Orient): [number, number] | null => {
 const tphotoApart = (it: { name?: string; also?: unknown[] }) => (it.also?.length ?? 0) === 1 && ![it.name, (it.also![0] as { name?: string }).name].some((n) => /(كتاب|صحيح|سنن|مسند|تفسير|موطأ|مجموع|فتاوى)/.test(n ?? ""));
 const placed = (it: SpecItem, i: number, o: Orient, n: React.ReactNode): React.ReactNode => {
   const p = o === "land" ? it.land : it, dx = p?.dx ?? 0, dy = p?.dy ?? 0, k = p?.k ?? 1;
-  const c = k !== 1 ? boxCentre(it, o) : null;
+  const po = p as { ox?: number; oy?: number } | undefined;   /* a slot-fitted item (withGallery fitSlot) carries the exact centre it grows about */
+  const c: [number, number] | null = po?.ox !== undefined && po?.oy !== undefined ? [po.ox, po.oy] : k !== 1 ? boxCentre(it, o) : null;
   return n && (dx || dy || k !== 1) ? <GxLayer key={"place" + i} gx={{ dx, dy, k, ...(c ? { ox: c[0], oy: c[1] } : {}) }}>{n}</GxLayer> : n;
 };
 /** the box an item draws in portrait, ESTIMATED from its own numbers (no measuring, user 2026-11-16: «قدّر المقاس والمكان»): [x0, y0, x1, y1] before its dx/dy/k;
@@ -709,8 +710,19 @@ const withGallery = (s: MontageSpec): MontageSpec => s.galleryOwn ? s : { ...s, 
   /* (user 2026-11-18, «مذيع يقتل أطفاله»: the muscle man's picture on the right ran off the frame) the gallery's horizontal offset was set for a picture on the
      LEFT; a picture whose slot is the right one gets it mirrored, so it stays inside the frame like its left twin */
   const rightPic = ["tphoto", "scholar", "pic"].includes((it as { t: string }).t) && (it as { slot?: { land?: string } }).slot?.land === "right", Ldx = rightPic ? -L.dx : L.dx;
-  return { ...it, dx: (it.dx ?? 0) + P.dx, dy: (it.dy ?? 0) + P.dy, k: (it.k ?? 1) * P.k, land: inPanel ? ld : { ...ld, dx: (ld.dx ?? 0) + Ldx, dy: (ld.dy ?? 0) + L.dy, k: (ld.k ?? 1) * L.k } } as SpecItem;
+  /* (user 2026-11-20: «يجب ببساطة أن تلتزم بالموقع على الشبكة») an item fitted into a grid slot (src/galleryRef.ts `_box`) takes the gallery's SIZE only up to its slot
+     and stays inside it (centred across; top-aligned, or centred in the dossier gap «panel»): no gallery offset pushes it out (the court photo, frame 179) */
+  const fp = !inPanel && fitSlot(it, "port", P.k * (it.k ?? 1)), fl = !inPanel && fitSlot(it, "land", L.k * (ld.k ?? 1));
+  return { ...it, ...(fp || { dx: (it.dx ?? 0) + P.dx, dy: (it.dy ?? 0) + P.dy, k: (it.k ?? 1) * P.k }), land: inPanel ? ld : { ...ld, ...(fl || { dx: (ld.dx ?? 0) + Ldx, dy: (ld.dy ?? 0) + L.dy, k: (ld.k ?? 1) * L.k }) } } as SpecItem;
 }) };
+/** the place of an item inside its grid slot: grown by k (gallery × its own size) but never beyond the slot box, centred across the slot; the centre it grows about
+ *  is the item's own declared box (rectOf, the same estimate the grid and the checks use), so the drawn box is known as numbers */
+const fitSlot = (it: SpecItem, o: Orient, k0: number): { dx: number; dy: number; k: number; ox: number; oy: number } | null => {
+  const e = ((it as { _box?: Record<string, { box: number[]; mid?: boolean }> })._box ?? {})[o];
+  if (!e || (it.t === "tphoto" && tphotoApart(it as { name?: string; also?: unknown[] }))) return null;
+  const f = slotFit(it as never, o, k0) as { dx: number; dy: number; k: number; ox: number; oy: number } | null; if (!f) return null;
+  return { dx: f.dx, dy: f.dy, k: f.k, ox: f.ox, oy: f.oy };
+};
 /* VERSE / HADITH WAYS AT RANDOM (user 2026-11-12: «كل ما تمر آية أو حديث يختار واحد عشوائي… دائماً عشوائي»): every landscape verse and every hadith with `phrases`
    that has no `way` gets one of the approved ways, drawn from a hash of the video + the item's second — a different draw for every verse/hadith and every episode,
    and the same draw in Studio and in the render. A recited isnad (`chain`) always shows the chain. The half-screen ways slide him right (an extra `shifts` window). */

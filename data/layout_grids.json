@@ -215,16 +215,16 @@
    "slots": {
     "panel": {
      "rect": [
-      668,
-      196,
-      864,
-      832
+      700,
+      90,
+      1066,
+      1000
      ],
      "kinds": [
       "source",
       "photo"
      ],
-     "note": "(user 2026-11-06/2026-11-12) pictures INSIDE the gap between the clip card (ends ≈668) and his card (starts ≈864) of the dossier: the picture never overlaps either card or a person"
+     "note": "(user 2026-11-06/2026-11-12) pictures INSIDE the gap between the clip card (ends ≈668) and his card (starts ≈864) of the dossier: the picture never overlaps either card or a person — (2026-11-20) recomputed from src/DebateLayouts.tsx box(): since 2026-11-15 his card slides aside while a picture is in the gap (GAP_DX 130, scale 0.9), clip card 43–680, his card 1086–1830, so the gap is 700–1066"
     },
     "under": {
      "rect": [

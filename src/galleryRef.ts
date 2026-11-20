@@ -44,7 +44,7 @@ const fitPicture = (it: Item, w: number, h: number, ratio: number): [number, num
 };
 
 export function resolveGalleryRef<S extends { items: unknown[] }>(spec: S, geo: GalleryGeo, grids: Grids): S {
-  const s = spec as unknown as { galleryRef?: boolean; title?: string; face?: Partial<Record<"port" | "land", FaceRun[]>>; items: Item[] };
+  const s = spec as unknown as { galleryRef?: boolean; splits?: { from: number; to: number }[]; title?: string; face?: Partial<Record<"port" | "land", FaceRun[]>>; items: Item[] };
   if (!s.galleryRef) return spec;
   const TB = titleBarOf(s.title ?? ""); setTitleBar(TB);
   const items = s.items.map((it0) => {
@@ -69,10 +69,15 @@ export function resolveGalleryRef<S extends { items: unknown[] }>(spec: S, geo: 
     for (const o of ["port", "land"] as const) {
       const n = slot[o]; if (!n || !SNAP.has(it.t) || land.panel && o === "land") continue;
       const rect = slotRect(grids, o, n); if (!rect || !sp) continue;
-      let box = trim(rect, faceOver(s.face?.[o], sp[0], sp[1]));
+      /* a picture that starts inside a split window is drawn in the gap only until that window ends (MontageSpec behindGaps): his face is judged over that part only */
+      const win = o === "land" ? (s.splits ?? []).find((w) => sp[0] >= w.from - 0.05 && sp[0] < w.to) : undefined;
+      let box = trim(rect, faceOver(s.face?.[o], sp[0], win ? Math.min(sp[1], win.to) : sp[1]));
       if (o === "land" && (it.t === "nameTag" || it.t === "subscribe") && box[2] > TB[0] - 12 && box[3] > TB[1] - 8) box = [box[0], box[1], box[2], Math.min(box[3], TB[1] - 8)];
       const r = rectOf(it, o);
       if (r && (r[0] < box[0] - 4 || r[1] < box[1] - 4 || r[2] > box[2] + 4 || r[3] > box[3] + 4)) snap(it, o, r, box);
+      /* (user 2026-11-20: «يجب ببساطة أن تلتزم بالموقع على الشبكة») the slot box travels with the item: the engine (MontageSpec withGallery) grows it by the
+         gallery's size only up to this box and never moves it out, so where it is drawn = a number known before any render (tools/coverage_check judges it) */
+      if (r) ((it._box ??= {}) as Record<string, unknown>)[o] = { box, mid: n === "panel" };
     }
     if (!Object.keys(it.land as object).length) delete it.land;
     return it;
@@ -95,7 +100,7 @@ const spanOf = (it) => {
   const a = it.at ?? it.from, b = it.until ?? it.to ?? (it.dur != null ? a + it.dur : a + 3);
   return a == null ? null : [a, b];
 };
-const rectOf = (it, o) => {
+export const rectOf = (it, o) => {
   const L = o === "land", ov = it.land ?? {}, P = (k, d) => (L ? ov[k] ?? d : it[k] ?? d);
   switch (it.t) {
     case "word": case "blur": {
@@ -117,7 +122,7 @@ const rectOf = (it, o) => {
     case "nameTag": { const cx = L ? ov.x ?? 960 : it.x ?? 540, y = (L ? ov.y ?? 880 : it.y) + 40; return [cx - 300, y, cx + 300, y + 130]; }
     case "subscribe": { const x = P("x", 1300), y = P("y", 790); return [x, y, x + 560, y + 150]; }
     case "date": { const x = L ? ov.x ?? 40 : it.x ?? 40, y = L ? ov.y ?? 150 : it.y ?? 1330, w = (L ? ov.w : undefined) ?? it.w ?? 340; return [x, y, x + w, y + Math.round(w * 277 / 268) + Math.round(w * 0.45)]; }
-    case "scholar": case "tphoto": { const x = L ? ov.x ?? 40 : it.x ?? 40, y = L ? ov.y ?? 150 : it.y ?? 1360, pw = (L && it.t === "tphoto" ? ov.w : it.w) ?? 300, n = 1 + (it.also?.length ?? 0), w = n * pw + (n - 1) * 24, nl = it.name ? Math.max(1, Math.ceil([...it.name].length * 28 * 0.55 / (pw - 24))) : 1, h = ((L && it.t === "tphoto" ? ov.h : it.h) ?? 370) + Math.max(78, nl * 36 + 42); return [x, y, x + w, y + h]; }
+    case "scholar": case "tphoto": { const x = L ? ov.x ?? 40 : it.x ?? 40, y = L ? ov.y ?? 150 : it.y ?? 1360, pw = (L ? (it.t === "tphoto" ? ov.w : ov.w ?? it.w) : it.w) ?? 300, n = 1 + (it.also?.length ?? 0), w = n * pw + (n - 1) * 24, nl = it.name ? Math.max(1, Math.ceil([...it.name].length * 28 * 0.55 / (pw - 24))) : 1, h = ((L ? (it.t === "tphoto" ? ov.h : ov.h ?? it.h) : it.h) ?? 370) + Math.max(78, nl * 36 + 42); return [x, y, x + w, y + h]; }
     case "scraps": {   // one scrap per word (size × 0.8 per letter + 70), wrapped on 90 % of the width, centred
       const size = L ? ov.size ?? 50 : it.size ?? 36, Wd = L ? 1920 : 1080, y = L ? ov.y ?? 845 : it.y ?? 1330, ws = String(it.text).split(" "), gap = size * 0.3;
       const widths = ws.map((wd) => size * 0.8 * len(wd) + 70); let rows = 1, cur = 0;
@@ -193,3 +198,15 @@ function snap(it, o, r, box) {
   else if (k < 1 && it.t === "pic" && o !== "land") { tgt.w = Math.round(w * k); tgt.h = Math.round(h * k); }   // a picture keeps its aspect when it shrinks (never cropped)
   else if (k < 1 && ["pic", "crop", "flash", "news"].includes(it.t)) tgt.w = Math.round(w * k);
 }
+
+/** (user 2026-11-20: «يجب ببساطة أن تلتزم بالموقع على الشبكة») where a slot-fitted item is DRAWN, as numbers: grown by k0 (gallery × own size) only up to its slot box
+ *  (`_box`, written above), centred across the slot (top-aligned; centred in the dossier gap «panel»), about the centre of its declared box (rectOf).
+ *  The engine (MontageSpec withGallery) draws it with these numbers and tools/slot_boxes.mjs judges the same numbers — no picture needed. */
+export const slotFit = (it, o, k0) => {
+  const e = (it._box ?? {})[o]; if (!e) return null;
+  const r = rectOf(it, o); if (!r) return null;
+  const [x0, y0, x1, y1] = e.box, rw = r[2] - r[0], rh = r[3] - r[1]; if (rw <= 0 || rh <= 0) return null;
+  const k = Math.min(k0, (x1 - x0) / rw, (y1 - y0) / rh), rcx = (r[0] + r[2]) / 2, rcy = (r[1] + r[3]) / 2;
+  const cx = (x0 + x1) / 2, cy = e.mid ? (y0 + y1) / 2 : y0 + (rh * k) / 2;
+  return { dx: Math.round(cx - rcx), dy: Math.round(cy - rcy), k: +k.toFixed(4), ox: rcx, oy: rcy, drawn: [cx - (rw * k) / 2, cy - (rh * k) / 2, cx + (rw * k) / 2, cy + (rh * k) / 2].map(Math.round) };
+};

@@ -64,3 +64,12 @@ for (const w of spec.splits ?? []) {
 }
 if (WRITE && changed) fs.writeFileSync(F, JSON.stringify(spec, null, 1));
 console.log(changed ? `${WRITE ? "✔ كُتبت" : "✎ تتغير (‎--write)"} ${changed} نافذة` : "✔ كل نافذة على حدها الصحيح");
+/* (user 2026-11-20, frame 19391: «قلت السنن الكبرى… لا تبقي صورة غلاف كتاب آخر») a page window can change BOOK in the middle: the header strip of the page is
+   compared second by second; every change is printed with the cover shown then, so the cover follows the page (and none is kept for the wrong book) */
+for (const w of (spec.splits ?? []).filter((x) => x.page)) {
+  const hdr = (t) => { const r = spawnSync("ffmpeg", ["-v", "error", "-ss", t.toFixed(2), "-i", cut, "-frames:v", "1", "-vf", `crop=${w.clip.w}:70:${w.clip.x}:${w.clip.y},scale=160:14,format=gray`, "-f", "rawvideo", "-"], { maxBuffer: 1 << 20 }); return r.status === 0 ? r.stdout : null; };
+  let prev = hdr(w.from + 0.5), changes = [];
+  for (let t = w.from + 1.5; t < w.to - 0.3; t += 1) { const cur = hdr(t); if (!cur || !prev) continue; let d = 0; for (let i = 0; i < cur.length; i++) d += Math.abs(cur[i] - prev[i]); d /= cur.length; if (d > 4) changes.push(t); prev = cur; }   /* a still page reads 0; another page ≈ 8 */
+  const covers = spec.items.filter((x) => x.coverOf && x.at < w.to && x.until > w.from).map((x) => `${x.name} ${mm(x.at)}–${mm(x.until)}`);
+  if (changes.length) console.log(`⚠ ${mm(w.from)}–${mm(w.to)}: الصفحة تتغير عند ${changes.map(mm).join("، ")} — الغلاف يتبعها (الأغلفة الآن: ${covers.join("، ") || "لا شيء"})`);
+}

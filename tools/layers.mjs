@@ -98,13 +98,13 @@ if (cmd === "scan") {
   /* ── المشاهد (scene effects behind him; user 2026-11-20: «لو قلت كلهم في السجن… قضبان سجن… لو قلت في الماء أمواج… ضيق عليهم… الخلفية تضيق») */
   const SCENE = { prison: ["سجن", "السجن", "سجون", "السجون", "يسجن", "سجنوا", "زنزانه", "قضبان", "معتقل"], water: ["ماء", "الماء", "البحر", "بحر", "غرق", "يغرق", "امواج", "الطوفان", "فيضان"], squeeze: ["ضيق", "يضيق", "ضيقوا", "ضيقت", "حصار", "حاصروا", "يخنق", "خنق"], fire: ["نار", "النار", "حريق", "احرق", "احرقوا", "يحرق"], dark: ["ظلام", "الظلام", "ظلمات", "الظلمات"] };
   const AR = { prison: "قضبان سجن تنزل خلفه", water: "أمواج ماء خلفه", squeeze: "الخلفية تضيق عليه", fire: "لهب خلفه", dark: "إظلام الخلفية" };
-  /* (2026-11-20) the scene word → the kind src/SceneFx.tsx draws (prison → bars, dark → beam); fire has no effect yet: it stays «waiting in the gallery» */
-  const KIND = { prison: "bars", water: "water", squeeze: "squeeze", dark: "beam" };
+  /* (user 2026-11-20 evening: «هذه ليست مؤثرات ثابتة، هذه طريقة تفكير») these words only POINT at a moment whose meaning the background might carry; they
+     choose nothing. The effect is thought for that moment (.claude/skills/visual-thinking) — an existing one only if it fits exactly, else a new one */
   const lastS = {};
   for (const w of words) { const n = norm(w.w); for (const [fx, list] of Object.entries(SCENE)) if (list.includes(n) && w.s - (lastS[fx] ?? -99) > 60) {
     lastS[fx] = w.s;
-    add({ layer: "المشاهد", at: +w.s.toFixed(2), until: +(w.s + 3).toFixed(2), words: text(words.filter((x) => x.s >= w.s - 2 && x.s < w.s + 3)), el: `scene:${fx}`, vals: { fx: KIND[fx] ?? fx, at: +w.s.toFixed(2) }, note: AR[fx],
-      covered: covering(w.s - 0.3, w.s + 1, (x) => x.t === "scenefx" && x.fx === (KIND[fx] ?? fx)) });
+    add({ layer: "المشاهد", at: +w.s.toFixed(2), until: +(w.s + 3).toFixed(2), words: text(words.filter((x) => x.s >= w.s - 2 && x.s < w.s + 3)), el: `scene:${fx}`, vals: { at: +w.s.toFixed(2) }, note: `لحظة قد تعبّر عنها الخلفية (${AR[fx]} مثلاً) — فكّر بما يناسبها`,
+      covered: covering(w.s - 0.3, w.s + 1, (x) => x.t === "scenefx") });
   } }
   /* ── the layers with their own tools: what they found against what the spec shows */
   const J = (f) => { try { return JSON.parse(fs.readFileSync(path.join(".tmp", p, f), "utf8")); } catch { return null; } };
@@ -149,7 +149,7 @@ if (cmd === "scan") {
     const f = spawnSync(process.execPath, ["tools/element_slots.mjs", p, "--fix"], { encoding: "utf8" });
     console.log(((f.stdout || "") + (f.stderr || "")).trim().split(/\r?\n/).filter((x) => /^(✔|✘|حُذف|قُصّر)/.test(x)).join("\n"));
   }
-  if (scenes.length) console.log(`⚠ ${scenes.length} موضع مشهد ينتظر مؤثره في المعرض: ${scenes.map((l) => `${mm(l.at)} ${l.note}`).join("، ")}`);
+  if (scenes.length) console.log(`⚠ ${scenes.length} لحظة قد تحمل الخلفيةُ معناها — فكّر لكل واحدة بما يناسبها (مهارة التفكير البصري): ${scenes.map((l) => mm(l.at)).join("، ")}`);
 } else if (cmd === "gaps") {
   /* the gap watch: real elements only — a push-in or a shake is a camera move, not an element (user 2026-11-20: «في مواضع كثيرة لا تضع فيها شيئاً») */
   const WIN = Number(arg("win", 30)), GAP = 5;

@@ -56,9 +56,12 @@ const Cover: React.FC<{ a: number }> = ({ a }) => {
 const Still: React.FC<{ shot: CineShot }> = ({ shot }) => {
   const t = useCurrentFrame() / 30;
   const p = clamp01((t - shot.a) / Math.max(0.1, shot.b - shot.a));
+  const inBlur = 24 * (1 - clamp01((t - shot.a) * 30 / 5));
+  const hk = clamp01((t - (shot.b - 6 / 30)) * 30 / 6), hand = Math.pow(3, hk * hk * hk), outBlur = 30 * hk * hk;
+  const blur = Math.max(inBlur, outBlur);
   return (
     <AbsoluteFill style={{ overflow: "hidden", background: "#0b0a08" }}>
-      <Img src={staticFile(shot.img ?? "")} style={{ width: W, height: H, objectFit: "cover", transform: `scale(${1.04 + 0.08 * p}) translateY(${-20 * p}px)`, filter: shot.bw ? "grayscale(1) contrast(1.15) brightness(.85)" : "brightness(.82) contrast(1.12) saturate(.9) sepia(.15)" }} />
+      <Img src={staticFile(shot.img ?? "")} style={{ width: W, height: H, objectFit: "cover", transform: `scale(${(1.04 + 0.08 * p) * hand}) translateY(${-20 * p}px)`, filter: (blur > 0.3 ? `blur(${blur.toFixed(1)}px) ` : "") + (shot.bw ? "grayscale(1) contrast(1.15) brightness(.85)" : "brightness(.82) contrast(1.12) saturate(.9) sepia(.15)") }} />
       <AbsoluteFill style={{ background: "radial-gradient(ellipse 75% 60% at 50% 40%, rgba(0,0,0,0) 45%, rgba(0,0,0,.8) 100%)" }} />
     </AbsoluteFill>
   );
@@ -124,6 +127,6 @@ const SHOTS: CineShot[] = [
     { y: 1250, until: 12.2, words: [{ at: 11.35, text: "التي", size: 110, font: "ruqaa" }, { at: 11.55, text: "تربط", size: 110, font: "ruqaa" }, { at: 11.8, text: "المخلوق", size: 110, font: "ruqaa" }] },
     { y: 1420, until: 13.0, words: [{ at: 12.2, stretch: ["بالخ", "الق"], size: 210, font: "kafRuqaa" }] }] },
 ];
-const SFX: Cue[] = [[2, "shimmer"], [84, "subdrop", 0.8], [138, "hit", 0.7], [174, "subdrop", 0.7], [294, "subdrop", 0.8], [366, "sting"]];
+const SFX: Cue[] = [[2, "shimmer"], [84, "subdrop", 0.8], [294, "subdrop", 0.8], [366, "sting"]];
 export const CINE_SPEAKER_FRAMES = 390;
 export const CineSpeaker: React.FC = () => <CineSequence shots={SHOTS} src="dubkmr/src.mp4" sfx={SFX} />;

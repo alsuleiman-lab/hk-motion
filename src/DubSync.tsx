@@ -19,7 +19,7 @@ const W = 1080, H = 1920;
 type Act = { at: number; k: "push" | "glow" | "wilt" | "flip" | "break" | "x" | "q" | "far" | "old" };
 type Item = { id: string; src: string; x: number; y: number; w: number; rot?: number; back?: string;
   inAt: number; inK: "drop" | "slideL" | "slideR" | "rise" | "swing" | "pop";
-  outAt?: number; outK?: "fall" | "sweepL" | "sweepR" | "up" | "crumple" | "far"; acts?: Act[]; tag?: number };
+  outAt?: number; outK?: "fall" | "sweepL" | "sweepR" | "up" | "crumple" | "far" | "tray"; tray?: [number, number, number, number, number]; ball?: boolean; acts?: Act[]; tag?: number };
 
 /* ───────── الأسوار مرسومة (نحاس مجسّم) ───────── */
 const Bangle: React.FC = () => (
@@ -41,7 +41,8 @@ const Pic: React.FC<{ src: string }> = ({ src }) => src === "bangle" ? <Bangle /
 
 /* ───────── عنصر بحركات دخوله وخروجه وأفعاله ───────── */
 const Thing: React.FC<{ it: Item; t: number }> = ({ it, t }) => {
-  if (t < it.inAt || (it.outAt !== undefined && t > it.outAt + 0.6)) return null;
+  const endAt = it.outK === "tray" && it.tray ? it.tray[4] : it.outAt;
+  if (t < it.inAt || (endAt !== undefined && t > endAt + 0.6)) return null;
   const u = t - it.inAt, h = it.w * 1.46;
   let tx = 0, ty = 0, sc = 1, rot = it.rot ?? 0, filt = "", radius = 0;
   /* الدخول */
@@ -77,6 +78,10 @@ const Thing: React.FC<{ it: Item; t: number }> = ({ it, t }) => {
     if (it.outK === "up") ty -= o * 2200;
     if (it.outK === "crumple") { sc *= 1 - 0.95 * o; rot += o * 300; radius = o * 400; filt += ` contrast(${1 + o})`; }
     if (it.outK === "far") { sc *= 1 - 0.9 * o; tx += 350 * o; ty -= 700 * o; }
+    if (it.outK === "tray" && it.tray) { const [cx, cy, sw, sr, until] = it.tray;
+      if (it.ball) { radius = o * 400; filt += ` contrast(${1 + 0.6 * o})`; rot += o * 340; }
+      tx = lerp(tx, cx - (it.x + it.w / 2), o); ty = lerp(ty, cy - (it.y + h / 2), o); sc = lerp(sc, sw / it.w, o); rot = lerp(rot, sr, o);
+      if (t > until) { const q = easeInOut((t - until) / 0.5); tx -= q * 1300; rot -= q * 25; } }
   }
   const ang = (flipped % 2) * 180, showBack = it.back && Math.cos((ang * Math.PI) / 180) < 0;
   const card = (src: string, extra?: React.CSSProperties) => <div style={{ position: "absolute", inset: 0, border: `12px solid ${C.edge}`, background: "#fff", overflow: "hidden", borderRadius: radius, ...extra }}><Pic src={src} /></div>;
@@ -101,6 +106,7 @@ const Thing: React.FC<{ it: Item; t: number }> = ({ it, t }) => {
               transform: `translate(${s * (sp * 110 + settle * 40)}px, ${settle * 260 + droop * 120}px) rotate(${s * (sp * 14 + settle * 22 + droop * 10)}deg)` }}>{card(it.src)}</div>; })
         )}
         {showBack && null}
+        {broken < 0 && [0, 1].map((j) => <div key={"tp" + j} style={{ position: "absolute", top: -18, [j ? "right" : "left"]: -26, width: 120, height: 40, background: "rgba(236,226,196,.82)", boxShadow: "0 2px 3px rgba(0,0,0,.15)", transform: `rotate(${j ? 38 : -38}deg)` }} />)}
         {oldK > 0 && broken < 0 && <svg width={it.w} height={h} style={{ position: "absolute", inset: 0, opacity: 0.55 * oldK }}>{Array.from({ length: 14 }, (_, j) => { const rr = mulberry32(j * 7 + 3); const x1 = rr() * it.w, y1 = rr() * h; return <line key={j} x1={x1} y1={y1} x2={x1 + (rr() - 0.5) * 60} y2={y1 + 80 + rr() * 220} stroke="#f3e2b8" strokeWidth={1.5 + rr() * 2} />; })}</svg>}
         {it.tag && broken < 0 && (() => { const tk = easeOut((u - 0.35) / 0.25); return tk > 0 && <div style={{ position: "absolute", left: 26, bottom: -52, width: 150, height: 74, transformOrigin: "62px -30px", transform: `rotate(${-9 + Math.sin(u * 2.2) * 2}deg) scale(${tk})`, background: "#e9d4a0", border: "2px solid #b89a5c", borderRadius: "6px 6px 6px 30px", boxShadow: "3px 5px 6px rgba(0,0,0,.3)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Courier New', monospace", fontWeight: 700, fontSize: 42, color: C.red, letterSpacing: 2 }}>
           <div style={{ position: "absolute", left: 10, top: 23, width: 14, height: 14, borderRadius: 7, background: "#7a5a2a" }} />{String(it.tag).padStart(2, "0")}</div>; })()}
@@ -124,57 +130,57 @@ const Rain: React.FC<{ at: number; out: number; t: number; srcs: string[]; seed:
   const r = mulberry32(seed), o = t > out ? easeInOut((t - out) / 0.5) : 0;
   return <>{Array.from({ length: 16 }, (_, i) => { const x = 40 + r() * 860, y = 1180 + r() * 520, w = 170 + r() * 90, a0 = at + i * 0.09, rot = (r() - 0.5) * 50, src = srcs[i % srcs.length];
     const u = t - a0; if (u < 0) return null; const k = easeOut(u / 0.35);
-    return <div key={i} style={{ position: "absolute", left: x - o * 1300, top: lerp(-500, y, k), width: w, transform: `rotate(${rot + (1 - k) * 160}deg)`, filter: `blur(${(1 - k) * 6}px) drop-shadow(4px 8px 6px rgba(0,0,0,.35))` }}>
+    return <div key={i} style={{ position: "absolute", left: lerp(x < 470 ? -420 : 1300, x, k) - o * 1300, top: y - Math.sin(Math.PI * k) * 140, width: w, transform: `rotate(${rot + (1 - k) * (x < 470 ? -200 : 200)}deg)`, filter: `blur(${(1 - k) * 6}px) drop-shadow(4px 8px 6px rgba(0,0,0,.35))` }}>
       <div style={{ border: `8px solid ${C.edge}`, background: "#fff" }}><Pic src={src} /></div></div>; })}</>;
 };
 
 /* ───────── الجدول (أزمنة الكلمات من الجمل الكرمنجية) ───────── */
 const ITEMS: Item[] = [
   /* «Çavê xerab û hesûdiyê … dûr dixe» العين والحسد ← تُبعَد */
-  { id: "eye", tag: 1, src: "cine/amulet.png", x: 540, y: 520, w: 460, inAt: 4.8, inK: "drop", rot: 3, acts: [{ at: 6.5, k: "far" }], outAt: 7.1, outK: "far" },
+  { id: "eye", tag: 1, src: "cine/amulet.png", x: 520, y: 820, w: 520, inAt: 4.8, inK: "drop", rot: 3, acts: [{ at: 6.5, k: "glow" }, { at: 12.7, k: "wilt" }, { at: 14.9, k: "x" }], outAt: 7.1, outK: "tray", tray: [175, 1330, 230, -9, 16.05] },
   /* «Deriyên rizqê … vedike» أبواب الرزق ← الباب يدخل ثم يُضاء ويقترب على «vedike» */
-  { id: "door", tag: 2, src: "cine/door_light.png", x: 320, y: 900, w: 660, inAt: 7.2, inK: "slideR", rot: -2, acts: [{ at: 9.35, k: "glow" }], outAt: 9.95, outK: "fall" },
+  { id: "door", tag: 2, src: "cine/door_light.png", x: 300, y: 1000, w: 700, inAt: 7.2, inK: "slideR", rot: -2, acts: [{ at: 9.35, k: "glow" }, { at: 12.7, k: "wilt" }, { at: 15.02, k: "x" }], outAt: 9.95, outK: "tray", tray: [390, 1430, 240, 6, 16.1] },
   /* «nexweşiyek … şifa dike» المرض ← الدواء يقفز، والشفاء ← توهّج */
-  { id: "med", tag: 3, src: "cine/medicine.png", x: 540, y: 560, w: 460, inAt: 10.35, inK: "pop", rot: 4, acts: [{ at: 11.75, k: "glow" }], outAt: 12.55, outK: "up" },
+  { id: "med", tag: 3, src: "cine/medicine.png", x: 520, y: 840, w: 520, inAt: 10.35, inK: "pop", rot: 4, acts: [{ at: 11.75, k: "glow" }, { at: 12.7, k: "wilt" }, { at: 15.14, k: "x" }], outAt: 12.55, outK: "tray", tray: [210, 1680, 240, -4, 16.15] },
   /* «daliqînin» يعلّقون ← التميمة تتدلّى من حبل وتتأرجح */
-  { id: "hang", src: "cine/amulet.png", x: 580, y: 640, w: 400, inAt: 16.2, inK: "swing", outAt: 20.1, outK: "up" },
+  { id: "hang", src: "cine/amulet.png", x: 560, y: 720, w: 480, inAt: 16.2, inK: "swing", outAt: 20.1, outK: "up" },
   /* «rewayetkirin» الرواية ← الكتب تنزلق */
-  { id: "books", src: "cine/book_stack.png", x: 560, y: 1260, w: 400, inAt: 19.2, inK: "slideR", rot: 5, outAt: 20.15, outK: "sweepR" },
-  { id: "books2", src: "cine/book_stack.png", x: 90, y: 260, w: 420, inAt: 20.6, inK: "slideL", rot: -4, outAt: 23.1, outK: "up" },
+  { id: "books", src: "cine/book_stack.png", x: 50, y: 1180, w: 470, inAt: 19.2, inK: "slideL", rot: -4, outAt: 20.15, outK: "sweepL" },
+  { id: "books2", src: "cine/book_stack.png", x: 40, y: 110, w: 520, inAt: 20.6, inK: "slideL", rot: -4, outAt: 23.1, outK: "up" },
   /* «xelekek dît» رأى حلقة (أسوار) ← تسقط من الكاميرا ثم اقتراب */
-  { id: "bangle", tag: 4, src: "bangle", x: 90, y: 150, w: 520, inAt: 23.45, inK: "drop", rot: -2, acts: [{ at: 25.15, k: "old" }], outAt: 26.75, outK: "sweepL" },
+  { id: "bangle", tag: 4, src: "bangle", x: 40, y: 100, w: 560, inAt: 23.45, inK: "drop", rot: -2, acts: [{ at: 25.15, k: "old" }], outAt: 26.75, outK: "sweepL" },
   /* «tilsim» التمائم ← الطلسم ينزلق */
-  { id: "tals", tag: 5, src: "cine/talisman.png", x: 580, y: 300, w: 420, inAt: 26.9, inK: "slideR", rot: 4, acts: [{ at: 30.75, k: "x" }], outAt: 31.2, outK: "fall" },
+  { id: "tals", tag: 5, src: "cine/talisman.png", x: 540, y: 640, w: 520, inAt: 26.9, inK: "slideR", rot: 4, acts: [{ at: 30.75, k: "x" }], outAt: 31.2, outK: "fall" },
   /* «ev xelek çi ye?» ما هذه الحلقة؟ ← الأسوار تصعد وعلامة استفهام؛ «lawaziyê» الوهن ← تذبل؛ «tilsimekê» ← تنقلب إلى طلسم؛ ثم تعود */
-  { id: "bangle2", tag: 4, src: "bangle", back: "cine/talisman.png", x: 70, y: 980, w: 540, inAt: 31.3, inK: "rise",
+  { id: "bangle2", tag: 4, src: "bangle", back: "cine/talisman.png", x: 30, y: 920, w: 600, inAt: 31.3, inK: "rise",
     acts: [{ at: 32.7, k: "q" }, { at: 35.0, k: "wilt" }, { at: 36.1, k: "flip" }, { at: 39.95, k: "flip" }, { at: 40.7, k: "push" }, { at: 42.0, k: "break" }], outAt: 44.6, outK: "fall" },
   /* «şifayê … hêzê» الشفاء والقوة ← الدواء ينزلق ويتوهج */
-  { id: "med2", src: "cine/medicine.png", x: 620, y: 1060, w: 380, inAt: 37.8, inK: "slideR", rot: 5, acts: [{ at: 39.05, k: "glow" }], outAt: 39.95, outK: "sweepR" },
-  { id: "reader2", src: "cine/reader_back_soft.png", x: 600, y: 960, w: 400, inAt: 44.75, inK: "slideR", rot: 4, outAt: 46.3, outK: "sweepR" },
+  { id: "med2", src: "cine/medicine.png", x: 640, y: 1120, w: 420, inAt: 37.8, inK: "slideR", rot: 5, acts: [{ at: 39.05, k: "glow" }], outAt: 39.95, outK: "sweepR" },
+  { id: "reader2", src: "cine/reader_back_soft.png", x: 50, y: 1160, w: 470, inAt: 44.75, inK: "slideL", rot: -3, outAt: 49.85, outK: "sweepL" },
   /* «girêdayî bibe» من تعلّق ← التميمة على حبل؛ «tê hiştin» وُكل إليه ← تُترك فتسقط */
-  { id: "hang2", src: "cine/amulet.png", x: 600, y: 560, w: 400, inAt: 46.5, inK: "swing", outAt: 48.2, outK: "fall" },
+  { id: "hang2", src: "cine/amulet.png", x: 610, y: 700, w: 440, inAt: 46.5, inK: "swing", outAt: 48.2, outK: "fall" },
   /* «Xerezeyek şîn» خرزة زرقاء ← تقفز */
-  { id: "beads", tag: 7, src: "cine/beads.png", x: 560, y: 1020, w: 420, inAt: 48.75, inK: "pop", rot: -4, outAt: 49.9, outK: "fall" },
+  { id: "beads", tag: 7, src: "cine/beads.png", x: 560, y: 1000, w: 500, inAt: 48.75, inK: "pop", rot: -4, outAt: 49.9, outK: "fall" },
   /* «Bila sûd bide» فلتنفعك ← الطلسم يسقط؛ «kaxez» هذه الورقة ← اقتراب؛ «Na» لا ← يُكرمش */
-  { id: "paper", tag: 5, src: "cine/talisman.png", x: 520, y: 600, w: 480, inAt: 54.45, inK: "drop", rot: 3, outAt: 57.4, outK: "crumple" },
+  { id: "paper", tag: 5, src: "cine/talisman.png", x: 260, y: 1000, w: 640, inAt: 54.45, inK: "drop", rot: 3, outAt: 57.4, outK: "tray", ball: true, tray: [250, 1560, 200, 20, 61.5] },
   /* «Kî girêdayî bibe» من تعلّق ← على حبل */
-  { id: "hang3", src: "cine/amulet.png", x: 600, y: 560, w: 380, inAt: 58.65, inK: "swing", outAt: 60.35, outK: "up" },
+  { id: "hang3", src: "cine/amulet.png", x: 610, y: 660, w: 440, inAt: 58.65, inK: "swing", outAt: 60.35, outK: "up" },
   /* «rewayetekê … hedîsekê» رواية وحديث ← القارئ والمكتبة */
-  { id: "reader", tag: 6, src: "cine/reader_back_soft.png", x: 560, y: 520, w: 440, inAt: 60.5, inK: "slideR", rot: 3, outAt: 62.85, outK: "sweepR" },
-  { id: "lib", src: "cine/library.png", x: 70, y: 1040, w: 440, inAt: 61.6, inK: "rise", rot: -3, outAt: 62.85, outK: "sweepL" },
+  { id: "reader", tag: 6, src: "cine/reader_back_soft.png", x: 610, y: 600, w: 440, inAt: 60.5, inK: "slideR", rot: 3, outAt: 62.85, outK: "sweepR" },
+  { id: "lib", src: "cine/library.png", x: 30, y: 1160, w: 540, inAt: 61.6, inK: "rise", rot: -3, outAt: 62.85, outK: "sweepL" },
   /* «tilsimekê … şirk kiriye» تميمة ← شرك: علامة كبيرة بوميض */
-  { id: "a3", tag: 1, src: "cine/amulet.png", x: 80, y: 1000, w: 420, inAt: 63.45, inK: "drop", rot: -4, acts: [{ at: 65.75, k: "x" }], outAt: 66.4, outK: "fall" },
-  { id: "b3", tag: 7, src: "cine/beads.png", x: 580, y: 1060, w: 400, inAt: 63.7, inK: "drop", rot: 5, acts: [{ at: 65.85, k: "x" }], outAt: 66.4, outK: "fall" },
+  { id: "a3", tag: 1, src: "cine/amulet.png", x: 30, y: 1130, w: 500, inAt: 63.45, inK: "drop", rot: -4, acts: [{ at: 65.75, k: "x" }], outAt: 66.4, outK: "fall" },
+  { id: "b3", tag: 7, src: "cine/beads.png", x: 560, y: 1150, w: 500, inAt: 63.7, inK: "drop", rot: 5, acts: [{ at: 65.85, k: "x" }], outAt: 66.4, outK: "fall" },
   /* «Ji Xwedê … bitirse» اتّق الله ← المكتبة تصعد في ضوء */
-  { id: "lib2", src: "cine/library.png", x: 560, y: 1040, w: 440, inAt: 71.9, inK: "rise", rot: 3, acts: [{ at: 72.3, k: "glow" }] },
+  { id: "lib2", src: "cine/library.png", x: 560, y: 1100, w: 480, inAt: 71.9, inK: "rise", rot: 3, acts: [{ at: 72.3, k: "glow" }] },
 ];
 /* صورة الشيخ: كاملة في المقدمة والمقطع المحروق، وبطاقة تتنقل بين الأركان بحسب مكان الأشياء */
 const VKF: number[][] = [
-  [0, 0, 0, 1080, 1920], [4.45, 0, 0, 1080, 1920], [4.95, 60, 140, 420, 747], [20.1, 60, 140, 420, 747],
-  [20.45, 620, 1060, 400, 711], [26.6, 620, 1060, 400, 711], [26.95, 60, 140, 420, 747], [31.15, 60, 140, 420, 747],
-  [31.5, 600, 110, 420, 747], [44.6, 600, 110, 420, 747], [44.95, 60, 120, 420, 747], [49.95, 60, 120, 420, 747],
-  [50.3, 0, 0, 1080, 1920], [53.85, 0, 0, 1080, 1920], [54.3, 60, 140, 420, 747], [62.8, 60, 140, 420, 747],
-  [63.15, 330, 110, 420, 747], [71.5, 330, 110, 420, 747], [72.4, 240, 120, 600, 1067], [74.4, 240, 120, 600, 1067],
+  [0, 0, 0, 1080, 1920], [4.45, 0, 0, 1080, 1920], [4.95, 40, 100, 560, 996], [20.1, 40, 100, 560, 996],
+  [20.45, 480, 820, 560, 996], [26.6, 480, 820, 560, 996], [26.95, 40, 100, 560, 996], [31.15, 40, 100, 560, 996],
+  [31.5, 480, 100, 560, 996], [44.6, 480, 100, 560, 996], [44.95, 40, 100, 560, 996], [49.95, 40, 100, 560, 996],
+  [50.3, 0, 0, 1080, 1920], [53.85, 0, 0, 1080, 1920], [54.3, 40, 100, 560, 996], [62.8, 40, 100, 560, 996],
+  [63.15, 260, 100, 560, 996], [71.5, 260, 100, 560, 996], [72.4, 200, 100, 600, 1067], [74.4, 200, 100, 600, 1067],
 ];
 const S = (s: number) => Math.round(s * 30);
 const SFX: Cue[] = [[S(1.3), "swish", 0.6], [S(3.35), "typing", 0.8], [S(20.0), "swipe"], [S(31.1), "swipe"], [S(44.5), "swipe"], [S(60.2), "swipe"], [S(31.6), "tap", 0.6], [S(4.45), "swish"], [S(6.5), "fast"], [S(7.2), "swipe"], [S(9.35), "shimmer"], [S(10.35), "popin"], [S(16.2), "swish", 0.8], [S(20.2), "whoosh_big"],
@@ -183,9 +189,9 @@ const SFX: Cue[] = [[S(1.3), "swish", 0.6], [S(3.35), "typing", 0.8], [S(20.0), 
 
 /* ───────── الكاميرا: تقترب إلى الشيء المهم ثم تعود ───────── */
 const CAM = [
-  { a: 9.3, b: 9.95, cx: 650, cy: 1380, z: 1.25 },   // «vedike» الباب
-  { a: 23.6, b: 24.2, cx: 350, cy: 470, z: 1.2 },   // «xelekek» الأسوار
-  { a: 56.55, b: 57.45, cx: 760, cy: 950, z: 1.28 }, // «kaxez» الورقة
+  { a: 9.3, b: 9.95, cx: 650, cy: 1500, z: 1.2 },   // «vedike» الباب
+  { a: 23.6, b: 24.2, cx: 320, cy: 510, z: 1.18 },   // «xelekek» الأسوار
+  { a: 56.55, b: 57.45, cx: 580, cy: 1470, z: 1.18 }, // «kaxez» الورقة
 ];
 const camAt = (t: number) => {
   for (const c of CAM) if (t > c.a - 0.01 && t < c.b + 0.4) {
@@ -203,9 +209,8 @@ const Wipe: React.FC<{ t: number }> = ({ t }) => <>{WIPES.map((wp, i) => { const
   const left = W - e * W; return <div key={i} style={{ position: "absolute", top: -20, left, height: H + 40, width: W + 60, background: C.note, boxShadow: "-24px 0 40px rgba(0,0,0,.35)", clipPath: `polygon(${edge.map((v, j) => `${30 + v}px ${(j / 23) * 100}%`).join(",")},100% 100%,100% 0%)` }} />; })}</>;
 /* ───────── خيوط من الشاهد (دبوس صورة الشيخ) إلى الدليل عند «قال» ───────── */
 const THREADS = [
-  { at: 31.6, until: 44.55, a: [810, 116], b: [340, 990] },
-  { at: 45.0, until: 46.3, a: [270, 126], b: [800, 960] },
-  { at: 58.8, until: 60.3, a: [270, 146], b: [790, 560] },
+  { at: 31.6, until: 44.55, a: [760, 106], b: [330, 920] },
+  { at: 58.8, until: 60.3, a: [320, 106], b: [830, 660] },
 ];
 const Thread: React.FC<{ t: number }> = ({ t }) => <>{THREADS.map((th, i) => { if (t < th.at || t > th.until) return null; const k = easeInOut((t - th.at) / 0.45);
   const [ax, ay] = th.a, [bx, by] = th.b, mx = (ax + bx) / 2, my = Math.max(ay, by) - 80;

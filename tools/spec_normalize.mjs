@@ -22,10 +22,16 @@ const arg = (n, d) => (process.argv.includes("--" + n) ? process.argv[process.ar
 const allowSkips = process.argv.includes("--allow-skips");
 // --dry: report what is still incomplete and what would change, then put the spec back untouched (hand-planned montages)
 const dry = process.argv.includes("--dry"), ORIG = fs.readFileSync(f, "utf8");
+/* (2026-11-20, gta6) a long stage check ran this while the spec was being edited, and its writes (and the --dry restore of ORIG) put an OLDER spec back
+   over three edits made in the meantime. Every write now checks the file is still what this run last wrote; if someone else changed it, nothing is written. */
+let lastW = ORIG;
+const guardFile = () => { const now = fs.readFileSync(f, "utf8"); if (now !== lastW) { console.error(`✘ spec_normalize: ${f} تغيّر أثناء عملي (عدّله غيري) — لم أكتب فوقه؛ أعد التشغيل`); process.exit(3); } };
 const read = () => JSON.parse(fs.readFileSync(f, "utf8"));
-const write = (s) => { s.items.sort((a, b) => (span(a)?.[0] ?? 0) - (span(b)?.[0] ?? 0)); fs.writeFileSync(f, JSON.stringify(s, null, 1)); };
+const write = (s) => { guardFile(); s.items.sort((a, b) => (span(a)?.[0] ?? 0) - (span(b)?.[0] ?? 0)); lastW = JSON.stringify(s, null, 1); fs.writeFileSync(f, lastW); };
 const span = (it) => { const a = it.at ?? it.from ?? it.oldAt ?? it.times?.[0]; const b = it.until ?? it.to ?? (it.dur != null && a != null ? a + it.dur : null) ?? (a != null ? a + 3 : null); return a == null ? null : [a, b]; };
-const sh = (c) => { try { return execSync(c, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 1 << 26 }); } catch (e) { return String(e.stdout || "") + String(e.stderr || ""); } };
+const sh0 = (c) => { try { return execSync(c, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 1 << 26 }); } catch (e) { return String(e.stdout || "") + String(e.stderr || ""); } };
+/* a sub-tool of this run that writes the spec (--write/--fix/scraps_times) is this run's own write: the guard checks before it, and takes its result after */
+const sh = (c) => { const w = /--write|--fix|scraps_times/.test(c); if (w) guardFile(); const r = sh0(c); if (w) lastW = fs.readFileSync(f, "utf8"); return r; };
 const spec0 = read(), id = spec0.id ?? path.basename(f, ".json");
 const o = arg("o", /-L$/.test(spec0.comp ?? "") || arg("land", "") ? "land" : "port");
 const words = JSON.parse(fs.readFileSync(path.join(".tmp", id, "cut_words.json"), "utf8"));
@@ -118,7 +124,7 @@ if (dry) {
   const diff = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((k) => a[k] !== b[k]).map((k) => `${k} ${a[k] ?? 0}→${b[k] ?? 0}`);
   const zw = was.zooms?.length ?? 0, zn = now.zooms?.length ?? 0;
   console.log(`[spec_normalize --dry] كان سيغيّر: ${diff.join("، ") || "لا شيء في الأعداد"}${zw !== zn ? ` · تقريب ${zw}→${zn}` : ""}`);
-  fs.writeFileSync(f, ORIG);
+  guardFile(); fs.writeFileSync(f, ORIG);
   if (diff.length || zw !== zn) process.exitCode = 1;   // the spec as built is incomplete
 }
 const bad = [...(g.match(/✘[^\n]*/g) || []), ...(c.match(/✘[^\n]*/g) || []), ...(m.match(/✘[^\n]*/g) || [])];

@@ -768,7 +768,9 @@ const withHalfWays = (s: MontageSpec): MontageSpec => {
   });
   const extra = items.filter(isHalfWay).map((it) => it.t === "verse" ? halfShift(it.times[0] - HALF_LEAD, it.until ?? it.times[it.times.length - 1] + 1.2)
     : it.t === "pick" ? halfShift(it.at - HALF_LEAD, pickUntil(it))
-    : halfShift((it as { phrases: { at: number }[] }).phrases[0].at - HALF_LEAD, (it as { until: number }).until));
+    : halfShift((it as { phrases: { at: number }[] }).phrases[0].at - HALF_LEAD, (it as { until: number }).until))
+    /* (user 2026-11-20: «الأخبار لا تقربها من وجهي كثير… إذا كان الخبر عريض تاخذني على جنب وتحط تظليل أسود خلفه») an item marked aside slides him right */
+    .concat(items.filter((it) => (it as { aside?: boolean }).aside && it.only !== "port").map((it) => halfShift((it as { at: number }).at - HALF_LEAD, (it as { until: number }).until)));
   return extra.length ? { ...s, items, shifts: [...(s.shifts ?? []), ...extra].sort((a, b) => a.from - b.from) } : { ...s, items };
 };
 /* OPENING BUMPER IN STUDIO TOO (user 2026-11-12, binding law: «دائماً قبل أن أقول للمرة الأولى في الفيديو (طيب السلام عليكم / طيب بسم الله / السلام عليكم / بسم الله)
@@ -920,6 +922,7 @@ const MontageFromSpecBody: React.FC<{ spec: MontageSpec; muted?: boolean; noCutA
             moved the shade down with it and left the top of the screen unshaded */}
         {o === "land" ? spec.items.map((it, i) => { if (it.t !== "pick" || behindIt(it)) return null; const ip = { ...it, until: pickUntil(it as PickItem) } as PickItem, ns = ip.noShift ?? !!PICK_NOSPLIT[ip.el]; if (PICK_FULL_FRAME.has(ip.el)) return null; return <Only key={"ps" + i} from={ip.at - HALF_LEAD} to={ip.until}>{ns ? <LeftShade at={ip.at} until={ip.until} /> : <PickPanel at={ip.at} until={ip.until} />}</Only>; }) : null}
         {spec.shake?.some((w) => (w as { kind?: string }).kind === "photographer") ? <PhotoFade windows={spec.shake} /> : null}
+        {o === "land" ? spec.items.map((it, i) => (it as { aside?: boolean }).aside && it.only !== "port" ? <Only key={"as" + i} from={(it as { at: number }).at - HALF_LEAD} to={(it as { until: number }).until}><LeftShade at={(it as { at: number }).at} until={(it as { until: number }).until} /></Only> : null) : null}
         {spec.items.map((it, i) => (behindIt(it) ? null : renderItem(it, i, o, bar)))}
         {(spec.showTitleBar ?? spec.kind !== "reel") ? <TitleBar title={spec.title} sub={(spec as { titleSub?: string }).titleSub} theme={bar} date={spec.date} bottomHalf={o === "port"} /> : null}   {/* the counter bar is on in every episode by default (user 2026-11-16); lessons/streams set it false */}
       </Gfx>

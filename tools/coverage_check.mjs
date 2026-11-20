@@ -181,6 +181,12 @@ if (missing.length) fails++;
   else console.log("✔ لا نافذة عزل داخل نافذة مقطع");
 }
 
+// 1c) (user 2026-11-20: «هذا لازم يضاف من قبلك وليس من قبل الرندر») the bumper is placed by the montage: an episode (not a reel, paper, ad, explainer or
+//     cartoon) must carry spec.bumper {id, at} (or {id, end: true}); the render adds none of its own
+if (!["reel", "paper", "ad", "explainer", "cartoon"].includes(spec.kind) && !(spec.bumper && (Number(spec.bumper.at) > 0 || spec.bumper.end || spec.bumper.position === "none"))) {
+  console.log("✘ لا فاصل في الخطة: ضعه أنت (node tools/bumper_at.mjs <p> --write) وانظر إليه في الاستوديو — الرندر لا يضيف فاصلاً من عنده"); fails++;
+} else console.log(`✔ الفاصل في الخطة${spec.bumper?.at ? ` عند ${mm(spec.bumper.at)}` : ""}`);
+
 // 1d) (user 2026-11-20, frames 8122 and 9873: «تعارض بين الحديث والانقسام… غير مسموح»، «وضعت تقسيم الشاشة وأعطيت عنصراً متعلقاً بالوضع العادي…
 //     في تقسيم الشاشات مسموح لك أشياء بسيطة جداً: صورة في المنتصف، سبتايتل لبعض الكلمات المهمة») inside a split window (the clip on screen) only a picture in
 //     the gap and the words he stresses; any other element — a picked element, a hadith card, a list, a subscribe card — may not overlap it

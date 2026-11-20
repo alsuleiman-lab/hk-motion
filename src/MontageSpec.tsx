@@ -782,13 +782,17 @@ const withHalfWays = (s: MontageSpec): MontageSpec => {
    تضع الفاصل، فاصل عشوائي… ما عدا الريلز»): spec.bumper = { id, at } (tools/bumper_at.mjs --write). The render inserts it into the final file (prepend_bumper --at --id);
    Studio shows the same thing: the talk stops at `at`, the bumper plays 5 s with its sound, then the talk goes on. Composition frames in Studio = spec.frames + 150. */
 const FAWASEL: Record<string, { file: string; fileP: string }> = { press: { file: "fawasel/fasel_press.mp4", fileP: "fawasel/fasel_press_p.mp4" }, shelf: { file: "fawasel/fasel_shelf.mp4", fileP: "fawasel/fasel_shelf_p.mp4" }, wall: { file: "fawasel/fasel_wall.mp4", fileP: "fawasel/fasel_wall_p.mp4" }, notebook: { file: "fawasel/fasel_notebook.mp4", fileP: "fawasel/fasel_notebook_p.mp4" }, tear: { file: "fawasel/fasel_tear.mp4", fileP: "fawasel/fasel_tear_p.mp4" } };
-const studioBumper = (s: MontageSpec) => { const b = (s as { bumper?: { id: string; at: number; end?: boolean } }).bumper; return getRemotionEnvironment().isStudio && b && (b.at >= 1 || b.end) && FAWASEL[b.id] && (s as { kind?: string }).kind !== "reel" ? b : null; };
+/* (user 2026-11-18 and again 2026-11-20: «الفاصل يُضاف في المونتاج في مواضعه، ولا علاقة لطابور الرندر به»، «هذا لازم يضاف من قبلك وليس من قبل الرندر»)
+   the bumper is part of the MONTAGE: the final render draws it inside the composition exactly as the Studio shows it (input prop withBumper, set by
+   tools/gpu_render.mjs for a full render); every check tool (peek, face check, frames) keeps the plain cut timeline (no prop = no bumper) */
+const withBumperProp = () => { try { return !getRemotionEnvironment().isPlayer && !!(getInputProps() as { withBumper?: boolean }).withBumper; } catch { return false; } };
+const studioBumper = (s: MontageSpec) => { const b = (s as { bumper?: { id: string; at: number; end?: boolean } }).bumper; return (getRemotionEnvironment().isStudio || withBumperProp()) && b && (b.at >= 1 || b.end) && FAWASEL[b.id] && (s as { kind?: string }).kind !== "reel" ? b : null; };
 export const specFrames = (s: MontageSpec) => s.frames + (studioBumper(s) ? 150 : 0);
 /** `muted`: no sound from this copy (the side-by-side preview, src/MontageBoth.tsx, plays the sound from one side only) */
 const MontageFromSpecInner: React.FC<{ spec: MontageSpec; muted?: boolean }> = ({ spec, muted }) => {
   const b = studioBumper(spec), { width, height } = useVideoConfig(), frame = useCurrentFrame();
   if (!b) return <MontageFromSpecBody spec={spec} muted={muted} />;
-  const G = Math.round(b.at * 30), f = FAWASEL[b.id], fr = frame;   // the Studio keeps an ended Sequence's audio tag playing: each voice piece is MUTED outside its own span
+  const G = b.end ? spec.frames : Math.round(b.at * 30), f = FAWASEL[b.id], fr = frame;   // the Studio keeps an ended Sequence's audio tag playing: each voice piece is MUTED outside its own span
   return (
     <>
       {/* (user 2026-11-16: «أسمع اختلاط صوت الفاصل مع صوت الفيديو الذي بعده») the Studio kept the first part's voice playing on through the bumper and after it
@@ -796,7 +800,7 @@ const MontageFromSpecInner: React.FC<{ spec: MontageSpec; muted?: boolean }> = (
           the first cut off at the bumper (endAt), the second starting at the same second after it */}
       {G > 0 ? <Sequence durationInFrames={G}><MontageFromSpecBody spec={spec} muted={muted} noCutAudio /></Sequence> : null}
       {G > 0 && spec.cut ? <Audio key="voiceA" src={staticFile(spec.cut)} volume={(v) => (v < G ? 0.8 : 0)} muted={muted || fr >= G} /> : null}   {/* no endAt either (it wraps the tag in a Sequence that ends): it stays mounted, so the Studio keeps steering (and silencing) it */}
-      <Sequence from={G} durationInFrames={150}><AbsoluteFill style={{ background: "#000" }}><Video muted={muted} src={staticFile(width > height ? f.file : f.fileP)} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></AbsoluteFill></Sequence>
+      <Sequence from={G} durationInFrames={150}><AbsoluteFill style={{ background: "#000" }}>{HY ? <><VSlot src={width > height ? f.file : f.fileP} w={width} h={height} /><Audio src={staticFile(width > height ? f.file : f.fileP)} muted={muted} /></> : <Video muted={muted} src={staticFile(width > height ? f.file : f.fileP)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</AbsoluteFill></Sequence>   {/* GPU render: the bumper decoded on the GPU, its sound as an audio asset */}
       <Sequence from={G + 150}><Sequence from={-G}><MontageFromSpecBody spec={spec} muted={muted} noCutAudio /></Sequence></Sequence>
       {spec.cut ? <Sequence key="voiceB" from={G + 150}><Audio src={staticFile(spec.cut)} startFrom={G} volume={0.8} muted={muted || fr < G + 150} /></Sequence> : null}
     </>

@@ -322,10 +322,14 @@ logProgress(`DONE ${out}`);
      without it the env from render_job.sh (BUMPER_POSITION/AT/ID), else the legacy default with a warning; kinds paper/ad/explainer/cartoon → none */
   const specId = [arg("spec", null), arg("name", null)].find((x) => x && x !== true);
   let spec = null; try { spec = specId ? JSON.parse(fs.readFileSync(path.join(root, "data/specs", `${specId}.json`), "utf8")) : null; } catch { /* no spec */ }
-  const sb = spec?.bumper && ["start", "end", "none"].includes(spec.bumper.position) ? spec.bumper : null;
+  /* (2026-11-20) a spec.bumper with `at` and no position (the Studio writes {id, at}) is a break AT that second: it was ignored and the legacy default put it at the END */
+  const sb = spec?.bumper && ["start", "end", "none"].includes(spec.bumper.position) ? spec.bumper : spec?.bumper && Number(spec.bumper.at) > 0 ? { ...spec.bumper, position: "start" } : null;
   const bEnv = { BUMPER_POSITION: process.env.BUMPER_POSITION ?? "", BUMPER_AT: process.env.BUMPER_AT ?? "", BUMPER_ID: process.env.BUMPER_ID ?? "" };
   if (sb) { bEnv.BUMPER_POSITION = sb.position; if (sb.at != null) bEnv.BUMPER_AT = String(sb.at); if (sb.id) bEnv.BUMPER_ID = String(sb.id); if (sb.position === "end") bEnv.BUMPER_AT = ""; }
-  else if (!bEnv.BUMPER_POSITION) { if (spec) log("no spec.bumper — legacy default"); if (["paper", "ad", "explainer", "cartoon"].includes(spec?.kind)) bEnv.BUMPER_POSITION = "none"; }
+  /* (user 2026-11-20: «هذا لازم يضاف من قبلك وليس من قبل الرندر») the bumper is a MONTAGE decision written in the spec (tools/bumper_at.mjs --write, seen in
+     the Studio): the render never invents one. No spec.bumper (and no explicit BUMPER_* from render_job.sh) = no bumper, said loudly; the old «legacy default»
+     put a random bumper at the END of mufti-hiraba although the montage had it at 0:44 */
+  else if (!bEnv.BUMPER_POSITION) { bEnv.BUMPER_POSITION = "none"; if (spec && !["paper", "ad", "explainer", "cartoon"].includes(spec?.kind)) log("✘ no spec.bumper: the montage has no bumper — none added (write it: node tools/bumper_at.mjs <p> --write, check it in the Studio)"); }
   if (bEnv.BUMPER_POSITION === "none" && !partial) log("bumper: none (spec.bumper / kind) — no bumper added");
   if (!partial && bEnv.BUMPER_POSITION !== "none" && !compId.startsWith("Fasel-") && !/^(Stick|Dodo)-/.test(compId) && !process.argv.includes("--no-bumper")) {
     /* render_job.sh sets BUMPER_AT (seconds: before his first greeting, tools/bumper_at.mjs) and BUMPER_ID (the bumper chosen for this project); BUMPER_POSITION=end is read by prepend_bumper itself — same arguments as hybrid_any */

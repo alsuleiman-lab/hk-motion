@@ -173,7 +173,8 @@ if (missing.length) fails++;
   const bad = [];
   /* (2026-11-20, mufti-hiraba 3:05) a MOVE re-shows the map full frame later — without its own isolation window he vanished behind it: moves are judged too */
   for (const it of items.filter((x) => x.t === "pmap" && !x.only && spec.kind !== "reel" && !inSplit(x.from ?? 0))) {   /* reel = portrait only: the landscape-map rule does not apply (2026-11-17) */
-    const L = it.land ?? {}, full = (L.w ?? 0) >= 1900 && (L.h ?? 0) >= 1060 && (L.x ?? 0) <= 10 && (L.y ?? 0) <= 10;
+    /* (2026-11-20, gta6) no `land` box = the engine's default, the full frame (src/MontageSpec.tsx: land x 0, y 0, w 1920, h 1080) — a galleryRef spec may not write one */
+    const L = it.land ?? {}, full = (L.w ?? 1920) >= 1900 && (L.h ?? 1080) >= 1060 && (L.x ?? 0) <= 10 && (L.y ?? 0) <= 10;
     const win = (spec.behind ?? []).some((w) => (w.only === "land" || !w.only) && w.from <= (it.from ?? 0) + 0.3 && w.to >= (it.to ?? 0) - 0.3);
     if (!full || !win) bad.push(`${mm(it.from ?? 0)} ${!full ? "ليست ملء الإطار" : ""}${!full && !win ? " و" : ""}${!win ? "بلا نافذة عزل خلفها" : ""}`);
   }

@@ -6,7 +6,11 @@ import numpy as np
 
 # (2026-11-17) the list and the level live in ONE table: data/sensitive_words.json (roots, misheard forms, two-word phrases, tone, level)
 T = json.load(open("data/sensitive_words.json", encoding="utf-8"))
-PATTERN = "|".join(map(re.escape, T["roots"] + T.get("forms", [])))
+try:   # (user 2026-11-20) roots an episode keeps unbleeped (spec "bleepKeep", e.g. «قتل» in mufti-hiraba)
+    _KEEP = json.load(open(f"data/specs/{sys.argv[1]}.json", encoding="utf-8")).get("bleepKeep", [])
+except Exception:
+    _KEEP = []
+PATTERN = "|".join(map(re.escape, [r for r in T["roots"] + T.get("forms", []) if r not in _KEEP]))
 PHRASES = [tuple(x) for x in T.get("phrases", [])]
 PART = tuple(T.get("part", [0.25, 0.75]))
 SR, FREQ, GAIN, FADE = 48000, float(T.get("tone_hz", 880)), 10 ** (float(T.get("gain_db", -16)) / 20), 0.012

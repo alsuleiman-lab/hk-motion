@@ -11,7 +11,11 @@ import numpy as np
 
 p = sys.argv[1]
 T = json.load(open("data/sensitive_words.json", encoding="utf-8"))
+# (user 2026-11-20, mufti-hiraba: «شيل الصافرة الموضوعة على كلمة قتل ومشتقاتها من هذه الحلقة») roots this episode keeps unbleeped: spec "bleepKeep"
+try: KEEP = json.load(open(f"data/specs/{sys.argv[1]}.json", encoding="utf-8")).get("bleepKeep", [])
+except Exception: KEEP = []
 PATTERN = "|".join(map(re.escape, T["roots"] + T.get("forms", [])))
+KEEPRE = re.compile("|".join(map(re.escape, KEEP))) if KEEP else None
 PART = tuple(T.get("part", [0.25, 0.75]))
 FREQ, GAIN = float(T.get("tone_hz", 880)), 10 ** (float(T.get("gain_db", -16)) / 20)
 TMP = f".tmp/{p}"
@@ -61,6 +65,7 @@ for w in words:
         env = np.ones(m, np.float32); env[:FADE] = np.linspace(0, 1, FADE); env[-FADE:] = np.linspace(1, 0, FADE)
         y[i0:i0 + m] = y[i0:i0 + m] * (1 - env[:, None]) + q[:m] * env[:, None]
         if inprot(s): done.append(f"أُعيد صوت «{t}» عند {s:.2f} (آية أو حديث)"); continue
+        if KEEPRE and KEEPRE.search(t) and not re.search("|".join(map(re.escape, [r for r in T["roots"] + T.get("forms", []) if r not in KEEP])) or "^$", t): done.append(f"أُعيد صوت «{t}» عند {s:.2f} (مستثنى في هذه الحلقة)"); continue
     m = re.search(PATTERN, t); L = max(1, len(t))
     r0, r1 = s + (e - s) * m.start() / L, s + (e - s) * m.end() / L   # the root inside the word («لقتل» → «قتل»)
     a, b = r0 + (r1 - r0) * PART[0], r0 + (r1 - r0) * PART[1]

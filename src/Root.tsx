@@ -20,10 +20,10 @@ import { ActiveSpeaker, ACTIVE_FRAMES } from "./ext/ActiveSpeaker";
 import { CineSpeaker, CINE_SPEAKER_FRAMES } from "./ext/CineKit";
 import { StepsTemplate, STEPS_FRAMES } from "./ext/StepsKit";
 import { BoardTemplate, BOARD_FRAMES } from "./ext/BoardKit";
-import { AqidaReel, AQIDA_FRAMES } from "./ext/AqidaReel";
 import { CineWords, CINE_WORDS_FRAMES } from "./ext/CineWords";
 import { AnimeScene, ANIME_FRAMES, ANIME_FPS } from "./ext/AnimeScene";
-import { AnimeDuel, DUEL_FRAMES, DUEL_FPS } from "./ext/AnimeDuel";
+import { KeyArt1, KEY1_W, KEY1_H } from "./ext/KeyArt1";
+import { KeyArt2, KEY2_W, KEY2_H } from "./ext/KeyArt2";
 import { JordanDetain, JORDAN_FRAMES } from "./JordanDetain";
 import { DubKmr, DubCkb, DUBKMR_FRAMES } from "./DubKmr";
 import { DubKmrBoard, DubCkbPanels } from "./DubShots";
@@ -111,10 +111,10 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Ref-CineSpeaker" component={CineSpeaker} durationInFrames={CINE_SPEAKER_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-StepsTemplate" component={StepsTemplate} durationInFrames={STEPS_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-BoardTemplate" component={BoardTemplate} durationInFrames={BOARD_FRAMES} fps={30} width={1080} height={1920} />
-        <Composition id="Reel-Aqida-Mufassir" component={AqidaReel} durationInFrames={AQIDA_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-CineWords" component={CineWords} durationInFrames={CINE_WORDS_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-AnimeScene" component={AnimeScene} durationInFrames={ANIME_FRAMES} fps={ANIME_FPS} width={1920} height={1080} />
-        <Composition id="Ref-AnimeDuel" component={AnimeDuel} durationInFrames={DUEL_FRAMES} fps={DUEL_FPS} width={1080} height={1920} />
+        <Composition id="Ref-KeyArt1" component={KeyArt1} durationInFrames={1} fps={24} width={KEY1_W} height={KEY1_H} />
+        <Composition id="Ref-KeyArt2" component={KeyArt2} durationInFrames={2} fps={24} width={KEY2_W} height={KEY2_H} />
       </Folder>
       <Folder name="موشن توضيحي مستقل">
         <Composition id="Jordan-Detain" component={JordanDetain} durationInFrames={JORDAN_FRAMES} fps={30} width={1080} height={1920} />

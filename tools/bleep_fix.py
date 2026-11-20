@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Fix the bleeps of an already-built cut audio (.tmp/<p>/cut_audio.wav, the lazy cut's sound) without rebuilding the episode:
   · NEVER inside the Quran or a hadith (user 2026-11-20, frame 11116: «جعلت كلمتي "يقتلوا" مشفرة، في القرآن هذا الفعل ممنوع»): every bleeped word inside a verse
     (.tmp/<p>/verses.json cut times) or a narrated hadith (.tmp/<p>/hadith.json) gets its own sound back — taken from the original, cleaned the same way (RNNoise,
@@ -44,7 +45,9 @@ done = []
 for w in words:
     t, s, e = w["w"], w["s"], w["e"]
     if not re.search(PATTERN, t): continue
-    if inprot(s):   # give the word its own sound back
+    # (user 2026-11-20, frame 13095: «كلمة القتل شفرتها كلها، المفترض نصف الكلمة فقط») every word first gets its own sound back, then (outside the Quran and
+    # a hadith) ONE bleep on the middle half of the ROOT inside it — a second bleep at slightly different times had covered the whole word
+    if True:
         ss, se = to_src(s - 0.06), to_src(e + 0.06)
         if ss is None or se is None or se <= ss: continue
         raw, cln = f"{TMP}/_bf_raw.wav", f"{TMP}/_bf_clean.wav"
@@ -57,13 +60,14 @@ for w in words:
         i0 = int((s - 0.06) * SR); m = min(len(q), len(y) - i0)
         env = np.ones(m, np.float32); env[:FADE] = np.linspace(0, 1, FADE); env[-FADE:] = np.linspace(1, 0, FADE)
         y[i0:i0 + m] = y[i0:i0 + m] * (1 - env[:, None]) + q[:m] * env[:, None]
-        done.append(f"أُعيد صوت «{t}» عند {s:.2f} (آية أو حديث)")
-    else:   # bleep (again) the middle of the word — the same math as tools/bleep_words.py
-        lead = 2 if t.startswith("ال") else 0
-        cs = s + (e - s) * lead / max(1, len(t)); a, b = cs + (e - cs) * PART[0], cs + (e - cs) * PART[1]
-        i, j = int(a * SR), int(b * SR); tt = np.arange(j - i) / SR
-        env = np.minimum(1, np.minimum(tt, (j - i) / SR - tt) / 0.012)
-        y[i:j] = x[i:j] * (1 - env[:, None]) + (np.sin(2 * np.pi * FREQ * tt) * GAIN * env)[:, None]
+        if inprot(s): done.append(f"أُعيد صوت «{t}» عند {s:.2f} (آية أو حديث)"); continue
+    m = re.search(PATTERN, t); L = max(1, len(t))
+    r0, r1 = s + (e - s) * m.start() / L, s + (e - s) * m.end() / L   # the root inside the word («لقتل» → «قتل»)
+    a, b = r0 + (r1 - r0) * PART[0], r0 + (r1 - r0) * PART[1]
+    i, j = int(a * SR), int(b * SR); tt = np.arange(j - i) / SR
+    env = np.minimum(1, np.minimum(tt, (j - i) / SR - tt) / 0.012)
+    y[i:j] = y[i:j] * (1 - env[:, None]) + (np.sin(2 * np.pi * FREQ * tt) * GAIN * env)[:, None]
+    done.append(f"كُتم نصف جذر «{t}» عند {s:.2f}")
 for f in (f"{TMP}/_bf_raw.wav", f"{TMP}/_bf_clean.wav"):
     try: os.remove(f)
     except OSError: pass
@@ -71,4 +75,4 @@ os.replace(A, f"{TMP}/cut_audio.before_bleep_fix.wav")
 with wave.open(A, "wb") as f:
     f.setnchannels(ch); f.setsampwidth(2); f.setframerate(SR); f.writeframes((np.clip(y, -1, 1) * 32767).astype(np.int16).tobytes())
 print("\n".join(done) or "لا كلمة أُعيدت")
-print(f"✔ bleep_fix: {len(done)} أُعيدت، والباقي مكتوم بالجدول ({A})")
+print(f"bleep_fix: {len(done)} أُعيدت، والباقي مكتوم بالجدول ({A})")

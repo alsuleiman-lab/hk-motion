@@ -6,7 +6,7 @@ import fs from "node:fs";
 const p = process.argv[2], s = JSON.parse(fs.readFileSync(`data/specs/${p}.json`, "utf8")), busy = [];
 /* (2026-11-19) in a portrait reel every pick panel (the board included) takes the lower half and moves him: the old «no split» list is for landscape → a «free» window on a board measured a shifted face (false 12–35 % failures on clean renders) */
 const REEL = s.kind === "reel";
-const NOSPLIT = new Set(["RingStat", "MythFact", "ChatThread", "FlapBoard"]), FULL = new Set(["AlertFrame", "PipSource"]);
+const NOSPLIT = new Set(["RingStat", "GlowCounter", "MythFact", "ChatThread", "FlapBoard"]), FULL = new Set(["AlertFrame", "PipSource"]);
 const A = (it) => it.at ?? it.from ?? (it.times ? it.times[0] : 0), B = (it) => it.until ?? it.to ?? (it.dur ? A(it) + it.dur : A(it) + 1);
 for (const it of s.items) { const shifts = (it.t === "pick" && !(it.noShift ?? (!REEL && NOSPLIT.has(it.el))) && !FULL.has(it.el)) || ["verse", "hadith", "note", "pmap", "date", "rewrite", "rows", "splits"].includes(it.t); if (shifts) busy.push([A(it) - 1, B(it) + 1]); }
 for (const z of [...(s.zooms || []), ...(s.shake || [])]) busy.push([z.from - 1, z.to + 2]);

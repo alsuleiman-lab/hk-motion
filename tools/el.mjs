@@ -98,11 +98,13 @@ const gateAtoms = async (f, p) => {
   /* (2026-11-20) spec_normalize --dry WRITES the spec (its fixes) and then puts it back: two of them at once, or one beside a reader, raced on the same
      file — a gate read a half-written spec (JSON error) and a restore could bring back an older version. The two normalisers run one after the other,
      and only then the read-only gates, together. */
-  const n1 = await runGate(["tools/spec_normalize.mjs", f, "--o", "land", "--dry"]);
-  const n2 = await runGate(["tools/spec_normalize.mjs", f, "--o", "port", "--dry"]);
+  /* (2026-11-20, gta6) a montage built in ONE orientation (spec.forms = ["land"], like stage check --only land and el_rules plan-check) is judged in that
+     orientation alone: the portrait band refused every landscape side card of a landscape-only spec */
+  let forms = ["land", "port"]; try { const fm = JSON.parse(read(f)).forms; if (Array.isArray(fm) && fm.length) forms = forms.filter((o) => fm.includes(o)); } catch { /* both */ }
+  const ns = []; for (const o of forms) ns.push(await runGate(["tools/spec_normalize.mjs", f, "--o", o, "--dry"]));
   /* (user 2026-11-20: «يجب ببساطة أن تلتزم بالموقع على الشبكة») + where each element is DRAWN, as numbers (tools/slot_boxes.mjs, ¼ s, no render) */
-  const outs = await Promise.all([["tools/writing_sync.mjs", f], ["tools/element_slots.mjs", p], ["tools/coverage_check.mjs", f], ["tools/late_check.mjs", f], ["--experimental-strip-types", "--no-warnings", "tools/slot_boxes.mjs", p]].map(runGate));
-  return atomsOf([n1, n2, ...outs].join("\n"));
+  const outs = await Promise.all([["tools/writing_sync.mjs", f], ["tools/element_slots.mjs", p, ...(forms.length === 1 ? ["--only", forms[0]] : [])], ["tools/coverage_check.mjs", f], ["tools/late_check.mjs", f], ["--experimental-strip-types", "--no-warnings", "tools/slot_boxes.mjs", p]].map(runGate));
+  return atomsOf([...ns, ...outs].join("\n"));
 };
 /* the cached baseline is valid only for the same spec AND the same gate tools: a changed check made an old baseline report false «new» failures (2026-11-20) */
 const GATE_TOOLS = ["tools/writing_sync.mjs", "tools/element_slots.mjs", "tools/coverage_check.mjs", "tools/late_check.mjs", "tools/slot_boxes.mjs", "tools/spec_normalize.mjs", "src/galleryRef.ts", "data/layout_grids.json", "data/element_priority.json"];

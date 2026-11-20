@@ -29,7 +29,8 @@ const lastEvent = (it) => { let m = it.at ?? 0; const walk = (v, k) => { if (typ
 const end = (it) => { const e = it.until ?? (it.dur != null ? start(it) + it.dur : it.to ?? null); return it.t === "pick" && e != null ? Math.max(e, lastEvent(it)) : e; };
 const rank = (it) => PR.rank[it.t] ?? 2;
 const WRITING = new Set(["torn", "scraps", "blur", "stamp", "text", "words", "word", "title"]);
-const ONLY = argv.includes("--only") ? argv[argv.indexOf("--only") + 1] : null;   /* a single-orientation check (stage check --only land) judges that orientation alone (2026-11-19) */
+/* a single-orientation check (stage check --only land) judges that orientation alone (2026-11-19); so does a spec built in one orientation (spec.forms = ["land"], 2026-11-20 gta6) */
+const ONLY = argv.includes("--only") ? argv[argv.indexOf("--only") + 1] : Array.isArray(spec.forms) && spec.forms.length === 1 ? spec.forms[0] : null;
 const sides = (it) => { const all = it.only === "land" ? ["land"] : it.only === "port" ? ["port"] : ["land", "port"]; return ONLY ? all.filter((x) => x === ONLY) : all; };
 
 // ── areas (user 2026-11-18, rules review, w4 + w13)

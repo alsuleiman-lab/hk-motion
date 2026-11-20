@@ -298,10 +298,26 @@ export const SectionsRail: React.FC<{ at: number; until: number; sections: { tit
   );
 };
 
-export const PICK_KIT2 = { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, FillGlasses, SectionsRail, PrisonBars, ChainLinks } as const;
+/** 37 · عدّاد البطاقة (user 2026-11-20, gta6: «أنت بدك تضيف 150,000، حط عداد. في عندنا في المعرض عداد أرقام») — the gallery's number counter
+ *  (src/MG.tsx GlowCounter: the gold number on a paper card) as a spec element, timed by his words: it counts up from 0 and lands on `value` just after
+ *  he says it (`valueAt`), his words under it (`label` from `labelAt`). `text` (optional): a spoken amount that is not one number («مئات الآلاف»): the digits
+ *  race up to `value` and the card then shows his words instead. Not a split screen: he stays centred, the card in the left third (PICK_NOSPLIT). */
+export const GlowCounter: React.FC<Base & { value: number; valueAt: number; label?: string; labelAt?: number; text?: string; suffix?: string }> = ({ at, until, x, y, value, valueAt, label, labelAt, text, suffix = "" }) => {
+  const { t, k } = useK(); const kk = k(at, 0.45, until);
+  const t0 = Math.min(at + 0.35, valueAt - 0.3), t1 = valueAt + 0.45, u = clamp((t - t0) / Math.max(0.3, t1 - t0)), n = Math.round(value * (1 - Math.pow(1 - u, 3)));
+  const showText = !!text && t >= t1, num = arDigits(n.toLocaleString("en-US")).replace(/,/g, "٬") + suffix;
+  return (
+    <div style={abs({ left: x - 300, top: y - 110, width: 600, ...pop(kk, 0.5) })}>
+      <div style={{ margin: "0 auto", width: 560, height: 200, display: "grid", placeItems: "center", background: BRAND.card, borderRadius: 22, boxShadow: "0 22px 44px rgba(0,0,0,.35)", fontFamily: kufiF, fontSize: showText ? 96 : 128, lineHeight: 1, color: BRAND.accent, direction: showText ? "rtl" : "ltr", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{showText ? text : num}</div>
+      {label ? <div style={abs({ left: -60, right: -60, top: 226, textAlign: "center", fontFamily: kufiF, fontSize: 50, lineHeight: 1.25, color: BRAND.card, direction: "rtl", ...wipe(ease(k(labelAt ?? at, 0.5, until))) })}>{label}</div> : null}
+    </div>
+  );
+};
+
+export const PICK_KIT2 = { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, FillGlasses, SectionsRail, PrisonBars, ChainLinks, GlowCounter } as const;
 /** every picked element (PickKit + PickKit2) by spec name */
 /** the gallery's own x,y of every picked element (src/ElementsLab.tsx): used when a spec item gives none, so a spec never invents a place (user 2026-11-14: «لابد أن تنتبه إلى أماكن العناصر»). StickyNotes carry their own per-note x,y. */
-export const PICK_XY: Record<string, [number, number]> = { ChainLinks: [60, 200], PrisonBars: [60, 120], MinuteTeaser: [150, 150], NoProof: [100, 200], FlapBoard: [80, 260], BigQuestion: [90, 150], NeverMeet: [110, 260], ThoughtBubble: [90, 170], RootsTree: [110, 120], Iceberg: [110, 130], Crossroads: [110, 150], MythFact: [90, 300], InkQuote: [90, 380], ChatThread: [110, 250], MindMap: [560, 560], RingStat: [560, 470], QACard: [160, 300], ViciousCycle: [560, 520], FillGlasses: [110, 220], DecisionFlow: [80, 150], Footnote: [90, 230], ClaimWall: [110, 300], CopiedMessages: [110, 150], WordCloud: [560, 480], CommentsFlood: [110, 150] };
+export const PICK_XY: Record<string, [number, number]> = { ChainLinks: [60, 200], PrisonBars: [60, 120], MinuteTeaser: [150, 150], NoProof: [100, 200], FlapBoard: [80, 260], BigQuestion: [90, 150], NeverMeet: [110, 260], ThoughtBubble: [90, 170], RootsTree: [110, 120], Iceberg: [110, 130], Crossroads: [110, 150], MythFact: [90, 300], InkQuote: [90, 380], ChatThread: [110, 250], MindMap: [560, 560], RingStat: [560, 470], GlowCounter: [560, 470], QACard: [160, 300], ViciousCycle: [560, 520], FillGlasses: [110, 220], DecisionFlow: [80, 150], Footnote: [90, 230], ClaimWall: [110, 300], CopiedMessages: [110, 150], WordCloud: [560, 480], CommentsFlood: [110, 150] };
 /** PORTRAIT place of a picked element (user 2026-11-16, marked screenshot: the elements in the band 1400–1880 under the caption, never on his beard):
  *  the element is drawn in its landscape 1920×1080 board; PICK_PORT_BOX = the part of that board it really uses [top, height] (estimated from its layout),
  *  and the board is scaled (≤ 0.95) and placed so that part fills the band, centred (the board's content column is centred on x ≈ 590). */
@@ -310,7 +326,7 @@ export const PICK_PORT_BOX: Record<string, [number, number]> = {
   BigQuestion: [170, 650], NeverMeet: [250, 550], RingStat: [220, 630], ClaimWall: [300, 700], Crossroads: [150, 800], MythFact: [270, 440], DecisionFlow: [150, 780],
   MindMap: [180, 670], ViciousCycle: [180, 680], WordCloud: [200, 560], InkQuote: [380, 400], MinuteTeaser: [150, 600], NoProof: [200, 600],
   FlapBoard: [260, 420], ThoughtBubble: [170, 600], RootsTree: [120, 800], Iceberg: [130, 800], ChatThread: [250, 560], QACard: [300, 480], FillGlasses: [220, 620],
-  Footnote: [230, 520], CopiedMessages: [150, 720], CommentsFlood: [150, 760],
+  Footnote: [230, 520], CopiedMessages: [150, 720], CommentsFlood: [150, 760], GlowCounter: [340, 420],
 };
 export const pickPortBoard = (el: string): React.CSSProperties => {
   const [bt, bh] = PICK_PORT_BOX[el] ?? [(PICK_XY[el]?.[1] ?? 150), 700], s = Math.min(0.95, 610 / bh, 1000 / 1000);   /* (user 2026-11-16) the ELEMENTS zone: y 1100–1760, under the caption, his video in the upper half */
@@ -318,7 +334,7 @@ export const pickPortBoard = (el: string): React.CSSProperties => {
   return { position: "absolute", left, top, width: 1920, height: 1080, transform: `scale(${s})`, transformOrigin: "0 0" };
 };
 /** NOT a split screen (user 2026-11-14, frames 8341/10458/11903/13009/14105): he stays centred, the element sits small in the left third over a dark gradient (LeftShade); these are its LANDSCAPE props. The engine and the gallery both read this table. */
-export const PICK_NOSPLIT: Record<string, Record<string, number>> = { RingStat: { x: 330, y: 470 }, MythFact: { x: 40, y: 300, w: 760, size: 40 }, ChatThread: { x: 40, y: 250, w: 580 }, FlapBoard: { x: 40, y: 260, w: 600, size: 44 }, BigQuestion: { x: 40, y: 250, w: 600, size: 330 }, GradeLadder: { x: 40, y: 190 }, DecisionFlow: { x: 30, y: 180, s: 0.72, bare: 1 } };   /* GradeLadder, DecisionFlow: the dark gradient, no split (gallery notes 2026-11-17) */   /* BigQuestion beside him with no split (user 2026-11-16) */   /* the user's red box, lower left (2026-11-15) */
+export const PICK_NOSPLIT: Record<string, Record<string, number>> = { RingStat: { x: 330, y: 470 }, GlowCounter: { x: 330, y: 470 }, MythFact: { x: 40, y: 300, w: 760, size: 40 }, ChatThread: { x: 40, y: 250, w: 580 }, FlapBoard: { x: 40, y: 260, w: 600, size: 44 }, BigQuestion: { x: 40, y: 250, w: 600, size: 330 }, GradeLadder: { x: 40, y: 190 }, DecisionFlow: { x: 30, y: 180, s: 0.72, bare: 1 } };   /* GradeLadder, DecisionFlow: the dark gradient, no split (gallery notes 2026-11-17) */   /* BigQuestion beside him with no split (user 2026-11-16) */   /* the user's red box, lower left (2026-11-15) */
 export const PICK_ALL = { ...PICK_KIT, ...PICK_KIT2 } as const;
 export type PickAllName = keyof typeof PICK_ALL;
 export const PICK_ALL_FULL_FRAME = new Set<string>([...PICK_FULL_FRAME, "BrushWipe", "SectionsRail"]);

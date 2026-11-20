@@ -104,11 +104,16 @@ if (missing.length) fails++;
   const skipR = new Set(spec.skipRequired ?? []), miss = [];
   for (const r of req) {
     const hits = [];
+    /* (user 2026-11-20, gta6: «أنت بدك تضيف 150,000، حط عداد») a number followed by «ألف/مليون» is a COUNT (its element is the counter), never a year;
+       and a rule's `notNext` (normalized words, "#num" = any number) cancels a form whose next word is one of them («وصلت إلى مئات الآلاف» is a count, not a trip;
+       «نشرت ناس يلعبون» = posted videos, not a news report) */
+    const COUNT = new Set(["الف", "الاف", "الالاف", "مليون", "ملايين", "مليار"]), notNext = new Set((r.notNext ?? []).map(norm));
+    const cancelled = (j) => j < nw.length && (notNext.has(nw[j]) || (notNext.has("#num") && /^[0-9٠-٩]/.test(nw[j])));
     for (const f of r.forms) {
-      if (f === "#year") { const notYear = new Set(["صفحه", "ص", "الصفحه", "الجزء", "جزء", "المجلد", "مجلد", "رقم", "حديث", "الحديث", "ايه", "الايه"]); words.forEach((w, i) => { if (/^(1[0-9]{3}|20[0-9]{2}|[1-9][0-9]{2})$/.test(nw[i]) && !notYear.has(nw[i - 1])) hits.push(w.s); }); continue; }
+      if (f === "#year") { const notYear = new Set(["صفحه", "ص", "الصفحه", "الجزء", "جزء", "المجلد", "مجلد", "رقم", "حديث", "الحديث", "ايه", "الايه"]); words.forEach((w, i) => { if (/^(1[0-9]{3}|20[0-9]{2}|[1-9][0-9]{2})$/.test(nw[i]) && !notYear.has(nw[i - 1]) && !COUNT.has(nw[i + 1])) hits.push(w.s); }); continue; }
       const q = norm(f).split(" ");
       // prefix-stripped match only for stems ≥ 3 letters (bare("وكالة") = "ه" would match «له»)
-      for (let i = 0; i + q.length <= nw.length; i++) if (q.every((x, k) => nw[i + k] === x || (bare(x).length >= 3 && nb[i + k] === bare(x)))) hits.push(words[i].s);
+      for (let i = 0; i + q.length <= nw.length; i++) if (q.every((x, k) => nw[i + k] === x || (bare(x).length >= 3 && nb[i + k] === bare(x))) && !cancelled(i + q.length)) hits.push(words[i].s);
     }
     hits.sort((a, b) => a - b);
     let last = -1e9;

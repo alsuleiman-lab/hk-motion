@@ -15,6 +15,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { nameDoubts, doubtLine } from "./name_doubt.mjs";
 
 const p = process.argv[2], CHECK = process.argv.includes("--check");
 if (!p) { console.error("usage: node tools/requirements.mjs <project> [--check]"); process.exit(2); }
@@ -174,6 +175,14 @@ function build() {
   };
   for (const [f, nf] of SOURCES) scan(read(f, []), f, path.join(T, nf));
   rows.sort((a, b) => (a.t ?? 1e9) - (b.t ?? 1e9)); rows.forEach((r, i) => (r.id = i + 1));
+  /* DOUBTFUL NAMES (user 2026-11-21, gta6 1:34 «صور لبنان» → «ما ذكرت لبنان»): a place / person resting on ONE transcript hit is heard again first
+     (tools/name_doubt.mjs: both passes, other mentions, then a re-listening of the span); a doubtful one goes to «مشكوك» (.tmp/<p>/names_doubt.json) for the
+     agent to listen to — never into the required rows */
+  const nameRows = rows.filter((r) => r.kind === "place" || r.kind === "person");
+  const doubts = nameDoubts(p, nameRows.map((r) => ({ text: r.text, t: r.t, kind: r.kind }))).map((d, k) => ({ ...nameRows[k], verdict: d.verdict, why: d.why, heard: d.heard })).filter((d) => d.verdict === "doubt");
+  for (const d of doubts) rows.splice(rows.indexOf(nameRows.find((r) => r.id === d.id)), 1);
+  rows.forEach((r, i) => (r.id = i + 1));
+  fs.writeFileSync(path.join(T, "names_doubt.json"), JSON.stringify(doubts, null, 1));
   // 4) the user's «مونتاج» orders, and stretches of the original that talk to the editor
   const notes = read(path.join(T, "montage_notes.json"), []);
   for (const n of notes) add({ kind: "order", text: n.text, n: n.n, plan: n.plan ?? null, t: n.plan?.[0]?.at ?? null, need: null });
@@ -191,10 +200,11 @@ function build() {
   }
   fs.writeFileSync(reqF, JSON.stringify(rows, null, 1));
   const md = ["# ما يجب أن يظهر في الفيديو (يُستخرج قبل البناء)", "", "| # | النوع | الكلمة | الوقت | العنصر المطلوب | السياق |", "|---|---|---|---|---|---|",
-    ...rows.map((r) => `| ${r.id} | ${KIND[r.kind]} | ${r.kind === "order" ? r.text.slice(0, 60) : r.text} | ${r.t != null ? mm(r.t) : r.src != null ? "أصل " + mm(r.src) : "—"} | ${r.need ? r.need.slice(0, 3).join("/") : r.kind === "order" ? (r.plan ? r.plan.map((x) => x.arg != null ? `${x.type}:${x.arg}` : `${x.type}@${mm(x.at)}`).join("، ") : "✘ بلا خطة") : r.covered ? "✔ تعليمة مسجلة" : "✘ اسمعها"} | ${(r.ctx ?? "").slice(0, 70)} |`)];
+    ...rows.map((r) => `| ${r.id} | ${KIND[r.kind]} | ${r.kind === "order" ? r.text.slice(0, 60) : r.text} | ${r.t != null ? mm(r.t) : r.src != null ? "أصل " + mm(r.src) : "—"} | ${r.need ? r.need.slice(0, 3).join("/") : r.kind === "order" ? (r.plan ? r.plan.map((x) => x.arg != null ? `${x.type}:${x.arg}` : `${x.type}@${mm(x.at)}`).join("، ") : "✘ بلا خطة") : r.covered ? "✔ تعليمة مسجلة" : "✘ اسمعها"} | ${(r.ctx ?? "").slice(0, 70)} |`),
+    ...(doubts.length ? ["", "## مشكوك — يُسمع قبل أي عنصر (ليس من المطلوب)", ...doubts.map((d) => `- ${doubtLine(d, p)}`)] : [])];
   fs.writeFileSync(path.join(T, "requirements.md"), md.join("\n") + "\n");
   const by = (k) => rows.filter((r) => r.kind === k).length;
-  console.log(`requirements: ${rows.length} صفاً — أماكن ${by("place")}، أشخاص ${by("person")}، تواريخ ${by("date")}، أوصاف ${by("depict")}، تعليمات ${by("order")}، مواضع تخاطب المونتير ${by("ordercand")} → ${path.join(T, "requirements.md")}`);
+  console.log(`requirements: ${rows.length} صفاً — أماكن ${by("place")}، أشخاص ${by("person")}، تواريخ ${by("date")}، أوصاف ${by("depict")}، تعليمات ${by("order")}، مواضع تخاطب المونتير ${by("ordercand")}${doubts.length ? `، ومشكوك ${doubts.length} (يُسمع، ليس من المطلوب): ${doubts.map((d) => `${d.text}@${Math.round(d.t)}`).join("، ")}` : ""} → ${path.join(T, "requirements.md")}`);
   return rows;
 }
 // prophets, God and angels are never drawn or photographed
@@ -233,6 +243,7 @@ function check(rows) {
   }
   console.log(miss.length ? `✘ requirements: ${miss.length} من ${rows.length} لم يتحقق:\n  ` + miss.join("\n  ") : `✔ requirements: كل الصفوف (${rows.length}) متحققة في المواصفة`);
   if ((spec.skipRequired ?? []).length) console.log(`  ⚠ مستثنى بقرار (يُذكر للمستخدم مع الرابط): ${spec.skipRequired.join("، ")}`);
+  for (const d of read(path.join(T, "names_doubt.json"), [])) console.log(`  ⚠ ${doubtLine(d, p)}`);   // not a required row: the agent listens (name_doubt.mjs)
   process.exit(miss.length ? 1 : 0);
 }
 

@@ -11,6 +11,7 @@
 // «عمان/عمّان» = the city of Amman (JOR) when «الأردن/أردني» is said within 30 s before or after it, otherwise Oman (OMN) (user 2026-11-18, rules review).
 import fs from "node:fs";
 import path from "node:path";
+import { nameDoubts, doubtLine } from "./name_doubt.mjs";
 
 const [p, ...rest] = process.argv.slice(2);
 if (!p) { console.error("usage: node tools/names_scan.mjs <p> [--write]"); process.exit(2); }
@@ -82,6 +83,11 @@ for (let i = 0; i < nw.length; i++) for (let n = Math.min(maxLen, 3); n >= 1; n-
   if (pl && i > 0 && /^(مفتي|ملك|رئيس|امير|وزير|سفير|حاكم|سلطان|شيخ|علماء|مشايخ|دار|مجلس|محكمه|حكومه|جيش|شعب|قناه|اوقاف)$/.test(String(nw[i - 1]).replace(/^(و|ف|ب|ل)(?=..)/, "").replace(/^ال/, ""))) { i += n - 1; break; }
   if (pl) { hits.push({ ...pl, said: words.slice(i, i + n).map((w) => w.w).join(" "), at: +words[i].s.toFixed(2) }); i += n - 1; break; }
 }
+/* DOUBTFUL NAMES (user 2026-11-21, gta6 1:34 «صور لبنان» → «ما ذكرت لبنان»): a place resting on ONE transcript hit is heard again (tools/name_doubt.mjs);
+   a doubtful one gets no map — it is listed as «مشكوك» in names.json for the agent to listen to */
+const doubt = nameDoubts(p, hits.map((h) => ({ text: h.name, said: h.said, t: h.at, kind: h.kind }))).filter((d) => d.verdict === "doubt");
+for (const d of doubt) hits.splice(hits.findIndex((h) => h.at === d.t && h.said === d.said), 1);
+for (const d of doubt) console.log(`⚠ names: ${doubtLine(d, p)}`);
 // group: mentions within 6 s → one window
 const grouped = (hs) => { const out = []; for (const h of hs) { const g = out.at(-1); if (g && h.at - g.at.at(-1) <= 6) { g.hits.push(h); g.at.push(h.at); } else out.push({ hits: [h], at: [h.at] }); } return out; };
 const groups = grouped(hits);
@@ -137,7 +143,7 @@ for (const g of grouped(hits.filter((h) => { if (h.at < HOOK) { inHook++; return
   }
   busy.push([from, to]);
 }
-fs.writeFileSync(path.join(T, "names.json"), JSON.stringify({ places: hits, maps: plan.filter((x) => x.kind === "map").length, moves: plan.filter((x) => x.kind === "move").length, hook: HOOK }, null, 1));
+fs.writeFileSync(path.join(T, "names.json"), JSON.stringify({ places: hits, doubt: doubt.map((d) => ({ name: d.text, said: d.said, at: d.t, why: d.why, heard: d.heard })), maps: plan.filter((x) => x.kind === "map").length, moves: plan.filter((x) => x.kind === "move").length, hook: HOOK }, null, 1));
 console.log(`names: ${hits.length} place mention(s) → ${plan.filter((x) => x.kind === "map").length} map(s) + ${plan.filter((x) => x.kind === "move").length} move(s)${inHook ? ` · ${inHook} in the first ${HOOK} s (hook: nothing automatic)` : ""}${skipped ? ` · ${skipped} window(s) skipped: another map / full-screen item there` : ""}`);
 for (const x of plan) console.log(`  ${x.at.toFixed(1)} s  ${x.kind === "map" ? "map " : `move on ${x.on}:`} ${x.g.hits.map((h) => h.said + (h.kind === "city" ? "" : " (بلد)")).join("، ")}`);
 

@@ -4,7 +4,7 @@
 // spoken around the card's times; it reports, in plain Arabic, WHERE (mm:ss), WHICH verse, and WHAT: a word he skipped, a word he added to the verse, a word read differently.
 // It writes .tmp/<p>/verse_audit.md and prints the report; exit 1 with --strict when anything is found (stage.mjs check prints it; the report goes to the user BEFORE any render so he can re-record).
 // Limit (always say it): the check is by transcript (Whisper large-v3) — it catches omitted / added / replaced words, not a wrong vowel mark or elongation.
-import fs from "node:fs"; import path from "node:path";
+import fs from "node:fs"; import path from "node:path"; import { spawnSync } from "node:child_process";
 const argv = process.argv.slice(2), opt = (n, d) => (argv.includes("--" + n) ? argv[argv.indexOf("--" + n) + 1] : d);
 const specF = argv.find((a) => a.endsWith(".json") && !a.includes("words"));
 if (!specF) { console.error("usage: node tools/verse_audit.mjs data/specs/<p>.json [--words …] [--strict]"); process.exit(2); }
@@ -37,8 +37,13 @@ for (const it of spec.items.filter((i) => i.t === "verse")) {
   const firstM = ops.findIndex((o) => o.k === "m"), lastM = ops.map((o) => o.k).lastIndexOf("m");
   const core = firstM < 0 ? ops.filter((o) => o.k === "del") : ops.filter((o, q) => q >= Math.min(firstM, ops.findIndex((x) => x.k === "del") < 0 ? firstM : ops.findIndex((x) => x.k === "del")) && q <= Math.max(lastM, ops.map((x) => x.k).lastIndexOf("del")));
   const issues = [];
-  for (const o of core) {
+  for (const [q, o] of core.entries()) {
+    /* a missing word next to an extra one = ONE word said instead of another (gta6 2026-11-21: «زيادة: شديد» + «نقص: أليم» were read as noise and left) */
+    const pair = o.k === "del" ? (core[q + 1]?.k === "ins" ? core[q + 1] : core[q - 1]?.k === "ins" && !core[q - 1].paired ? core[q - 1] : null) : null;
+    if (pair) { pair.paired = true; issues.push(`استبدال: قلتَ «${pair.s.w}» عند ${mm(pair.s.s)} والمصحف «${o.v.w.replace(/[ؐ-ًؚ-ٰٟۖ-ۭ]/g, "").replace(/ٱ/g, "ا").trim()}» — الإصلاح بصوته: node tools/recitation_fix.mjs ${spec.id} --at ${pair.s.s.toFixed(2)} --from "${pair.s.w}" --to "${o.v.w.replace(/[ۖ-ۭ]/g, "").replace(/ٱ/g, "ا").trim()}"`); continue; }
+    if (o.paired) continue;
     if (o.k === "del") issues.push(`نقص: لم تُسمَع كلمة «${o.v.w.replace(/[ؐ-ًؚ-ٰٟۖ-ۭ]/g, "")}» (موجودة في الآية)`);
+    else if (o.k === "ins" && core[q + 1]?.k === "del") continue;   // paired by the del after it
     else if (o.k === "ins") issues.push(`زيادة: قلتَ «${o.s.w}» عند ${mm(o.s.s)} وليست في هذا الموضع من الآية`);
     else if (o.k === "m" && skel(o.v.n) !== skel(o.s.n)) issues.push(`اختلاف: قلتَ «${o.s.w}» والآية «${o.v.w.replace(/[ؐ-ًؚ-ٰٟۖ-ۭ]/g, "")}» (قد يكون من المفرّغ لا منك: استمع)`);
   }
@@ -54,4 +59,11 @@ if (out.some((o) => o.accepted)) lines.push("", ...out.filter((o) => o.accepted)
 const rep = `# تدقيق قراءة الآيات — ${spec.id}\n\n${lines.join("\n")}\n\n${bad.length ? `⚠ ${bad.length} آية فيها فروق بين قراءتك ونص الآية: أصلحها أو أكّد أنها صحيحة قبل الرندر.` : "✔ لا فروق: كل آية مقروءة كما في المصحف (حسب التفريغ)."}\n\nحدّ الفحص: يعتمد على التفريغ الآلي؛ يكشف نقص كلمة أو زيادتها أو استبدالها، ولا يكشف خطأ التشكيل أو المدّ.\n`;
 fs.mkdirSync(path.join(".tmp", spec.id), { recursive: true }); fs.writeFileSync(path.join(".tmp", spec.id, "verse_audit.md"), rep);
 console.log(rep);
-if (bad.length && argv.includes("--strict")) process.exit(1);
+/* RECITATION CHECK (2026-11-21, gta6 «عذاب شديد» for «عذاب أليم», found by the user in the Studio): every verse he recites, found in his own words and not only
+   on the cards, word by word against the Mushaf, each difference heard a second time in the audio, with the fix route — tools/recitation_check.mjs */
+let rc = 0;
+if (!argv.includes("--no-recitation") && fs.existsSync(wordsF)) {
+  const r = spawnSync(process.execPath, [path.join(import.meta.dirname, "recitation_check.mjs"), spec.id, "--words", path.resolve(wordsF), ...(opt("audio") ? ["--audio", path.resolve(opt("audio"))] : []), "--strict"], { encoding: "utf8", windowsHide: true, maxBuffer: 1 << 24 });
+  process.stdout.write(r.stdout || r.stderr || ""); rc = r.status === 1 ? 1 : 0;
+}
+if ((bad.length || rc) && argv.includes("--strict")) process.exit(1);

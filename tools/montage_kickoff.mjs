@@ -15,6 +15,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
+import { appliesToEpisode, sectionsFailures, packageFailures } from "./prepublish_gates.mjs";
 
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const argv = process.argv.slice(2);
@@ -46,6 +47,13 @@ const artifactDone = (q, l, b) => {
   if (l.id === "research") return fs.existsSync(path.join(T(q), "stages", "assets.json"));
   if (l.id === "cover") return fs.existsSync(path.join(T(q), "stages", "cover.json"));
   if (l.id === "plan") return fs.existsSync(path.join(T(q), "stages", "plan.json"));
+  /* (user 2026-11-21, gta6: sections.json appeared only at publishing, no rail, a package with no description or tags) done = the gate passes, never a memory */
+  if (l.id === "sections" || l.id === "package") {
+    const spec = json(path.join("data", "specs", `${q}.json`), null);
+    if (!spec) return false;
+    if (!appliesToEpisode(q, spec)) return true;   // a reel, cartoon, paper, ad, explainer: no sections, no package
+    return l.id === "sections" ? sectionsFailures(q, spec).length === 0 : packageFailures(q).length === 0;
+  }
   return false;
 };
 const refresh = (q) => editBoard(q, (b) => { for (const l of b.lanes) if (l.kind === "agent" && l.status !== "done" && l.status !== "parked" && artifactDone(q, l, b)) { l.status = "done"; l.endedAt ??= now(); } });
@@ -196,6 +204,8 @@ if (cmd === "kickoff") {
     ...(flag("--no-cover") ? [] : [{ id: "cover", ar: "وكيل الغلاف", kind: "agent", deps: ["cover_brief"] }]),
     { id: "elements", ar: "وكلاء العناصر الخاصة (أوامر «مونتاج»)", kind: "agent", deps: ["orders"] },
     { id: "plan", ar: "خطة العناصر (el_rules ثم plan-check ثم دفعة واحدة)", kind: "agent", deps: ["cut"] },
+    { id: "sections", ar: "أقسام الفيديو: sections.json بعدد الجدول + خط الأقسام في أول الثواني (video-sections)", kind: "agent", deps: ["cut"] },
+    { id: "package", ar: "حزمة يوتيوب: الوصف من تفريغ القص والوسوم والفصول وقائمة التشغيل (yt_package)", kind: "agent", deps: ["sections"] },
   ].map((l) => ({ status: "waiting", ...l }));
   const board = { project: p, video, durationS: dur, createdAt: now(), lanes, parked: [] };
   const plan = lanes.filter((l) => l.kind === "proc").map((l) => `  ⚙ ${l.ar}${l.deps.length ? ` (بعد ${l.deps.join("،")})` : ""}: ${l.cmd.slice(1).join(" ")}`).join("\n");
@@ -218,6 +228,7 @@ if (cmd === "kickoff") {
     `  2) اقرأ كاملة ريثما يعمل التجهيز: ${R}/القواعد_العامة.md ← شجرة_العمليات.md ← .claude/skills/router ← first-questions ← montage-orders ← video-cutting ← video-montage (SKILL + critical-rules + workflow-plan) ← gallery-placement ← checking ← delivery-links.`,
     `  3) عند انتهاء التجهيز (اللوحة تقول): احكم على .tmp/${p}/cut_proposal.md وشغّل القص في الخلفية؛ وأطلق معاً وكيل البحث من .tmp/${p}/early_queue.md ووكيل الغلاف من .tmp/${p}/cover_brief.md ووكلاء العناصر الخاصة.`,
     `  4) العناصر: node tools/el_rules.mjs rules <العناصر> قبل الخطة، ثم plan-check، ثم دفعة واحدة.`,
+    `     ومع الخطة (بعد القص): الأقسام .tmp/${p}/sections.json (العدد: node tools/yt_package.mjs ${p} --count) وخط الأقسام SectionsRail في أول الثواني، ثم الحزمة: node tools/yt_package.mjs ${p} --desc "…" --tags "…" [--event]. لا تنتظر النشر (2026-11-21).`,
     "  5) حدّ الوقت: عائق يفشل 3 مرات أو يأخذ 6 دقائق ← اركنه (park) واعمل غيره، ولا أمر طويل في المقدمة.",
     `اللوحة: node tools/montage_kickoff.mjs board ${p}`,
   ].join("\n"));

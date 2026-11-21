@@ -432,6 +432,9 @@ if (stage === "check") {
   // after the review link the spec is frozen: a change outside a block applied with spec_block.mjs apply = a whole-video rebuild the user forbade (2026-11-11)
   if (fs.existsSync(path.join(T, "spec_frozen.json"))) await step("spec_block", "node", ["tools/spec_block.mjs", "diff", p], /spec_block|^\s+\S/);
   if (fs.existsSync(path.join("data", "specs", `${p}.json`))) await step("requirements", "node", ["tools/requirements.mjs", p, "--check"], /requirements|^\s+\S/);
+  /* (user 2026-11-21, gta6: sections.json appeared only at publishing and the spec had no sections rail) a full landscape episode has its sections (count by
+     data/sections_rule.json) and the SectionsRail in its first seconds HERE, while building — not at the end (tools/prepublish_gates.mjs; reels and the rest pass) */
+  if (fs.existsSync(path.join("data", "specs", `${p}.json`)) && !isReel) await step("sections (video-sections)", "node", ["tools/prepublish_gates.mjs", p, "--stage"], /^✘|✔/);
   await step("tasks", "node", ["tools/tasks.mjs", p], /^✘ مفتوح|^✔ كل المهام/);   // the one task list of the video (rules §6): requirements + orders + stages
   if (fs.existsSync(path.join(T, "montage_notes.json"))) await step("montage_notes", "node", ["tools/montage_notes.mjs", "check", p], /✘|✔/);
   /* (user 2026-11-13: «أنت ما وضعت الفاصل… كل مرة عم تخطئ فيه» + «وجود امرأة يعني تغبيش»): the bumper position is written by the check itself and must exist (reels excepted),

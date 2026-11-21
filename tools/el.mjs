@@ -45,7 +45,9 @@ const catalog = () => {
   for (const [code, t0] of Object.entries(typeOf)) { const t = t0.split(":")[0]; if (!approved.has(t) || !specFields[t]) continue; els[code] = { code, t, ...(t0.includes(":") ? { fixed: { style: t0.split(":")[1] } } : {}), fields: specFields[t], lab: lab[code] }; }
   for (const f of ["src/PickKit.tsx", "src/PickKit2.tsx"]) {
     const s = read(f), names = (s.match(/export const PICK_KIT2? = \{([^}]*)\}/)?.[1] ?? "").split(",").map((x) => x.trim()).filter(Boolean);
-    for (const n of names) { const m = s.match(new RegExp(`export const ${n}: React\\.FC<Base & \\{`)); if (!m) continue; const i = s.indexOf("{", m.index + m[0].length - 1); els[n] = { code: n, t: "pick", el: n, fields: [{ name: "at", opt: false, type: "number" }, { name: "until", opt: false, type: "number" }, ...fieldsOf(braceBody(s, i))], lab: lab[n] }; }
+    /* (2026-11-21, gta6) a gallery pick typed without Base (SectionsRail: React.FC<{ at; until; sections… }>) was missing here, so `el.mjs add … SectionsRail` failed
+       and the episode went out with no sections rail; such a pick counts when the gallery has its card and it takes at/until itself */
+    for (const n of names) { const m = s.match(new RegExp(`export const ${n}: React\\.FC<(Base & )?\\{`)); const i = m ? s.indexOf("{", m.index + m[0].length - 1) : -1; if (!m || (!m[1] && !(lab[n] && braceBody(s, i).trimStart().startsWith("at: number")))) continue; els[n] = { code: n, t: "pick", el: n, fields: [{ name: "at", opt: false, type: "number" }, { name: "until", opt: false, type: "number" }, ...fieldsOf(braceBody(s, i)).filter((f) => f.name !== "at" && f.name !== "until")], lab: lab[n] }; }
   }
   const X = JSON.parse(read("data/element_names.json"));   // names of the elements with no gallery card, and types named after another gallery element
   for (const t of approved) if (specFields[t] && !Object.values(els).some((e) => e.t === t)) { const code = X.codeOf?.[t] ?? t; els[code] = { code, t, fields: specFields[t], lab: lab[code] ?? (X.names?.[t] ? { ar: X.names[t] } : undefined) }; }

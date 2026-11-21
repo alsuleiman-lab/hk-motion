@@ -5,6 +5,7 @@
 //   node tools/questions.mjs answers <p>                   → prints the answers (also .tmp/<p>/answers.json)
 //   node tools/questions.mjs open <p>                      → prints unanswered questions
 //   node tools/questions.mjs watch <p> [--all]             → prints each NEW answer as it arrives, one line each (polls answers.log; run it under a Monitor)
+//   node tools/questions.mjs mark <p> <id> --said "…"      → records the user's answer given in the CHAT, his words verbatim (counts as answered for final_review)
 //   node tools/questions.mjs applied <p>                   → stamps .tmp/<p>/answers_applied.json {appliedAt} (the answers gate of stage check compares against it)
 // Files: .tmp/<p>/questions.json (mine) and .tmp/<p>/answers.json (the page writes it; each answer appended to answers.log for a Monitor).
 // (user 2026-11-18, rules review) `add` prints the LAN-IP link (opens on the phone too), starts the server in the background when :3110 does not answer,
@@ -139,7 +140,17 @@ if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, "/")}` || proc
     const ok = await answers200(link);
     console.log(`+ ${q.id} → ${link} ${ok ? "✔" : "✘ الرابط لا يفتح"}`);
   } else if (cmd === "answers" && p) { for (const [id, a] of Object.entries(answers(p))) console.log(`${id}: ${[].concat(a.answer).join("، ")}${a.note ? " — " + a.note : ""}`); }
-  else if (cmd === "open" && p) { const a = answers(p); for (const q of read(qFile(p), []).filter((x) => !a[x.id])) console.log(`${q.id}: ${q.q}`); }
+  else if (cmd === "open" && p) { const { isAnswered } = await import("./prepublish_gates.mjs"); const a = answers(p); for (const q of read(qFile(p), []).filter((x) => !isAnswered(a[x.id]))) console.log(`${q.id}: ${q.q}`); }
+  else if (cmd === "mark" && p) {
+    /* (user 2026-11-21, GTA 6: items left unanswered on the page reached publishing; final_review now fails on them) the user answered in the CHAT, not on the page:
+       his own words are recorded with the item (--said, verbatim). Never a made-up answer: no --said, no mark. */
+    const id = rest.find((x) => !x.startsWith("--") && rest[rest.indexOf(x) - 1] !== "--said"), said = opt("said");
+    if (!id || !said?.trim() || !read(qFile(p), []).some((x) => x.id === id)) { console.error(`✘ usage: node tools/questions.mjs mark ${p} <id من صفحة الأسئلة> --said "<نص المستخدم في المحادثة كما كتبه>"`); process.exit(2); }
+    const all = read(aFile(p), {}), prev = all[id] ?? {}, at = new Date().toISOString();
+    all[id] = { ...prev, note: prev.note || `(من المحادثة) ${said.trim()}`, mark: { via: "chat", said: said.trim(), at }, at }; write(aFile(p), all);
+    fs.appendFileSync(path.join(root, ".tmp", p, "answers.log"), `${new Date().toLocaleTimeString()} ${id}: (من المحادثة) ${said.trim()}`.replace(/\s*[\r\n]+\s*/g, " ⏎ ") + "\n");
+    console.log(`✔ ${id}: سُجّل جواب المستخدم من المحادثة`);
+  }
   else if (cmd === "watch" && p) {
     /* (user 2026-11-18, rules review) one line per new answer, polled from answers.log (a Monitor alerts on each line); --all prints the earlier ones first */
     const f = path.join(root, ".tmp", p, "answers.log");
@@ -158,5 +169,5 @@ if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, "/")}` || proc
     /* (user 2026-11-18, rules review) every answer up to now is applied: stage check's answers gate compares answers.json against this stamp */
     const at = new Date().toISOString(); write(path.join(root, ".tmp", p, "answers_applied.json"), { appliedAt: at }); console.log(`✔ applied ${p} ${at}`);
   }
-  else { console.error("usage: node tools/questions.mjs serve | add <p> --id … --q … | answers <p> | open <p> | watch <p> [--all] | applied <p>"); process.exit(2); }
+  else { console.error("usage: node tools/questions.mjs serve | add <p> --id … --q … | answers <p> | open <p> | watch <p> [--all] | mark <p> <id> --said \"…\" | applied <p>"); process.exit(2); }
 }

@@ -27,6 +27,17 @@ if (gateName && bumper && bumper.position !== "end") { try { const want = Number
 { const SL = await import("./short_limit.mjs"); const portraitV = v && Number(v.height) > Number(v.width); const short = (gateName && SL.isShort(gateName)) || (portraitV && dur > SL.SHORT_MAX && dur <= 240); if (short) add(dur <= SL.SHORT_MAX, `طول القصير ${dur.toFixed(2)}ث والحد ${SL.SHORT_MAX}ث (الفاصل داخله)${dur > SL.SHORT_MAX ? " — لن يكون Short على يوتيوب: قصّر ثم أعد" : ""}`); }
 /* THE COVER FIRST (user 2026-11-21, GTA 6 reels rendered without it: «يعني يكون الغلاف في أوله»): the montage of this file must open with its cover picture (tools/cover_item.mjs) */
 if (gateName && fs.existsSync(`data/specs/${gateName}.json`)) { const { coverFailure } = await import("./cover_item.mjs"); let sp = null; try { sp = JSON.parse(fs.readFileSync(`data/specs/${gateName}.json`, "utf8")); } catch { /* unreadable */ } const why = sp ? coverFailure(gateName, sp) : "✘ مواصفة المونتاج لا تُقرأ"; add(!why, why ? why.replace(/^✘ /, "") : "الغلاف أول عنصر في المونتاج وصورته موجودة"); }
+/* GAPS BEFORE APPROVAL (user 2026-11-21, GTA 6: sections.json appeared only at publishing, no sections rail, a package with no description/tags and the wrong playlist,
+   and unanswered questions on the questions page — he caught each himself): the landscape file of a full episode needs the sections (count by the table) and the rail
+   in its first seconds, and a YouTube package that passes; any project with a questions page needs every item answered or marked by him (tools/prepublish_gates.mjs) */
+if (gateName) {
+  const G = await import("./prepublish_gates.mjs"); let sp = null; try { sp = JSON.parse(fs.readFileSync(`data/specs/${gateName}.json`, "utf8")); } catch { /* none */ }
+  if (v && Number(v.width) > Number(v.height) && G.appliesToEpisode(gateName, sp)) {
+    const s = G.sectionsFailures(gateName, sp); add(!s.length, s.length ? `الأقسام: ${s.join(" · ")}` : "الأقسام بعدد الجدول، وخط الأقسام في أول الثواني");
+    const k = G.packageFailures(gateName); add(!k.length, k.length ? `حزمة يوتيوب: ${k.join(" · ")}` : "حزمة يوتيوب: الوصف والوسوم والفصول وقائمة التشغيل");
+  }
+  const q = G.questionsFailures(gateName); if (q.length || fs.existsSync(`.tmp/${gateName}/questions.json`)) add(!q.length, q.length ? q[0] : "صفحة الأسئلة: كل بند مجاب");
+}
 add(dur > minSec && dur > 0, `المدة ${dur.toFixed(2)}ث${bumper ? ` (منها فاصل الافتتاح «${bumper.title}» ${bumper.seconds}ث)` : ""}`);
 // the audio gate (tools/audio_gate.mjs) is MANDATORY for every montage (user order 2026-10-21)
 import fs from "node:fs";

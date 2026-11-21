@@ -1,5 +1,5 @@
 {
- "about": "سجل الأخطاء: كل خطأ سابق ← سببه ← الحارس الذي بُني بعده ← حالة اختباره في tools/guard_selftest.mjs (أمر المستخدم 2026-11-21: «اعمل خطة سبر لكل ما يجنبك الوقوع في الأخطاء مستقبلا ونفذها»). خطأ جديد = سطر هنا + حالة في الاختبار.",
+ "about": "سجل الأخطاء: كل خطأ سابق ← سببه ← الحارس الذي بُني بعده ← حالات اختباره في tools/guard_selftest.mjs (أمر المستخدم 2026-11-21: «اعمل خطة سبر لكل ما يجنبك الوقوع في الأخطاء مستقبلا ونفذها»). خطأ جديد = سطر هنا + حالة في الاختبار.",
  "updated": "2026-11-21",
  "entries": [
   {
@@ -23,8 +23,7 @@
      "stop.inbox_answered",
      "prompt.inbox_injected"
     ],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "8eff008, ca721cb, 0337a27; tools/hooks/guard.mjs:41-50 و363-370; tools/lib/inbox_watch.mjs:1-4"
   },
@@ -42,8 +41,7 @@
     "cases": [
      "pre.kickoff_prep_denied"
     ],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "d8c01fd, 1d75e13; tools/montage_kickoff.mjs:1-3; tools/hooks/guard.mjs:79-80 و182-187; docs/تحليل_تجاوز_التعليمات_2026-11-20.md"
   },
@@ -61,8 +59,7 @@
     "cases": [
      "pre.long_foreground_denied"
     ],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "1d75e13; tools/hooks/guard.mjs:188-194"
   },
@@ -75,11 +72,12 @@
     "file": "tools/hooks/guard.mjs",
     "how": "حدّ الوقت بعد كل أمر: 3 إخفاقات لمرحلة أو 6 دقائق بين أول إخفاق وآخره تأتي بأمر صريح بركنه (montage_kickoff.mjs park) والعمل على غيره."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
-    "manual": [],
-    "reserved": []
+    "cases": [
+     "timebox.real_failure_nags"
+    ],
+    "manual": []
    },
    "evidence": "1d75e13; tools/hooks/guard.mjs:258-261 و306-314"
   },
@@ -95,8 +93,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "1d75e13; tools/hooks/guard.mjs:20-22; tools/montage_kickoff.mjs:221; E:\\apps\\New remotion\\CLAUDE.md"
   },
@@ -112,8 +109,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "7ee336a, ca0baf1; tools/coverage_check.mjs:107 و141-149; .claude/skills/gallery-placement/SKILL.md:74; memory/fill-dont-ask-waivers.md"
   },
@@ -129,8 +125,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "f0c7fd7; tools/coverage_check.mjs:141-149"
   },
@@ -149,8 +144,7 @@
      "norm.concurrent_writer",
      "norm.no_false_alarm"
     ],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "056c716, 26c01d0; tools/spec_normalize.mjs:25-34 و127; tools/el.mjs:97-104"
   },
@@ -169,8 +163,7 @@
      "face.constant_src",
      "face.zone_bottom"
     ],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "d949022; tools/lib/face_zone.mjs:41-44"
   },
@@ -201,8 +194,7 @@
      "main.mg_end_allowed",
      "main.trash_allowed"
     ],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "c90bc55; tools/hooks/guard.mjs:163-181"
   },
@@ -222,8 +214,7 @@
     ],
     "manual": [
      "mg.shared_original_run"
-    ],
-    "reserved": []
+    ]
    },
    "evidence": "2f3da42; tools/montage_guard.mjs:99-103"
   },
@@ -243,8 +234,7 @@
      "cover.image_missing",
      "cover.cartoon_exempt"
     ],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "c90bc55; tools/cover_item.mjs:1-9 و36-44; tools/gpu_render.mjs:25; tools/final_review.mjs:28; tools/render_queue.mjs:36"
   },
@@ -260,8 +250,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "f45c526; tools/audio_clean.mjs:11-16; tools/final_review.mjs:107"
   },
@@ -277,8 +266,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "dc0f9af; tools/el.mjs:172-173; tools/el_rules.mjs:67"
   },
@@ -291,8 +279,7 @@
    "status": "بلا حارس",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "ملخص الجلسة 120785d7 (قسم Errors and fixes ← Earlier in this part)؛ tools/montage_guard.mjs:96-108 (الرمي من prep_config، أقدم من الحادثة)"
   },
@@ -308,8 +295,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "f86d5b7; tools/project.mjs:57-61; tools/prepend_bumper.mjs:64-65; tools/gpu_render.mjs:378-381; .claude/skills/hk-motion/SKILL.md:64"
   },
@@ -325,8 +311,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "bc42595; tools/render_job.sh (فرع o=R قبل حساب crop)"
   },
@@ -342,8 +327,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "059ce60; tools/render_job.sh (بعد ffmpeg -movflags +faststart)؛ tools/final_review.mjs:18-20"
   },
@@ -356,8 +340,7 @@
    "status": "بلا حارس",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "5ac0d4a (clip_slice: تفريغ الريل من مقاطع الحلقة، إصلاح لا حارس)؛ ملخص الجلسة 120785d7؛ فحص صمت نقطة القص في tools/cut_block.mjs:51 أقدم (2026-11-12، 4a49639)"
   },
@@ -367,18 +350,18 @@
    "what": "قرأ الشيخ في gta6 «عذابٌ شديد» مكان «عذابٌ أليم» (النور 19) عند 231.17 ث ولم تكشفه بوابة؛ أُصلح بصوته بطريقة اختارها المستخدم: «ستة. جيد… أضيفه للموتور».",
    "cause": "التفريغ يميل إلى ما يتوقعه، وفحص الآيات يقارن بالنص المتوقع لا بالمسموع، فلا شيء يعيد سماع كلمات الآية وحدها.",
    "guard": {
-    "file": "tools/span_recheck.py",
-    "how": "قيد البناء: يعيد تفريغ كل مقطع قصير وحده بأقوى نموذج (large-v3، شعاع 8، بلا توجيه ولا نص سابق) مع ثقة كل كلمة، ليحكم السمع مرة ثانية؛ والأداة المستهلكة tools/recitation_check.mjs لم توجد بعد عند الفحص. والإصلاح نفسه: tools/recitation_fix.mjs."
+    "file": "tools/recitation_check.mjs",
+    "how": "كل تلاوة في كلامه تُوجد بنفسها (لا بطاقات الآيات وحدها) وتُقابل بالمصحف كلمة كلمة (data/quran/quran-uthmani.json)؛ كل استبدال أو نقص أو زيادة سطر فشل بوقته وطريق إصلاحه بصوته (recitation_fix)، ويُسمع ثانيةً بـ tools/span_recheck.py؛ ويشغّله verse_audit.mjs في القص والفحص."
    },
-   "status": "حارس قيد البناء (غير ملتزَم)",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
-    "manual": [],
-    "reserved": [
-     "verse.audit"
-    ]
+    "cases": [
+     "verse.misrecited",
+     "verse.correct_ok"
+    ],
+    "manual": []
    },
-   "evidence": "e00d02e; tools/span_recheck.py:1-6 (غير ملتزَم)؛ tools/recitation_fix.mjs:1"
+   "evidence": "0130256; tools/recitation_check.mjs:1-20"
   },
   {
    "id": "lebanon-transcription-error",
@@ -386,18 +369,20 @@
    "what": "التفريغ أخرج «صور لبنان» في gta6 فصار «لبنان» عنصراً مطلوباً (خريطة)، والشيخ لم يذكر بلداً؛ فطُلب إعفاء. المستخدم: «نعم، أعفِها» ثم «ما ذكرت لبنان».",
    "cause": "اسم اخترعه التفريغ صار مطلوباً دون سماع ثانٍ.",
    "guard": {
-    "file": "tools/span_recheck.py",
-    "how": "قيد البناء: الاسم يُعاد سماع مقطعه وحده قبل أن يصير عنصراً مطلوباً (المستهلك tools/name_doubt.mjs لم يوجد بعد). والإعفاء الحالي محفوظ بنص المستخدم في waiverOK (coverage_check يرفض الإعفاء بلا نصه)."
+    "file": "tools/name_doubt.mjs",
+    "how": "الاسم الذي سمعه تفريغ واحد مرة واحدة لا يصير عنصراً مطلوباً: يُؤكَّد إن سمعه التفريغان أو ذُكر في موضع آخر أو كتبه الوكيل في namesHeard بعد السماع، وإلا يُسمع مقطعه ثانيةً (span_recheck.py) وإلا «مشكوك» يُسأل عنه؛ يستعمله names_scan وrequirements."
    },
-   "status": "حارس قيد البناء (غير ملتزَم)",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
-    "manual": [],
-    "reserved": [
-     "names.doubt"
-    ]
+    "cases": [
+     "names.single_hit_doubt",
+     "names.both_passes_ok",
+     "names.full_pass_disagrees",
+     "names.two_moments_ok"
+    ],
+    "manual": []
    },
-   "evidence": "5e42947; data/specs/gta6.json:14425-14426; data/specs/gta6-intro-reel.json:373-377; tools/span_recheck.py:2"
+   "evidence": "0130256; tools/name_doubt.mjs:1-10"
   },
   {
    "id": "sections-skipped",
@@ -406,17 +391,17 @@
    "cause": "لا بوابة تشترط ملف الأقسام وعدده وخطّه في أول الفيديو.",
    "guard": {
     "file": "tools/prepublish_gates.mjs",
-    "how": "قيد البناء: sectionsFailures يرفض غياب sections.json، وعدداً يخالف data/sections_rule.json، وغياب SectionsRail في أول 10 ثوانٍ أو اختلاف عدد عناوينه؛ ويُراد تشغيله في stage check (--stage) وfinal_review (لم يُوصل بهما بعد عند الفحص)."
+    "how": "sectionsFailures يرفض غياب .tmp/<p>/sections.json، وعدداً يخالف data/sections_rule.json، وغياب خط الأقسام (SectionsRail) في أول 10 ثوانٍ أو اختلاف عدد عناوينه؛ يشغّله stage.mjs check (--stage) وfinal_review."
    },
-   "status": "حارس قيد البناء (غير ملتزَم)",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
-    "manual": [],
-    "reserved": [
-     "sections.gate"
-    ]
+    "cases": [
+     "sections.missing",
+     "sections.ok"
+    ],
+    "manual": []
    },
-   "evidence": "tools/prepublish_gates.mjs:1-11 و38-51 (غير ملتزَم)"
+   "evidence": "6685870; tools/prepublish_gates.mjs:38-51"
   },
   {
    "id": "youtube-package-incomplete",
@@ -424,18 +409,21 @@
    "what": "حزمة يوتيوب لحلقة gta6 بلا وصف ولا وسوم، واختارت قائمة تشغيل لابن تيمية لتعليق على حدث؛ وبقيت في صفحة الأسئلة بنود بلا جواب (زيد بن ثابت/أسامة بن زيد، خبر كوهين، الدراسة).",
    "cause": "yt_package يكتب الفصول والبطاقات والقائمة دون فحص للوصف والوسوم ومطابقة القائمة، ولا شيء يمنع النشر وصفحة الأسئلة مفتوحة.",
    "guard": {
-    "file": "tools/prepublish_gates.mjs",
-    "how": "قيد البناء: packageFailures يقرأ yt_package.mjs <p> --check (الوصف والوسوم والفصول = sections.json وقائمة التشغيل)، وquestionsFailures يرفض كل بند بلا جواب أو ملاحظة أو علامة من كلام المستخدم؛ وخيار --check في yt_package.mjs لم يوجد بعد عند الفحص."
+    "file": "tools/prepublish_gates.mjs + tools/yt_package.mjs --check",
+    "how": "packageFailures يرفض الحزمة بلا وصف (أو بمسودته) أو بلا وسوم أو بفصول لا تطابق الأقسام أو بلا قائمة تشغيل؛ وquestionsFailures يرفض كل بند في صفحة الأسئلة بلا جواب أو ملاحظة أو علامة من كلامه. أما اختيار قائمة «التعليق على الأحداث» فيجري عند كتابة الحزمة ولا يفحصه --check."
    },
-   "status": "حارس قيد البناء (غير ملتزَم)",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
-    "manual": [],
-    "reserved": [
-     "package.gate"
+    "cases": [
+     "package.incomplete",
+     "package.ok",
+     "questions.open"
+    ],
+    "manual": [
+     "package.event_playlist"
     ]
    },
-   "evidence": "tools/prepublish_gates.mjs:2-4 و53-64 (غير ملتزَم)"
+   "evidence": "6685870; tools/prepublish_gates.mjs:53-64; tools/yt_package.mjs:60-69"
   },
   {
    "id": "stale-nags",
@@ -446,45 +434,59 @@
     "file": "tools/hooks/guard.mjs",
     "how": "الإخفاق يُحسب فقط من تشغيل أداة مونتاج أو قراءة سجلها لا من سطر كود؛ نجاح المرحلة يصفّره؛ إثبات أحدث (.tmp/gates/<p>.final.ok أو audio.ok للقص) يسقطه؛ المشروع المعتمد (data/publish_queue/<p>) أو الممسوح لا ينبّه؛ الإخفاق القديم 30 دقيقة يسقط؛ وتنبيه واحد لكل مرحلة كل 10 دقائق على الأكثر."
    },
-   "status": "حارس قيد البناء (غير ملتزَم)",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
-    "manual": [],
-    "reserved": [
-     "timebox.stale_reset"
-    ]
+    "cases": [
+     "timebox.source_grep_ignored",
+     "timebox.control_nags",
+     "timebox.proof_resets",
+     "timebox.stale_dropped",
+     "timebox.approved_silent"
+    ],
+    "manual": []
    },
-   "evidence": "tools/hooks/guard.mjs:262-305 (غير ملتزَم عند الفحص)"
+   "evidence": "84789ec; tools/hooks/guard.mjs (TIME BOX / STALE NAGS)"
   },
   {
    "id": "approval-purge-blocked",
    "date": "2026-11-21",
    "what": "قال المستخدم «ارفع واعتمد»، فرفضت طبقة الأمان المسح (montage_guard end) لأنه حذف بلا موافقة صريحة عليه، فبقي الاعتماد ناقصاً وسُئل المستخدم: «أشغّل الحذف الآن، أم أتركه؟».",
    "cause": "مهارة الاعتماد ترتّب المسح قبل النشر، وسؤال الاعتماد لا يسمّي الحذف صراحة فلا تكفيه «اعتمد».",
-   "guard": "بلا حارس",
-   "status": "بلا حارس",
-   "selftest": {
-    "cases": [],
-    "manual": [],
-    "reserved": []
+   "guard": {
+    "file": ".claude/skills/approval/SKILL.md + tools/publish_queue.mjs",
+    "how": "سؤال الاعتماد يسمّي الحذف بنصه («أعتمده وأحذف ملفات العمل نهائياً وأرسل التسجيل الأصلي للسلة؟»)، و«ارفع واعتمد» إذن بالنشر لا بالحذف فيُسأل عن الحذف وحده؛ والترتيب: حفظ الحزمة ← النشر ← المسح بعد موافقة صريحة؛ وpublish_queue clear يرفض حذف الحزمة ما دام المشروع مسجَّلاً (لم يُمسح)."
    },
-   "evidence": "سجل الجلسة 120785d7 (مهمة وكيل «Rule enforcement fixes»: البند 2)؛ .claude/skills/approval/SKILL.md بلا تعديل بعد"
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "approval.question_names_delete_src"
+    ],
+    "manual": [
+     "approval.purge_run"
+    ]
+   },
+   "evidence": "84789ec; .claude/skills/approval/SKILL.md; tools/publish_queue.mjs (clear)"
   },
   {
    "id": "false-progress-claims",
    "date": "2026-11-21",
    "what": "قيل للمستخدم إن رسائل الاستوديو «وصلتني» ولم تصل، وإن لسان OK تُرك له ليغلقه. المستخدم: «ليش تكذب رسائلي؟».",
    "cause": "لا فحص يربط ادعاء الإنجاز أو النشر بدليل في الرد نفسه.",
-   "guard": "بلا حارس",
-   "status": "بلا حارس",
-   "selftest": {
-    "cases": [],
-    "manual": [],
-    "reserved": [
-     "publish.claim"
-    ]
+   "guard": {
+    "file": "tools/hooks/guard.mjs",
+    "how": "هوك الإيقاف يعيد مرة الرد الذي يقول «نُشر/رُفع/جُدول» بلا رابط في الرد نفسه؛ والنفي («لم يُرفع») والإقرار («لم أتحقق») يمرّان."
    },
-   "evidence": "ملخص الجلسة 120785d7؛ مهمة «Honesty guard» (فحص «نُشر/رُفع/مجدول» بلا رابط في هوك الإيقاف) لم تظهر في guard.mjs عند الفحص"
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "publish.claim_no_link",
+     "publish.claim_with_link",
+     "publish.negated_ok",
+     "publish.honest_ok"
+    ],
+    "manual": []
+   },
+   "evidence": "84789ec; tools/hooks/guard.mjs (A PUBLISH CLAIM CARRIES ITS LINK)"
   },
   {
    "id": "element-constraints-one-by-one",
@@ -498,8 +500,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "d8c01fd; tools/el_rules.mjs:1; tools/el.mjs:222; .claude/skills/gallery-placement/SKILL.md:21"
   },
@@ -518,8 +519,7 @@
      "el.no_gate_refused",
      "el.no_gate_batch_ok"
     ],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "af23f50; tools/el.mjs:77 و112-114"
   },
@@ -536,13 +536,11 @@
    "selftest": {
     "cases": [
      "overlap.slots_clash",
-     "overlap.slots_clean",
-     "overlap.missing_spec"
+     "overlap.slots_clean"
     ],
     "manual": [
      "overlap.slot_boxes_spec"
-    ],
-    "reserved": []
+    ]
    },
    "evidence": "2ec3095, d41563b; tools/lib/overlap_gate.mjs:1; tools/element_slots.mjs:65; tools/gpu_render.mjs:123; tools/render_queue.mjs:37"
   },
@@ -558,8 +556,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "8814ebc, e0b6acc, 3cb6a36; tools/late_check.mjs:1 و38 و47; tools/stage.mjs:423"
   },
@@ -575,8 +572,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "f0c7fd7; tools/coverage_check.mjs:208-209; tools/layers.mjs:154; tools/stage.mjs:422"
   },
@@ -592,8 +588,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "6a38a17, 6375a33, 9d26aa1; tools/bleep_words.py:9 و46; tools/bleep_fix.py:3 و14 و52"
   },
@@ -609,8 +604,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "6a38a17; tools/find_restarts.mjs:34"
   },
@@ -626,8 +620,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "3cb6a36; tools/names_scan.mjs:80; .claude/skills/visual-thinking/SKILL.md:42"
   },
@@ -647,8 +640,7 @@
     ],
     "manual": [
      "gpu.no_bumper_run"
-    ],
-    "reserved": []
+    ]
    },
    "evidence": "2a7896d, e41116c; tools/gpu_render.mjs:100-115 و372-393; tools/render_job.sh:20; tools/coverage_check.mjs:190"
   },
@@ -664,8 +656,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "083df65; tools/hk_restart.mjs:1; memory/never-restart-studio-under-review.md"
   },
@@ -681,8 +672,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "1e047fa, f610438, 305f116; tools/grid_sheet.mjs:37-40; memory/no-idle-services.md"
   },
@@ -698,8 +688,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "e7cdfad, cb6aa23; tools/layers.mjs:101; .claude/skills/visual-thinking/SKILL.md:8"
   },
@@ -715,8 +704,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "32cfa0d; tools/short_limit.mjs:9"
   },
@@ -732,8 +720,7 @@
    "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "4de7d68; tools/writing_sync.mjs:32"
   },
@@ -746,8 +733,7 @@
    "status": "بلا حارس",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "memory/fix-first-then-investigate.md"
   },
@@ -760,8 +746,7 @@
    "status": "بلا حارس",
    "selftest": {
     "cases": [],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "memory/search-before-asking.md"
   },
@@ -781,10 +766,42 @@
      "stop.arabic_ok",
      "stop.arabic_code_ok"
     ],
-    "manual": [],
-    "reserved": []
+    "manual": []
    },
    "evidence": "tools/hooks/guard.mjs:379-385; memory/reply-first-never-block.md"
+  },
+  {
+   "id": "overlap-gate-fail-open",
+   "date": "2026-11-21",
+   "what": "كشف اختبار الحراس أن بوابة التراكب تُرجع «لا تراكب» لمشروع بلا مواصفة: أداتاها تنهاران بلا سطر ✘.",
+   "cause": "البوابة كانت تجمع سطور ✘ من مخرجات الأداتين ولا تنظر في رمز خروجهما، فالانهيار أو المهلة يُقرأ نجاحاً.",
+   "guard": {
+    "file": "tools/lib/overlap_gate.mjs",
+    "how": "مواصفة مفقودة = فشل، وأداة فرعية لم تخرج بالصفر ولم تسمِّ فشلاً = فشل «لم يكمل فحصه»؛ ونتائج المواصفات الحقيقية الأربع عشرة بالاتجاهين لم تتغير."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "overlap.missing_spec"
+    ],
+    "manual": []
+   },
+   "evidence": "اختبار الحراس 2026-11-21 (overlap.missing_spec)"
+  },
+  {
+   "id": "name-doubt-nisba-missed",
+   "date": "2026-11-21",
+   "what": "كشف اختبار الحراس أن «لبنان» ثم «اللبنانيين» في موضع آخر لا يُعدّان ذكرين، فيبقى الاسم «مشكوكاً».",
+   "cause": "bare() في name_doubt يقطع اللام الأولى من «لبنان» كأنها حرف جر («بنان»)، فلا تبدأ النسبة «لبنانيين» بالجذر.",
+   "guard": "بلا حارس",
+   "status": "بلا حارس",
+   "selftest": {
+    "cases": [
+     "names.nisba_ok"
+    ],
+    "manual": []
+   },
+   "evidence": "اختبار الحراس 2026-11-21 (names.nisba_ok، ثغرة معروفة)؛ أثرها سؤال زائد لا عنصر خاطئ"
   }
  ]
 }

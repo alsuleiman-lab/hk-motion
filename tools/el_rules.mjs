@@ -10,7 +10,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { takeSpecArg } from "./lib/selftest_spec.mjs";
 
+/* (2026-11-21) plan-check --spec <file>: the guard self-test's scratch spec (under .tmp/selftest/ only) — tools/lib/selftest_spec.mjs */
+const SPEC_FILE = takeSpecArg(path.resolve(import.meta.dirname, ".."));
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const [cmd, ...args] = process.argv.slice(2);
 const read = (f) => fs.readFileSync(f, "utf8");
@@ -81,7 +84,7 @@ if (cmd === "rules") {
 
 if (cmd === "plan-check") {
   const [p, opsFile] = args.filter((a) => !a.startsWith("--"));
-  const specF = path.join("data", "specs", `${p}.json`);
+  const specF = SPEC_FILE ?? path.join("data", "specs", `${p}.json`);
   if (!p || !opsFile) { console.error("usage: node tools/el_rules.mjs plan-check <p> <ops.json>"); process.exit(2); }
   if (!fs.existsSync(specF)) { console.error(`✘ لا مواصفة: ${specF}`); process.exit(2); }
   const ops = json(opsFile, null); if (!Array.isArray(ops)) { console.error(`✘ ${opsFile} ليس قائمة عمليات JSON`); process.exit(2); }
@@ -143,7 +146,7 @@ if (cmd === "plan-check") {
   }
   // the grid and the writing check on the copy, compared with the spec as it is now: only what the plan ADDS counts
   const dir = path.join(".tmp", p, "plancheck"); fs.mkdirSync(dir, { recursive: true });
-  const tmpF = path.join(dir, `${p}.json`); fs.writeFileSync(tmpF, JSON.stringify(copy, null, 1));
+  const tmpF = path.join(dir, `${path.basename(p)}.json`);   /* basename: the self-test's project is "selftest/<run>/<case>" (a real name has no slash) */ fs.writeFileSync(tmpF, JSON.stringify(copy, null, 1));
   const gate = (f) => { const outs = []; for (const o of forms) outs.push(spawnSync(process.execPath, ["tools/grid_plan.mjs", f, "--o", o], { encoding: "utf8" }).stdout ?? ""); outs.push(spawnSync(process.execPath, ["tools/writing_sync.mjs", f], { encoding: "utf8" }).stdout ?? ""); return outs.join("\n").split(/\r?\n/).map((l) => l.trim()).filter((l) => l.startsWith("✘") && !/FAILED|مشكلة ·|^✘ \d+ /.test(l)).map((l) => l.replace(/#\d+/g, "").replace(/\s*\([^)]*∩[^)]*\)/g, "")); };
   /* grid_plan writes .tmp/<p>/grid.md: the copy runs FIRST and the real spec last, so the table left behind is the real one */
   const afterAll = gate(tmpF), before = new Set(gate(specF)), after = afterAll.filter((l) => !before.has(l));

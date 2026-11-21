@@ -17,13 +17,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { takeSpecArg } from "./lib/selftest_spec.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+/* (2026-11-21) --spec <file>: the guard self-test's scratch spec (under .tmp/selftest/ only) instead of data/specs/<p>.json — tools/lib/selftest_spec.mjs */
+const SPEC_FILE = takeSpecArg(ROOT);
 process.chdir(ROOT);
 const [cmd, p] = process.argv.slice(2);
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i < 0 ? d : process.argv[i + 1]; };
 if (!cmd || !p) { console.error("usage: node tools/layers.mjs scan|write|gaps <p>"); process.exit(2); }
-const specF = `data/specs/${p}.json`, spec = JSON.parse(fs.readFileSync(specF, "utf8"));
+const specF = SPEC_FILE ?? `data/specs/${p}.json`, spec = JSON.parse(fs.readFileSync(specF, "utf8"));
 const wf = path.join(".tmp", p, "cut_words.json");
 if (!fs.existsSync(wf)) { console.error(`✘ لا نص للقص: ${wf}`); process.exit(2); }
 const W0 = JSON.parse(fs.readFileSync(wf, "utf8")), words = (Array.isArray(W0) ? W0 : W0.words).map((w) => ({ s: w.s, e: w.e, w: w.w }));
@@ -143,10 +146,10 @@ if (cmd === "scan") {
   else {
     const ops = todo.map((l) => ({ op: "add", code: l.el, vals: l.vals })), opsF = path.join(".tmp", p, "layers_ops.json");
     fs.writeFileSync(opsF, JSON.stringify(ops, null, 1));
-    const r = spawnSync(process.execPath, ["tools/el.mjs", "batch", p, opsF], { encoding: "utf8" });
+    const r = spawnSync(process.execPath, ["tools/el.mjs", "batch", p, opsF, ...(SPEC_FILE ? ["--spec", SPEC_FILE] : [])], { encoding: "utf8" });
     console.log(((r.stdout || "") + (r.stderr || "")).trim().split(/\r?\n/).filter((x) => /^\s*[✔✘]/.test(x)).join("\n"));
     if (r.status !== 0) process.exit(1);
-    const f = spawnSync(process.execPath, ["tools/element_slots.mjs", p, "--fix"], { encoding: "utf8" });
+    const f = spawnSync(process.execPath, ["tools/element_slots.mjs", p, "--fix", ...(SPEC_FILE ? ["--spec", SPEC_FILE] : [])], { encoding: "utf8" });
     console.log(((f.stdout || "") + (f.stderr || "")).trim().split(/\r?\n/).filter((x) => /^(✔|✘|حُذف|قُصّر)/.test(x)).join("\n"));
   }
   if (scenes.length) console.log(`⚠ ${scenes.length} لحظة قد تحمل الخلفيةُ معناها — فكّر لكل واحدة بما يناسبها (مهارة التفكير البصري): ${scenes.map((l) => mm(l.at)).join("، ")}`);

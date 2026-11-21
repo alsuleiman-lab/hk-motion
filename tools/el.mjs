@@ -19,7 +19,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
+import { takeSpecArg } from "./lib/selftest_spec.mjs";
 
+/* (2026-11-21) --spec <file>: the guard self-test's scratch spec (under .tmp/selftest/ only) instead of data/specs/<p>.json — tools/lib/selftest_spec.mjs */
+const SPEC_FILE = takeSpecArg(path.resolve(import.meta.dirname, ".."));
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const [cmd, ...args] = process.argv.slice(2);
 const read = (f) => fs.readFileSync(f, "utf8");
@@ -65,7 +68,7 @@ const find = (els, q) => { if (!q) return null; if (els[q]) return els[q]; const
 const parseVal = (v) => { if (/^-?\d+(\.\d+)?$/.test(v)) return Number(v); if (/^[[{]/.test(v.trim())) { try { return JSON.parse(v); } catch { /* text */ } } if (v === "true" || v === "false") return v === "true"; return v; };
 const kv = (list) => { const o = {}; for (const a of list) { const i = a.indexOf("="); if (i < 1) { console.error(`✘ «${a}»: اكتب الحقل=القيمة`); process.exit(2); } o[a.slice(0, i)] = parseVal(a.slice(i + 1)); } return o; };
 const ratioOf = (src) => { const r = spawnSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", path.join("public", src)], { encoding: "utf8" }); const [w, h] = String(r.stdout).trim().split(",").map(Number); return w && h ? +(h / w).toFixed(4) : null; };
-const specPath = (p) => { const f = path.join("data", "specs", `${p}.json`); if (!fs.existsSync(f)) { console.error(`✘ لا مواصفة: ${f}`); process.exit(2); } return f; };
+const specPath = (p) => { if (SPEC_FILE) return SPEC_FILE; const f = path.join("data", "specs", `${p}.json`); if (!fs.existsSync(f)) { console.error(`✘ لا مواصفة: ${f}`); process.exit(2); } return f; };
 const span = (it) => { const a = it.at ?? it.from ?? it.times?.[0] ?? it.oldAt; return a == null ? null : [a, it.until ?? it.to ?? (it.dur != null ? a + it.dur : a + 3)]; };
 /* stable ids (user 2026-11-18, rules review): short, unique in the spec; a missing or repeated id gets a new one; ids ride on the items, so sorting keeps them */
 const newId = (used) => { let id; do { id = Math.random().toString(36).slice(2, 6); } while (id.length < 4 || !/^[a-z]/.test(id) || used.has(id)); used.add(id); return id; };
@@ -223,7 +226,8 @@ if (cmd === "list") {
      every op runs through add/set/del (same validation), then the quick gates run ONCE: a failure the whole batch adds → the spec is put back exactly. */
   /* (user 2026-11-20, gta6: six batches refused one hidden constraint at a time) the WHOLE plan is checked first against every element's constraints
      (tools/el_rules.mjs plan-check: all problems at once, each with its fix, ~5 s) — nothing is applied while it fails */
-  { const pc = spawnSync(process.execPath, ["tools/el_rules.mjs", "plan-check", args[0], args[1]], { encoding: "utf8" });
+  const SPEC_ARG = SPEC_FILE ? ["--spec", SPEC_FILE] : [];
+  { const pc = spawnSync(process.execPath, ["tools/el_rules.mjs", "plan-check", args[0], args[1], ...SPEC_ARG], { encoding: "utf8" });
     if (pc.status !== 0) { console.error(((pc.stdout || "") + (pc.stderr || "")).trim() + "\n✘ لم تُطبَّق الدفعة: أصلح الخطة كلها ثم أعد"); process.exit(1); }
     const warns = (pc.stdout || "").split(/\r?\n/).filter((l) => /^\s*⚠/.test(l)); if (warns.length) console.log(warns.join("\n")); }
   const [p, opsFile] = args, f = specPath(p), beforeText = read(f), base = await gateBefore(f, p);
@@ -232,7 +236,7 @@ if (cmd === "list") {
   for (const [i, o] of ops.entries()) {
     const a = o.op === "add" ? ["add", p, o.code, ...asArgs(o.vals)] : o.op === "set" ? ["set", p, o.id, ...asArgs(o.vals)] : o.op === "del" ? ["del", p, o.id] : null;
     if (!a) { fs.writeFileSync(f, beforeText); console.error(`✘ العملية ${i + 1}: نوع غير معروف «${o.op}» — أُعيدت المواصفة`); process.exit(2); }
-    const r = spawnSync(process.execPath, [self, ...a, "--no-gate"], { encoding: "utf8", env: { ...process.env, EL_BATCH_CHILD: "1" } });
+    const r = spawnSync(process.execPath, [self, ...a, "--no-gate", ...SPEC_ARG], { encoding: "utf8", env: { ...process.env, EL_BATCH_CHILD: "1" } });
     const line = (r.stdout + r.stderr).trim().split(/\r?\n/).filter((l) => /^[✔✘]/.test(l.trim())).pop() ?? "";
     if (r.status !== 0) { fs.writeFileSync(f, beforeText); console.error(`✘ العملية ${i + 1} (${o.op} ${o.code ?? o.id}) فشلت: ${line || (r.stderr || "").trim().slice(0, 300)} — أُعيدت المواصفة كما كانت`); process.exit(1); }
     console.log(`  ${i + 1}. ${line}`);

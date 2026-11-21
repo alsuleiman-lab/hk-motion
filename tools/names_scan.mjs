@@ -80,7 +80,7 @@ for (let i = 0; i < nw.length; i++) for (let n = Math.min(maxLen, 3); n >= 1; n-
   if (pl && pl.iso3 === "OMN" && n === 1 && nw[i] === "عمان" && jordanNear(words[i].s)) pl = AMMAN;
   /* (user 2026-11-20, frame 3111: «الكلام عن مفتي الأردن وليس عن الأردن… مضاف ومضاف إليه») a country that only completes a title («مفتي الأردن»، «ملك
      الأردن»، «وزير الأوقاف الأردني») names a PERSON, not a place: no map there */
-  if (pl && i > 0 && /^(مفتي|ملك|رئيس|امير|وزير|سفير|حاكم|سلطان|شيخ|علماء|مشايخ|دار|مجلس|محكمه|حكومه|جيش|شعب|قناه|اوقاف)$/.test(String(nw[i - 1]).replace(/^(و|ف|ب|ل)(?=..)/, "").replace(/^ال/, ""))) { i += n - 1; break; }
+  if (pl && i > 0 && /^(مفتي|ملك|رئيس|امير|وزير|سفير|حاكم|سلطان|شيخ|علماء|مشايخ|دار|مجلس|محكمه|حكومه|جيش|شعب|قناه|اوقاف)$/.test(String(nw[i - 1]).replace(/^(و|ف|ب|ل)(?=..)/, "").replace(/^ال/, "")) || (pl && i > 0 && /^(مفتي|ملك|رئيس|امير|وزير|سفير|حاكم|سلطان|شيخ|علماء|مشايخ|دار|مجلس|محكمه|حكومه|جيش|شعب|قناه|اوقاف)$/.test(String(raw[i - 1]).replace(/^ال/, "")))) { i += n - 1; break; }   /* (2026-11-21 selftest) «وزير» lost its و to the prefix strip (bare → «زير»): the raw word is tried too */
   if (pl) { hits.push({ ...pl, said: words.slice(i, i + n).map((w) => w.w).join(" "), at: +words[i].s.toFixed(2) }); i += n - 1; break; }
 }
 /* DOUBTFUL NAMES (user 2026-11-21, gta6 1:34 «صور لبنان» → «ما ذكرت لبنان»): a place resting on ONE transcript hit is heard again (tools/name_doubt.mjs);

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Mohammed",
+    "method": "visually reviewed current full head/beard bounds plus automated Gfx pixel comparison",
+    "zone": [
+      610,
+      260,
+      940,
+      935
+    ],
+    "overlap": 0.0,
+    "ok": true
+  },
+  {
+    "name": "opponent",
+    "method": "visually reviewed current full head/beard bounds plus automated Gfx pixel comparison",
+    "zone": [
+      165,
+      470,
+      570,
+      1125
+    ],
+    "overlap": 0.0,
+    "ok": true
+  }
+]

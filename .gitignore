@@ -8,3 +8,18 @@ out
 
 .tmp
 .cleanup
+
+# (2026-11-21) scratch outputs, caches and temp folders stay out of the repository
+.tmp_*
+__pycache__/
+*.pyc
+temp_*/
+tmp_*/
+render_test/
+I_Toolsemotion_Workspacetmp/
+vad_*.json
+words_*.json
+segments_*.json
+transcript_readable.txt
+target_matches.json
+stream_info.json

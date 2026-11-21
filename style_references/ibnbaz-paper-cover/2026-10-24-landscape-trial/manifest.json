@@ -1,0 +1,138 @@
+{
+  "status": "landscape trial requested by user; not yet adopted",
+  "composition": {
+    "id": "IbnBaz-Paper-Cover-Landscape",
+    "size": [
+      1920,
+      1080
+    ],
+    "fps": 30,
+    "frames": 3,
+    "preview": "http://localhost:3100/IbnBaz-Paper-Cover-Landscape"
+  },
+  "photographs": {
+    "Mohammed": {
+      "left": 1090,
+      "top": 10,
+      "width": 1400
+    },
+    "opponent": {
+      "left": -185,
+      "top": 175,
+      "width": 800
+    }
+  },
+  "title_group": {
+    "left": 520,
+    "top": 480,
+    "width": 1030,
+    "height": 590,
+    "scale": 0.84,
+    "transform_origin": "top left",
+    "text": [
+      "هل ابن تيمية",
+      "أعلم",
+      "من السلف؟"
+    ]
+  },
+  "support_labels": [
+    {
+      "text": "صدقاً لا تواضعاً",
+      "box": [
+        64,
+        45,
+        430,
+        92
+      ],
+      "rotation": -3,
+      "font_size": 44
+    },
+    {
+      "text": "نقل الإجماع!",
+      "box": [
+        650,
+        65,
+        500,
+        104
+      ],
+      "rotation": 1,
+      "font_size": 48
+    }
+  ],
+  "signature": {
+    "text": "محمد بن شمس الدين",
+    "left": 60,
+    "bottom": 42,
+    "width": 520,
+    "height": 82,
+    "font_size": 40,
+    "rotation": -1.2
+  },
+  "paper": "public/cov/ibnbaz-landscape-v1/aged-newspaper-landscape-v1.png",
+  "paper_recipe": "scratch/ibnbaz-cover/landscape-assets-v1.py; same v5 procedural paper and genuine source-page printing, extended horizontally without stretching the Arabic letters",
+  "shared_assets_reference": "../2026-10-24-user-adjustment/manifest.json",
+  "portrait_source_sha256": "3fbb8baa08e29418446d1a8d9cf516cb16b13632bc342ff7c2c4b6de581b5f83",
+  "source_sha256": "2c0440d1db4e0a5cddcbf463ca4a3d3228e1f80cb7f7bd6e81b3c87348c59436",
+  "face_review": [
+    {
+      "name": "Mohammed",
+      "automatic_detector": {
+        "face": [
+          39,
+          179,
+          346,
+          346
+        ],
+        "zone": [
+          11,
+          47,
+          412,
+          836
+        ],
+        "overlap": 0.0,
+        "ok": true
+      },
+      "reviewed_region": {
+        "method": "visually reviewed complete head/beard bounds plus automated Gfx pixel comparison",
+        "zone": [
+          1465,
+          65,
+          1865,
+          845
+        ],
+        "overlap": 0.0,
+        "ok": true
+      }
+    },
+    {
+      "name": "opponent",
+      "automatic_detector": {
+        "face": [
+          179,
+          181,
+          253,
+          253
+        ],
+        "zone": [
+          158,
+          84,
+          452,
+          661
+        ],
+        "overlap": 0.0,
+        "ok": true
+      },
+      "reviewed_region": {
+        "method": "visually reviewed complete head/beard bounds plus automated Gfx pixel comparison",
+        "zone": [
+          82,
+          225,
+          450,
+          835
+        ],
+        "overlap": 0.0,
+        "ok": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+// Render any composition straight into the ready folder on G (G:/ملفاتي/جاهز/<طولي|عرضي>/<مجلد>/<العنوان>.mp4). NVENC + concurrency 3 + below-normal priority; progress card comes from startMonitor.
+//   node tools/render_kh.mjs <CompositionId> "<out.mp4>" "<عنوان البطاقة>"
+import { bundle } from "@remotion/bundler";
+import { renderMedia, selectComposition } from "@remotion/renderer";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { nvencOverride } from "./nvenc.mjs";
+import { startMonitor } from "./monitor.mjs";
+import { acquireRenderLock } from "./render_lock.mjs";
+
+const [id, out, title = "فيديو"] = process.argv.slice(2);
+// ONE render at a time, always (user order 2026-10-22) — exclusive lock shared by every render entry point (tools/render_lock.mjs).
+acquireRenderLock(title);
+const log = startMonitor(".tmp/render_final.log", title);
+try { os.setPriority(0, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch { /* ignore */ }
+fs.mkdirSync(path.dirname(out), { recursive: true });
+const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts"), onProgress: () => {} });
+const composition = await selectComposition({ serveUrl, id });
+let lastP = -1;
+await renderMedia({
+  composition, serveUrl, codec: "h264", crf: 18, outputLocation: out, concurrency: 3, timeoutInMilliseconds: 180000,
+  chromiumOptions: { gl: "angle" }, ffmpegOverride: nvencOverride,
+  onProgress: ({ progress }) => { const p = Math.floor(progress * 100); if (p !== lastP) { lastP = p; log(`[جزء 1/1] ${p}%`); } },
+});
+try { fs.rmSync(serveUrl, { recursive: true, force: true }); } catch { /* ignore */ }
+log("DONE " + out);

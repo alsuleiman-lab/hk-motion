@@ -1,0 +1,13 @@
+import { bundle } from "@remotion/bundler";
+import { renderMedia, selectComposition } from "@remotion/renderer";
+import path from "node:path"; import fs from "node:fs";
+import { nvencOverride } from "./nvenc.mjs";
+const [a, b, conc = "3", pd = ""] = process.argv.slice(2);
+const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts"), publicDir: pd ? path.resolve(pd) : undefined, onProgress: () => {} });
+const composition = await selectComposition({ serveUrl, id: "KashfHadith" });
+const t0 = Date.now();
+try {
+  await renderMedia({ composition, serveUrl, codec: "h264", outputLocation: process.env.PROBE_OUT ?? ".tmp/kh/probe.mp4", frameRange: [Number(a), Number(b)], concurrency: Number(conc), timeoutInMilliseconds: 60000, chromiumOptions: { gl: "angle" }, ffmpegOverride: nvencOverride });
+  console.log("PROBE OK", ((Date.now() - t0) / 1000).toFixed(1), "s");
+} catch (e) { console.log("PROBE FAIL", String(e.message).slice(0, 200)); }
+fs.rmSync(serveUrl, { recursive: true, force: true });

@@ -1,0 +1,438 @@
+import React from "react";
+import { AbsoluteFill, Audio, Easing, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
+import { Gfx, MGTheme, BlurRise, BeforeAfter, ConvergeMerge, DimLayer, HandheldShake, RewriteWindow, SakugaMove, SpaceCards, SpotlightCard, TimelineCounter, TypeBox } from "./MG";
+import { FlowNodes, IconPop, KeyChip, StampG, TimedCompare, LandCtx } from "./MGExtras";
+import { NameTag, Subscribe, TITLE, TEXT, useFonts } from "./EuKit";
+import { TitleBar } from "./TitleBar";
+import { CoverKit } from "./CoverKit";
+import { BLUE } from "./CoverTry4";
+import { PapBookRays, PapChain, PapMedina, PapPassport, PapQuestion, PapQuotes, PapScales, PapShelf, PapTrip } from "./KhPaper";
+import { KhVideo, CardView, IsoView, MaskedIso, KhBg, PaperTeleport, Photo, PhotoBg, ScholarCard, SCHOLAR, SplitView, VID, FPS, ZoneImg, ZoneStage, sec, cardZone } from "./KhKit";
+import { tw } from "./khTime";
+import { IsoGl } from "./KhIsoMask";
+
+/**
+ * «تصحيح الحديث بالكشف الصوفي» — landscape montage (video-montage skill). Time base = the CUT timeline (public/kh_cut_s.mp4), seconds.
+ * Layers: base video (audio + full shots) → scene visuals (recomposed split windows, Sheikh card, isolated Sheikh, paper teleport) → <Gfx> overlays → cover.
+ */
+export const KH_FPS = FPS;
+export const KH_SECONDS = 831.67;
+export const KH_FRAMES = Math.ceil(KH_SECONDS * FPS);
+export const KH_TITLE = "تصحيح الحديث بالكشف الصوفي";
+const COVER_FRAMES = 3;
+
+/** a time-bounded layer: children get r(t) = seconds relative to the layer start */
+const BaseCtx = React.createContext(0);
+const S: React.FC<{ a: number; b: number; children: (r: (t: number) => number) => React.ReactNode }> = ({ a, b, children }) => {
+  const base = React.useContext(BaseCtx);
+  return (
+    <Sequence from={sec(a) - sec(base)} durationInFrames={Math.max(1, sec(b) - sec(a))} layout="none">
+      <BaseCtx.Provider value={a}>{children((t) => t - a)}</BaseCtx.Provider>
+    </Sequence>
+  );
+};
+
+/* ───────────── scene tables (cut timeline) ───────────── */
+type Win = { type: "clip" | "book"; a: number; b: number; bg?: [string, string, string] };
+const WINDOWS: Win[] = [
+  { type: "clip", a: 29.3, b: 38.33 }, { type: "clip", a: 40.93, b: 45.9 }, { type: "clip", a: 46.12, b: 60.83 },
+  { type: "clip", a: 128.5, b: 140.93 }, { type: "clip", a: 202.75, b: 213.6 }, { type: "clip", a: 280.5, b: 290.37 }, { type: "clip", a: 319.83, b: 331.65 },
+  { type: "clip", a: 346.35, b: 354.93 }, { type: "clip", a: 368.77, b: 385.03 }, { type: "clip", a: 475.87, b: 490.7 }, { type: "book", a: 540.17, b: 596.4 },
+  { type: "book", a: 615.13, b: 620.13 }, { type: "clip", a: 620.13, b: 623.93 }, { type: "book", a: 623.93, b: 639.43 }, { type: "book", a: 693.67, b: 713.03 }, { type: "clip", a: 740.33, b: 758.77 }, { type: "clip", a: 771.33, b: 779.5 },
+];
+const PAPER_WIN = { a: 80.33, b: 100.9 };
+/** scenes where the Sheikh is shown as a card with graphics beside him */
+const WIDE = { x: 1040, y: 0, w: 880, h: 1080 };   // 639–694: the left panel is only a static decorative image → show the Sheikh as a card instead
+type Fill = (z: { w: number; h: number }) => React.ReactNode;
+const stage = (n: React.ReactNode): Fill => (z) => <ZoneStage w={z.w} h={z.h}>{n}</ZoneStage>;
+const img = (src: string, pos?: string, zoom?: number, dim?: number): Fill => (z) => <ZoneImg w={z.w} h={z.h} src={src} pos={pos} zoom={zoom} dim={dim} />;
+/** a scholar card (library picture + name under it) on the left of the zone: it appears AT the moment the name is spoken (`at`, seconds from the scene start), never before */
+const scholarFill = (name: keyof typeof SCHOLAR, bg: Fill, at = 0): Fill => (z) => (
+  <div style={{ position: "relative", width: z.w, height: z.h, overflow: "hidden" }}>
+    {bg(z)}
+    <Gfx><LateCard from={at}><div style={{ position: "absolute", left: 28, top: (z.h - 520) / 2 }}><ScholarCard file={SCHOLAR[name]} name={name} w={340} rot={-2} /></div></LateCard></Gfx>
+  </div>
+);
+/** shows its children only from `from` seconds after the start of the enclosing scene */
+const LateCard: React.FC<{ from: number; children: React.ReactNode }> = ({ from, children }) => (useCurrentFrame() / FPS >= from ? <>{children}</> : null);
+const SPLIT_SPK = { x: 1000, y: 0, w: 900, h: 1080 };   // 0–2.57: the recording is still the split layout (Sufi panel left, the Sheikh right)
+const CARDS: { a: number; b: number; side?: "right" | "left"; crop?: typeof WIDE; fill?: Fill }[] = [
+  { a: 0, b: 2.57, crop: SPLIT_SPK, fill: img("kh/sufi_still.jpg", "50% 30%", 1.2, 0.6) },
+  { a: 141.0, b: 183.6, fill: stage(<PapPassport />) }, { a: 238.7, b: 262.4, fill: img("books/muwatta1.jpg", "50% 40%") }, { a: 511.0, b: 539.8, fill: stage(<PapChain />) },
+  { a: 639.43, b: 693.67, crop: WIDE, fill: img("kh/sharani_ms.jpg", "12% 30%", 1.7, 0.7) }, { a: 61.0, b: 79.6, fill: stage(<PapMedina open />) }, { a: 101.0, b: 118.0, fill: stage(<PapTrip T={{ start: tw("يغمض", 102) - 101, cairo: tw("القاهره", 104) - 101, medina: tw("المدينه", 106) - 101, tomb: tw("قبر", 109) - 101 }} />) },
+  { a: 213.8, b: 238.5, fill: scholarFill("أبو حنيفة", stage(<PapScales />), tw("حنيفة", 213, 4) - 213.8) }, { a: 331.9, b: 345.9, fill: scholarFill("مسلم", img("kh/muslim_cover.jpg", "50% 25%", 1, 0.55)) },
+  { a: 355.2, b: 368.5, fill: img("kh/bukhari_lacma.jpg", "50% 30%") }, { a: 415.6, b: 461.0, fill: stage(<PapShelf />) },
+  { a: 759.0, b: 771.0, fill: img("kh/muslim_cover.jpg", "50% 25%") }, { a: 596.6, b: 614.8, fill: img("kh/bukhari_ms.jpg", "50% 25%", 1, 0.6) },
+];
+/** isolated Sheikh (alpha videos built by tools/kh_iso.sh) */
+/** how the isolated Sheikh is composed: "gl" = saved mask + WebGL (default since 2026-10-23: fastest + smoothest in the 20 s benchmark) · "css" = saved mask + CSS blend (MaskedIso) · "alpha" = the old transparent WebM files (fallback) */
+const ISO_MODE = "gl" as "gl" | "css" | "alpha";
+const USE_MASK = ISO_MODE !== "alpha";   // trial approved 2026-10-23: windows B–E use the saved grey mask (tools/matte_gpu.py); set false to fall back to the alpha WebM files
+const ISO: { n: string; a: number; b: number; src: string; mask?: string }[] = [
+  { n: "A", a: 2.6, b: 23.0, src: "kh/alpha_A.webm", mask: "kh/mask_A.mp4" }, { n: "B", a: 183.9, b: 200.6, src: "kh/alpha_B.webm", mask: "kh/mask_B.mp4" }, { n: "C", a: 385.3, b: 406.3, src: "kh/alpha_C.webm", mask: "kh/mask_C.mp4" },
+  { n: "D", a: 713.2, b: 729.0, src: "kh/alpha_D.webm", mask: "kh/mask_D.mp4" }, { n: "E", a: 779.5, b: 811.0, src: "kh/alpha_E.webm", mask: "kh/mask_E.mp4" },
+];
+const ZOOMS: [number, number][] = [[119.0, 125.5], [305.0, 312.0], [461.2, 466.4], [731.0, 739.0], [815.0, 821.0]];
+const SHAKES = [{ from: 101.2, to: 103.6 }, { from: 290.6, to: 294.0 }, { from: 369.3, to: 371.9 }, { from: 465.1, to: 470.9 }];
+const OPENING_FULL = { a: 23.0, b: 29.3 };   // basmala: original room, no isolation
+
+const inAny = (t: number, list: { a: number; b: number }[]) => list.some((x) => t >= x.a && t < x.b);
+
+/** punch-in on the Sheikh's face (base video only, ≈ once per 3 min) */
+const ZoomBase: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const f = useCurrentFrame(), t = f / FPS;
+  let z = 1;
+  for (const [a, b] of ZOOMS) z = Math.max(z, interpolate(t, [a, a + 0.5, b - 0.5, b], [1, 1.1, 1.1, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.inOut(Easing.cubic) }));
+  return <AbsoluteFill style={{ transform: `scale(${z})`, transformOrigin: "50% 30%" }}>{children}</AbsoluteFill>;
+};
+
+/** source image that walks in with hold–sprint–impact (user: «مشي المصدر») */
+const Walk: React.FC<{ at: number; src: string; w: number; h: number; from: { x: number; y: number }; mid: { x: number; y: number }; to: { x: number; y: number }; cap?: string; pos?: string; fit?: "cover" | "contain"; sw?: number }> = ({ at, src, w, h, from, mid, to, cap, pos, fit, sw = 1.4 }) => (
+  <SakugaMove at={at} w={w} h={h} from={from} mid={mid} to={to} switchAt={sw} sprint={0.7} impact>
+    <Photo src={src} w={w} h={h} cap={cap} pos={pos} fit={fit} />
+  </SakugaMove>
+);
+
+/* ───────────── backgrounds behind the isolated Sheikh: every one is a photo / paper illustration tied to the sentence (user 2026-10-22) ───────────── */
+const Frame: React.FC<{ src: string; cap: string; w: number; h: number; rot?: number; pos?: string; top?: number; zoom?: number }> = ({ src, cap, w, h, rot = -2, pos, top = 150, zoom }) => (
+  <div style={{ position: "absolute", left: 90, top }}><Photo src={src} w={w} h={h} cap={cap} rot={rot} pos={pos} zoom={zoom} /></div>
+);
+const HookA: React.FC = () => {
+  const T = {
+    asanid: tw("اسانيد", 2.6), sahih: tw("لنعلم", 2.6), bukhari: tw("البخاري", 6), muslim: tw("ومسلم", 8), imams: tw("والترمذي", 11, 3), simple: tw("بسيطه", 12),
+    eyes: tw("عينك", 14), nabi: tw("النبي", 15.5, 3), ask: tw("تساله", 15), no: tw("تصدق", 19.5),
+  };
+  const lay = (a: number, b: number, node: React.ReactNode) => <S a={a} b={b}>{() => node}</S>;
+  return (
+    <>
+      <KhBg />
+      {lay(T.asanid - 0.1, T.sahih - 0.1, <PapChain />)}
+      {lay(T.sahih - 0.1, T.bukhari - 0.15, <PapScales />)}
+      {lay(T.bukhari - 0.15, T.muslim - 0.1, <><PhotoBg src="kh/bukhari_ms.jpg" /><Frame src="kh/bukhari_ms.jpg" cap="صحيح البخاري" w={520} h={640} pos="50% 20%" /></>)}
+      {lay(T.muslim - 0.1, T.imams - 0.1, <><PhotoBg src="kh/muslim_cover.jpg" /><Frame src="kh/muslim_cover.jpg" cap="صحيح مسلم" w={470} h={660} rot={2} pos="50% 20%" /></>)}
+      {lay(T.imams - 0.1, T.eyes - 0.1, <><PhotoBg src="kh/tirmidhi_tomb.jpg" /><div style={{ position: "absolute", left: 90, top: 110 }}><ScholarCard file={SCHOLAR["الترمذي"]} name="الترمذي" w={400} rot={-2} /></div></>)}
+      {lay(T.eyes - 0.1, T.nabi - 0.1, <PapMedina />)}
+      {lay(T.nabi - 0.1, T.ask - 0.1, <><PhotoBg src="kh/kaaba_1910.jpg" pos="50% 22%" zoom={1.3} /><Frame src="kh/kaaba_1910.jpg" cap="محمد ﷺ" w={560} h={400} pos="50% 24%" zoom={1.35} rot={-2} /></>)}
+      {lay(T.ask - 0.1, T.no - 0.1, <PapQuestion text="الحديث صحيح؟" />)}
+      {lay(T.no - 0.1, 23.0, <PapQuotes />)}
+    </>
+  );
+};
+const IsoB: React.FC = () => {
+  const kidhb = tw("الكذب", 191.5), title = tw("تصحيح", 198.5);
+  return (
+    <>
+      <KhBg />
+      <S a={183.9} b={188.8}>{() => <><PhotoBg src="kh/medina_mosque.jpg" /><Frame src="kh/medina_mosque.jpg" cap="الحرم النبوي" w={640} h={470} pos="50% 40%" /></>}</S>
+      <S a={188.8} b={title - 0.1}>{() => <><PhotoBg src="kh/sufi_dhikr.jpg" /><Frame src="kh/sufi_dhikr.jpg" cap="حلقة ذكر صوفية" w={640} h={470} rot={2} pos="40% 40%" /></>}</S>
+      <S a={title - 0.1} b={200.6}>{() => <PapBookRays />}</S>
+      <S a={kidhb} b={kidhb + 0.01}>{() => null}</S>
+    </>
+  );
+};
+const IsoC: React.FC = () => <><PhotoBg src="kh/bukhari_lacma.jpg" pos="50% 30%" /></>;
+const IsoD: React.FC = () => (
+  <>
+    <PhotoBg src="kh/suyuti_ms.jpg" />
+    <S a={713.2} b={729.0}>{() => <div style={{ position: "absolute", left: 90, top: 100 }}><ScholarCard file={SCHOLAR["السيوطي"]} name="جلال الدين السيوطي" w={420} rot={-2} /></div>}</S>
+  </>
+);
+const IsoE: React.FC = () => (
+  <>
+    <S a={779.5} b={795.2}>{() => <><PhotoBg src="kh/dervish_syria.jpg" pos="50% 35%" zoom={1.5} /></>}</S>
+    <S a={795.2} b={811.0}>{() => <PhotoBg src="kh/marinid_ms.jpg" />}</S>
+  </>
+);
+
+/* ───────────── visual layer (video + backgrounds; nothing that can hide the face lives here except designed layouts) ───────────── */
+const Visual: React.FC = () => (
+  <HandheldShake windows={SHAKES} amp={6} rot={0.4}>
+    <ZoomBase>
+      <KhVideo src={staticFile(VID)} muted={false} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+    </ZoomBase>
+    {ISO.map((w) => (
+      <S key={w.n} a={w.a} b={w.b}>{() => {
+        const bg = w.n === "A" ? <HookA /> : w.n === "B" ? <IsoB /> : w.n === "C" ? <IsoC /> : w.n === "D" ? <IsoD /> : <IsoE />;
+        return USE_MASK && w.mask ? (ISO_MODE === "gl" ? <IsoGl video={VID} from={sec(w.a)} mask={w.mask}>{bg}</IsoGl> : <MaskedIso from={sec(w.a)} mask={w.mask}>{bg}</MaskedIso>) : <IsoView src={w.src}>{bg}</IsoView>;
+      }}</S>
+    ))}
+    {WINDOWS.map((w, i) => (
+      <S key={`w${i}`} a={w.a} b={w.b}>{() => <SplitView type={w.type} from={sec(w.a)} dur={sec(w.b - w.a)} bg={w.bg} />}</S>
+    ))}
+    {CARDS.map((c, i) => (
+      <S key={`c${i}`} a={c.a} b={c.b}>{() => <CardView from={sec(c.a)} side={c.side} crop={c.crop} fill={c.fill} />}</S>
+    ))}
+    <S a={PAPER_WIN.a} b={PAPER_WIN.b}>{() => <PaperTeleport T={{ shut: tw("عيني", 84.5, 3) - PAPER_WIN.a, medina: tw("الروضه", 86.5) - PAPER_WIN.a, ask: tw("رسول", 90.5) - PAPER_WIN.a, back: tw("ارجع", 96.5) - PAPER_WIN.a, end: PAPER_WIN.b - PAPER_WIN.a }} />}</S>
+  </HandheldShake>
+);
+
+/* ───────────── overlays ───────────── */
+const KC = (x: number, y: number, phrases: { text: string; at: number }[], until?: number, size = 54) => <KeyChip x={x} y={y} phrases={phrases} until={until} size={size} />;
+
+const Overlays: React.FC = () => {
+  const zl = cardZone("right");   // graphics zone beside the Sheikh card
+  // ----- split-window chips: strip centre (x of the panel zone) -----
+  const stripX = 520;
+  return (
+    <>
+      {/* «هذا الصوفي» (0.67 s) ← صورته بمشي المصدر (SourceWalk) */}
+      <S a={0} b={2.57}>{(r) => <Walk at={r(tw("الصوفي", 0, 3))} src="kh/sufi_still.jpg" w={420} h={560} from={{ x: -480, y: 520 }} mid={{ x: 150, y: 300 }} to={{ x: 300, y: 240 }} cap="الصوفي" pos="50% 25%" sw={0.8} />}</S>
+      {/* «هذا الشيخ» (468.2 s) */}
+      <S a={467.9} b={474.0}>{(r) => <Walk at={r(tw("الشيخ", 465, 4))} src="kh/sufi_still.jpg" w={380} h={500} from={{ x: -420, y: 560 }} mid={{ x: 70, y: 330 }} to={{ x: 110, y: 300 }} cap="الصوفي" pos="50% 25%" sw={1.0} />}</S>
+      {/* 29.3–38.3 العجلوني */}
+      <S a={29.3} b={38.33}>{(r) => KC(stripX, 78, [{ text: "العجلوني: التصحيح بالسند", at: r(tw("اشار", 29.4)) }, { text: "أو بالكشف عند الصوفية", at: r(tw("الكشف", 41, 6)) }])}</S>
+      <S a={40.93} b={45.9}>{(r) => KC(stripX, 78, [{ text: "ما هو الكشف؟", at: r(tw("الكشف", 43)) }])}</S>
+      <S a={46.12} b={60.83}>{(r) => KC(stripX, 78, [{ text: "أحاديث صُحّحت بالكشف", at: r(tw("كانت", 49.5)) }, { text: "الاجتماع بالنبي ﷺ يقظةً", at: r(tw("باجتماع", 54)) }])}</S>
+
+      {/* 61–79.6 card: يقظة لا منام + تعريف الصحابي */}
+      <S a={61.0} b={79.6}>{(r) => (
+        <>
+          {KC(zl.x + zl.w / 2, 150, [{ text: "يشوفونه يقظةً لا مناماً", at: r(tw("بكل", 62)) }, { text: "فيصير الواحد منهم صحابياً!", at: r(tw("صحابي", 67)) }], undefined, 56)}
+          <TypeBox at={r(tw("الصحابي", 72))} x={zl.x} y={560} w={zl.w} title="تعريف الصحابي عند أهل العلم" text="من لقي النبي ﷺ مؤمناً به ومات على ذلك" size={56} />
+        </>
+      )}</S>
+
+      {/* 101–118 card: القاهرة → المدينة → قبر النبي */}
+      <S a={101.0} b={118.0}>{(r) => (
+        <>
+          {KC(zl.x + zl.w / 2, 640, [{ text: "هل هو انتقال حقيقي؟", at: r(112.5) }, { text: "نفسياً وروحياً؟", at: r(tw("وروحيا", 117.5, 3)) }], undefined, 56)}
+        </>
+      )}</S>
+
+      {/* 119–125 zoom: كمية الكذب */}
+      <S a={119.5} b={126.5}>{(r) => <StampG at={r(tw("الكذب", 123, 3))} x={300} y={880} text="كمية الكذب!" size={62} />}</S>
+
+      {/* 128.5–140.9 */}
+      <S a={128.5} b={140.93}>{(r) => KC(stripX, 78, [{ text: "«لو شئت أن أقسم لأقسمت»", at: r(tw("اقسم", 134, 5)) }])}</S>
+
+      {/* 141–183.6 pip: visas, flights… why not just close their eyes? */}
+      <S a={141.0} b={183.6}>{(r) => (
+        <>
+          <FlowNodes P={{ x: zl.x, y: 0, w: zl.w, h: 800 }} y0={770} nodes={[
+            { icon: "Stamp", label: "فيزا", at: r(tw("فيزا", 146.5)) }, { icon: "Building2", label: "سفارات", at: r(tw("السفارات", 168, 8)) },
+            { icon: "IdCard", label: "جواز سفر", at: r(tw("جواز", 170, 8)) }, { icon: "Banknote", label: "رسوم", at: r(tw("رسوم", 176, 8)) }, { icon: "Plane", label: "حجز طيران", at: r(tw("بالطياره", 178, 8)) },
+          ]} />
+          {KC(zl.x + zl.w / 2, 90, [{ text: "ليش يدفعون ويسافرون؟", at: r(tw("ليش", 146.5, 3)) }, { text: "أسهل أن يغمضوا عيونهم؟", at: r(tw("اسهل", 153)) }, { text: "ولا نراهم يظهرون في الحج!", at: r(tw("نشوف", 155.8, 5)) }], undefined, 50)}
+        </>
+      )}</S>
+
+      {/* 202.75–213.6 */}
+      <S a={202.75} b={213.6}>{(r) => KC(stripX, 78, [{ text: "الشعراني: طيّ الزمان والمكان", at: r(tw("طي", 203, 3)) }])}</S>
+
+      {/* 213.8–238.5 card: أبو حنيفة اليوم/غداً + اسأل النبي عن كل مسألة */}
+      <S a={213.8} b={238.5}>{(r) => (
+        <>
+          <BeforeAfter at={r(tw("ارى", 222.0, 4))} until={r(232.0)} x={zl.x + 380} y={90} w={zl.w - 400} h={330} before={{ label: "اليوم", items: ["أرى هذا الرأي"] }} after={{ label: "غداً", items: ["أرى غيره"] }} />
+          <TypeBox at={r(tw("غمض", 232.7, 4))} x={zl.x + 380} y={540} w={zl.w - 400} title="الحل عند الصوفية" text="كل مسألة ← غمّض عينيك ← اسأل النبي ﷺ" size={52} />
+        </>
+      )}</S>
+
+      {/* 238.7–262.4 pip: spaces of cards */}
+      <S a={238.7} b={262.4}>{(r) => (
+        <div style={{ position: "absolute", inset: 0, clipPath: "inset(0px 820px 0px 0px)" }}><div style={{ position: "absolute", inset: 0, transform: "translateX(-420px)" }}><SpaceCards
+          cardW={900} cardH={520} overviewAt={r(259.0)} fly={0.9}
+          cards={[
+            { arrive: r(tw("مذاهب", 239.0)), node: <CardText big="لا مذاهب أربعة" /> },
+            { arrive: r(tw("ثرق", 241.4, 3)), node: <CardText big="ولا فرق عقدية" /> },
+            { arrive: r(tw("صحابه", 243.3, 3)), node: <CardText big="حتى الصحابة يختلفون" /> },
+            { arrive: r(tw("بكر", 248.3, 3)), node: <CardText big="أبو بكر ↔ عمر" /> },
+            { arrive: r(tw("ومعاويه", 260.9, 2)), node: <CardText big="علي ↔ معاوية" /> },
+          ]}
+        /></div></div>
+      )}</S>
+
+      {/* 262.4–280.5: الصحابة ما كانوا من كبار الصوفية */}
+      <S a={262.4} b={280.5}>{(r) => <BlurRise at={r(tw("تعالوا", 264))} text="ما كانوا من «كبار الصوفية»! كبار الصوفية شيء آخر" x={80} y={850} w={1760} size={72} times={[r(tw("ما", 265.8, 2)), r(tw("كنتم", 265.8, 3)), r(tw("من", 266, 3)), r(tw("كبار", 266.3, 3)), r(tw("الصوفيه", 266.6, 3)), r(tw("كبار", 273.5, 5)), r(tw("الصوفيه", 274.5, 5)), r(tw("شيء", 275, 5)), r(tw("اخر", 275.5, 5))]} />}</S>
+
+      {/* 280.5–290.4 */}
+      <S a={280.5} b={290.37}>{(r) => KC(stripX, 78, [{ text: "كيف يثبت الحديث بالكشف؟", at: r(tw("يثبت", 282.3)) }, { text: "اذهب إلى مقدمة صحيح مسلم", at: r(tw("مقدمه", 286)) }])}</S>
+
+      {/* 290.4–319.8 full: مسلم + مصدر سني */}
+      <S a={290.37} b={319.83}>{(r) => (
+        <>
+          <Walk at={r(tw("مسلم", 295.5, 4))} src="kh/muslim_cover.jpg" w={360} h={500} from={{ x: 1650, y: 1200 }} mid={{ x: 1500, y: 560 }} to={{ x: 1450, y: 500 }} cap="صحيح مسلم" pos="50% 20%" sw={1.3} />
+          {KC(stripX + 0, 900, [{ text: "هذا مصدرنا: صحيح مسلم", at: r(tw("مسلم", 295.0, 3)) }], r(300.8), 50)}
+          {KC(960, 900, [{ text: "مصدر سني… وليس صوفياً", at: r(tw("معنى", 311, 6)) }], undefined, 54)}
+          <Subscribe at={r(312.5)} x={430} y={90} dur={5.5} />
+        </>
+      )}</S>
+
+      {/* 319.8–331.7 */}
+      <S a={319.83} b={331.65}>{(r) => KC(stripX, 78, [{ text: "شيخ الإمام مسلم: ألف حديث بأسانيد صحيحة", at: r(tw("احد", 321.8, 3)) }], undefined, 46)}</S>
+      {/* 331.9–345.9 card: انتبه */}
+      <S a={331.9} b={345.9}>{(r) => (
+        <>
+          <NameTag at={r(332.0)} x={zl.x + zl.w / 2} y={80} dur={4.5} />
+          <IconPop at={r(tw("شيخ", 337.5, 3))} x={zl.x + 380 + (zl.w - 400) / 2} y={240} name="TriangleAlert" size={170} />
+          {KC(zl.x + 380 + (zl.w - 400) / 2, 520, [{ text: "انتبه: الذي يقول هو شيخ مسلم", at: r(tw("شيخ", 337.5, 3)) }, { text: "ويظن أسانيدها صحيحة", at: r(tw("يظن", 340.1, 3)) }], undefined, 56)}
+        </>
+      )}</S>
+      {/* 346.35–354.9 */}
+      <S a={346.35} b={354.93}>{(r) => KC(stripX, 78, [{ text: "فعرضها على النبي ﷺ… في المنام", at: r(tw("فرايت", 351.6, 3)) }], undefined, 46)}</S>
+      {/* 355.2–368.5 card */}
+      <S a={355.2} b={368.5}>{(r) => (
+        <>
+          <IconPop at={r(tw("المحدثون", 355.4, 3))} x={zl.x + zl.w / 2} y={170} name="Scale" size={170} />
+          {KC(zl.x + zl.w / 2, 480, [{ text: "المحدّثون حكموا بصحتها", at: r(tw("المحدثون", 355.4, 3)) }, { text: "ليس رأيه هو وحده", at: r(tw("رايه", 357, 4)) }, { text: "ألف حديث صحيح", at: r(tw("الف", 363.6, 3)) }], undefined, 60)}
+        </>
+      )}</S>
+      {/* 368.8–385.0 clip: عرض الألف حديث */}
+      <S a={368.77} b={385.03}>{(r) => KC(stripX, 78, [{ text: "بزعمه: عرض الألف حديث على النبي ﷺ", at: r(tw("بزعمه", 369.3, 3)) }, { text: "«ليس لي منها إلا ستة»", at: r(tw("ستة", 380, 6)) }], undefined, 44)}</S>
+
+      {/* 385.3–406.3 iso C: counter 1000 → 6 */}
+      <S a={385.3} b={406.3}>{(r) => (
+        <>
+          <TimelineCounter at={r(tw("الف", 393.0, 4))} x={90} y={170} w={760} unit="حديث" step={1} size={170}
+            stops={[{ t: 0, value: 1000, label: "ما حكم عليه المحدثون بالصحة" }, { t: r(tw("اربعه", 400.3, 3)) - r(tw("الف", 393.0, 4)), value: 6, label: "ما صحّ منه بزعمه! والباقي (٩٩٤) كذب؟" }]} />
+        </>
+      )}</S>
+
+      {/* 415.6–461 card: 994 غلط + الكتب → علم الجرح والتعديل */}
+      <S a={415.6} b={461.0}>{(r) => (
+        <>
+          <StampG at={r(tw("994", 422.0, 4))} x={zl.x + zl.w / 2} y={130} text="٩٩٤ حديثاً غلط؟!" size={64} />
+          <TypeBox at={r(tw("سنثق", 424.8, 4))} x={zl.x} y={290} w={zl.w} title="السؤال" text="كيف سنثق بعلم الحديث بعد ذلك؟" size={54} until={r(437.0)} />
+          <ConvergeMerge at={r(tw("الكبير", 439.0, 3))} mergeAt={r(tw("هذه", 452.5, 3))} x={zl.x} y={240} w={zl.w} h={640}
+            sources={["تاريخ البخاري", "العلل لابن أبي حاتم", "تاريخ خليفة بن خياط", "تاريخ ابن معين", "سؤالات الدارقطني"]} result="صحة الحديث وضعفه" />
+        </>
+      )}</S>
+
+      {/* 461–475.9 full: نجيب لنا صوفياً يحلم! */}
+      <S a={461.0} b={475.87}>{(r) => (
+        <>
+          {KC(960, 900, [{ text: "نجيب صوفياً يحلم منامات!", at: r(tw("صوفي", 461.2, 3)) }, { text: "ما له علاقة بالموضوع", at: r(tw("تعلاقه", 471.5, 4)) }], undefined, 54)}
+        </>
+      )}</S>
+      <S a={475.87} b={490.7}>{(r) => KC(stripX, 78, [{ text: "هلا أحكي لك القصة", at: r(tw("احكي", 476.2, 3)) }])}</S>
+
+      {/* 490.7–511 full */}
+      <S a={490.7} b={511.0}>{(r) => (
+        <>
+          <NameTag at={r(508.0)} x={960} y={900} dur={4.5} />
+          {KC(960, 900, [{ text: "مسلم يذكر قواعد المحدثين", at: r(tw("قواعد", 486.5, 5)) }], r(499.0), 54)}
+          {KC(960, 900, [{ text: "النظر في الأسانيد لا المنامات", at: r(tw("النظر", 497.0, 4)) }], r(509.5), 54)}
+        </>
+      )}</S>
+      {/* 511–539.8 pip: سلسلة الإسناد */}
+      <S a={511.0} b={539.8}>{(r) => (
+        <LandCtx.Provider value={false}><FlowNodes P={{ x: zl.x - 30, y: 0, w: zl.w + 60, h: 800 }} y0={330} nodes={[
+          { icon: "User", label: "البخاري", at: r(tw("البخاري", 513.5, 4)) }, { icon: "User", label: "أحمد", at: r(tw("احمد", 515.5, 4)) }, { icon: "User", label: "الشافعي", at: r(tw("الشافعي", 517, 4)) },
+          { icon: "User", label: "سفيان", at: r(tw("عيين", 520.2, 3)) }, { icon: "User", label: "مالك", at: r(tw("مالك", 523.0, 3)) }, { icon: "User", label: "نافع", at: r(tw("وشيخه", 528.0, 1)) }, { icon: "User", label: "ابن عمر", at: r(tw("عمر", 529.4, 1)) },
+        ]} /></LandCtx.Provider>
+      )}</S>
+
+      {/* 540–596.4 book: مقدمة مسلم — highlights & names */}
+      <S a={540.17} b={596.4}>{(r) => (
+        <>
+          {KC(stripX, 78, [{ text: "القصة عن راوٍ ضعيف: أبان بن أبي عياش", at: r(tw("ابان", 540.3, 5)) }, { text: "الحديث رقم ٧٧ في المقدمة", at: r(tw("77", 549.4, 3)) }, { text: "سويد ← علي بن مسهر ← حمزة الزيات", at: r(tw("سويد", 553.4, 3)) }, { text: "«نحواً من ألف حديث» من أبان", at: r(tw("الف", 561, 3)) }], undefined, 40)}
+        </>
+      )}</S>
+      {/* 596.6–614.8 card: مقارنة */}
+      <S a={596.6} b={614.8}>{(r) => (
+        <TimedCompare at={r(596.7)} until={r(614.5)} x={zl.x} y={110} w={zl.w} h={800}
+          before={{ label: "ما زعمه الصوفي", items: [{ text: "أحاديث صححها العلماء", at: r(tw("العلماء", 598.8, 1)) }, { text: "النبي ﷺ قال: غير صحيحة", at: r(tw("والنبي", 599.5, 1)) }] }}
+          after={{ label: "حقيقة القصة", items: [{ text: "أحاديث راوٍ ضعيف (أبان)", at: r(tw("ضعيف", 606.0, 4)) }, { text: "الرؤيا استئناس لا تضعيف", at: r(tw("المنام", 610.0, 4)) }] }} />
+      )}</S>
+      {/* 615–639 windows */}
+      <S a={615.13} b={623.93}>{(r) => KC(stripX, 78, [{ text: "ثم قال السيوطي معلقاً", at: r(tw("السيوطي", 621.4, 3)) }], undefined, 50)}</S>
+      <S a={623.93} b={639.43}>{(r) => KC(stripX, 78, [{ text: "قال عياض: «استئناس واستظهار»", at: r(tw("عياض", 626.2, 3)) }, { text: "على ما تقرّر من ضعف أبان", at: r(tw("ضعف", 635.7, 3)) }], undefined, 46)}</S>
+      <S a={639.43} b={693.67}>{(r) => {
+        const zw = cardZone("right", WIDE);
+        return (
+          <>
+            {KC(zw.x + zw.w / 2, 120, [{ text: "أبان ضعيف بقواعد أهل العلم", at: r(tw("ابان", 639.6, 3)) }, { text: "حمزة الزيات: محدّث وقارئ معروف", at: r(tw("حمزه", 655.7, 4)) }], r(668.5), 50)}
+            <IconPop at={r(tw("حمزه", 655.7, 4))} x={zw.x + zw.w / 2} y={190} name="BookOpen" size={150} />
+            <TimedCompare at={r(668.6)} until={r(693.4)} x={zw.x} y={340} w={zw.w} h={640}
+              before={{ label: "عند أهل العلم", items: [{ text: "الرؤيا استئناس بعد ثبوت الحكم", at: r(tw("استئناسا", 671.8, 4)) }, { text: "رجل صالح ← رؤيا تبشّر بخير", at: r(tw("بصلاحه", 677.5, 4)) }] }}
+              after={{ label: "لا يفعلون", items: [{ text: "بناء حكم الحديث على رؤيا", at: r(tw("حشاش", 683.4, 4)) }, { text: "الرؤى «للاستئناس» فقط", at: r(tw("الاستئناس", 689.2, 4)) }] }} />
+          </>
+        );
+      }}</S>
+      <S a={693.67} b={713.03}>{(r) => KC(stripX, 78, [{ text: "كلام السيوطي في الأثر", at: r(tw("سيوطي", 694.0, 2)) }, { text: "لا يُثبت به سنة ولا يُبطل", at: r(tw("بامر", 704.0, 4)) }], undefined, 46)}</S>
+
+      {/* 713–729 iso D */}
+      <S a={713.2} b={729.0}>{(r) => KC(1250, 880, [{ text: "السيوطي: من كبار أئمة الصوفية", at: r(tw("كبار", 715.7, 4)) }, { text: "يقرأ ويؤلف في علم الحديث والرجال", at: r(tw("ويؤلف", 722.4, 4)) }], undefined, 44)}</S>
+      {/* 729–740.3 full */}
+      <S a={729.0} b={740.33}>{(r) => (
+        <>
+          <NameTag at={r(731.0)} x={960} y={900} dur={4.5} />
+          {KC(960, 900, [{ text: "كان يدرس الأسانيد ويتعب نفسه بها", at: r(tw("يدرس", 735.5, 4)) }], undefined, 50)}
+        </>
+      )}</S>
+      <S a={740.33} b={758.77}>{(r) => KC(stripX, 78, [{ text: "ثم استدل بالرؤية المنامية", at: r(tw("استدل", 749, 5)) }], undefined, 50)}</S>
+
+      {/* 759–771 card: قصة مختلفة */}
+      <S a={759.0} b={771.0}>{(r) => (
+        <RewriteWindow x={zl.x} y={150} w={zl.w} h={430} oldText="ما في صحيح مسلم: راوٍ ضعيف" newText="ما نقله: تصحيح بالمنام" oldAt={r(759.3)} strikeAt={r(tw("مختلفه", 762.0, 4))} newAt={r(tw("وفهمها", 766.0, 4))} extra="قصة مختلفة عن مقدمة صحيح مسلم" until={r(770.6)} />
+      )}</S>
+      <S a={771.33} b={779.5}>{(r) => KC(stripX, 78, [{ text: "الكاملون: رؤية اليقظة لا المنام", at: r(tw("الكاملون", 771.6, 3)) }], undefined, 46)}</S>
+
+      {/* 779.5–811 iso E: مشايخك صحابة… */}
+      <S a={779.5} b={811.0}>{(r) => (
+        <>
+          {KC(1470, 880, [{ text: "كلهم صحابة! والبقية لا؟", at: r(tw("صحابه", 790, 5)) }], r(804.0), 46)}
+          <ConvergeMerge at={r(tw("يشوفون", 795.0, 2))} mergeAt={r(tw("هذول", 808.0, 4))} x={60} y={160} w={900} h={760} rtl={false}
+            sources={["البخاري", "مسلم", "ابن ماجه", "أبو داود", "الترمذي", "الدارمي"]} result="ما رأوا النبي ﷺ يقظةً" />
+        </>
+      )}</S>
+      {/* 811–831.7 final */}
+      <S a={811.0} b={831.67}>{(r) => (
+        <>
+          <BlurRise at={r(tw("اهلك", 818.5, 2))} text="الكذب أهلك الناس… اتقوا الله في هذا الدين" x={80} y={880} w={1760} size={70} />
+          <DimLayer at={r(826.5)} amount={0.45} />
+          <NameTag at={r(826.8)} x={1630} y={250} dur={4.9} />
+          <Subscribe at={r(827.0)} x={1630} y={370} dur={4.7} />
+        </>
+      )}</S>
+
+      {/* a spotlight on the Sha'rani manuscript (starts inside the paper scene, 80.4 s: the spotlight dims the whole frame, so it must never run over his real face — face_check 2026-10-23) */}
+      <S a={80.4} b={86.0}>{() => (
+        <SpotlightCard at={0.2} card={{ x: 1180, y: 60, w: 460, h: 700 }} lockAt={1.0} reseatAt={4.8} dark={0.4}>
+          <ScholarCard file={SCHOLAR["الشعراني"]} name="عبد الوهاب الشعراني" w={440} />
+        </SpotlightCard>
+      )}</S>
+
+      {/* NameTag at the basmala */}
+      <S a={OPENING_FULL.a + 1.2} b={OPENING_FULL.b}>{() => <NameTag at={0} x={960} y={900} dur={4.5} />}</S>
+    </>
+  );
+};
+
+const CardText: React.FC<{ big: string }> = ({ big }) => (
+  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#17324f,#244a74)", borderRadius: 30, border: "3px solid rgba(255,255,255,.25)", fontFamily: TITLE, fontWeight: 800, fontSize: 84, color: "#fff", direction: "rtl" }}>{big}</div>
+);
+
+/** sound: a very light whoosh on scene changes (≤ 6/min, ≥ 1.5 s apart, level 0.05) */
+const WHOOSH_AT = [61, 101, 141, 213.8, 238.7, 385.3, 415.6, 511, 596.6, 713.2, 779.5];
+const Sfx: React.FC = () => (
+  <>
+    {WHOOSH_AT.map((t, i) => <Sequence key={i} from={sec(t)} durationInFrames={FPS * 2} layout="none"><Audio src={staticFile("sfx/whoosh.wav")} volume={0.05} /></Sequence>)}
+  </>
+);
+
+const Cover: React.FC = () => (
+  <AbsoluteFill>
+    <CoverKit format="landscape" palette={BLUE} line1="تصحيح الحديث" line2="بالكشف الصوفي" sheikh="cov/kh_sheikh.png" opp="cov/kh_opp.png" oppPos={{ w: 760, left: -20, bottom: 40 }} />
+  </AbsoluteFill>
+);
+
+export const KashfHadith: React.FC = () => {
+  useFonts();
+  void TEXT;
+  return (
+    <LandCtx.Provider value={true}>
+      <MGTheme theme="marine">
+        <AbsoluteFill style={{ background: "#2f4a68" }}>
+          <Visual />
+          <Gfx>
+            <Overlays />
+            <Sfx />
+            <TitleBar title={KH_TITLE} />
+          </Gfx>
+          <Sequence durationInFrames={COVER_FRAMES} layout="none"><Cover /></Sequence>
+        </AbsoluteFill>
+      </MGTheme>
+    </LandCtx.Provider>
+  );
+};
+export { inAny };

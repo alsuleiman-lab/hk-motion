@@ -1,0 +1,134 @@
+{
+  "status": "latest landscape preview after user edit; remains a trial",
+  "source": "src/IbnBazPaperCoverLandscape.tsx",
+  "snapshot": "IbnBazPaperCoverLandscape.user-v2.tsx.txt",
+  "source_sha256": "0072c606ccc25e3144c8f26b6dd641b05e5cc58ffb8868b16f2dfeab43b14da6",
+  "preview": "http://localhost:3100/IbnBaz-Paper-Cover-Landscape",
+  "canvas": [
+    1920,
+    1080
+  ],
+  "measured_user_change": {
+    "element": "dark backing brush behind من السلف؟",
+    "property": "individual CSS scale",
+    "previous_v1": 1,
+    "current_user_v2": 0.881,
+    "percent_reduction": 11.9,
+    "note": "Only backing Img is scaled; text remains in its existing centered box."
+  },
+  "previously_observed_but_absent_now": {
+    "property": "translate on publisher-signature brush",
+    "status": "not present in latest source, therefore not part of current user edit"
+  },
+  "unchanged_landscape_values": {
+    "photos": {
+      "Mohammed": [
+        1090,
+        10,
+        1400
+      ],
+      "opponent": [
+        -185,
+        175,
+        800
+      ]
+    },
+    "title_group": [
+      520,
+      480,
+      1030,
+      590,
+      0.84
+    ],
+    "support": [
+      {
+        "text": "صدقاً لا تواضعاً",
+        "box": [
+          64,
+          45,
+          430,
+          92
+        ]
+      },
+      {
+        "text": "نقل الإجماع!",
+        "box": [
+          650,
+          65,
+          500,
+          104
+        ]
+      }
+    ],
+    "signature": [
+      "محمد بن شمس الدين",
+      60,
+      42,
+      520,
+      82
+    ]
+  },
+  "shared_assets": "../2026-10-24-user-adjustment/manifest.json",
+  "face_review": [
+    {
+      "name": "Mohammed",
+      "detector": {
+        "face": [
+          39,
+          179,
+          346,
+          346
+        ],
+        "zone": [
+          11,
+          47,
+          412,
+          836
+        ],
+        "overlap": 0.0,
+        "ok": true
+      },
+      "reviewed": {
+        "bounds": [
+          1465,
+          65,
+          1865,
+          845
+        ],
+        "overlap": 0.0,
+        "method": "visually reviewed complete head/beard bounds plus automated Gfx pixel comparison",
+        "ok": true
+      }
+    },
+    {
+      "name": "opponent",
+      "detector": {
+        "face": [
+          179,
+          181,
+          253,
+          253
+        ],
+        "zone": [
+          158,
+          84,
+          452,
+          661
+        ],
+        "overlap": 0.0,
+        "ok": true
+      },
+      "reviewed": {
+        "bounds": [
+          82,
+          225,
+          450,
+          835
+        ],
+        "overlap": 0.0,
+        "method": "visually reviewed complete head/beard bounds plus automated Gfx pixel comparison",
+        "ok": true
+      }
+    }
+  ]
+}

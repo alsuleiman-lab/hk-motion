@@ -1,0 +1,124 @@
+{
+  "status": "latest distributed landscape preview; remains a trial",
+  "source": "src/IbnBazPaperCoverLandscape.tsx",
+  "snapshot": "IbnBazPaperCoverLandscape.distributed-v3.tsx.txt",
+  "source_sha256": "f37add0632d3293a8a3f3e3b9a5d45ea4e76d5ca14f2a6a2a6fe5d3564989fd8",
+  "preview": "http://localhost:3100/IbnBaz-Paper-Cover-Landscape",
+  "canvas": [
+    1920,
+    1080
+  ],
+  "user_instruction": "spread cover elements to right/left and top/bottom",
+  "layout": {
+    "upper_left": {
+      "text": "صدقاً لا تواضعاً",
+      "box": [
+        64,
+        45,
+        430,
+        92
+      ]
+    },
+    "main_title_group": [
+      520,
+      480,
+      1030,
+      590,
+      0.84
+    ],
+    "lower_right": {
+      "text": "نقل الإجماع!",
+      "box": [
+        1430,
+        878,
+        420,
+        96
+      ],
+      "rotation_degrees": -1.5,
+      "backing": "paper-slip-v2, dark ink"
+    },
+    "lower_left_signature": {
+      "text": "محمد بن شمس الدين",
+      "box": [
+        60,
+        956,
+        520,
+        82
+      ]
+    },
+    "photos": {
+      "Mohammed": [
+        1090,
+        10,
+        1400
+      ],
+      "opponent": [
+        -185,
+        175,
+        800
+      ]
+    }
+  },
+  "face_review": [
+    {
+      "name": "Mohammed",
+      "detector": {
+        "face": [
+          39,
+          179,
+          346,
+          346
+        ],
+        "zone": [
+          11,
+          47,
+          412,
+          836
+        ],
+        "overlap": 0.0,
+        "ok": true
+      },
+      "reviewed": {
+        "bounds": [
+          1465,
+          65,
+          1865,
+          845
+        ],
+        "overlap": 0.0,
+        "method": "visually reviewed complete head/beard bounds plus automated Gfx pixel comparison",
+        "ok": true
+      }
+    },
+    {
+      "name": "opponent",
+      "detector": {
+        "face": [
+          179,
+          181,
+          253,
+          253
+        ],
+        "zone": [
+          158,
+          84,
+          452,
+          661
+        ],
+        "overlap": 0.0,
+        "ok": true
+      },
+      "reviewed": {
+        "bounds": [
+          82,
+          225,
+          450,
+          835
+        ],
+        "overlap": 0.0,
+        "method": "visually reviewed complete head/beard bounds plus automated Gfx pixel comparison",
+        "ok": true
+      }
+    }
+  ]
+}

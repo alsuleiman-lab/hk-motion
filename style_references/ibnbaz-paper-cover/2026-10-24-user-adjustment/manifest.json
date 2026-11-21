@@ -1,0 +1,383 @@
+{
+  "date": "2026-10-24",
+  "user_request": "عدلته قليلا افهم التعديل وسجل كل شيء",
+  "composition": {
+    "id": "IbnBaz-Paper-Cover",
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "frames": 3,
+    "preview": "http://localhost:3100/IbnBaz-Paper-Cover"
+  },
+  "source": {
+    "file": "src/IbnBazPaperCover.tsx",
+    "snapshot": "IbnBazPaperCover.user.tsx.txt",
+    "sha256": "3fbb8baa08e29418446d1a8d9cf516cb16b13632bc342ff7c2c4b6de581b5f83",
+    "visual_source_unchanged_by_recording": true
+  },
+  "measured_changes": [
+    {
+      "element": "Mohammed",
+      "property": "scale",
+      "before": 1,
+      "after": 1.073,
+      "increase_percent": 7.3
+    },
+    {
+      "element": "opponent",
+      "property": "scale",
+      "before": 1,
+      "after": 1.09,
+      "increase_percent": 9
+    },
+    {
+      "element": "opponent",
+      "property": "translate",
+      "before": [
+        0,
+        0
+      ],
+      "after": [
+        -7.6,
+        66.7
+      ],
+      "units": "composition pixels"
+    }
+  ],
+  "photographs": {
+    "Mohammed": {
+      "asset": "cov/ibnbaz-paper-v1/mohammed-ready-v1.png",
+      "image_dimensions": [
+        985,
+        940
+      ],
+      "css_box": {
+        "left": 335,
+        "top": 245,
+        "width": 1080,
+        "height": 1030.6598984771574
+      },
+      "individual_transforms": {
+        "scale": 1.073,
+        "translate": [
+          0,
+          0
+        ],
+        "transform_origin": "50% 50%"
+      },
+      "rendered_image_box": {
+        "left": 295.58000000000004,
+        "top": 207.3809137055838,
+        "width": 1158.84,
+        "height": 1105.8980710659898
+      },
+      "note": "Image rectangle includes transparent margins; it is not a detected face rectangle."
+    },
+    "opponent": {
+      "asset": "cov/ibnbaz-opponent-v6/opponent-cutout-v6.png",
+      "image_dimensions": [
+        914,
+        800
+      ],
+      "css_box": {
+        "left": -95,
+        "top": 370,
+        "width": 820,
+        "height": 717.7242888402626
+      },
+      "individual_transforms": {
+        "scale": 1.09,
+        "translate": [
+          -7.6,
+          66.7
+        ],
+        "transform_origin": "50% 50%"
+      },
+      "rendered_image_box": {
+        "left": -139.50000000000003,
+        "top": 404.40240700218817,
+        "width": 893.8000000000001,
+        "height": 782.3194748358862
+      },
+      "note": "Image rectangle includes transparent margins; it is not a detected face rectangle."
+    }
+  },
+  "photo_layer_order": [
+    "Mohammed behind",
+    "opponent in front",
+    "Gfx text/paper above photographs"
+  ],
+  "photo_filter": "saturate(.88) drop-shadow(3px 0 0 #fffdf6) drop-shadow(-3px 0 0 #fffdf6) drop-shadow(0 3px 0 #fffdf6) drop-shadow(0 -3px 0 #fffdf6) drop-shadow(0 12px 11px rgba(63,47,17,.19))",
+  "palette": {
+    "ink": "#242218",
+    "white": "#fffdf6",
+    "fallback_paper": "#beb5a0",
+    "yellow_brush_previously_measured": "#d7a309"
+  },
+  "type": {
+    "support_and_signature": "Almarai 800",
+    "main_first_and_middle": "Almarai 800",
+    "main_last": "Noto Kufi Arabic 800"
+  },
+  "text_and_layout": [
+    {
+      "text": "صدقاً لا تواضعاً",
+      "box": [
+        54,
+        48,
+        374,
+        92
+      ],
+      "rotation_degrees": -3,
+      "font_size": 40,
+      "source_seconds": [
+        170.44,
+        171.98
+      ]
+    },
+    {
+      "text": "نقل الإجماع!",
+      "box": [
+        568,
+        100,
+        454,
+        111
+      ],
+      "rotation_degrees": 1,
+      "font_size": 46,
+      "source_seconds": [
+        172.86,
+        173.62
+      ]
+    },
+    {
+      "group": "main title",
+      "box": [
+        25,
+        1160,
+        1030,
+        590
+      ]
+    },
+    {
+      "text": "هل ابن تيمية",
+      "group_relative_box": [
+        226,
+        5,
+        700,
+        161
+      ],
+      "rotation_degrees": -1,
+      "font_size": 75,
+      "svg_text_anchor": [
+        350,
+        105
+      ]
+    },
+    {
+      "asset": "newsprint-strip-v2.png",
+      "group_relative_box": [
+        0,
+        139,
+        1030,
+        276
+      ]
+    },
+    {
+      "asset": "crosshatch-v2.png",
+      "group_relative_box": [
+        -52,
+        136,
+        1138,
+        281
+      ]
+    },
+    {
+      "text": "أعلم",
+      "group_relative_box": [
+        0,
+        139,
+        1030,
+        276
+      ],
+      "font_size": 180,
+      "svg_text_anchor": [
+        515,
+        198
+      ],
+      "text_length": 620,
+      "length_adjust": "spacingAndGlyphs",
+      "stroke": "rgba(50,43,25,.25) 1px"
+    },
+    {
+      "text": "من السلف؟",
+      "group_relative_box": [
+        57,
+        398,
+        940,
+        169
+      ],
+      "rotation_degrees": 0.4,
+      "font_size": 99,
+      "line_height": 1.3
+    },
+    {
+      "text": "محمد بن شمس الدين",
+      "box": [
+        67,
+        1787,
+        540,
+        82
+      ],
+      "bottom": 51,
+      "rotation_degrees": -1.2,
+      "font_size": 40,
+      "role": "fixed publisher signature, not a person caption"
+    }
+  ],
+  "observed_visual_effect": "Both people are larger; Mohammed remains higher and dominant on the right; the opponent is lower on the left in the foreground, with his body closer to the yellow title brush.",
+  "scope": "The exact values apply to these source crops and this composition. For other photographs use the visual relationship and review faces, rather than blindly copying the pixel values.",
+  "unchanged": [
+    "title wording",
+    "two support quotes",
+    "bottom-left signature",
+    "aged newspaper background",
+    "paper/brush treatments",
+    "palette",
+    "font settings",
+    "photograph assets",
+    "base left/top/width values"
+  ],
+  "assets": [
+    {
+      "workspace_path": "public/cov/ibnbaz-source-v5/aged-newspaper-background-v5.png",
+      "archive_path": "assets/cov/ibnbaz-source-v5/aged-newspaper-background-v5.png",
+      "bytes": 1818239,
+      "sha256": "02d8b53625ec49ac1054a57d50770d886e7f186c8e57f5c029cd323079953ca8",
+      "dimensions": [
+        1080,
+        1920
+      ]
+    },
+    {
+      "workspace_path": "public/cov/ibnbaz-paper-v1/mohammed-ready-v1.png",
+      "archive_path": "assets/cov/ibnbaz-paper-v1/mohammed-ready-v1.png",
+      "bytes": 1244071,
+      "sha256": "c5e9f561ee8ec0afc1744eb21bc02c9a00dc8d4a8070063c0df02b04917c9c6b",
+      "dimensions": [
+        985,
+        940
+      ]
+    },
+    {
+      "workspace_path": "public/cov/ibnbaz-opponent-v6/opponent-cutout-v6.png",
+      "archive_path": "assets/cov/ibnbaz-opponent-v6/opponent-cutout-v6.png",
+      "bytes": 723678,
+      "sha256": "6e7e666ca472f59fe44c5e86d27bf4c5332d167a1ceea572bd3dfd53392b71e3",
+      "dimensions": [
+        914,
+        800
+      ]
+    },
+    {
+      "workspace_path": "public/cov/ibnbaz-source-v2/paper-slip-v2.png",
+      "archive_path": "assets/cov/ibnbaz-source-v2/paper-slip-v2.png",
+      "bytes": 3535,
+      "sha256": "372f813f0fd8b5df1be3090e2c79a59194e9443c339635092a00095d940a4c5c",
+      "dimensions": [
+        900,
+        130
+      ]
+    },
+    {
+      "workspace_path": "public/cov/ibnbaz-source-v2/brush-dark-v2.png",
+      "archive_path": "assets/cov/ibnbaz-source-v2/brush-dark-v2.png",
+      "bytes": 42291,
+      "sha256": "38b4bf47f7c22c3d22b01dc16582bf6f84871d55d57442f3b9eff4dfb07d1ca4",
+      "dimensions": [
+        1100,
+        180
+      ]
+    },
+    {
+      "workspace_path": "public/cov/ibnbaz-source-v2/brush-yellow-v2.png",
+      "archive_path": "assets/cov/ibnbaz-source-v2/brush-yellow-v2.png",
+      "bytes": 41453,
+      "sha256": "575445345ec8e38baf0365acddf36dc378627662366c13805e9a8edf25d2bfe3",
+      "dimensions": [
+        1100,
+        180
+      ]
+    },
+    {
+      "workspace_path": "public/cov/ibnbaz-source-v2/newsprint-strip-v2.png",
+      "archive_path": "assets/cov/ibnbaz-source-v2/newsprint-strip-v2.png",
+      "bytes": 355371,
+      "sha256": "c09539e5c9c2467d36cbd47e11773edcb8e5511dd49baa407bcc680707e0a80a",
+      "dimensions": [
+        1220,
+        314
+      ]
+    },
+    {
+      "workspace_path": "public/cov/ibnbaz-source-v2/crosshatch-v2.png",
+      "archive_path": "assets/cov/ibnbaz-source-v2/crosshatch-v2.png",
+      "bytes": 39541,
+      "sha256": "e9579a82fc1b28bf445e1e2ccf87d8c61ca5cc3c52780eef6ae5ce38600b7189",
+      "dimensions": [
+        1380,
+        330
+      ]
+    },
+    {
+      "workspace_path": "public/fonts/NotoKufiArabic-Variable.ttf",
+      "archive_path": "assets/fonts/NotoKufiArabic-Variable.ttf",
+      "bytes": 434204,
+      "sha256": "494f6b61469d7a02a2d63f0fc4930bb007388d8cfe551de5eb98354e100889f3"
+    },
+    {
+      "workspace_path": "public/fonts/Almarai-Regular.ttf",
+      "archive_path": "assets/fonts/Almarai-Regular.ttf",
+      "bytes": 152824,
+      "sha256": "5b5cad33c8e5922083728d271cdcda91f96ba291f1307eccc4f4ef732dc19622"
+    },
+    {
+      "workspace_path": "public/fonts/Almarai-Bold.ttf",
+      "archive_path": "assets/fonts/Almarai-Bold.ttf",
+      "bytes": 156672,
+      "sha256": "06401391b5b39fbcf2bc0c6a6e03faf992435e7b011183a1861737e913af8613"
+    },
+    {
+      "workspace_path": "public/fonts/Almarai-ExtraBold.ttf",
+      "archive_path": "assets/fonts/Almarai-ExtraBold.ttf",
+      "bytes": 168292,
+      "sha256": "9f8f72f1cb06db787a5b32e314a109267e53c505c9f9ab0dad5aa8ff8b219a07"
+    }
+  ],
+  "face_review": [
+    {
+      "name": "Mohammed",
+      "method": "visually reviewed current full head/beard bounds plus automated Gfx pixel comparison",
+      "zone": [
+        610,
+        260,
+        940,
+        935
+      ],
+      "overlap": 0.0,
+      "ok": true
+    },
+    {
+      "name": "opponent",
+      "method": "visually reviewed current full head/beard bounds plus automated Gfx pixel comparison",
+      "zone": [
+        165,
+        470,
+        570,
+        1125
+      ],
+      "overlap": 0.0,
+      "ok": true
+    }
+  ]
+}

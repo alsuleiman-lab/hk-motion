@@ -1,3 +1,127 @@
 {
-  "jobs": []
+ "jobs": [
+  {
+   "spec": "stream_arsh_fakh_reel",
+   "comp": "Stream-Arsh-Fakh-R",
+   "orient": "R",
+   "dest": "C:\\Users\\mshms\\Videos\\جاهز\\بثوث\\طولي",
+   "title": "متصل جاء يسخر من العرش فوقع في الفخ",
+   "bumper": "end",
+   "state": "failed",
+   "at": "2026-11-16T13:07:57.576Z",
+   "err": "status 1 — judder: 21/89 steps agree with the source (23.6%), render-made repeats: 0 — FAILED (stale/skipped frames in the output) stream_arsh_fakh_reel RENDER exit 1 -> R/متصل جاء يسخر من العرش فوقع في الفخ #مح"
+  },
+  {
+   "spec": "stream_mayyit_ilm_reel",
+   "comp": "Stream-Mayyit-Ilm-R",
+   "orient": "R",
+   "dest": "C:\\Users\\mshms\\Videos\\جاهز\\بثوث\\طولي",
+   "title": "إفحام متفلسف أشعري هل الله يعلم أنك ميت الآن",
+   "bumper": "end",
+   "state": "failed",
+   "at": "2026-11-16T13:07:58.245Z",
+   "err": "status 1 — judder: 71/89 steps agree with the source (79.8%), render-made repeats: 1 — FAILED (stale/skipped frames in the output) stream_mayyit_ilm_reel RENDER exit 1 -> R/إفحام متفلسف أشعري هل الله يعلم أنك مي"
+  },
+  {
+   "spec": "anchor-kills-children",
+   "comp": "Anchor-Kills-Children-L",
+   "orient": "L",
+   "dest": "C:/Users/mshms/Videos/جاهز",
+   "title": "",
+   "bumper": "",
+   "state": "done",
+   "at": "2026-11-18T16:03:03.182Z",
+   "to": "C:\\Users\\mshms\\Videos\\جاهز\\مذيع يقتل أطفاله- #محمد_بن_شمس_الدين.mp4",
+   "file": "render_work\\export\\L\\مذيع يقتل أطفاله- #محمد_بن_شمس_الدين.mp4"
+  },
+  {
+   "spec": "fursan-fajr-reel",
+   "comp": "Fursan-Fajr-Reel",
+   "orient": "R",
+   "dest": "C:/Users/mshms/Videos/جاهز",
+   "title": "",
+   "bumper": "",
+   "state": "failed",
+   "at": "2026-11-18T17:39:24.131Z",
+   "err": "status 1 — ✘ الارتجاف: 10/89 خطوة تطابق المصدر (11.2٪، الحد 96.0٪)، وإطارات مكررة صنعها الرندر: 0 — النوافذ عند 0.6ث؛ افحص إطارات هذه النوافذ fursan-fajr-reel RENDER exit 1 -> R/لماذا منعوا مبادرة فرسان الفجر #م"
+  },
+  {
+   "spec": "anchor-kills-children-reel",
+   "comp": "Anchor-Kills-Children-Reel",
+   "orient": "R",
+   "dest": "C:/Users/mshms/Videos/جاهز",
+   "title": "",
+   "bumper": "",
+   "state": "done",
+   "at": "2026-11-18T17:41:29.360Z",
+   "to": "C:\\Users\\mshms\\Videos\\جاهز\\مذيع يقتل أطفاله #محمد_بن_شمس_الدين.mp4",
+   "file": "render_work\\export\\R\\مذيع يقتل أطفاله #محمد_بن_شمس_الدين.mp4"
+  },
+  {
+   "spec": "urwa-reel",
+   "comp": "Urwa-Reel",
+   "orient": "R",
+   "dest": "C:/Users/mshms/Videos/جاهز",
+   "title": "",
+   "bumper": "",
+   "state": "done",
+   "at": "2026-11-18T23:03:36.821Z",
+   "to": "C:\\Users\\mshms\\Videos\\جاهز\\حديث نبوي خطير عن الصلاة #محمد_بن_شمس_الدين.mp4",
+   "file": "render_work\\export\\R\\حديث نبوي خطير عن الصلاة #محمد_بن_شمس_الدين.mp4"
+  },
+  {
+   "spec": "gta6-intro-reel",
+   "comp": "Gta6-Intro-Reel",
+   "orient": "R",
+   "dest": "C:/Users/mshms/Videos/جاهز",
+   "title": "",
+   "bumper": "",
+   "state": "done",
+   "at": "2026-11-21T00:15:24.048Z",
+   "to": "C:\\Users\\mshms\\Videos\\جاهز\\أيليق بك أن تلعبها بجانب أمك؟ #محمد_بن_شمس_الدين.mp4",
+   "file": "render_work\\export\\R\\أيليق بك أن تلعبها بجانب أمك؟ #محمد_بن_شمس_الدين.mp4"
+  },
+  {
+   "spec": "gta6-dayyuth-reel",
+   "comp": "Gta6-Dayyuth-Reel",
+   "orient": "R",
+   "dest": "C:/Users/mshms/Videos/جاهز",
+   "title": "",
+   "bumper": "",
+   "state": "done",
+   "at": "2026-11-21T00:22:01.027Z",
+   "to": "C:\\Users\\mshms\\Videos\\جاهز\\من يروّج لهذه اللعبة؟ #محمد_بن_شمس_الدين.mp4",
+   "file": "render_work\\export\\R\\من يروّج لهذه اللعبة؟ #محمد_بن_شمس_الدين.mp4"
+  },
+  {
+   "spec": "Rudood-Jinn",
+   "comp": "Rudood-Jinn",
+   "orient": "R",
+   "dest": "C:/Users/mshms/Videos/جاهز/كرتون",
+   "name": "شيخ الردود - طعام لمسلمي الجن.mp4",
+   "bumper": "none",
+   "kind": "rudood",
+   "mode": "comp",
+   "state": "done",
+   "at": "2026-11-21T17:08:35.752Z",
+   "file": "render_work\\export\\R\\شيخ الردود - طعام لمسلمي الجن.mp4",
+   "review": "✔ فحص نوع «rudood»",
+   "to": "C:\\Users\\mshms\\Videos\\جاهز\\كرتون\\شيخ الردود - طعام لمسلمي الجن.mp4"
+  },
+  {
+   "spec": "Rudood-Makan",
+   "comp": "Rudood-Makan",
+   "orient": "R",
+   "dest": "C:/Users/mshms/Videos/جاهز/كرتون",
+   "name": "شيخ الردود - الله موجود بلا مكان.mp4",
+   "bumper": "none",
+   "kind": "rudood",
+   "mode": "comp",
+   "state": "done",
+   "at": "2026-11-21T17:14:42.751Z",
+   "file": "render_work\\export\\R\\شيخ الردود - الله موجود بلا مكان.mp4",
+   "review": "✔ فحص نوع «rudood»",
+   "to": "C:\\Users\\mshms\\Videos\\جاهز\\كرتون\\شيخ الردود - الله موجود بلا مكان.mp4"
+  }
+ ]
 }

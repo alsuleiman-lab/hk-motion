@@ -1,0 +1,50 @@
+[
+ {
+  "key": "muwatta1",
+  "file": "muwatta1.jpg",
+  "title": "Muwatta El Imam Malik.jpg",
+  "licence": "CC BY-SA 4.0",
+  "author": "Melha",
+  "page": "https://commons.wikimedia.org/wiki/File:Muwatta_El_Imam_Malik.jpg"
+ },
+ {
+  "key": "muwatta2",
+  "file": "muwatta2.png",
+  "title": "Muwatta (Malik ibn Anas) 1326 Salé Morocco Marinid manuscript.png",
+  "licence": "Public domain",
+  "author": "Malik ibn Anas (author of text). Manuscript by unspecified copyist, dated to 1326, in Salé.",
+  "page": "https://commons.wikimedia.org/wiki/File:Muwatta_(Malik_ibn_Anas)_1326_Sal%C3%A9_Morocco_Marinid_manuscript.png"
+ },
+ {
+  "key": "bukhari1",
+  "file": "bukhari1.png",
+  "title": "Al-jami al-sahih 14th century Marinid Morocco manuscript.png",
+  "licence": "Public domain",
+  "author": "Al-Bukhari (author of text, d. 870). Unspecified copyist.",
+  "page": "https://commons.wikimedia.org/wiki/File:Al-jami_al-sahih_14th_century_Marinid_Morocco_manuscript.png"
+ },
+ {
+  "key": "bukhari2",
+  "file": "bukhari2.jpg",
+  "title": "Manuscript of Sahih Bukhari.jpg",
+  "licence": "CC0",
+  "author": "Muhammad al-Bukhari",
+  "page": "https://commons.wikimedia.org/wiki/File:Manuscript_of_Sahih_Bukhari.jpg"
+ },
+ {
+  "key": "shuba",
+  "file": "shuba.png",
+  "title": "Shu'ba Ibn al-Ḥajjāj (calligraphic, transparent background).png",
+  "licence": "CC BY-SA 4.0",
+  "author": "Abu Quatadah",
+  "page": "https://commons.wikimedia.org/wiki/File:Shu%27ba_Ibn_al-%E1%B8%A4ajj%C4%81j_(calligraphic,_transparent_background).png"
+ },
+ {
+  "key": "jarh",
+  "file": "jarh.svg",
+  "title": "كتاب الجرح والتعديل.svg",
+  "licence": "Public domain",
+  "author": "ابن أبي حاتم",
+  "page": "https://commons.wikimedia.org/wiki/File:%D9%83%D8%AA%D8%A7%D8%A8_%D8%A7%D9%84%D8%AC%D8%B1%D8%AD_%D9%88%D8%A7%D9%84%D8%AA%D8%B9%D8%AF%D9%8A%D9%84.svg"
+ }
+]

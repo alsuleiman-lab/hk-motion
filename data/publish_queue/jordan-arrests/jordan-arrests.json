@@ -1,0 +1,31 @@
+{
+ "slots": {
+  "albani": {
+   "id": "__N0dJYDoL0",
+   "title": "قرار أغلاق مركز الإمام الألباني في الأردن  #محمد_بن_شمس_الدين",
+   "url": "https://www.youtube.com/watch?v=__N0dJYDoL0",
+   "kind": "بث",
+   "img": "episodes/__N0dJYDoL0.jpg",
+   "topic": "إغلاق مركز الشيخ الألباني",
+   "at": 306.8
+  },
+  "awqaf": {
+   "id": "gTuszSvHRiY",
+   "title": "وزير الأوقاف الأردني والترحم على النصارى",
+   "url": "https://www.youtube.com/watch?v=gTuszSvHRiY",
+   "kind": "شورت",
+   "img": "episodes/gTuszSvHRiY.jpg",
+   "topic": "",
+   "at": 229.6
+  },
+  "telema": {
+   "id": "UVzylFZ5y3k",
+   "title": "الرد على عصام تليمة في الترحم والاستغفار للكفار وتسميتهم شهداء وكلامه عن شيرين أبوعاقلة",
+   "url": "https://www.youtube.com/watch?v=UVzylFZ5y3k",
+   "kind": "فيديو",
+   "img": "episodes/UVzylFZ5y3k.jpg",
+   "topic": "",
+   "at": 233.6
+  }
+ }
+}

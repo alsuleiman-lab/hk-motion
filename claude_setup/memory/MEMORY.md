@@ -1,0 +1,12 @@
+﻿- [Arabic only](reply-in-arabic.md) — the user forbids replies in any language but Arabic
+- [Shared git tree on S:](remotion-shared-git-tree.md) — never switch branches in S:\AI_Tools\Remotion_Workspace; other sessions commit to main there concurrently
+- [HK-Motion backup tree](hk-motion-backup-tree.md) — next-cut became main on 2026-11-20; new work goes to main again
+- [Reply first](reply-first-never-block.md) — answer the user before anything; no long blocking waits; no Latin letters
+- [Fix first](fix-first-then-investigate.md) — Studio placement complaint: move the element in a minute, investigate after
+- [Studio stays up](never-restart-studio-under-review.md) — never restart the review Studio; hk_restart.mjs reloads only the tools server
+- [Search before asking](search-before-asking.md) — find episodes/links myself (YouTube, element text) before asking; asking = lazy
+- [No idle services](no-idle-services.md) — stop anything of mine not in use; long jobs via tools/bg.sh; announce readiness with tools/ready.mjs
+- [Examples = method](examples-are-method-not-spec.md) — user examples teach a way of thinking; never build them as a fixed feature list
+- [Parallel tasks](run-tasks-in-parallel.md) — montage: launch research, element builds, cover and cut together; never serial while the user waits
+- [Fill, never ask waivers](fill-dont-ask-waivers.md) — every gap/required item gets an element before the check (counter, warning sign, writing); no waiver requests
+- [No internal chatter](no-internal-chatter.md) — report results only, in plain Arabic; solve obstacles myself, never narrate agents or complain

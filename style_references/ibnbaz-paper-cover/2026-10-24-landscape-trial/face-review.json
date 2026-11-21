@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Mohammed",
+    "automatic_detector": {
+      "face": [
+        39,
+        179,
+        346,
+        346
+      ],
+      "zone": [
+        11,
+        47,
+        412,
+        836
+      ],
+      "overlap": 0.0,
+      "ok": true
+    },
+    "reviewed_region": {
+      "method": "visually reviewed complete head/beard bounds plus automated Gfx pixel comparison",
+      "zone": [
+        1465,
+        65,
+        1865,
+        845
+      ],
+      "overlap": 0.0,
+      "ok": true
+    }
+  },
+  {
+    "name": "opponent",
+    "automatic_detector": {
+      "face": [
+        179,
+        181,
+        253,
+        253
+      ],
+      "zone": [
+        158,
+        84,
+        452,
+        661
+      ],
+      "overlap": 0.0,
+      "ok": true
+    },
+    "reviewed_region": {
+      "method": "visually reviewed complete head/beard bounds plus automated Gfx pixel comparison",
+      "zone": [
+        82,
+        225,
+        450,
+        835
+      ],
+      "overlap": 0.0,
+      "ok": true
+    }
+  }
+]

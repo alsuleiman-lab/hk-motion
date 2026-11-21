@@ -1,0 +1,142 @@
+[
+ {
+  "file": "sheikh_gallery/white/sheikh_112.png",
+  "robe": "white",
+  "from": "public/cov/sheikh_112.png",
+  "note": "من public/cov",
+  "date": "2026-10-25"
+ },
+ {
+  "file": "sheikh_gallery/white/sheikh_56.png",
+  "robe": "white",
+  "from": "public/cov/sheikh_56.png",
+  "note": "من public/cov",
+  "date": "2026-10-25"
+ },
+ {
+  "file": "sheikh_gallery/white/sheikh_n13.png",
+  "robe": "white",
+  "from": "public/cov/sheikh_n13.png",
+  "note": "من public/cov",
+  "date": "2026-10-25"
+ },
+ {
+  "file": "sheikh_gallery/white/sheikh_n37.png",
+  "robe": "white",
+  "from": "public/cov/sheikh_n37.png",
+  "note": "من public/cov",
+  "date": "2026-10-25"
+ },
+ {
+  "file": "sheikh_gallery/white/sheikh_t188.png",
+  "robe": "white",
+  "from": "public/cov/sheikh_t188.png",
+  "note": "من public/cov",
+  "date": "2026-10-25"
+ },
+ {
+  "file": "sheikh_gallery/white/sheikh_t268.png",
+  "robe": "white",
+  "from": "public/cov/sheikh_t268.png",
+  "note": "من public/cov",
+  "date": "2026-10-25"
+ },
+ {
+  "file": "sheikh_gallery/white/sheikh_yh.png",
+  "robe": "white",
+  "from": "public/cov/sheikh_yh.png",
+  "note": "من public/cov",
+  "date": "2026-10-25"
+ },
+ {
+  "file": "sheikh_gallery/white/sheikh_yh2.png",
+  "robe": "white",
+  "from": "public/cov/sheikh_yh2.png",
+  "note": "من public/cov",
+  "date": "2026-10-25"
+ },
+ {
+  "file": "sheikh_gallery/black_white/sheikh_musk.png",
+  "robe": "black_white",
+  "from": "public/cov/sheikh_musk.png",
+  "note": "ثوب أسود بتطريز أبيض",
+  "date": "2026-10-25"
+ },
+ {
+  "file": "sheikh_gallery/black_white/sheikh_musk2.png",
+  "robe": "black_white",
+  "from": "public/cov/sheikh_musk2.png",
+  "note": "ثوب أسود بتطريز أبيض",
+  "date": "2026-10-25"
+ },
+ {
+  "file": "sheikh_gallery/black_white/sheikh_musk3.png",
+  "robe": "black_white",
+  "from": "public/cov/sheikh_musk3.png",
+  "note": "ثوب أسود بتطريز أبيض",
+  "date": "2026-10-25"
+ },
+ {
+  "file": "sheikh_gallery/brown/ist_sheikh_6.4.png",
+  "robe": "brown",
+  "from": "public/cov/ist_sheikh_6.4.png",
+  "note": "من public/cov",
+  "date": "2026-10-25"
+ },
+ {
+  "file": "sheikh_gallery/black/sheikh_iso3413.png",
+  "robe": "black",
+  "from": "public/awqaf/sheikh_iso3413.png",
+  "note": "اختاره المستخدم لغلاف وزير الأوقاف (الإطار 3413)",
+  "date": "2026-10-25"
+ },
+ {
+  "file": "sheikh_gallery/green/sheikh_jn.png",
+  "robe": "green",
+  "from": "public/cov/sheikh_jn.png",
+  "note": "",
+  "date": "2026-10-26"
+ },
+ {
+  "file": "sheikh_gallery/black_white/sheikh_cov.png",
+  "robe": "black_white",
+  "from": "public/fatiha/sheikh_cov.png",
+  "note": "يقرؤون الفاتحة — الإطار 900",
+  "date": "2026-10-26"
+ },
+ {
+  "file": "sheikh_gallery/black_white/sheikh_396.png",
+  "robe": "black_white",
+  "from": "public/fatiha/sheikh_396.png",
+  "note": "اختاره المستخدم لغلاف «يقرؤون الفاتحة» (الإطار 396)",
+  "date": "2026-10-26"
+ },
+ {
+  "file": "sheikh_gallery/black_white/cover_sheikh.png",
+  "robe": "black_white",
+  "from": "public/JordanSyria/cover_sheikh.png",
+  "note": "الأردن وسوريا — ثوب أسود مطرّز، عزل الهوك",
+  "date": "2026-10-27"
+ },
+ {
+  "file": "sheikh_gallery/black/sheikh_cov.png",
+  "robe": "black",
+  "from": "public/c2593/sheikh_cov.png",
+  "note": "",
+  "date": "2026-10-27"
+ },
+ {
+  "file": "sheikh_gallery/green/sheikh_cov.png",
+  "robe": "green",
+  "from": "public/lahab/sheikh_cov.png",
+  "note": "",
+  "date": "2026-10-31"
+ },
+ {
+  "file": "sheikh_gallery/brown/sheikh_cov.png",
+  "robe": "brown",
+  "from": "public/SalamSaa/sheikh_cov.png",
+  "note": "غلاف صع سلم 2026-11-03",
+  "date": "2026-11-03"
+ }
+]

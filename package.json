@@ -6,6 +6,7 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
+    "@react-three/fiber": "9.8.2",
     "@remotion/captions": "4.0.538",
     "@remotion/cli": "4.0.538",
     "@remotion/google-fonts": "4.0.538",
@@ -14,12 +15,15 @@
     "@remotion/noise": "4.0.538",
     "@remotion/paths": "4.0.538",
     "@remotion/studio": "4.0.538",
+    "@remotion/three": "4.0.538",
     "@remotion/transitions": "4.0.538",
+    "@types/three": "0.187.0",
     "d3-geo": "^3.1.1",
     "lucide": "^1.58.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "remotion": "4.0.538",
+    "three": "0.187.0",
     "topojson-client": "^3.1.0",
     "world-atlas": "^2.0.2"
   },

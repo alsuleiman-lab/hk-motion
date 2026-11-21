@@ -1,0 +1,61 @@
+{
+  "about": "فواصل افتتاح (5ث، عرضي 1920×1080، بصوت ورق ناعم): يُختار واحد منها عشوائياً ويوضع في أول كل فيديو قبل أول كلمة (بسم الله / السلام عليكم). الإضافة والاختيار بـ node tools/pick_bumper.mjs. كل فاصل له نسخة عرضية (file) وطولية 1080×1920 (fileP).",
+  "bumpers": [
+    {
+      "id": "press",
+      "title": "الجريدة",
+      "comp": "Fasel-Press",
+      "file": "fasel_press.mp4",
+      "seconds": 5,
+      "rendered": true,
+      "fileP": "fasel_press_p.mp4",
+      "renderedP": true,
+      "compP": "Fasel-P-Press"
+    },
+    {
+      "id": "shelf",
+      "title": "الرف الكرتوني",
+      "comp": "Fasel-Shelf",
+      "file": "fasel_shelf.mp4",
+      "seconds": 5,
+      "rendered": true,
+      "fileP": "fasel_shelf_p.mp4",
+      "renderedP": true,
+      "compP": "Fasel-P-Shelf"
+    },
+    {
+      "id": "wall",
+      "title": "الجدار",
+      "comp": "Fasel-Wall",
+      "file": "fasel_wall.mp4",
+      "seconds": 5,
+      "rendered": true,
+      "fileP": "fasel_wall_p.mp4",
+      "renderedP": true,
+      "compP": "Fasel-P-Wall"
+    },
+    {
+      "id": "notebook",
+      "title": "الدفتر",
+      "comp": "Fasel-Notebook",
+      "file": "fasel_notebook.mp4",
+      "seconds": 5,
+      "rendered": true,
+      "fileP": "fasel_notebook_p.mp4",
+      "renderedP": true,
+      "compP": "Fasel-P-Notebook"
+    },
+    {
+      "id": "tear",
+      "title": "التمزيق",
+      "comp": "Fasel-Tear",
+      "file": "fasel_tear.mp4",
+      "seconds": 5,
+      "rendered": true,
+      "fileP": "fasel_tear_p.mp4",
+      "renderedP": true,
+      "compP": "Fasel-P-Tear"
+    }
+  ],
+  "last": "shelf"
+}

@@ -1,0 +1,60 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node S:/AI_Tools/Remotion_Workspace/tools/hooks/guard.mjs prompt",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|NotebookEdit|Bash|PowerShell|Read|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node S:/AI_Tools/Remotion_Workspace/tools/hooks/guard.mjs pre",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|NotebookEdit|Bash|PowerShell|Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node S:/AI_Tools/Remotion_Workspace/tools/hooks/guard.mjs post",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node S:/AI_Tools/Remotion_Workspace/tools/hooks/guard.mjs stop",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "deny": [
+      "Read(S:/AI_Tools/_remotion_rules_archive/**)",
+      "Grep(S:/AI_Tools/_remotion_rules_archive/**)",
+      "Glob(S:/AI_Tools/_remotion_rules_archive/**)",
+      "Edit(S:/AI_Tools/_remotion_rules_archive/**)",
+      "Bash(*_remotion_rules_archive*)",
+      "PowerShell(*_remotion_rules_archive*)"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+// Render several still frames of one composition with a single bundle (for checking scenes without a full render).
+//   node tools/stills.mjs <CompositionId> <outDir> name:frame name:frame ...
+import { bundle } from "@remotion/bundler";
+import { renderStill, selectComposition } from "@remotion/renderer";
+import path from "path"; import fs from "fs";
+const [id, outDir, ...pts] = process.argv.slice(2);
+fs.mkdirSync(outDir, { recursive: true });
+const serveUrl = await bundle({ entryPoint: path.resolve(process.env.ENTRY ?? "src/index.ts"), publicDir: process.env.PD ? path.resolve(process.env.PD) : undefined, onProgress: () => {} });
+const comp = await selectComposition({ serveUrl, id });
+for (const p of pts) { const [name, fr] = p.split(":"); await renderStill({ composition: comp, serveUrl, frame: Number(fr), output: path.join(outDir, name + ".png"), scale: 0.5, timeoutInMilliseconds: Number(process.env.RT || 30000), chromiumOptions: { gl: "angle" } }); console.log("still", name); }
+try { fs.rmSync(serveUrl, { recursive: true, force: true }); } catch {}

@@ -23,8 +23,11 @@ if (cmd === "wait") {
   process.on("exit", W.unbeat);
   if (!W.studiosAlive().length && !open().length) { console.log("لا استوديو مفتوح — لا مراقبة"); process.exit(3); }
   if (W.watcherAlive()) { console.log("مراقب آخر يعمل الآن — لا حاجة لثانٍ"); process.exit(4); }
+  /* (2026-11-21) a note already open when the watcher starts is known (the hooks hand it over); the watcher wakes the session only for a NEW one —
+     otherwise an open note for another session's video ended every watcher at once and the Studio stood unwatched */
+  const known = new Set(a.includes("--all") ? [] : open().map((m) => m.id));
   const tick = () => {
-    const o = open();
+    const o = open().filter((m) => !known.has(m.id));
     if (o.length) { console.log(`رسالة من الاستوديو (${o.length}):\n` + o.map(show).join("\n")); process.exit(0); }
     if (!W.studiosAlive().length) { console.log("أُغلق الاستوديو — انتهت المراقبة"); process.exit(3); }
     if (Date.now() - t0 > max) process.exit(3);

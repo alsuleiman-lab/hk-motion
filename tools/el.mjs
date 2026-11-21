@@ -152,7 +152,7 @@ const fixGeometry = (f, s) => { spawnSync(process.execPath, [s.galleryRef ? "too
 
 if (cmd === "list") {
   const els = Object.values(catalog()), q = args.find((a) => !a.startsWith("--"));
-  if (args.includes("--json")) { console.log(JSON.stringify(els.filter((x) => !q || `${x.code} ${ar(x)} ${x.lab?.group ?? ""}`.includes(q)).map((e) => ({ code: e.code, ar: ar(e), group: e.lab?.group ?? "", orient: e.lab?.orient ?? "", where: e.lab?.where ?? "", fields: e.edit })))); process.exit(0); }
+  if (args.includes("--json")) { console.log(JSON.stringify(els.filter((x) => !q || `${x.code} ${ar(x)} ${x.lab?.group ?? ""}`.includes(q)).map((e) => ({ code: e.code, ar: ar(e), group: e.lab?.group ?? "", orient: e.lab?.orient ?? "", where: e.lab?.where ?? "", fields: e.edit, /* (2026-11-21, tools/montage_build.mjs) the spec item it draws, as add builds it */ t: e.t, ...(e.el ? { el: e.el } : {}), ...(e.fixed ? { fixed: e.fixed } : {}) })))); process.exit(0); }
   for (const e of els.filter((x) => !q || `${x.code} ${ar(x)} ${x.lab?.group ?? ""}`.includes(q))) console.log(`${e.code} · ${ar(e) || "—"} · ${short(e) || "(التوقيت فقط)"}`);
 } else if (cmd === "show") {
   const e = find(catalog(), args[0]); if (!e) { console.error(`✘ لا عنصر بهذا الاسم: ${args[0]} (node tools/el.mjs list)`); process.exit(2); }

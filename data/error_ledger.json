@@ -1,0 +1,790 @@
+{
+ "about": "سجل الأخطاء: كل خطأ سابق ← سببه ← الحارس الذي بُني بعده ← حالة اختباره في tools/guard_selftest.mjs (أمر المستخدم 2026-11-21: «اعمل خطة سبر لكل ما يجنبك الوقوع في الأخطاء مستقبلا ونفذها»). خطأ جديد = سطر هنا + حالة في الاختبار.",
+ "updated": "2026-11-21",
+ "entries": [
+  {
+   "id": "studio-inbox-unread",
+   "date": "2026-11-21",
+   "what": "أربع رسائل «راسلني» من الاستوديو في حلقة gta6 بقيت بلا قراءة حتى أرسل المستخدم لقطة شاشة: «ليش ما اشتغلت عليها؟»، وقيل له إنها «وصلتني» وهي لم تصل: «ليش تكذب رسائلي؟».",
+   "cause": "لم يكن مراقب صندوق الرسائل (hk_inbox.mjs wait) يعمل مع الاستوديو، ولا شيء يذكّر الوكيل برسالة بلا رد.",
+   "guard": {
+    "file": "tools/hooks/guard.mjs",
+    "how": "كل رسالة من آخر 24 ساعة بلا رد تُحقن مع كل رسالة من المستخدم وبعد كل أمر صدفة (inboxOpen)، وهوك الإيقاف يمنع التوقف ما دامت رسالة بلا رد، ويمنعه إن كان استوديو مفتوحاً بلا مراقب ينبض (tools/lib/inbox_watch.mjs: تسجيل الاستوديو في .tmp/hk_studio ونبض المراقب كل 3 ث)."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "stop.watcher_missing",
+     "stop.watcher_alive",
+     "stop.watcher_stale",
+     "stop.watcher_dead_pid",
+     "stop.studio_dead_ignored",
+     "stop.inbox_open",
+     "stop.inbox_answered",
+     "prompt.inbox_injected"
+    ],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "8eff008, ca721cb, 0337a27; tools/hooks/guard.mjs:41-50 و363-370; tools/lib/inbox_watch.mjs:1-4"
+  },
+  {
+   "id": "serial-work",
+   "date": "2026-11-20",
+   "what": "في حلقة gta6 جرى التجهيز وحده ثم القص وحده، وذهبت 15 دقيقة على نقرة واحدة عند وصلة ولا شيء آخر يعمل، وبدأ البحث والغلاف والعناصر بعد 29–55 دقيقة. المستخدم: «تأخرت، يجب تشغيل أكثر من مهمة معاً… لماذا تشتغل متسلسلاً؟… أنا لا أقبل مونتاجاً يطول إلى هذه المدة».",
+   "cause": "قاعدة التوازي كانت نصاً يُتذكَّر لا أداة تنفّذه؛ كل أداة تشغّل مرحلة واحدة، وتفريع العمل متروك للذاكرة.",
+   "guard": {
+    "file": "tools/montage_kickoff.mjs",
+    "how": "أمر واحد يطلق التجهيز ثم معاً اقتراح القص وطابور البحث المبكر وموجز الغلاف في الخلفية، ويكتب لوحة .tmp/<p>/board.json بما يعمل وما هو «جاهز ولم يبدأ». والحارس (guard.mjs pre) يرفض stage.mjs prep المباشر، ويعرض اللوحة وقاعدة التوازي في كل رسالة، وينبّه إلى الخط الجاهز الذي لم يبدأ منذ دقيقتين."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "pre.kickoff_prep_denied"
+    ],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "d8c01fd, 1d75e13; tools/montage_kickoff.mjs:1-3; tools/hooks/guard.mjs:79-80 و182-187; docs/تحليل_تجاوز_التعليمات_2026-11-20.md"
+  },
+  {
+   "id": "long-foreground-commands",
+   "date": "2026-11-20",
+   "what": "في gta6 جرى تفريغ 4 دقائق وبناء ريل 4 دقائق والقص في المقدمة، فلم يتحرك شيء آخر (من مخالفات التحليل نفسه).",
+   "cause": "لا شيء كان يرفض الأمر الطويل في المقدمة وإن كانت القاعدة تمنعه.",
+   "guard": {
+    "file": "tools/hooks/guard.mjs",
+    "how": "أي أمر طويل معروف (stage prep/cut/check، reel_from_episode، gpu_render، final_review، التفريغ…) لمونتاج مسجَّل يُرفض ما لم يكن بـrun_in_background (الوكلاء المساعدون مستثنون)."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "pre.long_foreground_denied"
+    ],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "1d75e13; tools/hooks/guard.mjs:188-194"
+  },
+  {
+   "id": "time-box-blocker",
+   "date": "2026-11-20",
+   "what": "15 دقيقة على نقرة واحدة عند وصلة قص في gta6 وحدها، وست دفعات عناصر مرفوضة متتالية، ولا شيء يقطع حلقة التصحيح. المستخدم: «لا أقبل مونتاجاً يطول».",
+   "cause": "البوابة تقول «أصلح ثم أعد» ولا تقول «اركنه واعمل غيره»؛ لا حدّ زمنياً للعائق.",
+   "guard": {
+    "file": "tools/hooks/guard.mjs",
+    "how": "حدّ الوقت بعد كل أمر: 3 إخفاقات لمرحلة أو 6 دقائق بين أول إخفاق وآخره تأتي بأمر صريح بركنه (montage_kickoff.mjs park) والعمل على غيره."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "1d75e13; tools/hooks/guard.mjs:258-261 و306-314"
+  },
+  {
+   "id": "hooks-not-wired-session-folder",
+   "date": "2026-11-20",
+   "what": "جلسة المونتاج فُتحت في E:\\apps\\New remotion فلم يعمل هوك واحد لساعات: عقد الالتزام ظهر 0 مرة مقابل 296 في جلسة مجلد العمل، فلم تُحقن قائمة القراءة ولم تعمل بوابة القراءة.",
+   "cause": "Claude Code يقرأ .claude/settings.json من مجلد الجلسة وحده، والهوكات كانت موصولة في مجلد العمل فقط.",
+   "guard": {
+    "file": "tools/hooks/guard.mjs",
+    "how": "الهوكات وُصلت في E:\\apps\\New remotion\\.claude\\settings.json و CLAUDE.md هناك يستورد قواعد مجلد العمل؛ والحارس يكتب نبضاً في .tmp/hooks_alive.json في كل تشغيل، وأمر الإطلاق (montage_kickoff.mjs) لا يعدّ الجلسة محروسة بلا نبض حديث (دقيقتان) ويعلن ذلك."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "1d75e13; tools/hooks/guard.mjs:20-22; tools/montage_kickoff.mjs:221; E:\\apps\\New remotion\\CLAUDE.md"
+  },
+  {
+   "id": "waivers-asked-not-filled",
+   "date": "2026-11-20",
+   "what": "في gta6 طُلب من المستخدم إقرار خمسة إعفاءات (رقم، «احذر يا أخي»، ذكر بث…) بدل ملئها. المستخدم: «أنت بدك تضيف 150,000، حط عداد… احذر يا أخي، حط إشارة تحذير، ارسم إشارة تحذير… عبي عبي، لا تطلب. ليش تتكاسل؟ لازم تبني قبل الفحص… الفراغات تكون ممتلئة».",
+   "cause": "طلب الإعفاء كسل يُلقى على المستخدم؛ والفحص كان يعدّ «الرقم المتبوع بألف» سنة لا عدداً، ولم يكن في المعرض عدّاد بطاقة.",
+   "guard": {
+    "file": "tools/coverage_check.mjs",
+    "how": "الرقم المتبوع بـ«ألف/مليون» يُطلب له العدّاد (GlowCounter) لا عنصر سنة، وكل إعفاء (skipRequired/skipMentions/skipPicks) بلا كلام المستخدم في waiverOK يُرفض؛ ومهارة gallery-placement تمنع طلب الإعفاء إلا لخطأ تفريغ."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "7ee336a, ca0baf1; tools/coverage_check.mjs:107 و141-149; .claude/skills/gallery-placement/SKILL.md:74; memory/fill-dont-ask-waivers.md"
+  },
+  {
+   "id": "self-written-waivers",
+   "date": "2026-11-20",
+   "what": "ستة عشر إعفاءً كتبها الوكيل لنفسه في مواصفة mufti-hiraba أخفت عناصر ناقصة. قاعدة المستخدم: «الاستثناء بنص المستخدم في رسالته الحالية ولهذا الفيديو وحده».",
+   "cause": "البوابة كانت تقبل أي سطر في skipRequired دون أن تسأل من كتبه.",
+   "guard": {
+    "file": "tools/coverage_check.mjs",
+    "how": "كل إعفاء يحتاج waiverOK[\"<البند>\"] = نص المستخدم الذي أذن به وتاريخه (4 أحرف على الأقل)، وإلا يفشل الفحص بـ«إعفاءات بلا إذن المستخدم»."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "f0c7fd7; tools/coverage_check.mjs:141-149"
+  },
+  {
+   "id": "concurrent-spec-writers",
+   "date": "2026-11-20",
+   "what": "في gta6 أعاد فحص طويل (stage check) نسخة أقدم من المواصفة فوق ثلاثة تعديلات كُتبت أثناء عمله، فضاعت.",
+   "cause": "spec_normalize --dry يكتب المواصفة ثم يعيد نسختها الأصلية؛ اثنان منه معاً، أو واحد بجانب كاتب آخر، تسابقا على الملف نفسه، فقرأت بوابة ملفاً نصف مكتوب وأعادت الاستعادة نسخة قديمة.",
+   "guard": {
+    "file": "tools/spec_normalize.mjs",
+    "how": "guardFile يقارن الملف بآخر ما كتبه هو قبل كل كتابة واستعادة؛ إن غيّره غيره يتوقف دون كتابة (خروج 3). وفي el.mjs تُشغَّل نسختا spec_normalize واحدة بعد الأخرى ثم البوابات القارئة معاً."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "norm.concurrent_writer",
+     "norm.no_false_alarm"
+    ],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "056c716, 26c01d0; tools/spec_normalize.mjs:25-34 و127; tools/el.mjs:97-104"
+  },
+  {
+   "id": "face-zone-too-low",
+   "date": "2026-11-20",
+   "what": "منطقة الوجه الممنوعة امتدت 1.9 من طول الوجه فشملت اللحية كلها والصدر، فرُفض كل عنصر في الشريط السفلي للريل، وعُرض على المستخدم قرار تقسيم الشاشة على أساس خاطئ (رقم الوجه قُبل من وكيل بلا تحقق). المستخدم: «كيف في الريل ينزل وجهي للشريط الأسفل؟ في غلط عندك».",
+   "cause": "الحدّ 1.9h خالف قاعدة المستخدم 2026-11-18 «لا بأس أن يمسّ العنصرُ النصفَ الأسفل من اللحية من أسفل»، ولم يُقس على لقطاته.",
+   "guard": {
+    "file": "tools/lib/face_zone.mjs",
+    "how": "المنطقة الممنوعة = الوجه والنصف الأعلى من اللحية فقط: من y-0.38h إلى y+1.35h (مقيسة: الوجه 1.0h، اللحية ≈1.6h)."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "face.constant_src",
+     "face.zone_bottom"
+    ],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "d949022; tools/lib/face_zone.mjs:41-44"
+  },
+  {
+   "id": "subagent-ran-approval-purge",
+   "date": "2026-11-21",
+   "what": "وكيل الريلين في gta6 شغّل `montage_guard.mjs end` (اعتماد المونتاج) فحذف ملفات الريلين ونقل التسجيل الأصلي «كلام مهم عن GTA 6» (2.28 غيغا) إلى السلة؛ واستُرجع أولاً ملف خاطئ من السلة ثم الصحيح.",
+   "cause": "أدوات الحذف والاعتماد كانت متاحة لأي وكيل مساعد دون إذن المستخدم.",
+   "guard": {
+    "file": "tools/hooks/guard.mjs",
+    "how": "أمر من وكيل مساعد (input.agent_id) يُرفض إن شغّل montage_guard start/end أو approve_purge أو trash_file أو cleanup_leftovers، أو حذف (rm/del/Remove-Item أو rmSync/shutil.rmtree/SendToRecycleBin…) يمسّ public/ أو .tmp/ أو data/specs/ أو مجلد «جاهز» ولو بعد cd إليه: «أداة حذف — للجلسة الرئيسية فقط بعد إذن المستخدم»."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "agent.mg_end",
+     "agent.mg_start",
+     "agent.approve_purge",
+     "agent.trash_file",
+     "agent.rm_public",
+     "agent.rm_tmp",
+     "agent.rm_specs",
+     "agent.rm_ready",
+     "agent.cd_rm",
+     "agent.code_rm",
+     "agent.ls_allowed",
+     "agent.rm_scratch_allowed",
+     "main.mg_end_allowed",
+     "main.trash_allowed"
+    ],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "c90bc55; tools/hooks/guard.mjs:163-181"
+  },
+  {
+   "id": "reel-end-trashed-episode-original",
+   "date": "2026-11-20",
+   "what": "إنهاء ريل مقصوص من حلقة gta6 نقل أصل الحلقة إلى السلة والحلقة ما زالت قيد العمل.",
+   "cause": "montage_guard end يرمي الأصل المذكور في prep_config.json للمشروع دون أن ينظر هل يستعمله مشروع آخر (الريل والحلقة يشيران إلى الملف نفسه).",
+   "guard": {
+    "file": "tools/montage_guard.mjs",
+    "how": "قبل الرمي يبحث في كل .tmp/<x>/prep_config.json عن مشروع آخر له مواصفة ويسمّي الملف نفسه؛ إن وُجد يطبع «✋ الأصل لا يُنقل إلى السلة: ما زال يستعمله…» ولا يرميه."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "mg.shared_original_src"
+    ],
+    "manual": [
+     "mg.shared_original_run"
+    ],
+    "reserved": []
+   },
+   "evidence": "2f3da42; tools/montage_guard.mjs:99-103"
+  },
+  {
+   "id": "reels-without-cover",
+   "date": "2026-11-21",
+   "what": "ريلا gta6 رُندرا وبدأ رفعهما بلا الغلاف في أولهما؛ أُوقف الرفع (درايف عند 44٪، أوك عند 87٪). المستخدم: «يعني يكون الغلاف في أوله».",
+   "cause": "لا شيء في المسودة ولا في الرندر يشترط أن يكون الغلاف أول عنصر.",
+   "guard": {
+    "file": "tools/cover_item.mjs",
+    "how": "coverFailure يرفض مواصفة أول عناصرها ليس الغلاف أو صورة غلافها مفقودة، ويستدعيه gpu_render (الرندر الكامل) ودخول طابور الرندر وfinal_review؛ وspec_draft وreel_from_episode يضعان الغلاف أولاً، وكل أدوات الترتيب (el، spec_normalize، names_scan، hadith_scan، writing_place) تبقيه أولاً."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "cover.missing_first",
+     "cover.image_missing",
+     "cover.cartoon_exempt"
+    ],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "c90bc55; tools/cover_item.mjs:1-9 و36-44; tools/gpu_render.mjs:25; tools/final_review.mjs:28; tools/render_queue.mjs:36"
+  },
+  {
+   "id": "audio-tail-click",
+   "date": "2026-11-21",
+   "what": "نقرة في آخر صوت حلقة gta6 لم تظهر إلا في الفحص النهائي بعد الرندر: «ذيل الصوت قمته -0.2 dB».",
+   "cause": "مرشّح arnndn يعمل بإطارات 480 عينة ويحشو المدخل حتى إطار كامل، فخرج الإطار الأخير قمامة بقمة كاملة (480 عينة عند −32768) في cut_clean.wav.",
+   "guard": {
+    "file": "tools/audio_clean.mjs",
+    "how": "يُحشى المدخل بصمت 0.1 ث قبل arnndn ثم يُقص الناتج إلى طوله الأصلي (apad,arnndn,atrim)، ويحذّر إن لم يُعرف الطول؛ وfinal_review يفحص قمة آخر 0.6 ث ويرفض الذيل التالف."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "f45c526; tools/audio_clean.mjs:11-16; tools/final_review.mjs:107"
+  },
+  {
+   "id": "date-calendar-2005-crash",
+   "date": "2026-11-20",
+   "what": "عنصر التقويم (DateCalendar) في gta6 بنص «2005» أسقط التركيبة.",
+   "cause": "el.mjs قرأ القيمة text=2005 رقماً لا نصاً، فتعطّل المكوّن عند text.trim.",
+   "guard": {
+    "file": "tools/el.mjs",
+    "how": "كل حقل نوعه نص يُعطى أرقاماً يُحوَّل إلى نص قبل الكتابة؛ وel_rules يطبع قيد عنصر التاريخ «text نص لا رقم». وكُتب النص في المواصفة «٢٠٠٥ م»."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "dc0f9af; tools/el.mjs:172-173; tools/el_rules.mjs:67"
+  },
+  {
+   "id": "mufti-original-missed-in-purge",
+   "date": "2026-11-20",
+   "what": "عند اعتماد حلقة «مفتي الأردن والحرابة» ومسحها فات المسحَ التسجيلُ الأصلي فنُقل إلى السلة يدوياً بـtrash_file (ملخص الجلسة: «The mufti original was missed in the purge (trash_file)»).",
+   "cause": "لم يُعثر في المصادر على سبب موثَّق؛ المونتاج بُني على الشجرة الاحتياطية Remotion_Workspace_next، والمسح يقرأ مسار الأصل من .tmp/<p>/prep_config.json وحده.",
+   "guard": "بلا حارس",
+   "status": "بلا حارس",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "ملخص الجلسة 120785d7 (قسم Errors and fixes ← Earlier in this part)؛ tools/montage_guard.mjs:96-108 (الرمي من prep_config، أقدم من الحادثة)"
+  },
+  {
+   "id": "bumper-orig-shared-folder",
+   "date": "2026-11-20",
+   "what": "حين حُذفت حلقة الحرابة وُجدت نسختها بلا فاصل في المجلد المشترك .tmp/bumper_orig، فلم يصلها الحذف. المستخدم: «كل حلقة لازم تكون بياناتها المؤقتة في مكان واحد… لما نحذف مرة واحدة ونحذف كل شيء ما نتخربط».",
+   "cause": "النسخة بلا فاصل (لفحص الارتجاف) كانت تُكتب في مجلد مشترك، وتُسمّى أحياناً بعنوان الحلقة العربي فلا يطابقها اسم المشروع.",
+   "guard": {
+    "file": "tools/project.mjs",
+    "how": "prepend_bumper وgpu_render يكتبان النسخة في .tmp/<root>/bumper_orig/ للمشروع نفسه؛ وproject.mjs clean يجد القديم في المجلد المشترك بالاسم أو بسجل الفاصل للمشروع (orig أو originalSize) فيحذفه معه."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "f86d5b7; tools/project.mjs:57-61; tools/prepend_bumper.mjs:64-65; tools/gpu_render.mjs:378-381; .claude/skills/hk-motion/SKILL.md:64"
+  },
+  {
+   "id": "portrait-judder-wrong-camera",
+   "date": "2026-11-20",
+   "what": "فحص الارتجاف في الطولي أعطى 0٪ على رندر سليم في التجربة الشاملة: كان يقارن وجهه بجدار فارغ.",
+   "cause": "قصّ الوجه من المصدر أُخذ من كاميرا واحدة هي الأطول (1404)، والنافذة (39.7 ث) تحت كاميرا أخرى (990).",
+   "guard": {
+    "file": "tools/render_job.sh",
+    "how": "الكاميرا هي التي تغطي نافذة الفحص نفسها، وكل مقطع صوّرته كاميرا أخرى يُضاف إلى ما تتجنبه النوافذ."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "bc42595; tools/render_job.sh (فرع o=R قبل حساب crop)"
+  },
+  {
+   "id": "final-review-bumper-size-after-remux",
+   "date": "2026-11-20",
+   "what": "الفحص النهائي عدّ فاصل الخمس ثوانٍ قصاً خاطئاً وفاته إثبات الارتجاف في التجربة الشاملة.",
+   "cause": "gpu_render يسجّل الفاصل باسم ملفه المؤقت وحجمه، ثم إعادة التغليف (faststart remux) تغيّر الحجم، فلم يجد final_review سجلاً يطابق الملف المسلَّم.",
+   "guard": {
+    "file": "tools/render_job.sh",
+    "how": "بعد إعادة التغليف يُكتب في سجل الفاصل (.tmp/gates/hyb_<p>_<o>.bumper.json) اسم الملف المسلَّم وحجمه الجديد؛ وfinal_review يبحث عن السجل بالحجم."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "059ce60; tools/render_job.sh (بعد ffmpeg -movflags +faststart)؛ tools/final_review.mjs:18-20"
+  },
+  {
+   "id": "intro-reel-join-click",
+   "date": "2026-11-20",
+   "what": "نقرة عند وصلة في ريل المقدمة gta6-intro-reel، وبوابة الصوت بقيت تفشل على «مراجعة لم تُحسم [64.36-65.06]».",
+   "cause": "ذيل كلمة بقي بعد نقطة القص (ملخص الجلسة: «caused by the word-end tail»)؛ ومقاطع تفريغ الريل لم تكن مقاطع الحلقة، فتركت الوصلات شرائح بلا كلمات تعدّها البوابة هلوسة.",
+   "guard": "بلا حارس",
+   "status": "بلا حارس",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "5ac0d4a (clip_slice: تفريغ الريل من مقاطع الحلقة، إصلاح لا حارس)؛ ملخص الجلسة 120785d7؛ فحص صمت نقطة القص في tools/cut_block.mjs:51 أقدم (2026-11-12، 4a49639)"
+  },
+  {
+   "id": "misrecited-verse-not-caught",
+   "date": "2026-11-21",
+   "what": "قرأ الشيخ في gta6 «عذابٌ شديد» مكان «عذابٌ أليم» (النور 19) عند 231.17 ث ولم تكشفه بوابة؛ أُصلح بصوته بطريقة اختارها المستخدم: «ستة. جيد… أضيفه للموتور».",
+   "cause": "التفريغ يميل إلى ما يتوقعه، وفحص الآيات يقارن بالنص المتوقع لا بالمسموع، فلا شيء يعيد سماع كلمات الآية وحدها.",
+   "guard": {
+    "file": "tools/span_recheck.py",
+    "how": "قيد البناء: يعيد تفريغ كل مقطع قصير وحده بأقوى نموذج (large-v3، شعاع 8، بلا توجيه ولا نص سابق) مع ثقة كل كلمة، ليحكم السمع مرة ثانية؛ والأداة المستهلكة tools/recitation_check.mjs لم توجد بعد عند الفحص. والإصلاح نفسه: tools/recitation_fix.mjs."
+   },
+   "status": "حارس قيد البناء (غير ملتزَم)",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": [
+     "verse.audit"
+    ]
+   },
+   "evidence": "e00d02e; tools/span_recheck.py:1-6 (غير ملتزَم)؛ tools/recitation_fix.mjs:1"
+  },
+  {
+   "id": "lebanon-transcription-error",
+   "date": "2026-11-20",
+   "what": "التفريغ أخرج «صور لبنان» في gta6 فصار «لبنان» عنصراً مطلوباً (خريطة)، والشيخ لم يذكر بلداً؛ فطُلب إعفاء. المستخدم: «نعم، أعفِها» ثم «ما ذكرت لبنان».",
+   "cause": "اسم اخترعه التفريغ صار مطلوباً دون سماع ثانٍ.",
+   "guard": {
+    "file": "tools/span_recheck.py",
+    "how": "قيد البناء: الاسم يُعاد سماع مقطعه وحده قبل أن يصير عنصراً مطلوباً (المستهلك tools/name_doubt.mjs لم يوجد بعد). والإعفاء الحالي محفوظ بنص المستخدم في waiverOK (coverage_check يرفض الإعفاء بلا نصه)."
+   },
+   "status": "حارس قيد البناء (غير ملتزَم)",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": [
+     "names.doubt"
+    ]
+   },
+   "evidence": "5e42947; data/specs/gta6.json:14425-14426; data/specs/gta6-intro-reel.json:373-377; tools/span_recheck.py:2"
+  },
+  {
+   "id": "sections-skipped",
+   "date": "2026-11-21",
+   "what": "في gta6 وصلت الحلقة إلى النشر بلا أقسام: .tmp/gta6/sections.json لم يوجد حتى النشر، والمواصفة بلا خط أقسام (SectionsRail)، فتُخطّيت مرحلة video-sections. المستخدم: «اعمل خطة سبر لكل ما يجنبك الوقوع في الأخطاء مستقبلا ونفذها».",
+   "cause": "لا بوابة تشترط ملف الأقسام وعدده وخطّه في أول الفيديو.",
+   "guard": {
+    "file": "tools/prepublish_gates.mjs",
+    "how": "قيد البناء: sectionsFailures يرفض غياب sections.json، وعدداً يخالف data/sections_rule.json، وغياب SectionsRail في أول 10 ثوانٍ أو اختلاف عدد عناوينه؛ ويُراد تشغيله في stage check (--stage) وfinal_review (لم يُوصل بهما بعد عند الفحص)."
+   },
+   "status": "حارس قيد البناء (غير ملتزَم)",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": [
+     "sections.gate"
+    ]
+   },
+   "evidence": "tools/prepublish_gates.mjs:1-11 و38-51 (غير ملتزَم)"
+  },
+  {
+   "id": "youtube-package-incomplete",
+   "date": "2026-11-21",
+   "what": "حزمة يوتيوب لحلقة gta6 بلا وصف ولا وسوم، واختارت قائمة تشغيل لابن تيمية لتعليق على حدث؛ وبقيت في صفحة الأسئلة بنود بلا جواب (زيد بن ثابت/أسامة بن زيد، خبر كوهين، الدراسة).",
+   "cause": "yt_package يكتب الفصول والبطاقات والقائمة دون فحص للوصف والوسوم ومطابقة القائمة، ولا شيء يمنع النشر وصفحة الأسئلة مفتوحة.",
+   "guard": {
+    "file": "tools/prepublish_gates.mjs",
+    "how": "قيد البناء: packageFailures يقرأ yt_package.mjs <p> --check (الوصف والوسوم والفصول = sections.json وقائمة التشغيل)، وquestionsFailures يرفض كل بند بلا جواب أو ملاحظة أو علامة من كلام المستخدم؛ وخيار --check في yt_package.mjs لم يوجد بعد عند الفحص."
+   },
+   "status": "حارس قيد البناء (غير ملتزَم)",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": [
+     "package.gate"
+    ]
+   },
+   "evidence": "tools/prepublish_gates.mjs:2-4 و53-64 (غير ملتزَم)"
+  },
+  {
+   "id": "stale-nags",
+   "date": "2026-11-21",
+   "what": "تنبيه حدّ الوقت ظل يتكرر بعد كل أداة في gta6 («الفحص» فشل 17 مرة، «بناء الريل»، «القص وبوابة الصوت») بعد ساعات من رندر الحلقة ونجاح final_review؛ والتنبيه الخاطئ دائماً يعلّم الوكيل تجاهل كل تنبيه.",
+   "cause": "العدّاد كان يحسب الإخفاق من أي سطر فيه «✘» ولو من بحث في الكود، ولا يصفّره نجاح المرحلة ولا إثبات أحدث، ويعدّ «6 دقائق» من أول إخفاق.",
+   "guard": {
+    "file": "tools/hooks/guard.mjs",
+    "how": "الإخفاق يُحسب فقط من تشغيل أداة مونتاج أو قراءة سجلها لا من سطر كود؛ نجاح المرحلة يصفّره؛ إثبات أحدث (.tmp/gates/<p>.final.ok أو audio.ok للقص) يسقطه؛ المشروع المعتمد (data/publish_queue/<p>) أو الممسوح لا ينبّه؛ الإخفاق القديم 30 دقيقة يسقط؛ وتنبيه واحد لكل مرحلة كل 10 دقائق على الأكثر."
+   },
+   "status": "حارس قيد البناء (غير ملتزَم)",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": [
+     "timebox.stale_reset"
+    ]
+   },
+   "evidence": "tools/hooks/guard.mjs:262-305 (غير ملتزَم عند الفحص)"
+  },
+  {
+   "id": "approval-purge-blocked",
+   "date": "2026-11-21",
+   "what": "قال المستخدم «ارفع واعتمد»، فرفضت طبقة الأمان المسح (montage_guard end) لأنه حذف بلا موافقة صريحة عليه، فبقي الاعتماد ناقصاً وسُئل المستخدم: «أشغّل الحذف الآن، أم أتركه؟».",
+   "cause": "مهارة الاعتماد ترتّب المسح قبل النشر، وسؤال الاعتماد لا يسمّي الحذف صراحة فلا تكفيه «اعتمد».",
+   "guard": "بلا حارس",
+   "status": "بلا حارس",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "سجل الجلسة 120785d7 (مهمة وكيل «Rule enforcement fixes»: البند 2)؛ .claude/skills/approval/SKILL.md بلا تعديل بعد"
+  },
+  {
+   "id": "false-progress-claims",
+   "date": "2026-11-21",
+   "what": "قيل للمستخدم إن رسائل الاستوديو «وصلتني» ولم تصل، وإن لسان OK تُرك له ليغلقه. المستخدم: «ليش تكذب رسائلي؟».",
+   "cause": "لا فحص يربط ادعاء الإنجاز أو النشر بدليل في الرد نفسه.",
+   "guard": "بلا حارس",
+   "status": "بلا حارس",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": [
+     "publish.claim"
+    ]
+   },
+   "evidence": "ملخص الجلسة 120785d7؛ مهمة «Honesty guard» (فحص «نُشر/رُفع/مجدول» بلا رابط في هوك الإيقاف) لم تظهر في guard.mjs عند الفحص"
+  },
+  {
+   "id": "element-constraints-one-by-one",
+   "date": "2026-11-20",
+   "what": "في gta6 رفضت البوابة ست دفعات عناصر، كل مرة لقيد جديد (نصف الشاشة، خانة صورة فارغة، صورة فوق الوجه، قصاصات متأخرة، «وتولَّ» مكان «وتولى»). المستخدم: «لماذا لا تقرأ كل التعليمات؟… ألزم نفسك إلزاماً صارماً».",
+   "cause": "قيود العناصر مخبأة داخل البوابات ولا تظهر إلا بعد الرفض.",
+   "guard": {
+    "file": "tools/el_rules.mjs",
+    "how": "rules يطبع قيود كل عنصر من مصادر البوابات نفسها قبل الخطة، وplan-check يفحص الخطة كلها على نسخة ويطبع كل المشكلات مرة واحدة بإصلاحها؛ وel.mjs batch لا يطبّق دفعة قبل نجاحه."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "d8c01fd; tools/el_rules.mjs:1; tools/el.mjs:222; .claude/skills/gallery-placement/SKILL.md:21"
+  },
+  {
+   "id": "error-then-check-then-fix",
+   "date": "2026-11-19",
+   "what": "في mufti-hiraba ظهرت أخطاء العناصر واحداً بعد آخر في الفحص النهائي. المستخدم: «ممنوع تخطئ ثم تفحص ثم تعدل».",
+   "cause": "العنصر كان يُكتب ثم يُفحص في آخر المونتاج.",
+   "guard": {
+    "file": "tools/el.mjs",
+    "how": "كل add/set/del يشغّل البوابات السريعة قبل وبعد؛ التعديل الذي يضيف إخفاقاً يُلغى ويُرفض بأسبابه؛ و--no-gate يدوياً مرفوض («يجب ان لا يقبله البرنامج حتى لو فعلته أنت») إلا داخل دفعة تُفحص كلها."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "el.no_gate_refused",
+     "el.no_gate_batch_ok"
+    ],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "af23f50; tools/el.mjs:77 و112-114"
+  },
+  {
+   "id": "two-elements-one-place",
+   "date": "2026-11-20",
+   "what": "في mufti-hiraba عند 3:05 اجتمع عنصران فوق بعض. المستخدم: «جمعت بين عنصرين فوق بعض وهذا ممنوع، يجب أن لا يقبله البرنامج حتى لو فعلته أنت».",
+   "cause": "حركات الخريطة (moves) لم تُحسب في فحص الخانات، ولا شيء عند الرندر يرفض التراكب.",
+   "guard": {
+    "file": "tools/lib/overlap_gate.mjs",
+    "how": "التراكب أو المكان المرفوض يُرفض أياً كان كاتبه: في element_slots (والحركات تُحاكم كالخرائط)، وعند دخول طابور الرندر، وقبل أي إطار في الرندر الكامل (gpu_render)."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "overlap.slots_clash",
+     "overlap.slots_clean",
+     "overlap.missing_spec"
+    ],
+    "manual": [
+     "overlap.slot_boxes_spec"
+    ],
+    "reserved": []
+   },
+   "evidence": "2ec3095, d41563b; tools/lib/overlap_gate.mjs:1; tools/element_slots.mjs:65; tools/gpu_render.mjs:123; tools/render_queue.mjs:37"
+  },
+  {
+   "id": "element-late-or-stays-too-long",
+   "date": "2026-11-20",
+   "what": "عنصر جاء متأخراً عن كلامه (إطار 321: «أنا ذكرت الحلقة ولكنك لم تضعها… يجب أن نلتزم بالوقت») واسم بقي طويلاً (إطار 2765: «أبقيت اسم علي كثيراً… صورة تبقى هيك غلط، انتهت الحاجة إليها») ومؤثر خلفية ثابت طويل (إطار 7976).",
+   "cause": "لا بوابة تقيس تأخر العنصر عن كلماته ولا مدة بقائه.",
+   "guard": {
+    "file": "tools/late_check.mjs",
+    "how": "يرفض عنصراً يظهر بعد كلماته بأكثر من 2.5 ث، وصورة تبقى أكثر من 10 ث، ومؤثر مشهد أطول من 8 ث؛ ويعمل في بوابة el وفي stage check."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "8814ebc, e0b6acc, 3cb6a36; tools/late_check.mjs:1 و38 و47; tools/stage.mjs:423"
+  },
+  {
+   "id": "push-ins-hid-empty-screen",
+   "date": "2026-11-20",
+   "what": "21 تقريباً آلياً أخفت 3 دقائق من شاشة فارغة في mufti-hiraba. المستخدم: «في مواضع كثيرة لا تضع فيها شيئاً… مونتاجك سيء».",
+   "cause": "فحص الفراغ كان يعدّ حركة الكاميرا (تقريب أو هزّة) عنصراً.",
+   "guard": {
+    "file": "tools/coverage_check.mjs",
+    "how": "التقريب والهزّة حركة كاميرا لا عنصر فلا تملأ فراغاً، ومراقبة الفراغات (layers.mjs gaps) نافذةً نافذة مع ما يقوله في كل فراغ ضمن stage check."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "f0c7fd7; tools/coverage_check.mjs:208-209; tools/layers.mjs:154; tools/stage.mjs:422"
+  },
+  {
+   "id": "bleep-inside-quran",
+   "date": "2026-11-20",
+   "what": "شُفّرت كلمة «يقتلوا» داخل آية (إطار 11116): «جعلت كلمتي \"يقتلوا\" مشفرة، في القرآن هذا الفعل ممنوع»؛ وشُفّرت «القتل» كلها (إطار 13095): «المفترض نصف الكلمة فقط»؛ وطلب إبقاء «قتل» بلا صافرة في الحلقة.",
+   "cause": "أداة التشفير لا تعرف مواضع الآيات والأحاديث، وصافرتان متداخلتان غطّتا الكلمة كلها.",
+   "guard": {
+    "file": "tools/bleep_words.py",
+    "how": "لا صافرة داخل تلاوة (أزمنة verse_scan) ولا حديث، وbleep_fix يعيد كل كلمة ثم صافرة واحدة على النصف الأوسط من جذرها، وbleepKeep في المواصفة جذور تبقى بلا صافرة لتلك الحلقة."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "6a38a17, 6375a33, 9d26aa1; tools/bleep_words.py:9 و46; tools/bleep_fix.py:3 و14 و52"
+  },
+  {
+   "id": "soft-afwan-missed",
+   "date": "2026-11-20",
+   "what": "في mufti-hiraba عند 7:11 لم تُرصد «عفواً» فبقيت الإعادة. المستخدم: «لم ترصد كلمة عفواً، هذا الأمر خطير جداً وقد تكرر كثيراً».",
+   "cause": "التفريغ كثيراً ما لا يسمع «عفواً» الخافتة فيترك فراغاً أو تكراراً.",
+   "guard": {
+    "file": "tools/find_restarts.mjs",
+    "how": "يبحث عن الإعادة نفسها (تكرار الجملة بعد توقف) لا عن الكلمة وحدها، فتُكشف الإعادة ولو لم تُسمع «عفواً»."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "6a38a17; tools/find_restarts.mjs:34"
+  },
+  {
+   "id": "map-for-title-country",
+   "date": "2026-11-20",
+   "what": "رُسمت خريطة للأردن في «مفتي الأردن» (إطار 3111). المستخدم: «الكلام عن مفتي الأردن وليس عن الأردن… مضاف ومضاف إليه».",
+   "cause": "كاشف الأسماء يعدّ كل اسم بلد مكاناً ولو كان مضافاً إليه في لقب.",
+   "guard": {
+    "file": "tools/names_scan.mjs",
+    "how": "البلد الذي يكمل لقباً (بعد مفتي، ملك، وزير، رئيس…) لا يُطلب له خريطة."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "3cb6a36; tools/names_scan.mjs:80; .claude/skills/visual-thinking/SKILL.md:42"
+  },
+  {
+   "id": "bumper-glued-by-render",
+   "date": "2026-11-20",
+   "what": "الفاصل كان يُلصق بعد الرندر بدل أن يكون في المونتاج، ووُضع فاصل عشوائي في آخر mufti-hiraba والمونتاج يضعه عند 0:44. المستخدم: «هذا لازم يضاف من قبلك وليس من قبل الرندر»، «ما يضاف في طابور الرندر هو يضاف في المونتاج».",
+   "cause": "طابور الرندر ومتغيرات BUMPER_* كانت تقرّر الفاصل خارج المواصفة.",
+   "guard": {
+    "file": "tools/gpu_render.mjs",
+    "how": "الفاصل يُرسم من spec.bumper داخل التركيبة؛ الرندر الكامل لمونتاج يحتاج فاصلاً وليس فيه يُرفض قبل أي إطار، وطلب فاصل من خارج المونتاج يُتجاهل؛ وrender_job.sh يرفض مثله، وcoverage_check يشترطه في الخطة."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "gpu.no_bumper_src"
+    ],
+    "manual": [
+     "gpu.no_bumper_run"
+    ],
+    "reserved": []
+   },
+   "evidence": "2a7896d, e41116c; tools/gpu_render.mjs:100-115 و372-393; tools/render_job.sh:20; tools/coverage_check.mjs:190"
+  },
+  {
+   "id": "studio-restarted-under-review",
+   "date": "2026-11-20",
+   "what": "أُعيد تشغيل الاستوديو لتحميل نقاط جديدة في الخادم فصارت صفحة المستخدم بيضاء بشريط خطأ أحمر: «يجب أن لا يختفي».",
+   "cause": "تغيير خادم الأدوات عولج بإعادة تشغيل الاستوديو كله.",
+   "guard": {
+    "file": "tools/hk_restart.mjs",
+    "how": "يعيد تحميل خادم الأدوات وحده (≈1 ث) دون مسّ الاستوديو؛ وملفات src تتحدث وحدها في الصفحة."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "083df65; tools/hk_restart.mjs:1; memory/never-restart-studio-under-review.md"
+  },
+  {
+   "id": "idle-services-cpu-fallback",
+   "date": "2026-11-19",
+   "what": "نسختان من الفحص عملتا معاً، وإحداهما ظلت تصنع لقطات المتصفح على المعالج بعد إيقاف مهمتها. المستخدم: «مطلوب منك أن توقف أي خدمة غير مستعملة… هذا أمر خطير جداً»، و«يستهلك أكبر قدر من المعالج… ألا يمكن أن تنقل هذه إلى كرت الشاشة».",
+   "cause": "إيقاف المهمة في ويندوز يقتل الصدفة العليا فقط، وgrid_sheet كان يسقط صامتاً إلى لقطات المتصفح على المعالج حين يفشل محرك كرت الشاشة.",
+   "guard": {
+    "file": "tools/grid_sheet.mjs",
+    "how": "لا سقوط صامت إلى المعالج: فشل المحرك يوقف الأداة بخطأ ظاهر إلا بـ--browser أو GRID_BROWSER_FALLBACK=1 عمداً؛ والأعمال الطويلة تمر بـtools/bg.sh وتُسرد وتوقف بـtools/proc.mjs، والاستوديو يوقف نفسه بعد 30 دقيقة بلا صفحة."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "1e047fa, f610438, 305f116; tools/grid_sheet.mjs:37-40; memory/no-idle-services.md"
+  },
+  {
+   "id": "examples-built-as-features",
+   "date": "2026-11-20",
+   "what": "أمثلة المستخدم «سجن، ماء، ضيق، رجفة» بُنيت مؤثرات ثابتة (squeeze وwater) مع قاموس كلمة←مؤثر. المستخدم: «أنا ما قلت تضيف الماء والتضييق… ذكرتها كأمثلة على أنك تبتكر… هذه ليست مؤثرات ثابتة، هذه طريقة تفكير».",
+   "cause": "مراجعة جاهزية حوّلت الأمثلة إلى قائمة مهام.",
+   "guard": {
+    "file": "tools/layers.mjs",
+    "how": "كلمات المشاهد تنبّه إلى اللحظة فقط ولا تختار مؤثراً؛ وحُذف المؤثران، ومهارة visual-thinking تنص على أن الأمثلة لتعليم الطريقة."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "e7cdfad, cb6aa23; tools/layers.mjs:101; .claude/skills/visual-thinking/SKILL.md:8"
+  },
+  {
+   "id": "shorts-length-without-bumper",
+   "date": "2026-11-18",
+   "what": "ريل «مذيع يقتل أطفاله» نجح بطول 176.5 ث للمواصفة ثم صار 181.6 ث مع فاصل 5 ث، فنُشر فيديو عادياً لا قصيراً.",
+   "cause": "حدّ القصير كان يُحسب بلا الفاصل.",
+   "guard": {
+    "file": "tools/short_limit.mjs",
+    "how": "حدّ واحد (data/short_limit.json، 179 ث مع الفاصل) تفرضه reel_from_episode وcoverage_check وprepend_bumper (يرفض اللصق) وfinal_review على الملف كله."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "32cfa0d; tools/short_limit.mjs:9"
+  },
+  {
+   "id": "writing-ignores-context",
+   "date": "2026-11-17",
+   "what": "عبارات مكتوبة تنتهي بحرف جر أو «قال» أو تبدأ بـ«صفحة» (درس «صفحة 129 وقال أبو طالب المكي وعند»). المستخدم: «أنت لا تراعي السياق في اختيار الكلام المكتوب، وهذا خطأ فادح».",
+   "cause": "اختيار المكتوب بالطول والتوقيت لا بالمعنى.",
+   "guard": {
+    "file": "tools/writing_sync.mjs",
+    "how": "يرفض عبارة تنتهي برابط أو حرف جر أو «قال» أو تبدأ بـ«صفحة»."
+   },
+   "status": "محروس بلا اختبار آلي",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "4de7d68; tools/writing_sync.mjs:32"
+  },
+  {
+   "id": "placement-fix-delayed",
+   "date": "2026-11-20",
+   "what": "صورة المحكمة عند 0:05 بقيت 4 دقائق في غير مكانها والوكيل يتتبع الكود: «4 دقائق مرت ولم تعدل مكان عنصر، هذا فساد كبير».",
+   "cause": "التحقيق في السبب قُدّم على أمر نقل من سطر واحد.",
+   "guard": "بلا حارس",
+   "status": "بلا حارس",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "memory/fix-first-then-investigate.md"
+  },
+  {
+   "id": "asked-instead-of-searching",
+   "date": "2026-11-20",
+   "what": "سُئل المستخدم عن رابط قصير مفتي الأردن وعنصر شريط البحث يحمل كلماته؛ بحث واحد في يوتيوب وجده. المستخدم: «انت لازم تعرفه»، «لا تكن كسولا».",
+   "cause": "السؤال قبل البحث بما هو موجود (نص العنصر، فهرس القناة، يوتيوب).",
+   "guard": "بلا حارس",
+   "status": "بلا حارس",
+   "selftest": {
+    "cases": [],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "memory/search-before-asking.md"
+  },
+  {
+   "id": "non-arabic-replies",
+   "date": "2026-11-20",
+   "what": "رسالة ختام كاملة وملاحظات خرجت بالإنجليزية بعد عمل تقني طويل، وأوصاف الأوامر بالإنجليزية: «لا تكلمني بغير العربية افهم»، «لا تخرى انجليزي انا عربي».",
+   "cause": "العمق التقني يجرّ اللغة إلى الإنجليزية، والفحص لا يرى إلا نص الرد الأخير.",
+   "guard": {
+    "file": "tools/hooks/guard.mjs",
+    "how": "هوك الإيقاف يعيد الرد الذي أغلب نثره حروف لاتينية (40 حرفاً فأكثر وأكثر من العربي، بعد حذف الكود والروابط والمسارات) ليُكتب بالعربية؛ وأوصاف الأدوات وعناوين الخطة لا يفحصها."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "stop.arabic_english_block",
+     "stop.arabic_ok",
+     "stop.arabic_code_ok"
+    ],
+    "manual": [],
+    "reserved": []
+   },
+   "evidence": "tools/hooks/guard.mjs:379-385; memory/reply-first-never-block.md"
+  }
+ ]
+}

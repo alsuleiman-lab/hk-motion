@@ -237,6 +237,8 @@ if (mode === "pre") {
 if (mode === "post") {
   const ti = input.tool_input ?? {};
   const f = ti.file_path ?? ti.notebook_path;
+  // GUARD SELF-TEST (user 2026-11-21: «اعمل خطة سبر لكل ما يجنبك الوقوع في الأخطاء مستقبلا»): an edit of a guarded tool re-runs its cases (tools/guard_selftest.mjs, data/error_ledger.json); silent when all pass
+  if (f && !inWorktree(f) && /^tools\/.+\.mjs$/.test(rel(f))) { const st = spawnSync("node", ["tools/guard_selftest.mjs", "--hook", rel(f)], { cwd: ROOT, encoding: "utf8", timeout: 20000 }); if (st.status !== 0) emit({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: ((st.stdout || "").trim() || `✘ اختبار الحراس لم يعمل بعد تعديل ${rel(f)}: ${(st.stderr || "انتهت المهلة").trim().slice(-400)}`).slice(-3000) } }); }
   if (f && isRuleFile(f)) {
     const r = spawnSync("node", ["tools/rules_audit.mjs"], { cwd: ROOT, encoding: "utf8" });
     const out = (r.stdout || r.stderr || "").trim();

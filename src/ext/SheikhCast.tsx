@@ -4,7 +4,7 @@
    عشر نسخ للاختيار: الإطار رقم n = النسخة n. */
 import React from "react";
 import { AbsoluteFill, Audio, Freeze, Img, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
-import { SALADIN_MOUTH, UKHUWWA_MOUTH, JINN_MOUTH, SHABBIHA_MOUTH, SULTAN_MOUTH, MAKAN_MOUTH, RAZI_MOUTH, BURJ_INTRO_MOUTH, BURJ_MOUTH } from "./rudoodMouth";
+import { SALADIN_MOUTH, UKHUWWA_MOUTH, JINN_MOUTH, SHABBIHA_MOUTH, SULTAN_MOUTH, MAKAN_MOUTH, RAZI_MOUTH, BURJ_INTRO_MOUTH, BURJ_MOUTH2 } from "./rudoodMouth";
 
 export const SHEIKH_CAST_FRAMES = 10;
 const INK = "#2a1c14";
@@ -632,7 +632,7 @@ export const RudoodUkhuwwa: React.FC = () => <RudoodReply look={1} clip="rudood2
 
 /* الفيديو الثالث: طعام الجن (لباس ٢)، وصور الجائعين على التلفاز عند «اللي جعانين في غزة والسودان» (تنبيه المستخدم للمونتاج) */
 export const RUDOOD_JINN_FRAMES = rudoodFrames(432, JINN_MOUTH.length);
-export const RudoodJinn: React.FC = () => <RudoodReply look={2} clip="rudood3/clip.mp4" clipAudio="rudood3/clip_audio.wav" clipFrames={432} objPos="50% 30%" reply="rudood3/reply.wav" mouthData={JINN_MOUTH}
+export const RudoodJinn: React.FC = () => <RudoodReply look={2} clip="rudood3/clip.mp4" clipAudio="rudood3/clip_audio.wav" clipFrames={432} objPos="50% 15%" reply="rudood3/reply.wav" mouthData={JINN_MOUTH}
   pics={[{ src: "stock/rudood_hunger_60743.jpg", a: 1.55, b: 3.3 }, { src: "stock/rudood_hunger_3829378.jpg", a: 3.3, b: 5.8 }]} />;
 
 /* الفيديو الرابع: الشبيحة ووزير الأوقاف (لباس ٣) */
@@ -641,17 +641,17 @@ export const RudoodShabbiha: React.FC = () => <RudoodReply look={3} clip="rudood
 
 /* الفيديو الخامس: «قلوب الأولياء لها سيوف» — علماء السلطان (لباس ٤، القاف همزة)، وصورتا الجفري وابن بيّه عند «من اليمن» و«من موريتانيا» */
 export const RUDOOD_SULTAN_FRAMES = rudoodFrames(354, SULTAN_MOUTH.length);
-export const RudoodSultan: React.FC = () => <RudoodReply look={4} clip="rudood5/clip.mp4" clipAudio="rudood5/clip_audio.wav" clipFrames={354} objPos="50% 35%" reply="rudood5/reply.wav" mouthData={SULTAN_MOUTH}
+export const RudoodSultan: React.FC = () => <RudoodReply look={4} clip="rudood5/clip.mp4" clipAudio="rudood5/clip_audio.wav" clipFrames={354} objPos="50% 11%" reply="rudood5/reply.wav" mouthData={SULTAN_MOUTH}
   pics={[{ src: "stock/rudood_jifri.jpg", a: 16.6, b: 18.3 }, { src: "stock/rudood_binbayyah.jpg", a: 18.3, b: 20.2 }]} />;
 
 /* الفيديو السادس: «علموا أولادكم الله موجود بلا مكان» (لباس ٥) */
 export const RUDOOD_MAKAN_FRAMES = rudoodFrames(591, MAKAN_MOUTH.length);
-export const RudoodMakan: React.FC = () => <RudoodReply look={5} clip="rudood6/clip.mp4" clipAudio="rudood6/clip_audio.wav" clipFrames={591} objPos="50% 35%" reply="rudood6/reply.wav" mouthData={MAKAN_MOUTH} />;
+export const RudoodMakan: React.FC = () => <RudoodReply look={5} clip="rudood6/clip.mp4" clipAudio="rudood6/clip_audio.wav" clipFrames={591} objPos="50% 32%" reply="rudood6/reply.wav" mouthData={MAKAN_MOUTH} />;
 
 /* الفيديو السابع: الفخر الرازي والعجوز — نمط جديد: تعليقه أولاً ثم المقطع مختصراً (لباس ٦) */
 export const RUDOOD_RAZI_FRAMES = rudoodIntroFrames(1404, RAZI_MOUTH.length);
-export const RudoodRazi: React.FC = () => <RudoodReply introFirst look={6} clip="rudood7/clip.mp4" clipAudio="rudood7/clip_audio.wav" clipFrames={1404} objPos="50% 18%" reply="rudood7/reply.wav" mouthData={RAZI_MOUTH} />;
+export const RudoodRazi: React.FC = () => <RudoodReply introFirst look={6} clip="rudood7/clip.mp4" clipAudio="rudood7/clip_audio.wav" clipFrames={1404} objPos="50% 21%" reply="rudood7/reply.wav" mouthData={RAZI_MOUTH} />;
 
 /* الفيديو الثامن: برج خليفة — تعليق «بص الحتة دي» ثم المقطع ثم الرد (هيئة ٨ بالطاقية البيضاء، نص مشكول) */
-export const RUDOOD_BURJ_FRAMES = rudoodFullFrames(BURJ_INTRO_MOUTH.length, 705, BURJ_MOUTH.length);
-export const RudoodBurj: React.FC = () => <RudoodReply look={8} intro={{ src: "rudood8/intro.wav", mouth: BURJ_INTRO_MOUTH }} clip="rudood8/clip.mp4" clipAudio="rudood8/clip_audio.wav" clipFrames={705} objPos="50% 20%" reply="rudood8/reply.wav" mouthData={BURJ_MOUTH} />;
+export const RUDOOD_BURJ_FRAMES = rudoodFullFrames(BURJ_INTRO_MOUTH.length, 705, BURJ_MOUTH2.length);
+export const RudoodBurj: React.FC = () => <RudoodReply look={8} intro={{ src: "rudood8/intro.wav", mouth: BURJ_INTRO_MOUTH }} clip="rudood8/clip.mp4" clipAudio="rudood8/clip_audio.wav" clipFrames={705} objPos="50% 38%" reply="rudood8/reply2.wav" mouthData={BURJ_MOUTH2} />;

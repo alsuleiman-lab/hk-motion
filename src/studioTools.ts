@@ -671,7 +671,24 @@ const installHK = () => {
      the pre-render check, then the render queue and its worker; a refusal goes to «راسلني» so the session that owns the video fixes it */
   const bRen = mk("رندر", "var(--hk-accent)");
   bRen.title = "أرندر هذا الفيديو الآن: فحص ما قبل الرندر ثم الطابور؛ وإن رُفض يصلني السبب لأصلحه";
-  row.append(tag, bRen, bMsg, bMove, bA, bB, bDel, bMus, bGal, bCol, bQue, bTheme, info);
+  /* THE RIGHT PANEL (user 2026-11-21: «اخف من ريموشن الجديد الأدوات التي لا أستخدمها… قائمة يسرى للمقاطع… قائمة يمنى فيها زر ازالة جزء محدد، وزر المراسلة
+     معك، وزر الرندر، وزر يفتح خيارات تغيير الإضاءة»): the HK tools stand in a column over the Studio's right panel; the other tools (تحريك، حذف موسيقى، المعرض،
+     الطابور، المظهر) are built but not shown. Remotion's own menu, its Render button and the «تحديد» bookmarks are hidden (CSS below). */
+  row.style.cssText = "position:fixed;z-index:2147482000;display:none;flex-direction:column;align-items:stretch;gap:8px;box-sizing:border-box;padding:12px 10px;background:var(--hk-bg2);border-left:1px solid var(--hk-line-strong);direction:rtl;font:600 13px Tahoma,Arial,sans-serif;color:var(--hk-text);overflow-y:auto";
+  const big = (b: HTMLButtonElement) => { b.style.height = "38px"; b.style.fontSize = "14px"; b.style.width = "100%"; return b; };
+  const head = (t: string) => { const h = document.createElement("div"); h.textContent = t; h.style.cssText = "margin-top:6px;color:var(--hk-dim);font:700 12px Tahoma,Arial,sans-serif"; return h; };
+  const pair = document.createElement("div"); pair.style.cssText = "display:flex;gap:6px"; bA.style.flex = "1 1 0"; bB.style.flex = "1 1 0"; bA.style.height = "34px"; bB.style.height = "34px"; pair.append(bA, bB);
+  bCol.textContent = "الإضاءة والألوان"; bDel.textContent = "احذف الجزء المحدد";
+  info.style.cssText = "flex:0 0 auto;white-space:normal;line-height:1.6;font-size:12px;user-select:text;-webkit-user-select:text";
+  tag.style.textAlign = "center";
+  bRen.style.color = "var(--hk-bg)"; bMsg.style.color = "var(--hk-bg)"; bRen.style.fontWeight = "800"; bMsg.style.fontWeight = "800";
+  row.append(tag, big(bRen), big(bMsg), head("إزالة جزء"), pair, big(bDel), head("الصورة"), big(bCol), info);
+  void bMove; void bMus; void bGal; void bQue; void bTheme;
+  if (!document.getElementById("__hk_hide_css")) {
+    const css = document.createElement("style"); css.id = "__hk_hide_css";
+    css.textContent = "#render-modal-button,.__remotion-studio-menu-initiator,#__frame_marks_box,#__el_names_row{display:none!important}";
+    document.head.appendChild(css);
+  }
   bMsg.title = "اكتب لي ملاحظة على هذه اللحظة: تُرسل مع الإطار والعناصر الظاهرة";
   bMsg.addEventListener("click", () => { try { openMsgPanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // «راسلني» (src/hkMsgPanel.ts)
   bMove.title = "انقل عنصراً ظاهراً الآن إلى خانة أخرى من الشبكة: يُحسب مكانه بالأرقام ويُرفض ما يغطي الوجه أو عنصراً آخر";
@@ -751,9 +768,14 @@ const installHK = () => {
     try {
       const col = column(), c = comp();
       if (!col || !c) { row.style.display = "none"; return; }
-      const anchor = document.getElementById("__el_names_row") ?? document.getElementById("__err_row");
-      const a2 = anchor && anchor.parentElement === col ? anchor : null;
-      if (row.parentElement !== col || row.nextElementSibling !== a2) col.insertBefore(row, a2);
+      if (row.parentElement !== document.body) document.body.appendChild(row);
+      // over the Studio's right panel (the one with the «Jobs» tab); if it is folded, a 220-px column at the right edge under the top bar
+      const jobs = [...document.querySelectorAll<HTMLElement>("div")].find((e) => e.childElementCount === 0 && e.textContent?.trim() === "Jobs");
+      let side: HTMLElement | null = jobs ?? null;
+      while (side && !(side.classList.contains("css-reset") && side.getBoundingClientRect().height > 200)) side = side.parentElement;
+      const r = side?.getBoundingClientRect(), open = !!r && r.width > 120;
+      const want = open && r ? `${Math.round(r.left)}|${Math.round(r.top)}|${Math.round(r.width)}|${Math.round(r.height)}` : `${window.innerWidth - 220}|30|220|${Math.max(200, Math.round(col.getBoundingClientRect().bottom - 30))}`;
+      if (row.dataset.pos !== want) { row.dataset.pos = want; const [l, t, w2, h2] = want.split("|"); Object.assign(row.style, { left: `${l}px`, top: `${t}px`, width: `${w2}px`, height: `${h2}px` }); }
       if (row.style.display !== "flex") row.style.display = "flex";
       if (c !== lastComp) { lastComp = c; paint(""); }
     } catch { /* never break the Studio */ }

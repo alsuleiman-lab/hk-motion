@@ -38,6 +38,8 @@ if (gateName) {
   }
   const q = G.questionsFailures(gateName); if (q.length || fs.existsSync(`.tmp/${gateName}/questions.json`)) add(!q.length, q.length ? q[0] : "صفحة الأسئلة: كل بند مجاب");
 }
+/* JOIN SEAMS (ledger intro-reel-join-click, gta6-intro-reel 2026-11-20: a click at a join): a reel cut from an episode has no click and no word tail at any join of THIS file (tools/join_seam_check.mjs) */
+if (gateName) { const r = (await import("./join_seam_check.mjs")).finalReviewLine(gateName, file, bumper); if (r) add(r.ok, r.msg); }
 add(dur > minSec && dur > 0, `المدة ${dur.toFixed(2)}ث${bumper ? ` (منها فاصل الافتتاح «${bumper.title}» ${bumper.seconds}ث)` : ""}`);
 // the audio gate (tools/audio_gate.mjs) is MANDATORY for every montage (user order 2026-10-21)
 import fs from "node:fs";

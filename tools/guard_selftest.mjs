@@ -524,6 +524,64 @@ askCase("ask.decision_exempt", "سؤال عن قراره (الاعتماد، أ�
 askCase("ask.statement_ok", "«لا أعرف من أين…» بلا سؤال ← يمرّ", { text: "لا أعرف من أين جاء هذا الصوت، وسأفحصه الآن." }, false);
 askCase("ask.stop_hook_active_passes", "الرد الثاني (stop_hook_active) يمرّ فلا دوران", { text: ASK_TXT }, false, { stop_hook_active: true });
 
+/* 20) JOIN SEAMS OF A REEL (tools/join_seam_check.mjs; ledger intro-reel-join-click: gta6-intro-reel 2026-11-20, built «as is», clicked at a join — a word's tail
+   left at the cut point). SYNTHETIC audio only (ffmpeg aevalsrc, 1.8 s, 48 kHz, in .tmp/selftest/<run>/seam/): a «word» is a 180 Hz tone with a decaying tail
+   over a −65 dB noise floor; the join is at 0.90 s. The reel-joins plumbing runs on a scratch root (fake spec + maps), the snap on the synthetic audio. */
+const SJ = ["tools/join_seam_check.mjs", "tools/reel_from_episode.mjs", "tools/final_review.mjs", "tools/stream/clip_slice.mjs"], SJL = "intro-reel-join-click";
+const sjMod = async () => import(pathToFileURL(path.join(ROOT, "tools", "join_seam_check.mjs")).href);
+const SJW = (s, e, tau) => `(between(t,${s},${e})*0.3*sin(2*PI*180*t)+gt(t,${e})*0.3*sin(2*PI*180*t)*exp(-(t-${e})/${tau}))`, SJN = "0.002*(random(0)-0.5)";
+const SJA = {
+  clean: `${SJN}+${SJW(0.2, 0.55, 0.03)}+${SJW(1.25, 1.6, 0.03)}`,
+  tail: `${SJN}+${SJW(0.45, 0.8, 0.08)}*if(lt(t,0.89),1,if(lt(t,0.9),(0.9-t)/0.01,0))+${SJW(1.25, 1.6, 0.03)}`,   // cut inside the tail with a 10 ms fade: no click, a tail
+  click: `${SJN}+${SJW(0.2, 0.55, 0.03)}+${SJW(1.25, 1.6, 0.03)}+if(between(t,0.9,0.9005),0.5,0)`,               // the clean join with a 0.5 ms spike on it
+  snap: `${SJN}+${SJW(0.3, 0.8, 0.05)}+${SJW(1.3, 1.6, 0.03)}`,                                                   // a piece ending at 0.85 s, in the tail of «أ»
+  nogap: `${SJN}+${SJW(0.3, 0.8, 0.05)}+${SJW(0.86, 1.4, 0.03)}`,                                                 // the next word starts at 0.86 s: no quiet point
+};
+const sjMemo = new Map();
+const sjWav = (name) => { if (!sjMemo.has(name)) { const f = path.join(RUN, "seam", `${name}.wav`); fs.mkdirSync(path.dirname(f), { recursive: true });
+  sjMemo.set(name, runAsync("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", "-i", `aevalsrc='${SJA[name]}':s=48000:d=1.8`, "-ac", "1", f]).then((x) => { if (x.status !== 0 || !inScr(f)) throw new Error("ffmpeg: " + x.err.slice(-120)); return f; })); }
+  return sjMemo.get(name); };
+const sjRun = async (name, extra = []) => runAsync(NODE, [path.join(ROOT, "tools", "join_seam_check.mjs"), await sjWav(name), "--joins", "0.9", ...extra], { cwd: ROOT, timeout: 30000 });
+add("seam.clean_ok", SJ, SJL, "وصلة في صمت بين كلمتين ← تمرّ", async () => {
+  const x = await sjRun("clean");
+  return expect(x.status === 0 && /✔ وصلات/.test(x.out), `رُفضت خطأً (خروج ${x.status}): ${(x.out + x.err).trim().split("\n")[0].slice(0, 140)}`);
+});
+add("seam.word_tail_fails", SJ, SJL, "وصلة في ذيل كلمة يخفت (بلا نقرة) ← تُرفض بالزمن «ذيل كلمة»", async () => {
+  const x = await sjRun("tail");
+  return expect(x.status === 1 && /✘ وصلة عند 0:00\.90[^\n]*ذيل كلمة قبل الوصلة/.test(x.out), `لم يُكشف الذيل (خروج ${x.status}): ${x.out.trim().split("\n")[0].slice(0, 140)}`);
+});
+add("seam.click_fails", SJ, SJL, "نقرة مدسوسة عند الوصلة ← تُرفض «نقرة عند الوصلة»", async () => {
+  const x = await sjRun("click");
+  return expect(x.status === 1 && /0:00\.90[^\n]*نقرة عند الوصلة/.test(x.out), `لم تُكشف النقرة (خروج ${x.status}): ${x.out.trim().split("\n")[0].slice(0, 140)}`);
+});
+add("seam.inside_word_fails", SJ, SJL, "الصوت هادئ لكن جدول الكلمات يضع الوصلة داخل كلمة ← تُرفض «داخل كلمة»", async () => {
+  const wf = put(path.join(RUN, "seam", "words_inside.json"), [{ w: "كلمة", s: 0.8, e: 1.0 }]), x = await sjRun("clean", ["--words", wf]);
+  return expect(x.status === 1 && /داخل كلمة «كلمة»/.test(x.out), `لم يُكشف (خروج ${x.status}): ${x.out.trim().split("\n")[0].slice(0, 140)}`);
+});
+add("seam.reel_joins_plumbing", SJ, SJL, "وصلات ريل من حلقة: وصلة الريل، ووصلة قص الحلقة داخل الجزء، ووصلة حذف بعد البناء، بأزمنتها", async () => {
+  const { reelJoins } = await sjMod(), r = path.join(RUN, "seam_root");
+  put(path.join(r, "data", "specs", "zzseam-reel.json"), { id: "zzseam-reel", kind: "reel", fromEpisode: { project: "zzseam", ranges: [{ from: 2, to: 5.01 }, { from: 8, to: 14 }] } });
+  put(path.join(r, "public", "zzseam_map.json"), { model: "cut_model", segments: [{ a: 0, b: 10, n: 0, type: "speech" }, { a: 12, b: 20, n: 10, type: "speech" }] });
+  put(path.join(r, "public", "zzseam-reel_map.json"), { model: "cut_model", segments: [{ a: 0, b: 3, n: 0 }, { a: 3, b: 5, n: 3 }, { a: 5, b: 5.5, n: 5 }, { a: 6, b: 7, n: 5.5 }] });   // a cut_block took 5.5–6
+  put(path.join(r, ".tmp", "zzseam", "words_table.json"), { words: [{ w: "أ", s: 3, e: 4 }, { w: "ب", s: 12.6, e: 13.4 }] });
+  const J = reelJoins("zzseam-reel", r), got = (J?.joins ?? []).map((j) => `${j.kind}@${j.t}:${j.outSrc?.toFixed(2)}→${j.inSrc?.toFixed(2)}`).join(" ");
+  return expect(got === "reel@3:5.00→8.00 episode@5:10.00→12.00 block@5.5:12.50→13.00" && J.words.length === 2, `الوصلات: ${got || "لا شيء"}`);
+});
+const sjView = async (name) => { const { decode } = await sjMod(); return { y: decode(await sjWav(name)), sr: 48000, t0: 0 }; };
+add("seam.snap_moves_join", SJ, SJL, "بناء الريل: نهاية جزء في ذيل كلمة تُزاح إلى أقرب فراغ هادئ على شبكة الإطارات، ويُقال ذلك", async () => {
+  const { snapPiece } = await sjMod(), r = snapPiece(await sjView("snap"), 0, 0.85, [{ w: "أ", cs: 0.3, ce: 0.8 }, { w: "ب", cs: 1.3, ce: 1.6 }], { snapStart: false });
+  return expect(!r.fail && r.E > 1.0 && r.E < 1.17 && Math.abs(r.E * 30 - Math.round(r.E * 30)) < 1e-6 && r.notes.length === 1 && /ذيل «أ»/.test(r.notes[0]), `النتيجة ${r.E?.toFixed(3)} ${r.fail ?? r.notes.join(" | ")}`);
+});
+add("seam.snap_refuses_no_gap", SJ, SJL, "بناء الريل: لا فراغ هادئ بين الكلمتين ← يرفض البناء ولا يزيح", async () => {
+  const { snapPiece } = await sjMod(), r = snapPiece(await sjView("nogap"), 0, 0.85, [{ w: "أ", cs: 0.3, ce: 0.8 }, { w: "ب", cs: 0.86, ce: 1.4 }], { snapStart: false });
+  return expect(!!r.fail && /لا فراغ هادئ بين «أ» و«ب»/.test(r.fail), `لم يُرفض: ${r.fail ?? `أُزيح إلى ${r.E?.toFixed(3)}`}`);
+});
+add("seam.wired_src", SJ, SJL, "المصدر: بناء الريل يضبط الوصلات قبل الاقتطاع (ولا يتخطاه --as-is) ويفحصها بعده، والفحص النهائي يفحصها على الملف", async () => {
+  const rf = fs.readFileSync(path.join(ROOT, "tools", "reel_from_episode.mjs"), "utf8"), fr = fs.readFileSync(path.join(ROOT, "tools", "final_review.mjs"), "utf8");
+  const iSnap = rf.indexOf("SEAMJ.snapReelRanges("), iSlice = rf.indexOf('"tools/stream/clip_slice.mjs"'), snapBlock = iSnap > 0 ? rf.slice(rf.lastIndexOf("{", iSnap), iSlice) : "";
+  return expect(iSnap > 0 && iSnap < iSlice && !/as-is/.test(snapBlock) && /SEAMJ\.reelJoins\(id\)[\s\S]{0,400}gate\.push/.test(rf) && /join_seam_check\.mjs"\)\)\.finalReviewLine\(gateName, file, bumper\)/.test(fr), "حلقة الوصل اختفت من بناء الريل أو الفحص النهائي");
+});
+
 /* ── run ── */
 if (argv.includes("--list")) { for (const c of C) console.log(`${c.id}\t${c.files.join(",")}\t${c.ledger ?? ""}\t${c.manual ? "يدوي" : c.todo ? "محجوز" : ""}`); process.exit(0); }
 const forRel = FOR ? relOf(path.resolve(ROOT, FOR)) : null;

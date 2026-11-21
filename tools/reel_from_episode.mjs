@@ -310,6 +310,18 @@ if (fs.existsSync(path.join("data", "specs", `${id}.json`)) || fs.existsSync(pat
 const epSpec = rd(path.join("data", "specs", `${P}.json`), {});
 (await import("./cut_lazy.mjs")).ensureCut(P);   // the episode's cut video matches its cut list (tools/cut_lazy.mjs)
 const video = epSpec.cut && fs.existsSync(path.join("public", epSpec.cut)) ? path.join("public", epSpec.cut) : null;
+/* JOIN SEAMS (ledger intro-reel-join-click: gta6-intro-reel 2026-11-20, built «as is», clicked at a join — a word's tail left at the cut point; clip_slice joins
+   the pieces with no fade). Every reel join must sit in a quiet point of its word gap in the episode's cut audio: one that does not is moved to the nearest quiet
+   point of the gap (said here), else the build stops — --as-is does not skip this. The slice is measured again after it is built (gate below). */
+const SEAMJ = await import("./join_seam_check.mjs");
+{
+  const aud = video ?? ["cut_s", "cut"].map((x) => path.join("public", `${P}_${x}.mp4`)).find((f) => fs.existsSync(f));
+  if (aud && chosen.length > 1) {
+    const sn = SEAMJ.snapReelRanges({ ranges: chosen.map((r) => ({ from: r.from, to: r.to })), parentSegs: segs, words: ALL, audio: aud });
+    if (sn.fails.length) { console.error(["✘ لم يُبنَ الريل: وصلة لا فراغ هادئ عندها (نقرة أو ذيل كلمة)", ...sn.fails.map((x) => "  " + x), "  اختر حدّاً آخر لهذا الجزء (--ranges)"].join("\n")); process.exit(1); }
+    if (sn.notes.length) { console.log(["↔ ضُبطت وصلات على أقرب فراغ هادئ بين كلمتين:", ...sn.notes.map((x) => "  " + x)].join("\n")); chosen = chosen.map((r, i) => { const nr = sn.ranges[i]; if (nr.from === r.from && nr.to === r.to) return r; const { from, to, cutFrom, cutTo, dur, words, speakers, turns, ...extra } = r; return rangeObj(nr.from, nr.to, extra); }); }
+  }
+}
 const t0 = Date.now(), gateF = path.join(".tmp", "gates", `${id}.audio.ok`);
 const spanArg = chosen.map((r) => `${r.from}-${r.to}`).join(",");
 console.log(`… الشريحة من ${video ?? "قص الحلقة"}: ${chosen.length} نطاقاً، ${chosen.reduce((a, r) => a + r.dur, 0).toFixed(1)}ث`);
@@ -349,6 +361,9 @@ const gate = [
 const audioOk = fs.existsSync(gateF) && fs.statSync(gateF).mtimeMs >= t0;
 console.log(`${audioOk ? "✔" : "✘"} بوابة الصوت على الشريحة${audioOk ? "" : `: بقي حسم «للمراجعة» (حذف أو سبب الإبقاء في .tmp/${id}/noise_ok.json) ثم إعادتها`}`);
 gate.push(["بوابة الصوت", audioOk]);
+{ const rj = SEAMJ.reelJoins(id), res = rj?.joins ? SEAMJ.checkFile(path.join("public", `${id}_cut_s.mp4`), rj.joins, rj.words) : [], bad = res.filter((x) => x.issues.length);   // the joins on the reel's own file
+  for (const x of bad) console.log("  ✘ " + SEAMJ.describe(x)); for (const x of res.filter((y) => y.notes?.length)) console.log("  ℹ " + SEAMJ.describe(x, true));
+  gate.push([rj?.why ? `وصلات الريل: ${rj.why}` : `وصلات الريل (${res.length}) بلا نقرة ولا ذيل كلمة ولا قطع داخل كلمة`, !!rj?.joins && !bad.length]); }
 for (const [t, ok] of gate) console.log(`${ok ? "✔" : "✘"} ${t}`);
 console.log(`الريل ${id}: ${mmss(D)} من ${chosen.length} أجزاء (${order === "user" ? "بترتيب المستخدم" : "بترتيب القصة"}) → data/specs/${id}.json (kind reel)؛ بلا رندر. التالي: مراحل الريل في الشجرة من الاستخراج.`);
 process.exit(gate.every(([, ok]) => ok) ? 0 : 1);

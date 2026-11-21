@@ -582,6 +582,11 @@ add("seam.wired_src", SJ, SJL, "المصدر: بناء الريل يضبط ال�
   return expect(iSnap > 0 && iSnap < iSlice && !/as-is/.test(snapBlock) && /SEAMJ\.reelJoins\(id\)[\s\S]{0,400}gate\.push/.test(rf) && /join_seam_check\.mjs"\)\)\.finalReviewLine\(gateName, file, bumper\)/.test(fr), "حلقة الوصل اختفت من بناء الريل أو الفحص النهائي");
 });
 
+/* ── case files (2026-11-21, user: «نعم» to tests for the 19 untested guards): every tools/selftest_cases/*.mjs exports default (api) => { api.add(…) } so
+   parallel writers never edit this file; api = the helpers above ── */
+{ const dir = path.join(ROOT, "tools", "selftest_cases"); let fl = []; try { fl = fs.readdirSync(dir).filter((n) => n.endsWith(".mjs")).sort(); } catch { /* none yet */ }
+  const api = { add, manual, expect, put, wipe, mkRoot, runAsync, hook, transcript, livePid, RUN, ROOT, NODE, SCR, path, fs };
+  const { pathToFileURL } = await import("node:url"); for (const n of fl) { const mod = await import(pathToFileURL(path.join(dir, n)).href); await mod.default(api); } }
 /* ── run ── */
 if (argv.includes("--list")) { for (const c of C) console.log(`${c.id}\t${c.files.join(",")}\t${c.ledger ?? ""}\t${c.manual ? "يدوي" : c.todo ? "محجوز" : ""}`); process.exit(0); }
 const forRel = FOR ? relOf(path.resolve(ROOT, FOR)) : null;

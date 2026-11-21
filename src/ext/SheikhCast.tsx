@@ -314,18 +314,21 @@ const Screen: React.FC<{ x: number; y: number; w: number; h: number; id: string 
 );
 
 const mix = (a: P, b: P, k: number): P => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
-/* listen: وزن الإنصات (يمسح لحيته ويميل رأسه)، talk: وزن الكلام (يده ترتفع وتتحرك مع الكلام)، t بالثواني */
-const Figure: React.FC<{ d: Design; i: number; mouth?: number; listen?: number; talk?: number; t?: number }> = ({ d, i, mouth = 0, listen = 0, talk = 0, t = 0 }) => {
+/* listen: يده على لحيته يمسحها، attend: إنصات عام (ميل الرأس وإيماءات بطيئة)، lean: يميل إلى الأمام نحو الشاشة،
+   shake: يهز رأسه رفضاً، talk: يده تخرج من لحيته وتتحرك مع كلامه، t بالثواني. الكرسي والجسم ثابتان لا يهتزان. */
+const Figure: React.FC<{ d: Design; i: number; mouth?: number; listen?: number; attend?: number; lean?: number; shake?: number; talk?: number; t?: number }> = ({ d, i, mouth = 0, listen = 0, attend = 0, lean = 0, shake = 0, talk = 0, t = 0 }) => {
   const cx = 430, hx = cx + 8, hy = 318, sk = d.skin, sleeve = d.top === "puffer" ? d.c2 : d.c1;
   const pantsDk = shade(d.pants, -0.22);
   /* المفاصل */
   const shR: P = [cx - 132, 486], shL: P = [cx + 132, 486];
   const restE: P = d.arm === "beard" ? [cx - 196, 626] : [cx - 205, 600], restH: P = d.arm === "beard" ? [cx - 72, 528] : [cx - 214, 690];
   let elR = mix(restE, [cx - 196, 626], listen), haR = mix(restH, [cx - 76, 536], listen);
-  elR = mix(elR, [cx - 222, 600], talk); haR = mix(haR, [cx - 160, 520], talk);
-  haR = [haR[0] + talk * 22 * Math.sin(t * 2.7) + listen * 4 * Math.sin(t * 2.4), haR[1] + talk * 26 * Math.sin(t * 3.9 + 1) + listen * 10 * Math.sin(t * 2.4)];
+  elR = mix(elR, [cx - 246, 590], talk); haR = mix(haR, [cx - 272, 468], talk);
+  const tap = attend * (1 - listen) * (1 - talk) * 3 * Math.max(0, Math.sin(t * 7));
+  haR = [haR[0] + talk * 24 * Math.sin(t * 2.7) + listen * 4 * Math.sin(t * 2.4), haR[1] + talk * 30 * Math.sin(t * 3.9 + 1) + listen * 10 * Math.sin(t * 2.4) - tap];
   elR = [elR[0] + talk * 8 * Math.sin(t * 2.7), elR[1] + talk * 10 * Math.sin(t * 3.9 + 1)];
-  const headA = listen * (2.2 + 2.4 * Math.sin(t * 0.8) + 1.6 * Math.sin(t * 1.7)) + talk * (2.2 * Math.sin(t * 2.3) + mouth * 1.2);
+  const nod = attend * (1 - shake) * 2.2 * Math.max(0, Math.sin(t * 1.3)) ** 3;
+  const headA = attend * (2.2 + 2.0 * Math.sin(t * 0.8)) + shake * 7 * Math.sin(t * 9) + talk * (2.2 * Math.sin(t * 2.3) + mouth * 1.2);
   const holds = d.device === "tablet" || d.device === "phone";
   const remote = d.device === "tv" || d.device === "screen" || d.device === "wall";
   const elL: P = holds ? [cx + 186, 612] : remote ? [cx + 196, 600] : [cx + 205, 600];
@@ -355,7 +358,7 @@ const Figure: React.FC<{ d: Design; i: number; mouth?: number; listen?: number; 
       {/* الذراع البعيدة خلف الجذع لا يلزم؛ الكتفان على الجذع */}
       <Torso d={d} cx={cx} />
       <rect x={hx - 26} y={hy + 50} width={52} height={70} fill={sk} stroke={INK} strokeWidth={SW} />
-      <g transform={`rotate(${headA} ${hx} ${hy + 90}) translate(${hx},${hy}) scale(1.16) translate(${-hx},${-hy})`}>
+      <g transform={`translate(0,${8 * lean + 5 * nod}) rotate(${headA} ${hx} ${hy + 90}) translate(${hx},${hy}) scale(${1.16 * (1 + 0.05 * lean)}) translate(${-hx},${-hy})`}>
         <Head d={d} hx={hx} hy={hy} />
         <Beard d={d} hx={hx} hy={hy} mouth={mouth} />
       </g>
@@ -479,8 +482,11 @@ export const RudoodSaladin: React.FC = () => {
   const zIn = interpolate(f, [ON, ON + 60], [1, 1.05], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const toHim = interpolate(f, [REPLY_AT - 10, REPLY_AT + 25], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const z = zIn + 0.03 * toHim, oy = interpolate(toHim, [0, 1], [420, 1180]);
-  const bob = mouth * 3, t = f / 30;
-  const listen = interpolate(f, [ON + 6, ON + 30, ON + CLIP - 4, ON + CLIP + 14], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const t = f / 30, cl = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
+  const attend = interpolate(f, [ON + 4, ON + 24, ON + CLIP + 4, ON + CLIP + 20], [0, 1, 1, 0], cl);
+  const listen = interpolate(f, [ON + 6, ON + 30, ON + 75, ON + 95, ON + 205, ON + 228, ON + CLIP + 2, ON + CLIP + 16], [0, 1, 1, 0, 0, 1, 1, 0], cl);
+  const lean = interpolate(f, [ON + 80, ON + 110, ON + 185, ON + 205], [0, 1, 1, 0], cl);
+  const shake = interpolate(f, [ON + 188, ON + 198, ON + 250, ON + 262], [0, 1, 1, 0], cl);
   const act = r >= -6 && r < REPLY + 6 ? SALADIN_MOUTH.slice(Math.max(0, r - 12), Math.max(0, r + 12)).reduce((a, b) => a + b, 0) / 24 : 0;
   const talk = Math.min(1, act * 1.8) * interpolate(r, [-6, 10, REPLY, REPLY + 20], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const flash = interpolate(f, [ON - 2, ON + 2, ON + 8], [0, 0.85, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
@@ -518,7 +524,7 @@ export const RudoodSaladin: React.FC = () => {
             <ellipse cx={0} cy={FL - 1056} rx={44} ry={9} fill="#3b2a20" />
             <ellipse cx={0} cy={150} rx={150} ry={76} fill="#fff3cc" opacity={0.18} />
           </g>
-          <g transform={`translate(${540 - 430 * 1.15},${FL + 20 - 905 * 1.15 - bob}) scale(1.15)`}><Figure d={d} i={98} mouth={mouth} listen={listen} talk={talk} t={t} /></g>
+          <g transform={`translate(${540 - 430 * 1.15},${FL + 20 - 905 * 1.15}) scale(1.15)`}><Figure d={d} i={98} mouth={mouth} listen={listen} attend={attend} lean={lean} shake={shake} talk={talk} t={t} /></g>
         </svg>
         {/* الشاشة: مقطعها يعمل ثم يتوقف عند آخر إطار */}
         <div style={{ position: "absolute", left: SX, top: SY, width: SWD, height: SHT, overflow: "hidden", background: "#141210" }}>
@@ -544,7 +550,7 @@ export const RudoodSaladin: React.FC = () => {
       <Sequence from={ON + CLIP} durationInFrames={20}><Audio src={staticFile("ref_sfx/tap.wav")} volume={0.05} /></Sequence>
       {/* صوتها عنصر مستقل: محرك كرت الشاشة لا يأخذ صوت الفيديو المضمَّن */}
       <Sequence from={ON} durationInFrames={CLIP}><Audio src={staticFile("rudood1/girl_saladin_audio.wav")} /></Sequence>
-      <Sequence from={REPLY_AT} durationInFrames={REPLY + 30}><Audio src={staticFile("rudood1/reply_final.wav")} /></Sequence>
+      <Sequence from={REPLY_AT} durationInFrames={REPLY + 30}><Audio src={staticFile("rudood1/reply_final2.wav")} /></Sequence>
     </AbsoluteFill>
   );
 };

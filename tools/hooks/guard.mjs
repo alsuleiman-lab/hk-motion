@@ -335,6 +335,14 @@ if (mode === "stop") {
     }
   } catch { /* never block the reply */ }
   if (input.stop_hook_active) process.exit(0);          // never loop
+  /* THE WATCHER IS PART OF THE STUDIO (user 2026-11-21: «المراقب اجعله جزء لا يتجزأ من الاستوديو»): I never go idle while a Studio is up and no inbox
+     watcher beats (its end is what wakes this session when he writes in «راسلني»), nor with a message of his still without a reply. Main session only. */
+  if (!input.agent_id) try {
+    const W = await import("../lib/inbox_watch.mjs");
+    const open = W.openMessages().filter((m) => Date.now() - new Date(m.at).getTime() < 24 * 3600e3);
+    if (open.length) emit({ decision: "block", reason: `رسائل من الاستوديو بلا رد (${open.length}): ${open.map((m) => `#${m.id} «${String(m.text).slice(0, 80)}»`).join(" · ")} — اعمل عليها ثم ردّ بـ node tools/hk_inbox.mjs reply <id> "…" قبل أن تتوقف.` });
+    if (W.studiosAlive().length && !W.watcherAlive()) emit({ decision: "block", reason: "الاستوديو مفتوح ولا مراقب لرسائله: شغّل الآن في الخلفية (run_in_background) الأمر: cd /s/AI_Tools/Remotion_Workspace; node tools/hk_inbox.mjs wait — ثم توقف. انتهاؤه هو ما يوقظك حين يكتب في «راسلني»." });
+  } catch { /* the watcher check never breaks the stop */ }
   let last = "";
   try {
     const lines = fs.readFileSync(input.transcript_path, "utf8").trim().split("\n");

@@ -22,10 +22,11 @@ const close = (a, b) => a === b || (Math.min(a.length, b.length) >= 5 && lev(a, 
 const toks = (s) => norm(s).split(" ").map(bare).filter(Boolean);
 const mm = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 const words = (f) => { const j = rd(f, null); const a = Array.isArray(j) ? j : j?.words; return Array.isArray(a) ? a.map((w) => ({ s: +w.s, e: +(w.e ?? +w.s + 0.3), w: String(w.w), p: w.p, b: bare(w.w) })) : null; };
+// (2026-11-21, selftest names.nisba_ok) bare() strips the root ل of «لبنان» («بنان») but keeps it in «اللبنانيين» («لبنانيين»): the nisba match also tries the word without that letter
 // every second the name is said in a list of words (the whole name; or its root with a نسبة ending: لبنان → لبناني، اللبنانيين)
 const NISBA = /^(ي|يه|يين|يون|يا|يات)?$/;   // مصر → مصري، مصريين؛ لبنان → اللبناني
 const hitsIn = (W, T) => { const out = []; if (!W || !T.length) return out; const root = T.length === 1 && T[0].length >= 3 ? T[0].replace(/(يه|يين|يون|ي)$/, "") : null;
-  for (let i = 0; i < W.length; i++) { if (T.every((x, k) => W[i + k] && close(W[i + k].b, x)) || (root && root.length >= 3 && W[i].b.startsWith(root) && NISBA.test(W[i].b.slice(root.length)))) out.push({ s: W[i].s, p: W[i].p, w: W.slice(i, i + T.length).map((x) => x.w).join(" ") }); } return out; };
+  for (let i = 0; i < W.length; i++) { if (T.every((x, k) => W[i + k] && close(W[i + k].b, x)) || (root && root.length >= 3 && [W[i].b, W[i].b.replace(/^(ب|ل|ك)/, "")].some((wb) => wb.startsWith(root) && NISBA.test(wb.slice(root.length))))) out.push({ s: W[i].s, p: W[i].p, w: W.slice(i, i + T.length).map((x) => x.w).join(" ") }); } return out; };
 const moments = (ts) => ts.sort((a, b) => a - b).filter((t, k, a) => k === 0 || t - a[k - 1] > 10).length;
 
 export function nameDoubts(p, cands, { audio } = {}) {

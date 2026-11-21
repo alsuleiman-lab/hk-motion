@@ -378,7 +378,8 @@
      "names.single_hit_doubt",
      "names.both_passes_ok",
      "names.full_pass_disagrees",
-     "names.two_moments_ok"
+     "names.two_moments_ok",
+     "names.nisba_ok"
     ],
     "manual": []
    },
@@ -794,14 +795,14 @@
    "what": "كشف اختبار الحراس أن «لبنان» ثم «اللبنانيين» في موضع آخر لا يُعدّان ذكرين، فيبقى الاسم «مشكوكاً».",
    "cause": "bare() في name_doubt يقطع اللام الأولى من «لبنان» كأنها حرف جر («بنان»)، فلا تبدأ النسبة «لبنانيين» بالجذر.",
    "guard": "بلا حارس",
-   "status": "بلا حارس",
+   "status": "محروس ومختبَر",
    "selftest": {
     "cases": [
      "names.nisba_ok"
     ],
     "manual": []
    },
-   "evidence": "اختبار الحراس 2026-11-21 (names.nisba_ok، ثغرة معروفة)؛ أثرها سؤال زائد لا عنصر خاطئ"
+   "evidence": "اختبار الحراس 2026-11-21 (names.nisba_ok، ثغرة معروفة)؛ أثرها سؤال زائد لا عنصر خاطئ; أُصلح 2026-11-21 (name_doubt: مطابقة النسبة بلا الحرف الأول)"
   }
  ]
 }

@@ -468,9 +468,46 @@ export const SheikhRudood: React.FC = () => {
   );
 };
 
+/* التلفاز المعلّق (أمر المستخدم 2026-11-21: «حسّن شكل التلفاز»): إطار رفيع مستدير، ظل وإضاءة خلفية على الجدار، مكبر صوت نحيف تحته */
+const WallTV: React.FC<{ on: boolean; x: number; y: number; w: number; h: number }> = ({ on, x, y, w, h }) => {
+  const b = 16, X = x - b, Y = y - b, W = w + 2 * b, H = h + 2 * b;
+  return (
+    <g>
+      <defs>
+        <radialGradient id="tvGlow" cx="50%" cy="50%" r="60%"><stop offset="0%" stopColor="#ffe2a8" stopOpacity={on ? 0.55 : 0.12} /><stop offset="100%" stopColor="#ffe2a8" stopOpacity={0} /></radialGradient>
+        <linearGradient id="tvBezel" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#3a3a3e" /><stop offset="100%" stopColor="#151517" /></linearGradient>
+        <filter id="tvShadow" x="-10%" y="-10%" width="120%" height="130%"><feGaussianBlur stdDeviation="14" /></filter>
+      </defs>
+      <ellipse cx={X + W / 2} cy={Y + H / 2} rx={W * 0.68} ry={H * 0.8} fill="url(#tvGlow)" />
+      <rect x={X + 10} y={Y + 22} width={W} height={H} rx={18} fill="#000" opacity={0.28} filter="url(#tvShadow)" />
+      <rect x={X + W / 2 - 90} y={Y + 40} width={180} height={H - 80} rx={8} fill="#2a2522" opacity={0.5} />
+      <rect x={X} y={Y} width={W} height={H} rx={18} fill="url(#tvBezel)" stroke={INK} strokeWidth={4} />
+      <rect x={X + 5} y={Y + 5} width={W - 10} height={H - 10} rx={14} fill="none" stroke="#5a5a60" strokeWidth={1.5} opacity={0.7} />
+      <rect x={x} y={y} width={w} height={h} rx={4} fill="#0e0d0c" />
+      <circle cx={X + W - 34} cy={Y + H - 8} r={3.5} fill={on ? "#7cf27a" : "#e2423a"} />
+      <rect x={X + W / 2 - 300} y={Y + H + 22} width={600} height={30} rx={15} fill="url(#tvBezel)" stroke={INK} strokeWidth={3} />
+      {Array.from({ length: 30 }).map((_, k) => <circle key={k} cx={X + W / 2 - 270 + k * 18.6} cy={Y + H + 37} r={2.2} fill="#55555a" />)}
+    </g>
+  );
+};
+
 /* ===== فيديو «شيخ الردود» يرد على مقطع «صلاح الدين» (طولي) =====
    المكان رقم ١ والشخصية رقم ٤ (أمر المستخدم 2026-11-20) بنظارة سوداء كبيرة شبه مربعة وشارب أخف، والفم يتحرك بصوته.
    يشغّل مقطعها (وجهها مطموس) على الشاشة الكبيرة، ثم يتوقف المقطع ويرد بالصوت المعتمد. */
+/* تبديل خفيف للباسه في كل فيديو جديد (أمر المستخدم 2026-11-21: «غيّر شوي بلباس الشيخ… حتى ما يبين مستنسخ»):
+   الوجه واللحية والنظارة والشعر والمكان ثابتة، ويتغير لون السترة أو نوعها أو القميص أو البنطال أو الحذاء.
+   كل فيديو يأخذ رقماً جديداً بالترتيب: ٠ صلاح الدين. */
+export const RUDOOD_OUTFITS: Partial<Design>[] = [
+  { top: "leather", c1: "#5a3524", c2: "#9aa0a3", pants: "#2f3a4a", shoe: "#f2efe8", shoeAcc: "#5a3524" },
+  { top: "leather", c1: "#2f2a26", c2: "#e8e2d6", pants: "#3d4a5c", shoe: "#ede8dd", shoeAcc: "#2f2a26" },
+  { top: "bomber", c1: "#4a5a3a", c2: "#efe9dc", pants: "#2f3a4a", shoe: "#f4f1ea", shoeAcc: "#4a5a3a" },
+  { top: "denim", c1: "#41607f", c2: "#f1ece2", pants: "#3a3530", shoe: "#5a3a26", shoeAcc: "#e9dcc4" },
+  { top: "quarterzip", c1: "#6b2f2b", c2: "#e6e1d6", pants: "#2f3a4a", shoe: "#f3efe7", shoeAcc: "#6b2f2b" },
+  { top: "leather", c1: "#7a4a2a", c2: "#2f3338", pants: "#26303d", shoe: "#2c2f33", shoeAcc: "#e9e4d8" },
+  { top: "cardigan", c1: "#8a6a44", c2: "#f2ede3", pants: "#3b3e43", shoe: "#3a2a20", shoeAcc: "#d9c9a8" },
+  { top: "track", c1: "#2b3f36", c2: "#efe6cf", pants: "#2f3338", shoe: "#f5f2ec", shoeAcc: "#2b3f36" },
+];
+export const rudoodLook = (n: number): Design => ({ ...DESIGNS[3], chair: DESIGNS[0].chair, chairStyle: DESIGNS[0].chairStyle, wall: DESIGNS[0].wall, wall2: DESIGNS[0].wall2, floor: DESIGNS[0].floor, decor: DESIGNS[0].decor, device: "wall", arm: "rest", glasses: true, lightMustache: true, ...RUDOOD_OUTFITS[n % RUDOOD_OUTFITS.length] });
 const RUDOOD4: Design = { ...DESIGNS[3], chair: DESIGNS[0].chair, chairStyle: DESIGNS[0].chairStyle, wall: DESIGNS[0].wall, wall2: DESIGNS[0].wall2, floor: DESIGNS[0].floor, decor: DESIGNS[0].decor, device: "wall", arm: "rest", glasses: true, lightMustache: true };
 const ON = 15, CLIP = 276, REPLY_AT = ON + CLIP + 12, REPLY = SALADIN_MOUTH.length;
 export const RUDOOD_SALADIN_FRAMES = REPLY_AT + REPLY + 36;
@@ -502,10 +539,7 @@ export const RudoodSaladin: React.FC = () => {
           {Array.from({ length: 10 }).map((_, i) => <Line key={i} d={`M0,${FL + 16 + i * 28} L1080,${FL + 16 + i * 28}`} c={shade(d.floor, -0.15)} w={2} />)}
           <ellipse cx={540} cy={FL + 110} rx={420} ry={64} fill={shade(d.floor, 0.25)} stroke={INK} strokeWidth={3} />
           <ellipse cx={540} cy={FL + 110} rx={376} ry={48} fill="none" stroke={shade(d.floor, -0.1)} strokeWidth={6} strokeDasharray="14 10" />
-          <ellipse cx={540} cy={430} rx={560} ry={330} fill="#fff6d8" opacity={f >= ON ? 0.16 : 0.04} />
-          <Ink d="M56,150 h968 v568 h-968 Z" fill="#26211d" sw={6} />
-          <rect x={SX} y={SY} width={SWD} height={SHT} fill="#141210" />
-          <Ink d="M500,718 h80 v22 h-80 Z" fill="#3b332c" sw={3} />
+          <WallTV on={f >= ON} x={SX} y={SY} w={SWD} h={SHT} />
           <g transform="translate(24,910) scale(0.95)">
             <Ink d="M0,0 h170 v560 h-170 Z" fill="#7a4b2c" />
             {[0, 1, 2, 3].map((rr) => (
@@ -543,6 +577,7 @@ export const RudoodSaladin: React.FC = () => {
           )}
           <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 14, background: "rgba(0,0,0,.45)" }} />
           <div style={{ position: "absolute", left: 8, bottom: 5, height: 4, width: (SWD - 16) * interpolate(f, [ON, ON + CLIP], [0.04, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }), background: "#e2423a" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(115deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 32%, rgba(255,255,255,0) 100%)" }} />
           <div style={{ position: "absolute", inset: 0, background: "#fff", opacity: flash }} />
         </div>
       </AbsoluteFill>

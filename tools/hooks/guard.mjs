@@ -40,11 +40,22 @@ const deny = (reason) => emit({ hookSpecificOutput: { hookEventName: "PreToolUse
 const ask = (reason) => emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: reason } });
 /* THE STUDIO «راسلني» MESSAGES ARE NEVER MISSED (user 2026-11-21, gta6: four notes sat unread in the inbox until he sent a screenshot — «ليش ما اشتغلت عليها؟»).
    Every message of the last 24 h without a reply is handed to the agent on every prompt and after every tool, until it is answered (tools/hk_inbox.mjs reply). */
-const inboxOpen = () => {
+/* (2026-11-21: two «شيخ الردود» notes bound the GTA/engine session too) a note binds only the session that OWNS its video: the first segment of its composition
+   (Rudood-Sultan → «rudood») is owned by the last session whose tool calls named it (.tmp/hk_inbox_owners.json, 6 h); an unowned note binds every session */
+const OWN_F = path.join(ROOT, ".tmp", "hk_inbox_owners.json");
+const compKey = (c) => String(c ?? "").toLowerCase().split(/[-_ ]/)[0];
+const readOwners = () => { try { return JSON.parse(fs.readFileSync(OWN_F, "utf8")); } catch { return {}; } };
+const inboxAll = () => { try { return fs.readFileSync(path.join(ROOT, ".tmp", "hk_inbox.jsonl"), "utf8").split(/\r?\n/).filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean); } catch { return []; } };
+const mine = (m, sid) => { const o = readOwners()[compKey(m.comp)]; return !o || !sid || o.session === sid || Date.now() - o.at > 6 * 3600e3; };
+/** this session's tool call names a video of a Studio note (its composition key) → it owns that video's notes */
+const noteOwnership = (sid, text) => {
+  if (!sid || !text) return; const t = String(text).toLowerCase(), keys = [...new Set(inboxAll().filter((m) => Date.now() - Date.parse(m.at ?? 0) < 7 * 86400e3).map((m) => compKey(m.comp)))].filter((k) => k.length >= 3 && t.includes(k));
+  if (!keys.length) return; const o = readOwners(); for (const k of keys) o[k] = { session: sid, at: Date.now() };
+  try { fs.writeFileSync(OWN_F, JSON.stringify(o)); } catch { /* next call */ }
+};
+const inboxOpen = (sid = input.session_id) => {
   try {
-    const f = path.join(ROOT, ".tmp", "hk_inbox.jsonl"); if (!fs.existsSync(f)) return "";
-    const open = fs.readFileSync(f, "utf8").split(/\r?\n/).filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } })
-      .filter((m) => m && !m.reply && Date.now() - Date.parse(m.at ?? 0) < 24 * 3600e3);
+    const open = inboxAll().filter((m) => !m.reply && Date.now() - Date.parse(m.at ?? 0) < 24 * 3600e3 && mine(m, sid));
     return open.length ? `📩 رسائل من الاستوديو بلا رد (${open.length}) — اعمل عليها الآن ثم ردّ بـ node tools/hk_inbox.mjs reply <id> "…":\n` + open.map((m) => `  #${m.id} ${m.comp ?? ""} إطار ${m.frame ?? "?"}: «${String(m.text ?? "").slice(0, 160)}»`).join("\n") : "";
   } catch { return ""; }
 };
@@ -169,7 +180,10 @@ if (mode === "pre") {
   }
   if (["Write", "Edit", "NotebookEdit"].includes(tool)) {
     const f = ti.file_path ?? ti.notebook_path;
-    if (f && isRuleFile(f)) {
+    /* (user 2026-11-21: «مللت من هذه الرسالة، كل شوي تطلع لي… بدي اظل طول الوقت جالس بس احط موافق») one approval per session covers its rule edits for 3 h:
+       the PostToolUse of an approved rule edit stamps .tmp/rules_edit_ok.json[session] (post runs only after he allowed it) */
+    let okRules = false; try { okRules = Date.now() - (JSON.parse(fs.readFileSync(path.join(ROOT, ".tmp", "rules_edit_ok.json"), "utf8"))[input.session_id] ?? 0) < 3 * 3600e3; } catch { /* none yet */ }
+    if (f && isRuleFile(f) && !okRules) {
       emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: `تعديل ملف قواعد/مهارة (${rel(f)}): لا يُنفَّذ إلا بتوجيه صريح من المستخدم، ويُحلّ الجديد محل القديم في الدورة نفسها وينتقل القديم للسجل (بروتوكول الإحلال). وافق فقط إن كان هذا ما طلبه.` } });
     }
   }
@@ -304,9 +318,13 @@ if (mode === "pre") {
 
 if (mode === "post") {
   const ti = input.tool_input ?? {};
+  if (!input.agent_id) noteOwnership(input.session_id, [ti.command, ti.file_path, ti.path, ti.pattern].filter(Boolean).join(" "));
   const f = ti.file_path ?? ti.notebook_path;
   // GUARD SELF-TEST (user 2026-11-21: «اعمل خطة سبر لكل ما يجنبك الوقوع في الأخطاء مستقبلا»): an edit of a guarded tool re-runs its cases (tools/guard_selftest.mjs, data/error_ledger.json); silent when all pass
-  if (f && !inWorktree(f) && /^tools\/.+\.mjs$/.test(rel(f))) { const st = spawnSync("node", ["tools/guard_selftest.mjs", "--hook", rel(f)], { cwd: ROOT, encoding: "utf8", timeout: 20000 }); if (st.status !== 0) emit({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: ((st.stdout || "").trim() || `✘ اختبار الحراس لم يعمل بعد تعديل ${rel(f)}: ${(st.stderr || "انتهت المهلة").trim().slice(-400)}`).slice(-3000) } }); }
+  /* (user 2026-11-21: «النص ساعة هذا الحد الأعلى») an ENGINE file (tools/rehearsal.mjs isEngineFile, also its .py/.sh and src/MontageSpec…) gets ONE suggestion line
+     «شغّل التجربة الكاملة» from the same call even when every case passes (a suggestion, never an automatic run: the rehearsal takes many minutes; once per file per 30 min) */
+  if (f && !inWorktree(f) && /^(tools\/.+\.mjs|tools\/.+\.(py|sh)|src\/(MontageSpec|SpecComps|MontageBoth)\.tsx)$/.test(rel(f))) { const st = spawnSync("node", ["tools/guard_selftest.mjs", "--hook", rel(f)], { cwd: ROOT, encoding: "utf8", timeout: 20000 }); if (st.status !== 0) emit({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: ((st.stdout || "").trim() || `✘ اختبار الحراس لم يعمل بعد تعديل ${rel(f)}: ${(st.stderr || "انتهت المهلة").trim().slice(-400)}`).slice(-3000) } }); else if ((st.stdout || "").trim() && !isRuleFile(f)) emit({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: st.stdout.trim().slice(-1000) } }); }
+  if (f && isRuleFile(f) && input.session_id) { try { const okF = path.join(ROOT, ".tmp", "rules_edit_ok.json"); let o = {}; try { o = JSON.parse(fs.readFileSync(okF, "utf8")); } catch { /* first */ } o[input.session_id] = Date.now(); fs.writeFileSync(okF, JSON.stringify(o)); } catch { /* next edit asks again */ } }
   if (f && isRuleFile(f)) {
     const r = spawnSync("node", ["tools/rules_audit.mjs"], { cwd: ROOT, encoding: "utf8" });
     const out = (r.stdout || r.stderr || "").trim();
@@ -434,7 +452,7 @@ if (mode === "stop") {
      watcher beats (its end is what wakes this session when he writes in «راسلني»), nor with a message of his still without a reply. Main session only. */
   if (!input.agent_id) try {
     const W = await import("../lib/inbox_watch.mjs");
-    const open = W.openMessages().filter((m) => Date.now() - new Date(m.at).getTime() < 24 * 3600e3);
+    const open = W.openMessages().filter((m) => Date.now() - new Date(m.at).getTime() < 24 * 3600e3 && mine(m, input.session_id));
     if (open.length) emit({ decision: "block", reason: `رسائل من الاستوديو بلا رد (${open.length}): ${open.map((m) => `#${m.id} «${String(m.text).slice(0, 80)}»`).join(" · ")} — اعمل عليها ثم ردّ بـ node tools/hk_inbox.mjs reply <id> "…" قبل أن تتوقف.` });
     if (W.studiosAlive().length && !W.watcherAlive()) emit({ decision: "block", reason: "الاستوديو مفتوح ولا مراقب لرسائله: شغّل الآن في الخلفية (run_in_background) الأمر: cd /s/AI_Tools/Remotion_Workspace; node tools/hk_inbox.mjs wait — ثم توقف. انتهاؤه هو ما يوقظك حين يكتب في «راسلني»." });
   } catch { /* the watcher check never breaks the stop */ }

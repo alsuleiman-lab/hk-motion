@@ -674,15 +674,26 @@ const installHK = () => {
   /* THE RIGHT PANEL (user 2026-11-21: «اخف من ريموشن الجديد الأدوات التي لا أستخدمها… قائمة يسرى للمقاطع… قائمة يمنى فيها زر ازالة جزء محدد، وزر المراسلة
      معك، وزر الرندر، وزر يفتح خيارات تغيير الإضاءة»): the HK tools stand in a column over the Studio's right panel; the other tools (تحريك، حذف موسيقى، المعرض،
      الطابور، المظهر) are built but not shown. Remotion's own menu, its Render button and the «تحديد» bookmarks are hidden (CSS below). */
-  row.style.cssText = "position:fixed;z-index:2147482000;display:none;flex-direction:column;align-items:stretch;gap:8px;box-sizing:border-box;padding:12px 10px;background:var(--hk-bg2);border-left:1px solid var(--hk-line-strong);direction:rtl;font:600 13px Tahoma,Arial,sans-serif;color:var(--hk-text);overflow-y:auto";
-  const big = (b: HTMLButtonElement) => { b.style.height = "38px"; b.style.fontSize = "14px"; b.style.width = "100%"; return b; };
-  const head = (t: string) => { const h = document.createElement("div"); h.textContent = t; h.style.cssText = "margin-top:6px;color:var(--hk-dim);font:700 12px Tahoma,Arial,sans-serif"; return h; };
-  const pair = document.createElement("div"); pair.style.cssText = "display:flex;gap:6px"; bA.style.flex = "1 1 0"; bB.style.flex = "1 1 0"; bA.style.height = "34px"; bB.style.height = "34px"; pair.append(bA, bB);
-  bCol.textContent = "الإضاءة والألوان"; bDel.textContent = "احذف الجزء المحدد";
-  info.style.cssText = "flex:0 0 auto;white-space:normal;line-height:1.6;font-size:12px;user-select:text;-webkit-user-select:text";
-  tag.style.textAlign = "center";
-  bRen.style.color = "var(--hk-bg)"; bMsg.style.color = "var(--hk-bg)"; bRen.style.fontWeight = "800"; bMsg.style.fontWeight = "800";
-  row.append(tag, big(bRen), big(bMsg), head("إزالة جزء"), pair, big(bDel), head("الصورة"), big(bCol), info);
+  /* (user 2026-11-21: «الشريط الجانبي الأيمن لازم يكون صغير جدا، عبارة عن خط واحد وفيه رموز… من الجوال اخفاؤه واظهاره، مساحته فقط مساحة الرمز») one thin
+     column of icons at the right edge (its width = one icon); the names are tooltips; a small tab hides/shows it (remembered); messages appear as a toast beside it.
+     Remotion's own right panel is folded (its «Collapse right sidebar» button) so the strip costs no other space. */
+  row.style.cssText = "position:fixed;right:0;top:34px;z-index:2147482000;display:none;flex-direction:column;align-items:center;gap:6px;box-sizing:border-box;padding:6px 3px;width:40px;background:var(--hk-bg2);border:1px solid var(--hk-line-strong);border-right:0;border-radius:10px 0 0 10px;direction:rtl";
+  const ico = (b: HTMLButtonElement, icon: string, name: string, bg?: string) => { b.textContent = icon; b.title = name; b.setAttribute("aria-label", name); b.dataset.icon = icon; b.style.cssText = `flex:0 0 auto;width:34px;height:34px;padding:0;border:1px solid var(--hk-line-strong);border-radius:8px;background:${bg ?? "var(--hk-btn)"};color:var(--hk-text);font:16px "Segoe UI Emoji",Tahoma,Arial,sans-serif;line-height:32px;text-align:center;cursor:pointer`; return b; };
+  ico(bRen, "🎬", "رندر هذا الفيديو", "var(--hk-accent)"); ico(bMsg, "✉️", "راسلني على هذه اللحظة", "var(--hk-accent)");
+  ico(bA, "⇤", "بداية الجزء المراد حذفه"); ico(bB, "⇥", "نهاية الجزء المراد حذفه"); ico(bDel, "✂️", "احذف الجزء المحدد", "var(--hk-danger)"); ico(bCol, "☀️", "الإضاءة والألوان");
+  const sep = () => { const d = document.createElement("div"); d.style.cssText = "width:22px;height:1px;background:var(--hk-line-strong);margin:2px 0"; return d; };
+  info.style.cssText = "position:absolute;right:44px;top:0;max-width:min(70vw,360px);display:none;padding:7px 10px;border-radius:9px;background:var(--hk-bg2);border:1px solid var(--hk-line-strong);font:600 12px Tahoma,Arial,sans-serif;line-height:1.6;white-space:normal;box-shadow:0 4px 14px rgba(0,0,0,.35);user-select:text;-webkit-user-select:text";
+  let toastT = 0;
+  new MutationObserver(() => { const t = (info.textContent ?? "").trim(); info.style.display = t ? "block" : "none"; window.clearTimeout(toastT); if (t && !t.startsWith("⏳")) toastT = window.setTimeout(() => { info.textContent = ""; }, 9000); }).observe(info, { childList: true, characterData: true, subtree: true });
+  const strip = document.createElement("div"); strip.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:6px";
+  strip.append(bRen, bMsg, sep(), bA, bB, bDel, sep(), bCol);
+  // the hide/show tab: on a phone the strip folds to this one small tab
+  const tog = document.createElement("button"); tog.type = "button"; tog.style.cssText = "width:34px;height:20px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--hk-dim);font:700 13px Arial,sans-serif;cursor:pointer";
+  const HIDE = "__hk_strip_hidden"; let hidden = false; try { hidden = localStorage.getItem(HIDE) === "1"; } catch { /* default shown */ }
+  const applyHide = () => { strip.style.display = hidden ? "none" : "flex"; tog.textContent = hidden ? "◂" : "▸"; tog.title = hidden ? "أظهر الأدوات" : "أخفِ الأدوات"; };
+  tog.addEventListener("click", () => { hidden = !hidden; try { localStorage.setItem(HIDE, hidden ? "1" : "0"); } catch { /* ignore */ } applyHide(); });
+  applyHide();
+  row.append(tog, strip, info);
   void bMove; void bMus; void bGal; void bQue; void bTheme;
   if (!document.getElementById("__hk_hide_css")) {
     const css = document.createElement("style"); css.id = "__hk_hide_css";
@@ -702,7 +713,9 @@ const installHK = () => {
   bGal.addEventListener("click", () => { try { openGalleryPanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // the gallery sheet (src/hkGalleryPanel.ts)
   const paint = (msg?: string, color?: string) => {
     const r = loadR(comp());
-    bA.textContent = r.a != null ? `بداية ${r.a}` : "بداية"; bB.textContent = r.b != null ? `نهاية ${r.b}` : "نهاية";
+    /* icons stay icons: a set point lights its button and its frame goes into the tooltip */
+    bA.title = r.a != null ? `بداية الجزء: الإطار ${r.a}` : "بداية الجزء المراد حذفه"; bB.title = r.b != null ? `نهاية الجزء: الإطار ${r.b}` : "نهاية الجزء المراد حذفه";
+    bA.style.background = r.a != null ? "var(--hk-btn-on)" : "var(--hk-btn)"; bB.style.background = r.b != null ? "var(--hk-btn-on)" : "var(--hk-btn)";
     if (msg !== undefined) { info.textContent = msg; info.style.color = color ?? "var(--hk-text)"; }
   };
   const setPt = (k: "a" | "b") => () => { const f = frameNow(); if (f === null) return; const c = comp(), r = loadR(c); r[k] = f; saveR(c, r); paint(""); };
@@ -769,13 +782,9 @@ const installHK = () => {
       const col = column(), c = comp();
       if (!col || !c) { row.style.display = "none"; return; }
       if (row.parentElement !== document.body) document.body.appendChild(row);
-      // over the Studio's right panel (the one with the «Jobs» tab); if it is folded, a 220-px column at the right edge under the top bar
-      const jobs = [...document.querySelectorAll<HTMLElement>("div")].find((e) => e.childElementCount === 0 && e.textContent?.trim() === "Jobs");
-      let side: HTMLElement | null = jobs ?? null;
-      while (side && !(side.classList.contains("css-reset") && side.getBoundingClientRect().height > 200)) side = side.parentElement;
-      const r = side?.getBoundingClientRect(), open = !!r && r.width > 120;
-      const want = open && r ? `${Math.round(r.left)}|${Math.round(r.top)}|${Math.round(r.width)}|${Math.round(r.height)}` : `${window.innerWidth - 220}|30|220|${Math.max(200, Math.round(col.getBoundingClientRect().bottom - 30))}`;
-      if (row.dataset.pos !== want) { row.dataset.pos = want; const [l, t, w2, h2] = want.split("|"); Object.assign(row.style, { left: `${l}px`, top: `${t}px`, width: `${w2}px`, height: `${h2}px` }); }
+      // the strip sits at the right edge; Remotion's own right panel is folded once per page (the user never uses it)
+      const fold = document.querySelector<HTMLElement>('button[aria-label="Collapse right sidebar"]');
+      if (fold && row.dataset.folded !== "1") { row.dataset.folded = "1"; fold.click(); }
       if (row.style.display !== "flex") row.style.display = "flex";
       if (c !== lastComp) { lastComp = c; paint(""); }
     } catch { /* never break the Studio */ }

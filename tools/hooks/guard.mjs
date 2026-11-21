@@ -160,6 +160,25 @@ if (mode === "pre") {
   }
   if (tool === "Bash" || tool === "PowerShell") {
     const c = String(ti.command ?? "");
+    /* DESTRUCTIVE TOOLS = MAIN SESSION ONLY, AFTER THE USER'S YES (user 2026-11-21: a sub-agent ran `montage_guard.mjs end` — the approval purge — so the reel files
+       were deleted and the original recording trashed). A sub-agent's call carries input.agent_id (Claude Code hook input; seen 2026-11-21 in .tmp/hooks_alive.json,
+       which this hook writes on every run). The main session has no agent_id (under --agent it gets agent_type only), and it asks the user in chat first.
+       Refused for a sub-agent: montage_guard start/end, approve_purge, trash_file, cleanup_leftovers, and any delete (shell rm/del/Remove-Item…, or code rmSync/
+       os.remove/shutil.rmtree/Recycle Bin…) that names public/, .tmp/<project>/, data/specs/ or C:\Users\mshms\Videos\جاهز (or runs after a cd into one). */
+    if (input.agent_id) {
+      const n = norm(c);
+      const TOOL = /\b(node|bun|deno|bash|sh)(\.exe)?["']?\s[^;&|\n]*(montage_guard\.mjs["']?\s+["']?(start|end)\b|approve_purge\.mjs|trash_file\.mjs|cleanup_leftovers\.mjs)/i;
+      const PROT = /(^|[\s"'=(,:\/])(public|data\/specs)(\/|["'\s;)]|$)|(^|[\s"'=(,:\/])\.tmp(\/|["'\s;)]|$)|Videos\/جاهز/i;
+      const SHELL_DEL = /(^|[\s;&|({`])(rm|rmdir|unlink|shred|del|erase|rd|ri|Remove-Item|Clear-Content)(\.exe)?(\s|$)|\bgit\s+(rm|clean)\b|\s-delete\b|-exec\s+rm\b|\bxargs\s+(-\S+\s+)*rm\b/i;
+      const CODE_DEL = /\b(rmSync|rmdirSync|unlinkSync|rm|unlink|rmdir)\s*\(|\bos\.(remove|unlink|rmdir|removedirs)\b|\bshutil\.rmtree\b|\bsend2trash\b|\.Delete\s*\(|::Delete(File|Directory)?\b|SendToRecycleBin|\bRemove-Item\b/i;
+      let hit = TOOL.test(n) || (CODE_DEL.test(n) && PROT.test(n));
+      let inProt = PROT.test(norm(input.cwd ?? "") + "/");
+      for (const seg of n.split(/&&|\|\||;|\r?\n/)) {
+        if (/^\s*(cd|pushd|Set-Location|sl)\s/i.test(seg)) inProt = PROT.test(seg);
+        if (SHELL_DEL.test(seg) && (inProt || PROT.test(seg))) hit = true;
+      }
+      if (hit) deny("أداة حذف — للجلسة الرئيسية فقط بعد إذن المستخدم (أمر المستخدم 2026-11-21: وكيل شغّل «اعتماد المونتاج» فحذف ملفات الريل ورمى التسجيل الأصلي). لا يشغّل الوكيل: بدء المونتاج أو إنهاءه، ولا مسح الاعتماد، ولا الرمي إلى السلة، ولا حذف شيء في public/ أو .tmp/<المشروع>/ أو data/specs/ أو مجلد «جاهز». اذكر ما تريد حذفه في تقريرك، والجلسة الرئيسية تسأل المستخدم.");
+    }
     /* KICKOFF (user 2026-11-20, gta6): a montage starts with tools/montage_kickoff.mjs, which runs the prep AND every independent lane together in the
        background; a bare `stage.mjs prep` is how the serial montage began */
     if (/\bstage\.mjs\s+prep\b/.test(c) && !/montage_kickoff/.test(c) && !/--help/.test(c)) {

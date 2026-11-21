@@ -27,7 +27,7 @@ const dry = process.argv.includes("--dry"), ORIG = fs.readFileSync(f, "utf8");
 let lastW = ORIG;
 const guardFile = () => { const now = fs.readFileSync(f, "utf8"); if (now !== lastW) { console.error(`✘ spec_normalize: ${f} تغيّر أثناء عملي (عدّله غيري) — لم أكتب فوقه؛ أعد التشغيل`); process.exit(3); } };
 const read = () => JSON.parse(fs.readFileSync(f, "utf8"));
-const write = (s) => { guardFile(); s.items.sort((a, b) => (span(a)?.[0] ?? 0) - (span(b)?.[0] ?? 0)); lastW = JSON.stringify(s, null, 1); fs.writeFileSync(f, lastW); };
+const write = (s) => { guardFile(); s.items.sort((a, b) => (span(a)?.[0] ?? 0) - (span(b)?.[0] ?? 0)).sort((a, b) => (b.t === "cover") - (a.t === "cover")); /* the cover stays first (user 2026-11-21) */ lastW = JSON.stringify(s, null, 1); fs.writeFileSync(f, lastW); };
 const span = (it) => { const a = it.at ?? it.from ?? it.oldAt ?? it.times?.[0]; const b = it.until ?? it.to ?? (it.dur != null && a != null ? a + it.dur : null) ?? (a != null ? a + 3 : null); return a == null ? null : [a, b]; };
 const sh0 = (c) => { try { return execSync(c, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 1 << 26 }); } catch (e) { return String(e.stdout || "") + String(e.stderr || ""); } };
 /* a sub-tool of this run that writes the spec (--write/--fix/scraps_times) is this run's own write: the guard checks before it, and takes its result after */

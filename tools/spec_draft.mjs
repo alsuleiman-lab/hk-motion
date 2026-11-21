@@ -16,6 +16,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { recordingDate } from "./episode_date.mjs";
 import { pickBrand } from "./pick_brand.mjs";
+import { coverItem } from "./cover_item.mjs";
 
 const argv = process.argv.slice(2);
 const p = argv[0];
@@ -94,6 +95,9 @@ for (const v of read(path.join(T, "verses.json"), [])) {
 items.sort((a, b) => (a.at ?? a.from) - (b.at ?? b.from));
 
 // the planned camera moves (tools/moves_plan.mjs, run by stage cut): push-ins + shake, reviewed in the plan
+/* THE COVER FIRST (user 2026-11-21, GTA 6 reels rendered without it: «يعني يكون الغلاف في أوله»): every draft starts with the cover picture item (tools/cover_item.mjs);
+   a full render and the final review refuse a spec without it or with its picture missing */
+items.unshift(coverItem(p, kind === "reel" ? { kind: "reel" } : {}));
 const moves = read(path.join(T, "moves.json"), { zooms: [], shake: [] });
 const zooms = moves.zooms.map(({ from, to }) => ({ from, to })), shake = moves.shake.map(({ from, to }) => ({ from, to }));
 const spec = { id: p, title, ...(kind === "reel" ? { kind: "reel" } : { showTitleBar: true }), ...(recordingDate(p) ? { date: recordingDate(p) } : {}), brand: pickBrand(p), frames: Math.round(dur * FPS), cut: `${p}_cut_s.mp4`, cams, zooms, shake, ...(splits.length ? { splits } : {}), galleryRef: true, items };   // ELEMENTS BY REFERENCE (user 2026-11-17): codes + content + timing, size and place from the gallery (src/galleryRef.ts)

@@ -70,6 +70,6 @@ for (const h of list.filter((x) => x.verified && !x.skip)) {
   spec.items.push({ t: "note", at: r2(h.at - 0.05), until, label: "حديث شريف", tag: `${h.book} (${h.n})`, title: h.text, ...(h.narrator ? { narrator: h.narrator } : {}), books: [{ book: h.book, n: h.n }], auto: "hadith_scan" });
   added++;
 }
-spec.items.sort((a, b) => (a.at ?? a.from) - (b.at ?? b.from));
+spec.items.sort((a, b) => (a.at ?? a.from) - (b.at ?? b.from)).sort((a, b) => (b.t === "cover") - (a.t === "cover"));   /* the cover stays first (user 2026-11-21) */
 fs.writeFileSync(specF, JSON.stringify(spec, null, 1));
 console.log(`✔ ${added} hadith card(s) added to ${specF}`);

@@ -22,6 +22,13 @@ const root = path.resolve(import.meta.dirname, "..").replace(/\\/g, "/");
 const compId = arg("comp", null);
 if (!compId || compId === true) { console.error("usage: node tools/gpu_render.mjs --comp <CompositionId> --out <file.mp4> [--start N --end N --under 'a-b,…' --dump 'dir:frames,...']"); process.exit(1); }
 process.chdir(root);
+/* THE COVER FIRST (user 2026-11-21, GTA 6 reels rendered without it: «يعني يكون الغلاف في أوله»): a FULL render of an episode / reel whose first item is not the cover,
+   or whose cover picture is missing, is refused before the lock, the bundle or any frame (tools/cover_item.mjs) */
+if (!["--start", "--end", "--frames"].some((a) => process.argv.includes(a))) {
+  const sid = [arg("spec", null), arg("name", null)].find((x) => x && x !== true) ?? (await import("./cut_lazy.mjs")).projectOf(compId);
+  let sp = null; try { sp = sid ? JSON.parse(fs.readFileSync(path.join(root, "data/specs", `${sid}.json`), "utf8")) : null; } catch { /* no spec: not a montage */ }
+  if (sp) { const why = (await import("./cover_item.mjs")).coverFailure(sid, sp); if (why) { console.error(why); process.exit(1); } }
+}
 try { os.setPriority(process.pid, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch {} // every child (Electron, its GPU process, python, ffmpeg) inherits BelowNormal
 const SMALL_JOB = arg("frames", false) !== false || (arg("start", false) !== false && arg("end", false) !== false && Number(arg("end", 0)) - Number(arg("start", 0)) <= 900);   // a short span / scattered frames may run beside another render (user 2026-11-15)
 acquireRenderLock("gpu " + compId, { small: SMALL_JOB });

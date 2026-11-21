@@ -144,7 +144,7 @@ for (const x of plan) console.log(`  ${x.at.toFixed(1)} s  ${x.kind === "map" ? 
 if (rest.includes("--write")) {
   if (!spec) { console.error(`✘ ${specF} missing`); process.exit(2); }
   for (const x of plan) if (x.kind === "map") spec.items.push(x.item);   // moves were added to their items in place (old or new)
-  spec.items.sort((a, b) => (a.at ?? a.from) - (b.at ?? b.from));
+  spec.items.sort((a, b) => (a.at ?? a.from) - (b.at ?? b.from)).sort((a, b) => (b.t === "cover") - (a.t === "cover"));   /* the cover stays first (user 2026-11-21) */
   fs.writeFileSync(specF, JSON.stringify(spec, null, 1));
   console.log(`✔ ${plan.filter((x) => x.kind === "map").length} map(s) + ${plan.filter((x) => x.kind === "move").length} move(s) written to ${specF}`);
 }

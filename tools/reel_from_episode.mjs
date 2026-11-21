@@ -8,7 +8,7 @@
 // الجمل: تنقسم عند سكتة ≥ sentenceGap (من data/cut_rules.json إن وُجد، وإلا 0.45ث) وعند تبدّل المتحدث وعند كلمة حذفها القص؛ لا قطع داخل كلمة؛ الجملة < 1.2ث تُضم لجارتها من المتحدث نفسه.
 // السياق: دور المتحدث الآخر (متصل/خصم/مقطع) كاملاً من أول كلمة إلى آخرها + جملة رد الشيخ التي تليه؛ لا بداية بأداة ربط ولا نهاية بكلمة معلّقة.
 // البناء: مشروع جديد <episode>-reel شريحةً من قص الحلقة (tools/stream/clip_slice.mjs) + كلماته مزاحة + مواصفة ريل دنيا data/specs/<id>.json (kind "reel")؛ بلا رندر.
-import fs from "node:fs"; import os from "node:os"; import path from "node:path"; import { spawnSync } from "node:child_process";
+import fs from "node:fs"; import os from "node:os"; import path from "node:path"; import { spawnSync } from "node:child_process"; import { coverItem } from "./cover_item.mjs";   /* the cover first (user 2026-11-21: «يعني يكون الغلاف في أوله») */
 try { os.setPriority(process.pid, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch { /* best effort */ }
 process.chdir(path.resolve(import.meta.dirname, ".."));
 
@@ -334,7 +334,7 @@ if (known) {
 }
 const cw = rd(path.join(TR, "cut_words.json"), []);
 fs.writeFileSync(path.join(TR, "reel_source.json"), JSON.stringify({ episode: P, order, wordsFrom, speakersFrom: speakersFrom ?? "none", ranges: chosen.map(({ turns, ...r }) => r), duration: D }, null, 1));
-const spec = { id, title: epSpec.title ?? id, cut: `${id}_cut_s.mp4`, duration: D, frames: Math.round(D * 30), fps: 30, kind: "reel", showTitleBar: false, cams: [], zooms: [], shake: [], items: [], date: epSpec.date ?? new Date().toISOString().slice(0, 10), fromEpisode: { project: P, order, ranges: chosen.map((r) => ({ from: r.from, to: r.to, cutFrom: r.cutFrom, cutTo: r.cutTo })) } };
+const spec = { id, title: epSpec.title ?? id, cut: `${id}_cut_s.mp4`, duration: D, frames: Math.round(D * 30), fps: 30, kind: "reel", showTitleBar: false, cams: [], zooms: [], shake: [], items: [coverItem(id, { kind: "reel", fromEpisode: { project: P } })], date: epSpec.date ?? new Date().toISOString().slice(0, 10), fromEpisode: { project: P, order, ranges: chosen.map((r) => ({ from: r.from, to: r.to, cutFrom: r.cutFrom, cutTo: r.cutTo })) } };
 fs.writeFileSync(path.join("data", "specs", `${id}.json`), JSON.stringify(spec, null, 1));
 // ── 7) البوابة على الناتج ──
 const probe = spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path.join("public", `${id}_cut_s.mp4`)], { encoding: "utf8", windowsHide: true });

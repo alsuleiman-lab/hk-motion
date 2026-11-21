@@ -103,7 +103,7 @@ if (process.argv.includes("--hold")) {
 if (WRITE) {
   const spec = JSON.parse(fs.readFileSync(specF, "utf8"));
   const before = spec.items.filter((x) => x.t === "torn" || x.t === "scraps").length;
-  spec.items = [...spec.items.filter((x) => x.t !== "torn" && x.t !== "scraps"), ...items].sort((a, b) => (a.at ?? a.from ?? 0) - (b.at ?? b.from ?? 0));
+  spec.items = [...spec.items.filter((x) => x.t !== "torn" && x.t !== "scraps"), ...items].sort((a, b) => (a.at ?? a.from ?? 0) - (b.at ?? b.from ?? 0)).sort((a, b) => (b.t === "cover") - (a.t === "cover"));   /* the cover stays first (user 2026-11-21) */
   fs.writeFileSync(specF, JSON.stringify(spec, null, 1));
   console.log(`writing_place: حُذفت ${before} كتابة آلية ووُضعت ${items.length} مختارة`);
 }

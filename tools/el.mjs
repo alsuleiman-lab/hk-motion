@@ -139,7 +139,7 @@ const gateAfter = async (f, p, base, beforeText, what) => {
   try { fs.mkdirSync(path.dirname(baseFile(p)), { recursive: true }); fs.writeFileSync(baseFile(p), JSON.stringify({ hash: hashOf(f), atoms: [...now] })); } catch { /* cache only */ }
   if (now.size) console.log(`  (فحص العنصر: لا مخالفة جديدة؛ ${now.size} مخالفة قديمة باقية في المواصفة)`); else console.log("  (فحص العنصر: المواصفة نظيفة)");
 };
-const save = (f, s) => { ensureIds(s); s.items.sort((a, b) => (span(a)?.[0] ?? 0) - (span(b)?.[0] ?? 0)); fs.writeFileSync(f, JSON.stringify(s, null, 1)); };
+const save = (f, s) => { ensureIds(s); s.items.sort((a, b) => (span(a)?.[0] ?? 0) - (span(b)?.[0] ?? 0)).sort((a, b) => (b.t === "cover") - (a.t === "cover")); /* the cover stays first (user 2026-11-21) */ fs.writeFileSync(f, JSON.stringify(s, null, 1)); };
 let CODE_OF = null;   // spec type → gallery code (src/galleryPlace.ts TYPE_OF)
 const label = (it) => { if (it.el) return it.el; if (!CODE_OF) { const gp = read("src/galleryPlace.ts"); CODE_OF = {}; for (const m of gp.slice(gp.indexOf("TYPE_OF"), gp.indexOf("};", gp.indexOf("TYPE_OF"))).matchAll(/(\w+):\s*"([\w:]+)"/g)) CODE_OF[m[2]] ??= m[1]; } return CODE_OF[it.t === "nameTag" && it.style === "pinned" ? "nameTag:pinned" : it.t] ?? it.t; };
 const textOf = (it) => String(it.text ?? it.name ?? it.title ?? it.q ?? it.myth ?? it.lines?.[0]?.text ?? it.words?.join?.(" ") ?? it.src ?? "").slice(0, 40);

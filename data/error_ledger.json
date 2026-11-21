@@ -114,7 +114,8 @@
    "selftest": {
     "cases": [
      "cov.count_not_year",
-     "cov.counter_waiver_refused"
+     "cov.counter_waiver_refused",
+     "mb.missing_media_no_write"
     ],
     "manual": []
    },
@@ -544,7 +545,9 @@
    "selftest": {
     "cases": [
      "elr.plan_all_at_once",
-     "el.batch_refused_before_apply"
+     "el.batch_refused_before_apply",
+     "mb.template_all_moments",
+     "mb.rule_source_changed_loud"
     ],
     "manual": []
    },
@@ -563,7 +566,8 @@
    "selftest": {
     "cases": [
      "el.no_gate_refused",
-     "el.no_gate_batch_ok"
+     "el.no_gate_batch_ok",
+     "mb.build_first_run_passes"
     ],
     "manual": []
    },

@@ -172,6 +172,10 @@ function mk(code, vals, why) {
   return syncTiming(it);
 }
 class PickError extends Error {}
+/** the builder's own marks ride on an item without ever reaching the spec (non-enumerable) */
+const markOpt = (it) => Object.defineProperty(it, "_opt", { value: true, enumerable: false, writable: true, configurable: true });
+/** the last moment a label word of the item is said after its start (late_check judges a shown label by its words) */
+const labelLastSaid = (it) => { const label = RULE.LC_LABEL.map((k) => it[k]).find((v) => typeof v === "string" && v.trim()); if (!label) return null; const T = toksOf(label, RULE.LC_STOP), [a, b] = spanOf(it), end = (it.until ?? b) - RULE.HOLD + 0.3; /* its own sentence only: the same word said again later is another moment */ const ws = WORDS.filter((w) => w.s >= a - 0.5 && w.s <= end && T.some((q) => tokMatch(q, bare(w.w)))); return ws.length ? ws.at(-1).s : null; };
 
 // ───────────── 4) THE MOMENTS (everything that needs a choice)
 const matchImage = (text, t) => {
@@ -381,6 +385,8 @@ class Board {
     /* grid_plan, portrait: while a gallery pick / hadith / verse is up (and around it) the portrait screen is split (PORT_ZONES), and a split portrait has no
        slot for a list card or the name / subscribe card */
     if (FORMS.includes("port") && ["rows", "nameTag", "subscribe"].includes(it.t)) for (const z of portZones(this.items)) if (a < z[1] + SLOT_GAP && b > z[0] - SLOT_GAP) { out.push({ split: true, port: true }); break; }
+    /* …and the other way: a pick / hadith / verse brings its own portrait split, which may not fall on a list card or a name / subscribe card already placed */
+    if (FORMS.includes("port") && ["pick", "note", "verse"].includes(it.t)) { const z = portZones([{ ...it, ...(it.until != null || it.t === "pick" ? { until: b } : {}), at: it.at != null ? a : it.at }])[0]; if (z) for (const x of this.items) if (["rows", "nameTag", "subscribe"].includes(x.t)) { const [xa, xb] = spanOf(x); if (xa < z[1] + SLOT_GAP && xb > z[0] - SLOT_GAP && !out.includes(x)) out.push(x); } }
     return out;
   }
   add(it) { this.items.push(it); }
@@ -432,21 +438,21 @@ function buildItems(picks, log) {
   const rk = ({ m, c }) => (c.el === "StatRow" && !["questions", "conditions"].includes(m.kind) ? 2.5 : null) ?? ({ verse: 4, hadith: 4, order: 3.6, person: 3.5, place: 3.4, mention: 3.3, required: 3.3, depict: 3.2, state: 3.2, episode: 3.1, due: 2.4, questions: 2.6, conditions: 2.6, date: 2.5, number: 1.5 }[m.kind] ?? 2);
   order.sort((x, y) => rk(y) - rk(x) || x.m.t - y.m.t);
   const metaUsed = [];
-  for (const { m, c } of order) {
-    if (!c.el) { if (c.media) media.push({ id: m.id, need: `${m.need} عند ${mm(m.t)} — ${c.note}` }); continue; }
+  const placeOne = ({ m, c }) => {
+    if (!c.el) { if (c.media) media.push({ id: m.id, need: `${m.need} عند ${mm(m.t)} — ${c.note}` }); return; }
     /* a due gallery pick is satisfied by any item of it (pick_triggers: used anywhere, or an allowed alternative) */
-    if (m.kind === "due" && out.some((x) => x.el === m.el || m.also.includes(x.el) || m.also.includes(x.t))) continue;
+    if (m.kind === "due" && out.some((x) => x.el === m.el || m.also.includes(x.el) || m.also.includes(x.t))) return;
     /* two orders for one moment («tphoto@3:36» twice): one item of that type there serves both (requirements: has(type, at ± 0.5)) */
-    if (m.kind === "order" && out.some((x) => x.t === m.type && spanOf(x)[0] <= m.t + 0.5 && spanOf(x)[1] >= m.t - 0.5)) continue;
+    if (m.kind === "order" && out.some((x) => x.t === m.type && spanOf(x)[0] <= m.t + 0.5 && spanOf(x)[1] >= m.t - 0.5)) return;
     /* a required element of the same kind already there (a news card, a date) serves the rule too (coverage §1b window) */
-    if (m.kind === "required" && out.some((x) => (m.needTypes.includes(x.t) || m.needTypes.includes("*")) && (!m.rule?.srcPrefix || String(x.src ?? x.img ?? "").startsWith(m.rule.srcPrefix)) && spanOf(x)[0] <= m.t + m.after && spanOf(x)[1] >= m.t - m.before)) continue;
+    if (m.kind === "required" && out.some((x) => (m.needTypes.includes(x.t) || m.needTypes.includes("*")) && (!m.rule?.srcPrefix || String(x.src ?? x.img ?? "").startsWith(m.rule.srcPrefix)) && spanOf(x)[0] <= m.t + m.after && spanOf(x)[1] >= m.t - m.before)) return;
     /* a picture already on screen at this moment (an order or a person row placed it) serves the mention / row too (requirements + coverage: any visual there) */
-    if (["mention", "person", "depict", "state"].includes(m.kind) && out.some((x) => (m.visual ? RULE.VISUAL.has(x.t) : (m.needTypes ?? []).includes(x.t) || RULE.VISUAL.has(x.t)) && spanOf(x)[0] <= m.t + Math.min(4, m.after ?? 4) && spanOf(x)[1] >= m.t - Math.min(3, m.before ?? 3))) { const d = defaults.findIndex((x) => x.id === m.id); if (d >= 0) defaults.splice(d, 1); continue; }
+    if (["mention", "person", "depict", "state"].includes(m.kind) && out.some((x) => (m.visual ? RULE.VISUAL.has(x.t) : (m.needTypes ?? []).includes(x.t) || RULE.VISUAL.has(x.t)) && spanOf(x)[0] <= m.t + Math.min(4, m.after ?? 4) && spanOf(x)[1] >= m.t - Math.min(3, m.before ?? 3))) { const d = defaults.findIndex((x) => x.id === m.id); if (d >= 0) defaults.splice(d, 1); return; }
     let it;
     try {
       if (c.el === "PaperMap") it = mapItem(m, c.vals);
       else it = mk(c.el, contentFor(c.el, m, c.vals), m.id);
-    } catch (e) { if (e instanceof PickError) { notes.push(`✘ ${m.id}: ${e.message}`); media.push({ id: m.id, need: `${m.need}: ${e.message}` }); continue; } throw e; }
+    } catch (e) { if (e instanceof PickError) { notes.push(`✘ ${m.id}: ${e.message}`); media.push({ id: m.id, need: `${m.need}: ${e.message}` }); return; } throw e; }
     it._why = m.id;
     if (it.t === "pick" && RULE.METAPHORS.includes(it.el)) metaUsed.push(it.el);
     // a picture inside a clip window sits in the gap «panel» (el.mjs add); else the free side
@@ -456,7 +462,8 @@ function buildItems(picks, log) {
     for (const h of win) {
       if (m.kind === "due" && h !== m.t) { const it2 = mk(c.el, contentFor(c.el, { ...m, t: h }, c.vals), m.id); Object.assign(it, it2, { id: it.id }); }
       const [a] = spanOf(it);
-      const maxShift = m.after != null ? Math.max(0, Math.min(m.after - 0.5, RULE.LATE - 1.1)) : RULE.LATE - 1.1;
+      /* a due pick shows the sentence that made it due: it may start later while that sentence is still being said (late_check judges its words, not its trigger) */
+      const maxShift = m.kind === "due" ? Math.max(RULE.LATE - 1.1, (labelLastSaid(it) ?? spanOf(it)[0]) + RULE.SAID_BEFORE - 0.2 - spanOf(it)[0]) : m.after != null ? Math.max(0, Math.min(m.after - 0.5, RULE.LATE - 1.1)) : RULE.LATE - 1.1;
       if (tryPlace(it, m, { maxShift })) { ok = true; break; }
       if (it.slot?.land === "left") { it.slot.land = "right"; it.side = "right"; if (tryPlace(it, m, { maxShift })) { ok = true; break; } it.slot.land = "left"; delete it.side; }
       // a non-picture element over a clip window: after the window, inside the requirement window
@@ -486,9 +493,12 @@ function buildItems(picks, log) {
       const g = placeInGaps(c.el, m.id, board, (x) => out.push(x));
       if (g) { ok = true; it = g; defaults.push({ id: m.id, el: c.el, note: `مواضعه مشغولة (${m.hits.map(mm).join("، ")}): وُضع في فراغ ${mm(spanOf(g)[0])} بكلماته هناك`, t: spanOf(g)[0] }); }
     }
-    if (!ok) { const who = board.clash(it, ...spanOf(it)).map((x) => (x.split ? "نافذة مقطع" : `${x.el ?? x.t} ${mm(spanOf(x)[0])}–${mm(spanOf(x)[1])} (${x._why ?? ""})`)); (m.optional ? dropped : media).push({ id: m.id, need: `${m.need} عند ${mm(m.t)} [${spanOf(it).map((v) => v.toFixed(1)).join("–")}]`, why: `لا مكان خالٍ في نافذته: ${who.join("، ") || "—"}` }); continue; }
-    if (m.optional) it._opt = true;
-  }
+    if (!ok) { const who = board.clash(it, ...spanOf(it)).map((x) => (x.split ? "نافذة مقطع" : `${x.el ?? x.t} ${mm(spanOf(x)[0])}–${mm(spanOf(x)[1])} (${x._why ?? ""})`)); (m.optional ? dropped : media).push({ id: m.id, need: `${m.need} عند ${mm(m.t)} [${spanOf(it).map((v) => v.toFixed(1)).join("–")}]`, why: `لا مكان خالٍ في نافذته: ${who.join("، ") || "—"}` }); return; }
+    if (m.optional) markOpt(it);
+    if (TRACE) console.error(`[place] ${m.id} → ${it.el ?? it.t} ${spanOf(it).map((v) => v.toFixed(2)).join("–")}`);
+  };
+  /* fixed windows first (their words are now), then the sections rail in the first seconds, then the picks that may stand anywhere their words suit */
+  for (const x of order.filter((x) => !["due", "number"].includes(x.m.kind))) placeOne(x);
   // (c) the sections rail: the first free stretch (no clip window, nothing else on screen) — RAIL_MAX s at most when the start allows it
   const mr = M.find((m) => m.kind === "rail");
   if (mr) {
@@ -502,33 +512,46 @@ function buildItems(picks, log) {
     if (!placed) media.push({ id: "sections", need: "خط الأقسام: لا فراغ له في أول دقيقتين" });
   }
   // (d) the name card and the subscribe reminder: their draft times, else the nearest stretch where nothing else is on screen
-  for (const b of (BASE.items ?? []).filter((x) => x.t === "nameTag" || x.t === "subscribe")) {
+  /* spec_normalize step 3 adds a name card and a subscribe reminder to any episode without them (and drops what overlaps them) — so they are planned here:
+     the draft's, else the normaliser's own default times (read from it) */
+  const cards = (BASE.items ?? []).filter((x) => x.t === "nameTag" || x.t === "subscribe").map((x) => ({ ...x }));
+  if (BASE.kind !== "reel") {
+    const SN = src("spec_normalize.mjs"), nd = Number(/t: "nameTag", at: dur > 25 \? 15 : 0\.8,[^\n]*?dur: ([\d.]+)/.exec(SN)?.[1] ?? NaN), sd = Number(/t: "subscribe", at: \+Math\.max\(5, Math\.min\(40, dur - 4\.5\)\)\.toFixed\(2\),[^\n]*?dur: ([\d.]+)/.exec(SN)?.[1] ?? NaN);
+    if (!Number.isFinite(nd) || !Number.isFinite(sd)) bug("مصدر القاعدة تغيّر: بطاقة الاسم والاشتراك الافتراضيتان في tools/spec_normalize.mjs");
+    if (!cards.some((x) => x.t === "nameTag")) cards.push({ t: "nameTag", at: DUR > 25 ? 15 : 0.8, dur: nd });
+    if (!cards.some((x) => x.t === "subscribe") && DUR >= 9 && !(FORMS.length === 1 && FORMS[0] === "land" && DUR < 60)) cards.push({ t: "subscribe", at: r2(Math.max(5, Math.min(40, DUR - 4.5))), dur: sd });
+  }
+  for (const b of cards) {
     const it = { id: `mb${(++ID).toString(36)}`, t: b.t, at: b.at, dur: b.dur ?? 3, ...(b.style ? { style: b.style } : {}) }; Object.defineProperty(it, "_why", { value: b.t, enumerable: false, writable: true });
-    it._opt = true;
+    /* a card is not optional: spec_normalize puts one back and drops what overlaps it — so nothing evicts it */
     let ok = false;
-    for (const d of [0, ...Array.from({ length: 160 }, (_, k) => (k % 2 ? 1 : -1) * Math.ceil((k + 1) / 2) * 0.5)]) { const a = r2(b.at + d); if (a < 1 || a + it.dur > DUR - 3) continue; if (!board.clash(it, a, a + it.dur).length) { it.at = a; board.add(it); out.push(it); ok = true; break; } }
+    for (const d of [0, ...Array.from({ length: 160 }, (_, k) => (k % 2 ? 1 : -1) * Math.ceil((k + 1) / 2) * 0.5)]) { const a = r2(b.at + d); if (a < 1 || a + it.dur > DUR - 0.5) continue; if (!board.clash(it, a, a + it.dur).length) { it.at = a; board.add(it); out.push(it); ok = true; break; } }
+    if (!ok && TRACE) console.error("[card]", b.t, b.at, it.dur, DUR, JSON.stringify(board.clash(it, b.at, b.at + it.dur).map((x) => x.split ? (x.port ? "portzone" : "split") : x.t + "@" + spanOf(x).join("-"))));
     if (!ok) dropped.push({ id: b.t, why: `لا فراغ قرب ${mm(b.at)}` });
   }
+  /* the picks that may stand anywhere their sentence is still being said: after the cards, which must be alone */
+  for (const x of order.filter((x) => ["due", "number"].includes(x.m.kind))) placeOne(x);
   // (e) the drawn meanings (pick_triggers quota), each in the longest empty stretch, on his words there
   const needM = M.filter((m) => m.kind === "metaphor").length - metaUsed.length;
   const metaPicks = (picks?.metaphors ?? []).slice();
   for (let k = 0; k < needM; k++) {
     const g = metaPicks.shift();
-    const gaps = gapsOf(board.items).filter(([a, b]) => b - a >= 6).sort((x, y) => (y[1] - y[0]) - (x[1] - x[0]));
+    const gaps = gapsOf(board.items, { minGap: 4 }).filter(([a, b]) => b - a >= 4.5).sort((x, y) => (y[1] - y[0]) - (x[1] - x[0]));
     let ok = false;
     for (const [a, b] of g?.vals?.at != null ? [[g.vals.at, g.vals.at + 30]] : gaps) {
       const el = g?.el ?? ["WordCloud", "MindMap", "RootsTree", "Iceberg", "FillGlasses", "ViciousCycle"].filter((x) => !metaUsed.includes(x))[0] ?? "WordCloud";
       const t0 = wordAt(a + 0.3)?.s ?? a;
-      let it; try { it = mk(el, contentFor(el, { t: t0, kind: "metaphor", span: Math.max(4, Math.min(14, b - t0 - RULE.HOLD - 1)) }, g?.vals ?? {}), `metaphor:${k}`); } catch (e) { notes.push(`✘ metaphor:${k}: ${e.message}`); continue; }
-      const [ia, ib] = spanOf(it); if (ib > b + 0.5 && !g) continue;
+      let it; try { it = mk(el, contentFor(el, { t: t0, kind: "metaphor", span: Math.max(4, Math.min(14, b - t0 - RULE.HOLD - 1)) }, g?.vals ?? {}), `metaphor:${k}`); } catch (e) { notes.push(`✘ metaphor:${k}: ${e.message}`); if (TRACE) console.error("[metaphor] mk", el, e.message); continue; }
+      const [ia, ib] = spanOf(it); if (TRACE) console.error("[metaphor] try", el, ia, ib, "gap", a, b, JSON.stringify(it).slice(0, 200)); if (ib > b + 0.5 && !g) continue;
       if (tryPlace(it, null, { maxShift: 0.5 })) { metaUsed.push(el); ok = true; if (!g) defaults.push({ id: `metaphor:${k}`, el, note: `في فراغ ${mm(ia)}–${mm(ib)} بكلماته (حسّنه: اختر المعنى المجسّد الأنسب)`, t: ia }); break; }
     }
-    if (!ok) media.push({ id: `metaphor:${k}`, need: "معنى مجسّد: لا فراغ ست ثوانٍ له" });
+    if (!ok && TRACE) console.error("[metaphor] gaps", JSON.stringify(gapsOf(board.items, { minGap: 1 }).map((g) => g.map((v) => +v.toFixed(1)))));
+    if (!ok) media.push({ id: `metaphor:${k}`, need: "معنى مجسّد: لا فراغ ٤٫٥ ث له — اختره في الاختيارات (metaphors) بوقته" });
   }
   // (f) the agent's free additions
   for (const [i, x] of (picks?.extra ?? []).entries()) {
     let it; try { it = mk(x.el ?? x.code, contentFor(x.el ?? x.code, { t: x.vals?.at ?? x.vals?.from ?? 0, kind: "extra" }, x.vals ?? {}), `extra:${i}`); } catch (e) { notes.push(`✘ extra:${i}: ${e.message}`); continue; }
-    it._opt = true; if (!tryPlace(it, null)) dropped.push({ id: `extra:${i}`, why: "لا مكان خالٍ في وقته" });
+    markOpt(it); if (!tryPlace(it, null)) dropped.push({ id: `extra:${i}`, why: "لا مكان خالٍ في وقته" });
   }
   return { items: out, cover, board, defaults, dropped, media, notes };
 }
@@ -560,6 +583,14 @@ function gapsOf(items, { minGap = RULE.GAP } = {}) {
   if (DUR - 3 - end > minGap) out.push([end, DUR - 3]);
   return out;
 }
+/** the first minute as coverage_check §2b counts it: up to min(first-minute length, the whole video) — a short video is judged to its very end */
+function firstGapsOf(items, slack = 0.3) {
+  const spans = [...items.filter((x) => !["wm", "cover"].includes(x.t)).map(spanOf), ...SPLITS.map((s) => [s.from, s.to]), ...(BASE.solos ?? []).map((s) => [s.from, s.to])].sort((a, b) => a[0] - b[0]);
+  const L = Math.min(RULE.FIRST_LEN, DUR), out = []; let e = 0;
+  for (const [a, b] of spans) { if (a >= L) break; if (a - e > RULE.FIRST_GAP - slack) out.push([e, a]); e = Math.max(e, b); }
+  if (e < L && L - e > RULE.FIRST_GAP - slack) out.push([e, L]);
+  return out;
+}
 /** a phrase made to start on a content word (writing_sync judges a writing from its first content word; writing_place refuses a dangling start) */
 const contentFirst = (ph) => {
   const ws = ph.ws.slice(), weak = (w) => { const b0 = bare(w.w); return b0.length < 3 || RULE.WS_STOP.has(b0) || DANGLE_N.has(norm(clean(w.w))); };
@@ -572,7 +603,7 @@ function fillGaps(board, writing, defaults, round) {
   const perMin = new Set(writing.map((w) => `${w.t}@${Math.floor((findSpoken(w.text, w.from ?? 0)?.at ?? w.from ?? 0) / 60)}`));
   const added = [];
   const first = (a, b) => b <= RULE.FIRST_LEN + 1;
-  const gaps = [...gapsOf(board.items, { minGap: RULE.GAP - 1 }), ...gapsOf(board.items, { minGap: RULE.FIRST_GAP - 0.4 }).filter(([a]) => a < RULE.FIRST_LEN)];
+  const gaps = [...gapsOf(board.items, { minGap: RULE.GAP - 1 }), ...firstGapsOf(board.items, 0.4)];
   const seen = new Set();
   for (const [a, b] of gaps.sort((x, y) => x[0] - y[0])) {
     const key = `${a.toFixed(1)}`; if (seen.has(key)) continue; seen.add(key);
@@ -582,33 +613,48 @@ function fillGaps(board, writing, defaults, round) {
       const ph = phrasesIn(t, b, RULE.SCRAPS_MAX, isFirst ? 2 : 3).map(contentFirst).filter(Boolean).find((x) => x.at >= t - 0.01);
       if (!ph) break;
       const minute = Math.floor(ph.at / 60);
+      const tryWriting = () => {
+        let it = null;
+        for (const kind of ["scraps", "torn"]) {
+          if (perMin.has(`${kind}@${minute}`)) continue;
+          if (kind === "torn" && writing.filter((w) => w.t === "torn").length + 1 > (writing.length + 1) * 0.5) continue;
+          const cand = { id: `mbw${round}_${added.length}`, t: kind, text: ph.text, at: ph.at, until: r2(Math.min(ph.end + RULE.HOLD, endBy)) };
+          if (cand.until - cand.at >= 1.2 && !board.clash(cand, cand.at, cand.until).length) { it = cand; perMin.add(`${kind}@${minute}`); writing.push({ t: kind, text: ph.text, from: Math.floor(ph.at), auto: "montage_build" }); break; }
+        }
+        return it;
+      };
+      const tryRows = () => {
+        let it = null;
+        {   // a list card of his consecutive phrases (rows: no per-minute limit, its own kind), on the free side
+          const from0 = Math.max(a + SLOT_GAP + 0.05, ph.at - 0.1);
+          const rows = phrasesIn(ph.at, Math.min(endBy - RULE.HOLD - 0.6, ph.at + 12), 4, 2).map(contentFirst).filter(Boolean).filter((r) => r.at >= from0).slice(0, 3);
+          if (rows.length) for (const side of ["left", "right"]) {
+            const cand = mk("StatRow", { from: r2(Math.max(from0, rows[0].at - 0.1)), to: r2(Math.min(endBy, rows.at(-1).end + RULE.HOLD + 0.5)), rows: rows.map((r) => ({ at: r.at, label: r.text })) }, "gap");
+            if (side === "right") cand.side = "right";
+            const [ca, cb] = spanOf(cand);
+            if (cb - ca >= 1.6 && cb <= endBy + 0.01 && ca >= a + SLOT_GAP && !board.clash(cand, ca, cb).length) { it = cand; break; }
+          }
+        }
+        return it;
+      };
+      const tryCloud = () => {
+        let it = null;
+        if (endBy - ph.at >= 4) {   // a word cloud of his phrases there (a gallery pick: it holds every area, and the split portrait too)
+          const ws = phrasesIn(ph.at, endBy - 0.8 - RULE.HOLD, 3, 2).map(contentFirst).filter(Boolean).slice(0, 5);
+          if (ws.length >= 2) {
+            const cand = mk("WordCloud", { at: r2(Math.max(a + SLOT_GAP + 0.05, ws[0].at - 0.1)), until: r2(Math.min(endBy, ws.at(-1).at + 0.8 + RULE.HOLD + 0.3)), words: ws.map((w, k) => ({ text: w.text, weight: k ? 2 : 3, at: w.at })) }, "gap");
+            const [ca, cb] = spanOf(cand);
+            for (let s0 = 0; s0 <= 1.5 && cb + s0 <= endBy + 0.01; s0 += 0.25) if (ca + s0 >= a + SLOT_GAP && !board.clash(cand, ca + s0, cb + s0).length) { if (s0) setSpan(cand, r2(ca + s0), r2(cb + s0)); it = cand; break; }   // a little later when its portrait split would touch the card before it
+          }
+        }
+        return it;
+      };
+      /* variety (mg_usage_audit counts kinds): the filler kind used least so far goes first; a word cloud only when nothing lighter fits */
+      const used = { w: board.items.filter((x) => x.t === "torn" || x.t === "scraps").length, r: board.items.filter((x) => x.t === "rows").length };
       let it = null;
-      for (const kind of ["scraps", "torn"]) {
-        if (perMin.has(`${kind}@${minute}`)) continue;
-        if (kind === "torn" && writing.filter((w) => w.t === "torn").length + 1 > (writing.length + 1) * 0.5) continue;
-        const cand = { id: `mbw${round}_${added.length}`, t: kind, text: ph.text, at: ph.at, until: r2(Math.min(ph.end + RULE.HOLD, endBy)) };
-        if (cand.until - cand.at >= 1.2 && !board.clash(cand, cand.at, cand.until).length) { it = cand; perMin.add(`${kind}@${minute}`); writing.push({ t: kind, text: ph.text, from: Math.floor(ph.at), auto: "montage_build" }); break; }
-      }
-      if (!it) {   // a list card of his consecutive phrases (rows: no per-minute limit, its own kind), on the free side
-        const from0 = Math.max(a + SLOT_GAP + 0.05, ph.at - 0.1);
-        const rows = phrasesIn(ph.at, Math.min(endBy - RULE.HOLD - 0.6, ph.at + 12), 4, 2).map(contentFirst).filter(Boolean).filter((r) => r.at >= from0).slice(0, 3);
-        if (rows.length) for (const side of ["left", "right"]) {
-          const cand = mk("StatRow", { from: r2(Math.max(from0, rows[0].at - 0.1)), to: r2(Math.min(endBy, rows.at(-1).end + RULE.HOLD + 0.5)), rows: rows.map((r) => ({ at: r.at, label: r.text })) }, "gap");
-          if (side === "right") cand.side = "right";
-          const [ca, cb] = spanOf(cand);
-          if (cb - ca >= 1.6 && cb <= endBy + 0.01 && ca >= a + SLOT_GAP && !board.clash(cand, ca, cb).length) { it = cand; break; }
-        }
-      }
-      if (!it && endBy - ph.at >= 4) {   // a word cloud of his phrases there (a gallery pick: it holds every area, and the split portrait too)
-        const ws = phrasesIn(ph.at, endBy - 0.8 - RULE.HOLD, 3, 2).map(contentFirst).filter(Boolean).slice(0, 5);
-        if (ws.length >= 2) {
-          const cand = mk("WordCloud", { at: r2(Math.max(a + SLOT_GAP + 0.05, ws[0].at - 0.1)), until: r2(Math.min(endBy, ws.at(-1).at + 0.8 + RULE.HOLD + 0.3)), words: ws.map((w, k) => ({ text: w.text, weight: k ? 2 : 3, at: w.at })) }, "gap");
-          const [ca, cb] = spanOf(cand);
-          if (cb <= endBy + 0.01 && ca >= a + SLOT_GAP && !board.clash(cand, ca, cb).length) it = cand;
-        }
-      }
+      for (const g of used.r < used.w ? [tryRows, tryWriting, tryCloud] : [tryWriting, tryRows, tryCloud]) { it = g(); if (it) break; }
       if (!it) { if (TRACE) console.error(`[fill ${mm(a)}–${mm(b)}] «${ph.text}» ${ph.at}: ${["scraps", "torn"].map((k) => `${k}${perMin.has(`${k}@${minute}`) ? " مستعمل" : ""}`).join(" ")} · بنود: ${(() => { const rows = phrasesIn(ph.at, Math.min(endBy - RULE.HOLD - 0.6, ph.at + 12), 4, 2).map(contentFirst).filter(Boolean); if (!rows.length) return "لا عبارة"; const c = mk("StatRow", { from: r2(Math.max(a + SLOT_GAP, rows[0].at - 0.1)), to: r2(Math.min(endBy, rows.at(-1).end + RULE.HOLD + 0.5)), rows: rows.slice(0, 3).map((r) => ({ at: r.at, label: r.text })) }, "dbg"); return `${spanOf(c).map((v) => v.toFixed(2)).join("–")} endBy ${endBy.toFixed(2)} clash ${board.clash(c, ...spanOf(c)).map((x) => x.split ? (x.port ? "portzone" : "split") : x.t + "@" + spanOf(x)[0]).join(",")}`; })()}`); t = ph.end + 0.1; continue; }
-      it._opt = true; Object.defineProperty(it, "_why", { value: "gap", enumerable: false, writable: true });
+      markOpt(it); Object.defineProperty(it, "_why", { value: "gap", enumerable: false, writable: true });
       board.add(it); added.push(it);
       t = spanOf(it)[1] - 0.1;
     }
@@ -620,18 +666,25 @@ function fillGaps(board, writing, defaults, round) {
     the name / subscribe cards 4 s at most) — the next element still starts at its words */
 function extendIntoGaps(board, defaults) {
   const ext = [];
-  const lim = [...gapsOf(board.items, { minGap: RULE.GAP - 0.6 }), ...gapsOf(board.items, { minGap: RULE.FIRST_GAP - 0.3 }).filter(([a]) => a < RULE.FIRST_LEN)];
+  const lim = [...gapsOf(board.items, { minGap: RULE.GAP - 0.6 }), ...firstGapsOf(board.items, 0.3)];
   for (const [a, b] of lim) {
     const prev = board.items.filter((x) => Math.abs(spanOf(x)[1] - a) < 0.02 && !["cover", "wm"].includes(x.t));
     for (const x of prev) {
       const [xa, xb] = spanOf(x); let nb = r2(b - SLOT_GAP - 0.05);
       if (["tphoto", "scholar", "pic"].includes(x.t)) nb = Math.min(nb, r2(xa + RULE.PIC_WARN - 0.2));
       if (x.t === "scenefx") nb = Math.min(nb, r2(xa + RULE.FX_MAX - 0.5));
-      if (x.t === "nameTag" || x.t === "subscribe") nb = Math.min(nb, r2(xa + 4));   // the name / reminder card: a second longer at most (spec_normalize gives them ≈3 s)
+      if (x.t === "nameTag" || x.t === "subscribe") nb = Math.min(nb, r2(xa + 6));   // the name / reminder card: 6 s at most (spec_normalize gives ≈3 s; the reviewed anchor-kills-children episode held one 7 s)
       if (nb <= xb + 0.05) continue;
       const keep = JSON.stringify(x); board.remove(x);
-      if (x.until != null || x.t === "pick") x.until = nb; else if (x.to != null) x.to = nb; else if (x.dur != null) x.dur = r2(nb - xa); else x.until = nb;
-      if (spanOf(x)[1] > nb + 0.01 || board.clash(x, ...spanOf(x)).length) { const back = JSON.parse(keep); for (const k of Object.keys(x)) delete x[k]; Object.assign(x, back); }
+      /* the longest stay that clears what follows (its slot margin, a portrait split that starts there): the far end first, then shorter, while the gap
+         that remains is still within the rule */
+      const need = a < Math.min(RULE.FIRST_LEN, DUR) ? RULE.FIRST_GAP - 0.2 : RULE.GAP - 0.5;
+      let done = false;
+      for (let e = nb; e > xb + 0.05 && b - e <= need + 1e-9; e = r2(e - 0.15)) {
+        if (x.until != null || x.t === "pick") x.until = e; else if (x.to != null) x.to = e; else if (x.dur != null) x.dur = r2(e - xa); else x.until = e;
+        if (spanOf(x)[1] <= e + 0.01 && !board.clash(x, ...spanOf(x)).length) { done = true; break; }
+      }
+      if (!done) { const back = JSON.parse(keep); for (const k of Object.keys(x)) delete x[k]; Object.assign(x, back); }
       else ext.push(`${x.el ?? x.t} ${mm(xa)}`);
       board.add(x);
       break;
@@ -670,7 +723,11 @@ async function onSandbox(sb, spec, writing, { mattes, board }) {
   // maps: an isolation window behind each landscape map (coverage_check 1c), its matte computed once (matte_windows.mjs)
   const maps = s.items.filter((x) => x.t === "pmap" && !x.only);
   s.behind = (s.behind ?? []).filter((w) => !w._mb);
-  for (const m of maps) if (!(s.behind ?? []).some((w) => (!w.only || w.only === "land") && w.from <= m.from + 0.3 && w.to >= m.to - 0.3)) (s.behind ??= []).push({ only: "land", from: m.from, to: m.to });
+  for (const m of maps) if (!(s.behind ?? []).some((w) => (!w.only || w.only === "land") && w.from <= m.from + 0.3 && w.to >= m.to - 0.3)) {
+    /* the matte of this very window, when matte_windows made it already (its own name: <p>/mt/w_<from>_<to>.mp4) — the GPU runs once per window */
+    const mf = `${p}/mt/w_${m.from}_${m.to}.mp4`;
+    (s.behind ??= []).push({ only: "land", from: m.from, to: m.to, ...(fs.existsSync(path.join(sb.pub, mf)) ? { matte: { src: mf, start: m.from } } : {}) });
+  }
   sb.writeSpec(s);
   if (mattes && (s.behind ?? []).some((w) => !w.matte && !s.matte)) {
     const mw = await run(sb, ["tools/matte_windows.mjs", path.join("data", "specs", `${p}.json`)]);
@@ -729,7 +786,7 @@ if (built.media.length) {
 }
 // the writing list's own items take their places in the board (they are placed by writing_place); fillers for what stays empty
 const wBoard = (list) => list.map((w, k) => { const sp = findSpoken(w.text, (w.from ?? 0) - 15) ?? { at: w.from ?? 0, end: (w.from ?? 0) + 2 }; return { id: `w${k}`, t: w.t, text: w.text, at: r2(sp.at), until: holdEnd(sp.end) }; });
-for (const w of wBoard(writing)) { const c = built.board.clash(w, w.at, w.until).filter((x) => !x.split); if (!c.length) { built.board.add(w); w._opt = true; } else built.dropped.push({ id: `writing «${w.text.slice(0, 30)}»`, why: `مكانه مشغول بـ${c.map((x) => x.t).join("+")} — حُذفت الكتابة (الأهم يبقى)` }); }
+for (const w of wBoard(writing)) { const c = built.board.clash(w, w.at, w.until).filter((x) => !x.split); if (!c.length) { built.board.add(w); markOpt(w); } else built.dropped.push({ id: `writing «${w.text.slice(0, 30)}»`, why: `مكانه مشغول بـ${c.map((x) => x.t).join("+")} — حُذفت الكتابة (الأهم يبقى)` }); }
 writing = writing.filter((w, k) => built.board.items.some((x) => x.id === `w${k}`));
 built.board.items.forEach((x) => { if (/^w\d+$/.test(x.id)) x.id = `wl_${x.id}`; });
 let rounds = 0, gates = null, lastFails = [];

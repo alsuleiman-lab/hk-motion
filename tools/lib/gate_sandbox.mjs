@@ -3,8 +3,10 @@
 // whose tools/ is a fresh COPY of the real tools (so each gate's own root = the scratch root), whose data/specs holds only the candidate, and whose
 // src/, public/, node_modules/ and data sub-folders are junctions to the real ones (read by the gates, never written by them). .tmp/<p>/ gets a copy of the
 // project's small files (json/md/txt, mtimes kept: requirements --check rebuilds when its ledger looks older than cut_words) and the face track of the cut.
-// The gates run there UNCHANGED: the same code, the same numbers, the candidate in place of the real spec. Nothing outside .tmp/selftest/ is written.
-//   const sb = makeSandbox(p);  sb.writeSpec(spec);  sb.root  sb.specFile
+// The gates run there UNCHANGED: the same code, the same numbers, the candidate in place of the real spec. Nothing outside .tmp/selftest/ is written
+// (with ownPublic the scratch public/ is links too, so a matte or a test still made there stays in the scratch tree). Every junction is unlinked when the
+// process exits (releaseLinks): a scratch folder must never keep a junction a recursive cleaner could follow into the real folders.
+//   const sb = makeSandbox(p, { name, ownPublic });  sb.writeSpec(spec);  sb.root  sb.specFile  sb.pub  sb.release()
 import fs from "node:fs";
 import path from "node:path";
 

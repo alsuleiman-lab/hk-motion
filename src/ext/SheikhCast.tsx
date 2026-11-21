@@ -523,7 +523,7 @@ export const RudoodSaladin: React.FC = () => {
         {/* الشاشة: مقطعها يعمل ثم يتوقف عند آخر إطار */}
         <div style={{ position: "absolute", left: SX, top: SY, width: SWD, height: SHT, overflow: "hidden", background: "#141210" }}>
           <Sequence from={ON} durationInFrames={CLIP} layout="none">
-            <OffthreadVideo src={staticFile("rudood1/girl_saladin_blur.mp4")} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 60%" }} />
+            <OffthreadVideo muted src={staticFile("rudood1/girl_saladin_blur.mp4")} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 60%" }} />
           </Sequence>
           {paused && (
             <Freeze frame={CLIP - 1}>
@@ -542,6 +542,8 @@ export const RudoodSaladin: React.FC = () => {
       </AbsoluteFill>
       <Sequence from={ON - 3} durationInFrames={20}><Audio src={staticFile("ref_sfx/tap.wav")} volume={0.05} /></Sequence>
       <Sequence from={ON + CLIP} durationInFrames={20}><Audio src={staticFile("ref_sfx/tap.wav")} volume={0.05} /></Sequence>
+      {/* صوتها عنصر مستقل: محرك كرت الشاشة لا يأخذ صوت الفيديو المضمَّن */}
+      <Sequence from={ON} durationInFrames={CLIP}><Audio src={staticFile("rudood1/girl_saladin_audio.wav")} /></Sequence>
       <Sequence from={REPLY_AT} durationInFrames={REPLY + 30}><Audio src={staticFile("rudood1/reply_final.wav")} /></Sequence>
     </AbsoluteFill>
   );

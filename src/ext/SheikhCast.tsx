@@ -4,14 +4,14 @@
    عشر نسخ للاختيار: الإطار رقم n = النسخة n. */
 import React from "react";
 import { AbsoluteFill, Audio, Freeze, Img, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
-import { SALADIN_MOUTH, UKHUWWA_MOUTH, JINN_MOUTH, SHABBIHA_MOUTH, SULTAN_MOUTH, MAKAN_MOUTH, RAZI_MOUTH } from "./rudoodMouth";
+import { SALADIN_MOUTH, UKHUWWA_MOUTH, JINN_MOUTH, SHABBIHA_MOUTH, SULTAN_MOUTH, MAKAN_MOUTH, RAZI_MOUTH, BURJ_INTRO_MOUTH, BURJ_MOUTH } from "./rudoodMouth";
 
 export const SHEIKH_CAST_FRAMES = 10;
 const INK = "#2a1c14";
 const SW = 4.5;
 type P = [number, number];
 type Top = "hoodie" | "bomber" | "denim" | "leather" | "sweater" | "plaid" | "puffer" | "track" | "cardigan" | "quarterzip";
-type Hair = "quiff" | "side" | "curly" | "crop" | "bun" | "beanie" | "wavy" | "slick";
+type Hair = "quiff" | "side" | "curly" | "crop" | "bun" | "beanie" | "wavy" | "slick" | "kufi";
 type Dev = "tablet" | "phone" | "tv" | "laptop" | "screen" | "wall";
 type Arm = "beard" | "rest";
 type Design = {
@@ -202,6 +202,12 @@ const Head: React.FC<{ d: Design; hx: number; hy: number }> = ({ d, hx, hy }) =>
     bun: <g><circle cx={hx + 4} cy={hy - 112} r={30} fill={h} stroke={INK} strokeWidth={SW} /><Ink d={`M${hx - 68},${hy - 6} Q${hx - 72},${hy - 92} ${hx},${hy - 94} Q${hx + 72},${hy - 92} ${hx + 70},${hy - 6} Q${hx + 60},${hy - 52} ${hx},${hy - 56} Q${hx - 60},${hy - 52} ${hx - 68},${hy - 6} Z`} fill={h} /></g>,
     beanie: <g><Ink d={`M${hx - 72},${hy - 26} Q${hx - 76},${hy - 132} ${hx},${hy - 134} Q${hx + 76},${hy - 132} ${hx + 72},${hy - 26} Z`} fill="#8a3b2e" /><Ink d={`M${hx - 76},${hy - 50} Q${hx},${hy - 64} ${hx + 76},${hy - 50} L${hx + 76},${hy - 22} Q${hx},${hy - 34} ${hx - 76},${hy - 22} Z`} fill="#a64b3a" />{Array.from({ length: 9 }).map((_, i) => <Line key={i} d={`M${hx - 64 + i * 16},${hy - 54} V${hy - 30}`} c="#7a3226" w={2.5} />)}</g>,
     wavy: <Ink d={`M${hx - 70},${hy - 2} Q${hx - 84},${hy - 70} ${hx - 44},${hy - 96} Q${hx - 20},${hy - 120} ${hx + 10},${hy - 104} Q${hx + 40},${hy - 124} ${hx + 66},${hy - 92} Q${hx + 88},${hy - 60} ${hx + 72},${hy - 2} Q${hx + 60},${hy - 40} ${hx + 36},${hy - 52} Q${hx + 10},${hy - 40} ${hx - 14},${hy - 56} Q${hx - 44},${hy - 44} ${hx - 70},${hy - 2} Z`} fill={h} />,
+    kufi: <g>
+      <Ink d={`M${hx - 66},${hy - 10} Q${hx - 68},${hy - 60} ${hx - 40},${hy - 66} L${hx + 44},${hy - 66} Q${hx + 70},${hy - 60} ${hx + 68},${hy - 10} Q${hx + 60},${hy - 46} ${hx},${hy - 50} Q${hx - 60},${hy - 46} ${hx - 66},${hy - 10} Z`} fill={h} />
+      <Ink d={`M${hx - 64},${hy - 52} Q${hx - 66},${hy - 118} ${hx + 2},${hy - 120} Q${hx + 70},${hy - 118} ${hx + 68},${hy - 52} Q${hx},${hy - 62} ${hx - 64},${hy - 52} Z`} fill="#f6f3ec" />
+      {Array.from({ length: 6 }).map((_, k) => <Line key={k} d={`M${hx - 54 + k * 22},${hy - 58} Q${hx - 50 + k * 22},${hy - 90} ${hx - 46 + k * 21},${hy - 112}`} c="#ddd6c6" w={2.5} />)}
+      <Line d={`M${hx - 62},${hy - 56} Q${hx},${hy - 66} ${hx + 66},${hy - 56}`} c="#cfc6b2" w={3} />
+    </g>,
     slick: <Ink d={`M${hx - 66},${hy - 8} Q${hx - 70},${hy - 96} ${hx + 4},${hy - 98} Q${hx + 74},${hy - 92} ${hx + 70},${hy - 8} Q${hx + 64},${hy - 56} ${hx + 6},${hy - 62} Q${hx - 56},${hy - 56} ${hx - 66},${hy - 8} Z`} fill={h} />,
   };
   return (
@@ -213,7 +219,7 @@ const Head: React.FC<{ d: Design; hx: number; hy: number }> = ({ d, hx, hy }) =>
       <ellipse cx={hx + 44} cy={hy + 4} rx={16} ry={10} fill="#d9765f" opacity={0.25} />
       <ellipse cx={hx - 34} cy={hy + 4} rx={16} ry={10} fill="#d9765f" opacity={0.2} />
       {hair[d.hairStyle]}
-      {d.hairStyle !== "curly" && d.hairStyle !== "beanie" && <Line d={`M${hx - 30},${hy - 76} Q${hx + 10},${hy - 92} ${hx + 44},${hy - 74}`} c={hl} w={4} o={0.7} />}
+      {d.hairStyle !== "curly" && d.hairStyle !== "beanie" && d.hairStyle !== "kufi" && <Line d={`M${hx - 30},${hy - 76} Q${hx + 10},${hy - 92} ${hx + 44},${hy - 74}`} c={hl} w={4} o={0.7} />}
       {d.hairStyle !== "beanie" && <Line d={`M${hx - 58},${hy - 10} Q${hx - 52},${hy - 40} ${hx - 34},${hy - 52}`} c={hd} w={3} o={0.5} />}
       {d.glasses && (
         <g fill="none" stroke="#1a1a1a" strokeLinecap="round">
@@ -506,23 +512,32 @@ export const RUDOOD_OUTFITS: Partial<Design>[] = [
   { top: "leather", c1: "#7a4a2a", c2: "#2f3338", pants: "#26303d", shoe: "#2c2f33", shoeAcc: "#e9e4d8" },
   { top: "cardigan", c1: "#8a6a44", c2: "#f2ede3", pants: "#3b3e43", shoe: "#3a2a20", shoeAcc: "#d9c9a8" },
   { top: "track", c1: "#2b3f36", c2: "#efe6cf", pants: "#2f3338", shoe: "#f5f2ec", shoeAcc: "#2b3f36" },
+  { hairStyle: "kufi", top: "leather", c1: "#3a3330", c2: "#e9e3d6", pants: "#2c3a4c", shoe: "#f2efe8", shoeAcc: "#3a3330" },
+  { hairStyle: "kufi", top: "bomber", c1: "#5b4a36", c2: "#efe9dc", pants: "#3b3e43", shoe: "#ede8dd", shoeAcc: "#5b4a36" },
 ];
 export const rudoodLook = (n: number): Design => ({ ...DESIGNS[3], chair: DESIGNS[0].chair, chairStyle: DESIGNS[0].chairStyle, wall: DESIGNS[0].wall, wall2: DESIGNS[0].wall2, floor: DESIGNS[0].floor, decor: DESIGNS[0].decor, device: "wall", arm: "rest", glasses: true, lightMustache: true, ...RUDOOD_OUTFITS[n % RUDOOD_OUTFITS.length] });
 /* قالب «شيخ الردود» لكل فيديو: يكفيه المقطع المعالَج وصوته ورقم اللباس والرد وحركة الفم؛ مراحل الإنصات نسبية إلى طول المقطع */
 /* pics: صور تُعرض على التلفاز أثناء الرد (a وb بالثواني من بداية الرد)، مثل «تنبيه للمونتاج: جيب صور ناس جوعانين واعرضها على التلفزيون» */
-type RudoodProps = { introFirst?: boolean; look: number; clip: string; clipAudio: string; clipFrames: number; objPos: string; reply: string; mouthData: number[]; pics?: { src: string; a: number; b: number }[] };
+type RudoodProps = { intro?: { src: string; mouth: number[] }; introFirst?: boolean; look: number; clip: string; clipAudio: string; clipFrames: number; objPos: string; reply: string; mouthData: number[]; pics?: { src: string; a: number; b: number }[] };
 const ON = 15;
 export const rudoodFrames = (clipFrames: number, mouthLen: number) => ON + clipFrames + 12 + mouthLen + 36;
+export const rudoodFullFrames = (introLen: number, clipFrames: number, mouthLen: number) => 10 + introLen + 12 + clipFrames + 12 + mouthLen + 36;
 export const rudoodIntroFrames = (clipFrames: number, mouthLen: number) => 10 + mouthLen + 12 + clipFrames + 40;
 const SX = 74, SY = 168, SWD = 932, SHT = 532;
-export const RudoodReply: React.FC<RudoodProps> = ({ look, clip, clipAudio, clipFrames: CLIP, objPos, reply, mouthData, pics = [], introFirst = false }) => {
+export const RudoodReply: React.FC<RudoodProps> = ({ look, clip, clipAudio, clipFrames: CLIP, objPos, reply, mouthData, pics = [], introFirst = false, intro }) => {
   /* introFirst: يعلّق أولاً («بص الأشعري ده…») ثم يشغّل المقطع؛ وإلا يشغّل المقطع ثم يرد */
-  const REPLY = mouthData.length, CON = introFirst ? 10 + REPLY + 12 : ON, REPLY_AT = introFirst ? 10 : ON + CLIP + 12;
+  const REPLY = mouthData.length, I = intro ? intro.mouth.length : 0;
+  const CON = introFirst ? 10 + REPLY + 12 : intro ? 10 + I + 12 : ON, REPLY_AT = introFirst ? 10 : CON + CLIP + 12;
+  /* كلام الشيخ في الفيديو: تعليق أول (إن وُجد) ثم الرد */
+  const speeches = intro && !introFirst ? [{ at: 10, data: intro.mouth }, { at: REPLY_AT, data: mouthData }] : [{ at: REPLY_AT, data: mouthData }];
   const f = useCurrentFrame(), d = rudoodLook(look), FL = 884 + 760;
-  const r = f - REPLY_AT, mouth = r >= 0 && r < REPLY ? mouthData[r] : 0;
+  const sp = speeches.find((q) => f >= q.at - 6 && f < q.at + q.data.length + 20) || speeches[speeches.length - 1];
+  const r = f - sp.at, SPL = sp.data.length, mouth = r >= 0 && r < SPL ? sp.data[r] : 0;
   /* الكاميرا: تقترب قليلاً من الشاشة أثناء مقطعها، ثم تنزل إليه حين يرد */
   const zIn = interpolate(f, [CON, CON + 60], [1, 1.05], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const toHim = introFirst
+  const toHim = intro && !introFirst
+    ? interpolate(f, [10, 35, CON - 12, CON + 12, REPLY_AT - 10, REPLY_AT + 25], [0, 1, 1, 0, 0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : introFirst
     ? interpolate(f, [REPLY_AT, REPLY_AT + 25, CON - 12, CON + 12], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
     : interpolate(f, [REPLY_AT - 10, REPLY_AT + 25], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const z = zIn + 0.03 * toHim, oy = interpolate(toHim, [0, 1], [420, 1180]);
@@ -531,8 +546,8 @@ export const RudoodReply: React.FC<RudoodProps> = ({ look, clip, clipAudio, clip
   const listen = interpolate(f, [CON + 6, CON + 30, CON + Math.round(0.27 * CLIP), CON + Math.round(0.34 * CLIP), CON + Math.round(0.74 * CLIP), CON + Math.round(0.83 * CLIP), CON + CLIP + 2, CON + CLIP + 16], [0, 1, 1, 0, 0, 1, 1, 0], cl);
   const lean = interpolate(f, [CON + Math.round(0.29 * CLIP), CON + Math.round(0.4 * CLIP), CON + Math.round(0.67 * CLIP), CON + Math.round(0.74 * CLIP)], [0, 1, 1, 0], cl);
   const shake = interpolate(f, [CON + Math.round(0.68 * CLIP), CON + Math.round(0.72 * CLIP), CON + Math.round(0.9 * CLIP), CON + Math.round(0.95 * CLIP)], [0, 1, 1, 0], cl);
-  const act = r >= -6 && r < REPLY + 6 ? mouthData.slice(Math.max(0, r - 12), Math.max(0, r + 12)).reduce((a, b) => a + b, 0) / 24 : 0;
-  const talk = Math.min(1, act * 1.8) * interpolate(r, [-6, 10, REPLY, REPLY + 20], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const act = r >= -6 && r < SPL + 6 ? sp.data.slice(Math.max(0, r - 12), Math.max(0, r + 12)).reduce((a, b) => a + b, 0) / 24 : 0;
+  const talk = Math.min(1, act * 1.8) * interpolate(r, [-6, 10, SPL, SPL + 20], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const flash = interpolate(f, [CON - 2, CON + 2, CON + 8], [0, 0.85, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const paused = f >= CON + CLIP;
   return (
@@ -572,7 +587,7 @@ export const RudoodReply: React.FC<RudoodProps> = ({ look, clip, clipAudio, clip
           <Sequence from={CON} durationInFrames={CLIP} layout="none">
             <OffthreadVideo muted src={staticFile(clip)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: objPos }} />
           </Sequence>
-          {introFirst && f < CON && (
+          {(introFirst || intro) && f < CON && (
             <>
               <Freeze frame={Math.min(45, CLIP - 1)}><OffthreadVideo muted src={staticFile(clip)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: objPos, filter: "brightness(.5) saturate(.7)" }} /></Freeze>
               <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-40%,-50%)", width: 0, height: 0, borderTop: "56px solid transparent", borderBottom: "56px solid transparent", borderLeft: "92px solid rgba(255,255,255,.92)" }} />
@@ -602,6 +617,7 @@ export const RudoodReply: React.FC<RudoodProps> = ({ look, clip, clipAudio, clip
       {/* صوتها عنصر مستقل: محرك كرت الشاشة لا يأخذ صوت الفيديو المضمَّن */}
       <Sequence from={CON} durationInFrames={CLIP}><Audio src={staticFile(clipAudio)} /></Sequence>
       <Sequence from={REPLY_AT} durationInFrames={REPLY + 30}><Audio src={staticFile(reply)} /></Sequence>
+      {intro && !introFirst && <Sequence from={10} durationInFrames={I + 30}><Audio src={staticFile(intro.src)} /></Sequence>}
     </AbsoluteFill>
   );
 };
@@ -635,3 +651,7 @@ export const RudoodMakan: React.FC = () => <RudoodReply look={5} clip="rudood6/c
 /* الفيديو السابع: الفخر الرازي والعجوز — نمط جديد: تعليقه أولاً ثم المقطع مختصراً (لباس ٦) */
 export const RUDOOD_RAZI_FRAMES = rudoodIntroFrames(1404, RAZI_MOUTH.length);
 export const RudoodRazi: React.FC = () => <RudoodReply introFirst look={6} clip="rudood7/clip.mp4" clipAudio="rudood7/clip_audio.wav" clipFrames={1404} objPos="50% 18%" reply="rudood7/reply.wav" mouthData={RAZI_MOUTH} />;
+
+/* الفيديو الثامن: برج خليفة — تعليق «بص الحتة دي» ثم المقطع ثم الرد (هيئة ٨ بالطاقية البيضاء، نص مشكول) */
+export const RUDOOD_BURJ_FRAMES = rudoodFullFrames(BURJ_INTRO_MOUTH.length, 705, BURJ_MOUTH.length);
+export const RudoodBurj: React.FC = () => <RudoodReply look={8} intro={{ src: "rudood8/intro.wav", mouth: BURJ_INTRO_MOUTH }} clip="rudood8/clip.mp4" clipAudio="rudood8/clip_audio.wav" clipFrames={705} objPos="50% 20%" reply="rudood8/reply.wav" mouthData={BURJ_MOUTH} />;

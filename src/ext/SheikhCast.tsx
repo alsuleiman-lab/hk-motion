@@ -4,7 +4,7 @@
    عشر نسخ للاختيار: الإطار رقم n = النسخة n. */
 import React from "react";
 import { AbsoluteFill, Audio, Freeze, Img, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
-import { SALADIN_MOUTH, UKHUWWA_MOUTH, JINN_MOUTH, SHABBIHA_MOUTH, SULTAN_MOUTH, MAKAN_MOUTH, RAZI_MOUTH, BURJ_INTRO_MOUTH, BURJ_MOUTH2 } from "./rudoodMouth";
+import { SALADIN_MOUTH, UKHUWWA_MOUTH, JINN_MOUTH, SHABBIHA_MOUTH, SULTAN_MOUTH, MAKAN_MOUTH, RAZI_MOUTH, BURJ_INTRO_TUT, BURJ_TUT } from "./rudoodMouth";
 
 export const SHEIKH_CAST_FRAMES = 10;
 const INK = "#2a1c14";
@@ -653,5 +653,5 @@ export const RUDOOD_RAZI_FRAMES = rudoodIntroFrames(1404, RAZI_MOUTH.length);
 export const RudoodRazi: React.FC = () => <RudoodReply introFirst look={6} clip="rudood7/clip.mp4" clipAudio="rudood7/clip_audio.wav" clipFrames={1404} objPos="50% 21%" reply="rudood7/reply.wav" mouthData={RAZI_MOUTH} />;
 
 /* الفيديو الثامن: برج خليفة — تعليق «بص الحتة دي» ثم المقطع ثم الرد (هيئة ٨ بالطاقية البيضاء، نص مشكول) */
-export const RUDOOD_BURJ_FRAMES = rudoodFullFrames(BURJ_INTRO_MOUTH.length, 705, BURJ_MOUTH2.length);
-export const RudoodBurj: React.FC = () => <RudoodReply look={8} intro={{ src: "rudood8/intro.wav", mouth: BURJ_INTRO_MOUTH }} clip="rudood8/clip.mp4" clipAudio="rudood8/clip_audio.wav" clipFrames={705} objPos="50% 38%" reply="rudood8/reply2.wav" mouthData={BURJ_MOUTH2} />;
+export const RUDOOD_BURJ_FRAMES = rudoodFullFrames(BURJ_INTRO_TUT.length, 705, BURJ_TUT.length);
+export const RudoodBurj: React.FC = () => <RudoodReply look={8} intro={{ src: "rudood8/intro_tut.wav", mouth: BURJ_INTRO_TUT }} clip="rudood8/clip.mp4" clipAudio="rudood8/clip_audio.wav" clipFrames={705} objPos="50% 38%" reply="rudood8/reply_tut.wav" mouthData={BURJ_TUT} />;

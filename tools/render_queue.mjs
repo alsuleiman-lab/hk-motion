@@ -11,6 +11,11 @@
 // and `add` prints the planned bumper and file name (render_job.sh with RENDER_PLAN_ONLY=1: nothing is rendered).
 //   node tools/render_queue.mjs plan --spec <id> --comp <Comp> --orient R|L [--title <t>] [--bumper …]   → the same print, no job added
 // (user 2026-11-21) admission also needs a fresh pass of tools/prerender_check.mjs (.tmp/<p>/prerender.json); add … --prerender runs it first when stale.
+// (user 2026-11-21: «عليه يتعرف على كل شيء ويفعل ميزات لكل شيء») a composition that is NOT a montage spec (شيخ الردود، الدبلجة، الموشن، الكرتون…) is a generic job:
+//   node tools/render_queue.mjs add --comp <Id> --orient R|L --dest "<folder>" --name "<file>.mp4" [--bumper none|end] [--kind <kind>]   (no --spec; tools/comp_kinds.mjs decides
+//   the folder, the name and the bumper by the kind's skill). The worker renders it with tools/gpu_render.mjs --comp, then tools/kind_review.mjs (the checks of its own kind) on the file: a failure
+//   keeps the file in render_work/export (not copied to جاهز) and writes the reasons to the «راسلني» inbox for the session that owns the video.
+//   add … --dry  prints the job (and the spec's render plan) and adds nothing: no admission, no pre-render check, no state written.
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -47,9 +52,37 @@ const admit = (spec, orient) => {
 const titleOf = (spec, t) => { if (t) return t; try { return JSON.parse(fs.readFileSync(`data/specs/${spec}.json`, "utf8")).title ?? spec; } catch { return spec; } };
 const plan = (spec, comp, orient, title, bumper) => { const r = spawnSync("bash", ["tools/render_job.sh", spec, comp, orient, titleOf(spec, title), bumper || ""], { encoding: "utf8", env: { ...process.env, RENDER_PLAN_ONLY: "1" } }); return ((r.stderr || "") + (r.stdout || "")).trim(); };
 
-if (cmd === "add") {
+const DRY = rest.includes("--dry");
+const INBOX = ".tmp/hk_inbox.jsonl";
+const note = (comp, text) => { try { fs.appendFileSync(INBOX, JSON.stringify({ id: Date.now().toString(36), at: new Date().toISOString(), comp, frame: 0, time: "0:00", cutTime: 0, elements: "", text, reply: null }) + "\n"); } catch { /* the queue result stands */ } };
+/* (2026-11-21, «شيخ الردود - طعام لمسلمي الجن» refused by montage rules) a generic job is confirmed by ITS kind's checks (tools/kind_review.mjs: the cartoon's
+   listening silences are not pauses, a non-spec video has no cut plan or smoothed cut for the judder gate), then copied to its skill's folder */
+const deliverComp = (st, jj) => {
+  const r = sh("node", ["tools/kind_review.mjs", jj.file, "--kind", jj.kind || "unknown", "--comp", jj.comp]), out = ((r.stdout || "") + (r.stderr || ""));
+  const bad = out.split("\n").filter((l) => /^✘/.test(l.trim()) && !/الفحص النهائي لنوع/.test(l));
+  jj.review = r.status === 0 ? `✔ فحص نوع «${jj.kind}»` : bad.join(" | ").slice(0, 400);
+  if (r.status !== 0) { jj.state = "failed"; jj.err = `الفحص النهائي (${jj.kind}): ${jj.review}`; save(st); log(`✘ ${jj.comp}: ${jj.err} — الملف باقٍ في ${jj.file}`); note(jj.comp, `رندر هذا — رُندر ولم ينجح فحص نوعه (الملف في ${jj.file}، لم يُنسخ إلى جاهز): ${jj.review}`); return; }
+  try { fs.mkdirSync(jj.dest, { recursive: true }); const to = path.join(jj.dest, jj.name); fs.copyFileSync(jj.file, to); if (fs.statSync(to).size !== fs.statSync(jj.file).size) throw new Error("copy size mismatch"); jj.state = "done"; jj.to = to; delete jj.err; }
+  catch (e) { jj.state = "failed"; jj.err = String(e.message).slice(0, 160); }
+  save(st); log(`${jj.state === "done" ? "✔" : "✘"} ${jj.comp} ${jj.state}${jj.to ? ` → ${jj.to}` : ""}`);
+};
+if (cmd === "add" && !arg("spec") && arg("comp")) {
+  /* a generic composition job (no montage spec): tools/comp_kinds.mjs gave the folder, the name and the bumper */
+  const comp = arg("comp"), orient = arg("orient"), dest = arg("dest"), name = arg("name"), bumper = arg("bumper", "none"), kind = arg("kind", "");
+  if (!/^[RL]$/.test(orient) || !dest || !name || !/\.mp4$/i.test(name) || /[<>:"/\\|?*]/.test(name) || !["none", "end"].includes(bumper)) { console.error("usage: add --comp <Id> --orient R|L --dest <folder> --name <file>.mp4 [--bumper none|end] [--kind <kind>]"); process.exit(2); }
+  const job = { spec: comp, comp, orient, dest, name, bumper, kind, mode: "comp", state: "queued", at: new Date().toISOString() };
+  if (DRY) { console.log(`DRY add ${JSON.stringify(job)}\n  رندر: node tools/gpu_render.mjs --comp ${comp} --out render_work/export/${orient}/${name} --procs 1 --windows 3${bumper === "none" ? " --no-bumper" : " (BUMPER_POSITION=end)"} ثم فحص نوعه (kind_review) ثم نسخ إلى ${dest}`); process.exit(0); }
+  const s = load(); s.jobs = s.jobs.filter((j) => !(j.spec === comp && j.orient === orient)); s.jobs.push(job); save(s);
+  console.log(`✔ في الطابور: ${comp} (${s.jobs.filter((j) => j.state === "queued").length} بالانتظار)\n  → ${dest}/${name}${bumper === "end" ? " (الفاصل في آخره)" : " (بلا فاصل)"}`);
+} else if (cmd === "deliver") {
+  /* a generic job already rendered (its file in render_work/export): checked again by its kind and copied to its folder — no re-render */
+  const s = load(), j = s.jobs.find((x) => x.mode === "comp" && x.spec === rest[0] && (!rest[1] || x.orient === rest[1]));
+  if (!j || !j.file) { console.error(`لا مهمة مرندرة باسم ${rest[0]}`); process.exit(1); }
+  deliverComp(s, j); console.log(j.state === "done" ? `✔ ${j.comp} → ${j.to}` : `✘ ${j.comp}: ${j.err}`); process.exit(j.state === "done" ? 0 : 1);
+} else if (cmd === "add") {
   const spec = arg("spec"), comp = arg("comp"), orient = arg("orient"), dest = arg("dest");
   if (!spec || !comp || !/^[RL]$/.test(orient) || !dest) { console.error("usage: add --spec <id> --comp <Comp> --orient R|L --dest <folder> [--title <t>] [--bumper start|end|none]"); process.exit(2); }
+  if (DRY) { console.log(`DRY add ${JSON.stringify({ spec, comp, orient, dest, bumper: arg("bumper", ""), prerender: rest.includes("--prerender") })}\n  القبول: التغطية والشبكة والعناصر والغلاف وفحص ما قبل الرندر${rest.includes("--prerender") ? " (يُشغَّل إن كان قديماً)" : ""}\n  ` + plan(spec, comp, orient, arg("title"), arg("bumper", "")).replace(/\n/g, "\n  ")); process.exit(0); }
   const s = load(); s.jobs = s.jobs.filter((j) => !(j.spec === spec && j.orient === orient));   // one job per project AND orientation (the portrait add erased the landscape one, 2026-11-11)
   const why = admit(spec, orient);
   if (why) { s.jobs.push({ spec, comp, orient, dest, title: arg("title"), bumper: arg("bumper", ""), state: "rejected", why }); save(s); console.log(`✘ مرفوض ${spec}: ${why}\n  أصلحه بـ node tools/spec_normalize.mjs data/specs/${spec}.json --o ${orient === "L" ? "land" : "port"} ثم أضِفه من جديد`); process.exit(1); }
@@ -76,6 +109,15 @@ if (cmd === "add") {
     const s = load(), j = s.jobs.find((x) => x.state === "queued");
     if (!j) { log("الطابور فارغ"); break; }
     j.state = "rendering"; save(s); log(`رندر ${j.spec} (${j.comp})`);
+    if (j.mode === "comp") {   /* a generic composition (tools/comp_kinds.mjs): the GPU engine on the composition itself, then final_review on the file */
+      const file = path.join("render_work/export", j.orient, j.name); fs.mkdirSync(path.dirname(file), { recursive: true });
+      const env = { ...process.env, BUMPER_POSITION: j.bumper === "end" ? "end" : "none" };
+      const ga = ["tools/gpu_render.mjs", "--comp", j.comp, "--out", file, "--procs", "1", "--windows", "3", "--name", j.comp, ...(j.bumper === "end" ? [] : ["--no-bumper"])];
+      let r; for (let k = 0; k < 30; k++) { r = spawnSync(process.execPath, ga, { encoding: "utf8", maxBuffer: 1 << 27, env, windowsHide: true }); if (r.status === 0 || !/ممنوع رندر/.test((r.stdout || "") + (r.stderr || ""))) break; log(`${j.comp}: رندر آخر يعمل — أنتظر دقيقة`); Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 60000); }
+      const cur = load(), jj = cur.jobs.find((x) => x.spec === j.spec && x.orient === j.orient);
+      if (r.status !== 0 || !fs.existsSync(file)) { jj.state = "failed"; jj.err = `gpu_render status ${r.status} — ` + ((r.stderr || "") + (r.stdout || "")).trim().split("\n").filter((l) => /✘/.test(l)).slice(-2).join(" ").slice(0, 200); save(cur); log(`✘ ${j.comp}: ${jj.err}`); note(j.comp, `رندر هذا — فشل الرندر: ${jj.err}`); continue; }
+      jj.file = file; deliverComp(cur, jj); continue;
+    }
     const title = titleOf(j.spec, j.title);
     /* (user 2026-11-18, rules review) no "start" default: an empty 5th argument lets render_job.sh take spec.bumper (or its legacy default) */
     const r = sh("bash", ["tools/render_job.sh", j.spec, j.comp, j.orient, title, j.bumper || ""]);

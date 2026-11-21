@@ -682,6 +682,23 @@ const installHK = () => {
   ico(bRen, "🎬", "رندر هذا الفيديو", "var(--hk-accent)"); ico(bMsg, "✉️", "راسلني على هذه اللحظة", "var(--hk-accent)");
   ico(bA, "⇤", "بداية الجزء المراد حذفه"); ico(bB, "⇥", "نهاية الجزء المراد حذفه"); ico(bDel, "✂️", "احذف الجزء المحدد", "var(--hk-danger)"); ico(bCol, "☀️", "الإضاءة والألوان");
   const sep = () => { const d = document.createElement("div"); d.style.cssText = "width:22px;height:1px;background:var(--hk-line-strong);margin:2px 0"; return d; };
+  /* EVERY COMPOSITION, EVERY TOOL (user 2026-11-21: «عليه يتعرف على كل شيء ويفعل ميزات لكل شيء»): the server says what the open composition is (tools/comp_kinds.mjs via
+     POST /api/kind) and which tools apply to it; an icon that does not apply is dimmed and its tooltip says why (a click says it too, never an error) */
+  type Kind = { kind: string; label: string; owner: string; render: { ok: boolean; why: string; mode: string | null; note?: string }; cut: { ok: boolean; why: string }; grade: { ok: boolean; why: string; scope: string | null } };
+  let kindInfo: Kind | null = null, kindFor = "", kindAt = 0;
+  const NAMES = new Map<HTMLButtonElement, string>([[bRen, "رندر هذا الفيديو"], [bA, "بداية الجزء المراد حذفه"], [bB, "نهاية الجزء المراد حذفه"], [bDel, "احذف الجزء المحدد"], [bCol, "الإضاءة والألوان"]]);
+  const dim = (b: HTMLButtonElement, ok: boolean, why: string, name?: string) => { const n = name ?? NAMES.get(b) ?? b.title; b.style.opacity = ok ? "1" : ".38"; b.dataset.na = ok ? "" : "1"; b.title = ok ? n : `${n} — لا ينطبق هنا: ${why}`; };
+  const applyKind = (k: Kind | null) => {
+    if (!k) { for (const b of NAMES.keys()) { b.style.opacity = "1"; b.dataset.na = ""; } return; }
+    dim(bRen, k.render.ok, k.render.why, (k.render.mode === "still" ? `لقطة ثابتة من هذا الإطار (${k.label})` : `رندر هذا الفيديو (${k.label})`) + (k.render.note ? ` — ${k.render.note}` : ""));
+    for (const b of [bA, bB, bDel]) dim(b, k.cut.ok, `${k.cut.why} — يصل طلب القصّ لصاحبه (${k.owner})`);
+    dim(bCol, k.grade.ok, k.grade.why, k.grade.scope === "frame" ? "الإضاءة والألوان (الصورة كلها)" : k.grade.scope === "video" ? "الإضاءة والألوان (طبقات الفيديو)" : "الإضاءة والألوان");
+  };
+  const loadKind = async (c: string) => {
+    kindFor = c; kindAt = Date.now();
+    try { const r = await fetch(`http://${location.hostname}:${hkPort()}/api/kind`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ comp: c }) }); const k = (await r.json()) as Kind; if (comp() === c) { kindInfo = k; applyKind(k); } }
+    catch { if (comp() === c) { kindInfo = null; applyKind(null); } }
+  };
   info.style.cssText = "position:absolute;right:44px;top:0;width:max-content;max-width:min(72vw,360px);display:none;padding:7px 10px;border-radius:9px;background:var(--hk-bg2);border:1px solid var(--hk-line-strong);font:600 12px Tahoma,Arial,sans-serif;line-height:1.6;white-space:normal;box-shadow:0 4px 14px rgba(0,0,0,.35);user-select:text;-webkit-user-select:text";
   let toastT = 0;
   new MutationObserver(() => { const t = (info.textContent ?? "").trim(); info.style.display = t ? "block" : "none"; window.clearTimeout(toastT); if (t && !t.startsWith("⏳")) toastT = window.setTimeout(() => { info.textContent = ""; }, 9000); }).observe(info, { childList: true, characterData: true, subtree: true });
@@ -706,7 +723,7 @@ const installHK = () => {
   bMove.addEventListener("click", () => { try { openMovePanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // «تحريك» (src/hkMovePanel.ts)
   bQue.title = "طابور الرندر وتقدّمه: أضف المونتاج المفتوح، وتابع كل إخراج";
   bQue.addEventListener("click", () => { try { openQueuePanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // the render queue sheet (src/hkQueuePanel.ts)
-  bCol.addEventListener("click", () => { try { openColorPanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // the colour sheet (src/hkColorPanel.ts), the colour tool for every montage
+  bCol.addEventListener("click", () => { try { if (kindInfo && !kindInfo.grade.ok && comp() === kindFor) { paint(`لا ألوان لهذا التركيب: ${kindInfo.grade.why}`, "#ffd479"); return; } openColorPanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // the colour sheet (src/hkColorPanel.ts), the colour tool for every montage
   bTheme.title = "بدّل بين المظهر الليلي (فضي دخاني) والنهاري (بيج وسكري وبني خفيف)";
   bTheme.addEventListener("click", () => { toggleTheme(); });
   window.addEventListener("hk-theme", () => { bTheme.textContent = currentTheme() === "night" ? "نهاري" : "ليلي"; });
@@ -714,7 +731,7 @@ const installHK = () => {
   const paint = (msg?: string, color?: string) => {
     const r = loadR(comp());
     /* icons stay icons: a set point lights its button and its frame goes into the tooltip */
-    bA.title = r.a != null ? `بداية الجزء: الإطار ${r.a}` : "بداية الجزء المراد حذفه"; bB.title = r.b != null ? `نهاية الجزء: الإطار ${r.b}` : "نهاية الجزء المراد حذفه";
+    if (bA.dataset.na !== "1") { bA.title = r.a != null ? `بداية الجزء: الإطار ${r.a}` : "بداية الجزء المراد حذفه"; bB.title = r.b != null ? `نهاية الجزء: الإطار ${r.b}` : "نهاية الجزء المراد حذفه"; }   // a dimmed cut keeps its «why» tooltip
     bA.style.background = r.a != null ? "var(--hk-btn-on)" : "var(--hk-btn)"; bB.style.background = r.b != null ? "var(--hk-btn-on)" : "var(--hk-btn)";
     if (msg !== undefined) { info.textContent = msg; info.style.color = color ?? "var(--hk-text)"; }
   };
@@ -727,11 +744,13 @@ const installHK = () => {
   };
   bRen.addEventListener("click", async () => {
     const c = comp(); if (!c) return;
-    bRen.disabled = true; paint("⏳ أفحص قبل الرندر…", "#ffd479");
+    if (kindInfo && !kindInfo.render.ok && comp() === kindFor) { paint(`هذا النوع (${kindInfo.label}) لا يُرندر هنا: ${kindInfo.render.why}`, "#ffd479"); return; }
+    bRen.disabled = true; paint(kindInfo?.render.mode === "spec" ? "⏳ أفحص قبل الرندر…" : "⏳ أجهّز الرندر…", "#ffd479");
     try {
-      const r = await call("/api/render", { comp: c });
+      const r = await call("/api/render", { comp: c, frame: frameNow() ?? 0 });
       if (!r.ok) { paint(`✘ ${String(r.data.error ?? r.status)}`, "#ff9a9a"); return; }
-      if (r.data.routed) { paint(String(r.data.message ?? "✔ وصل طلب الرندر"), "#8fe08f"); return; }   // not an HK montage: its owner session renders it
+      if (r.data.na) { paint(String(r.data.message ?? "لا يُرندر هنا"), "#ffd479"); return; }   // a kind that is not rendered (engine asset, archive…): said why
+      if (r.data.routed) { paint(String(r.data.message ?? "✔ وصل طلب الرندر"), "#8fe08f"); return; }   // an unknown composition: its owner session renders it
       for (;;) {
         await new Promise((res) => setTimeout(res, 2000));
         const j = (await (await fetch(api("/api/job"))).json()) as { state?: string; label?: string; seconds?: number; summary?: string };
@@ -755,9 +774,17 @@ const installHK = () => {
   };
   const run = (kind: "delete" | "music") => async () => {
     if (busy) return; const c = comp(), r = loadR(c);
-    if (r.a == null || r.b == null) { paint("حدّد البداية والنهاية أولاً (انتقل إلى الإطار ثم اضغط بداية / نهاية)", "#ffd479"); return; }
+    const na = kindInfo && !kindInfo.cut.ok && c === kindFor ? kindInfo : null;
+    if (r.a == null || r.b == null) { paint(na ? `هذا النوع لا يُقصّ هنا: ${na.cut.why}` : "حدّد البداية والنهاية أولاً (انتقل إلى الإطار ثم اضغط بداية / نهاية)", "#ffd479"); return; }
     busy = true;
     try {
+      if (na) {   // no cut for this kind here: said clearly, and the request goes to its owner session through «راسلني»
+        if (!window.confirm(`هذا النوع (${na.label}) لا يُقصّ هنا:\n${na.cut.why}\n\nأرسل طلب ${kind === "delete" ? "قصّ" : "حذف الموسيقى من"} الجزء من الإطار ${Math.min(r.a, r.b)} إلى ${Math.max(r.a, r.b)} لصاحبه (${na.owner})؟`)) { paint(""); return; }
+        const go = await call(kind === "delete" ? "/api/delete" : "/api/music", { comp: c, a: r.a, b: r.b, frame: frameNow() ?? 0 });
+        paint(go.ok ? String(go.data.message ?? "✔ أُرسل") : `✘ ${String(go.data.error ?? "تعذّر")}`, go.ok ? "#8fe08f" : "#ff9a9a");
+        if (go.ok) { saveR(c, { a: null, b: null }); paint(); }
+        return;
+      }
       paint("… أتحقق", "#ffd479");
       const pv = await call("/api/preview", { comp: c, a: r.a, b: r.b });
       if (!pv.ok) { paint(`✘ ${String(pv.data.error ?? "تعذّر")}`, "#ff9a9a"); return; }
@@ -787,7 +814,8 @@ const installHK = () => {
       const fold = document.querySelector<HTMLElement>('button[aria-label="Collapse right sidebar"]');
       if (fold && row.dataset.folded !== "1") { row.dataset.folded = "1"; fold.click(); }
       if (row.style.display !== "flex") row.style.display = "flex";
-      if (c !== lastComp) { lastComp = c; paint(""); }
+      if (c !== lastComp) { lastComp = c; paint(""); kindInfo = null; applyKind(null); void loadKind(c); }
+      else if (!kindInfo && Date.now() - kindAt > 8000) void loadKind(c);   // the server was not up yet: asked again
     } catch { /* never break the Studio */ }
   }, 400);
   // presence (user 2026-11-19: «توقف أي خدمة غير مستعملة»): while this page is open it tells the tools server once a minute; with no open page and no

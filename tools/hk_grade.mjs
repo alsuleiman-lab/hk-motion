@@ -35,6 +35,21 @@ export const setGrade = (p, g, replace = false) => {
   fs.writeFileSync(f, JSON.stringify(s, null, 1));
   return { ...NEUTRAL, ...(s.grade ?? {}) };
 };
+/* (user 2026-11-21: «عليه يتعرف على كل شيء ويفعل ميزات لكل شيء») a composition that is not a montage spec (شيخ الردود، الدبلجة، المناظرة…) keeps its grade in
+   data/comp_grades.json {comps: {<Id>: {scope, grade}}}, read by src/compGrade.tsx: scope "video" = its VSlot video layers only (src/hybrid/Slot.tsx GradeCtx "*",
+   the GPU compositor applies the same matrix), "frame" = the whole picture (it has no HybridHost: the whole frame is the graphics layer, Studio = render).
+   tools/comp_kinds.mjs decides the scope; a neutral grade removes the entry (the composition renders exactly as before). */
+export const COMP_GRADES = path.join("data", "comp_grades.json");
+export const getCompGrade = (id, file = COMP_GRADES) => ({ ...NEUTRAL, ...(read(file, {}).comps?.[id]?.grade ?? {}) });
+export const setCompGrade = (id, scope, g, replace = false, file = COMP_GRADES) => {
+  if (!["video", "frame"].includes(scope)) throw new Error(`نطاق غير معروف: ${scope}`);
+  const d = read(file, { comps: {} }); d.comps ??= {};
+  const next = { ...(replace ? NEUTRAL : { ...NEUTRAL, ...(d.comps[id]?.grade ?? {}) }), ...clean(g) };
+  if (Object.keys(NEUTRAL).every((k) => next[k] === NEUTRAL[k])) delete d.comps[id];
+  else d.comps[id] = { scope, grade: Object.fromEntries(Object.entries(next).filter(([k, v]) => v !== NEUTRAL[k])) };
+  fs.writeFileSync(file, JSON.stringify(d, null, 1));
+  return { ...NEUTRAL, ...(d.comps[id]?.grade ?? {}) };
+};
 export const presets = () => read(PRESETS, { presets: {} }).presets;
 export const savePreset = (name, g) => { const d = read(PRESETS, { presets: {} }); d.presets[name] = { ...NEUTRAL, ...clean(g) }; fs.writeFileSync(PRESETS, JSON.stringify(d, null, 1)); };
 export const deletePreset = (name) => { const d = read(PRESETS, { presets: {} }); delete d.presets[name]; fs.writeFileSync(PRESETS, JSON.stringify(d, null, 1)); };

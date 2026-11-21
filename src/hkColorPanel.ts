@@ -39,13 +39,13 @@ export const openColorPanel = (ctx: GalleryCtx): void => {
     return j as T;
   };
 
-  let values: G = { ...NEUTRAL }, presets: Record<string, G> = {};
+  let values: G = { ...NEUTRAL }, presets: Record<string, G> = {}, scope = "recording";
   const outs: Record<string, HTMLOutputElement> = {}, ins: Record<string, HTMLInputElement> = {};
   const chips = mk("div", "display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:12px");
   const paint = () => { for (const s of SLIDERS) { ins[s.key].value = String(values[s.key]); outs[s.key].textContent = `${values[s.key]}`; } };
   const write = async (grade: Partial<G>, replace = false) => {
     say("… أطبّق", "var(--hk-warn)");
-    try { const r = await post<{ grade: G }>("/api/grade/set", { comp: ctx.comp(), grade, replace }); values = { ...NEUTRAL, ...r.grade }; paint(); say("✔ طُبّق على تسجيل الشيخ", "var(--hk-ok)"); }
+    try { const r = await post<{ grade: G }>("/api/grade/set", { comp: ctx.comp(), grade, replace }); values = { ...NEUTRAL, ...r.grade }; paint(); say(scope === "frame" ? "✔ طُبّق على الصورة كلها" : scope === "video" ? "✔ طُبّق على طبقات الفيديو" : "✔ طُبّق على تسجيل الشيخ", "var(--hk-ok)"); }
     catch (e) { say(String((e as Error).message), "var(--hk-danger)"); }
   };
   const paintChips = () => {
@@ -61,7 +61,10 @@ export const openColorPanel = (ctx: GalleryCtx): void => {
     chips.appendChild(save);
   };
 
-  body.appendChild(mk("div", "margin-bottom:10px;color:var(--hk-dim);line-height:1.6;font-size:12px", "يُطبَّق على تسجيل الشيخ وحده (لا على العناصر والصور والبطاقات)، وفي المعاينة والتصدير بالمقدار نفسه. اضغط مطوّلاً (أو زر الفأرة الأيمن) على لون جاهز لحذفه."));
+  /* (2026-11-21) what is graded depends on the composition's kind (tools/comp_kinds.mjs): the server's /api/grade/get says it (note, scope) */
+  const LONG = " اضغط مطوّلاً (أو زر الفأرة الأيمن) على لون جاهز لحذفه.";
+  const noteEl = mk("div", "margin-bottom:10px;color:var(--hk-dim);line-height:1.6;font-size:12px", "يُطبَّق على تسجيل الشيخ وحده (لا على العناصر والصور والبطاقات)، وفي المعاينة والتصدير بالمقدار نفسه." + LONG);
+  body.appendChild(noteEl);
   body.appendChild(chips);
   for (const s of SLIDERS) {
     const row = mk("label", "display:block;margin:10px 0 14px");
@@ -79,7 +82,8 @@ export const openColorPanel = (ctx: GalleryCtx): void => {
   void (async () => {
     try {
       presets = (await post<{ presets: Record<string, G> }>("/api/grade/presets", {})).presets; paintChips();
-      values = { ...NEUTRAL, ...(await post<{ grade: G }>("/api/grade/get", { comp: ctx.comp() })).grade }; paint();
+      const gg = await post<{ grade: G; note?: string; scope?: string }>("/api/grade/get", { comp: ctx.comp() });
+      values = { ...NEUTRAL, ...gg.grade }; scope = gg.scope ?? "recording"; if (gg.note) noteEl.textContent = gg.note + LONG; paint();
       say("");
     } catch (e) { say(/Failed to fetch/.test(String(e)) ? "خادم HK غير مشغّل" : String((e as Error).message), "var(--hk-danger)"); paint(); }
   })();

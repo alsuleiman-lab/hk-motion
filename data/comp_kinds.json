@@ -1,0 +1,13 @@
+{
+ "_about": "tools/comp_kinds.mjs: what it cannot read from the code. names = the delivered file name of a composition whose name rule is not written in its skill (taken from the files already in جاهز); kinds = a composition id forced to a kind.",
+ "names": {
+  "Rudood-Saladin": "شيخ الردود - هل فتح فلسطين دليل على الحق.mp4",
+  "Rudood-Ukhuwwa": "شيخ الردود - هل نتنياهو أخوك؟.mp4",
+  "Rudood-Razi": "شيخ الردود - الرازي والعجوز.mp4",
+  "Rudood-Burj": "شيخ الردود - برج خليفة وقرب المكان.mp4",
+  "Jordan-Detain": "توقيفات وتضييقات على المشايخ في الأردن.mp4"
+ },
+ "kinds": {
+  "Demo": "spec-demo"
+ }
+}

@@ -20,6 +20,18 @@ import * as G from "./hk_grade.mjs";
 import { state as progressState, nowItem } from "./render_progress.mjs";
 import { projectOf } from "./cut_lazy.mjs";
 import { registerStudio, watcherAlive } from "./lib/inbox_watch.mjs";
+import * as K from "./comp_kinds.mjs";
+
+/* EVERY COMPOSITION, EVERY TOOL (user 2026-11-21, after «رندر» refused a «شيخ الردود» video: «عليه يتعرف على كل شيء ويفعل ميزات لكل شيء، لأن المسألة نحن عندنا
+   الآن برنامج متكامل»): tools/comp_kinds.mjs knows what the open composition is (a montage spec, a lesson/stream clip, شيخ الردود، الدبلجة، الموشن، الكرتون، عرض…)
+   and how each tool works on it. POST /api/kind {comp} → which tools apply (the strip dims the others and says why); /api/render queues the kind's own job(s);
+   /api/delete cuts where the kind has a cut, else the request goes to its owner through «راسلني»; /api/grade/* writes the spec's grade or data/comp_grades.json.
+   Every action takes {dry: true}: the decision and the commands are returned, nothing is queued, cut, written or sent (tools/selftest_cases/k_comp_kinds.mjs). */
+const toInbox = (comp, text, body = {}) => {
+  const m = { id: Date.now().toString(36), at: new Date().toISOString(), comp, frame: Number(body.frame ?? 0), time: String(body.time ?? "0:00"), cutTime: 0, elements: "", text, reply: null };
+  if (!body.dry) { fs.mkdirSync(".tmp", { recursive: true }); fs.appendFileSync(INBOX, JSON.stringify(m) + "\n"); }
+  return m;
+};
 
 /* THE RENDER QUEUE INSIDE HK-MOTION (user 2026-11-19: «ادمج طابور الرندر مع مستوى التقدم في البرنامج الجديد تبعنا»): the queue (tools/render_queue.mjs,
    data/render_queue/state.json) and the progress of every render (tools/render_progress.mjs state()) answered here, shown by the «الطابور» sheet of the
@@ -43,11 +55,11 @@ const queueState = () => {
 const NL_RE = new RegExp("\r?\n");
 const queue = (url, body) => {
   if (url === "/api/queue/add") {
-    const comp = String(body.comp ?? ""), p = projectOf(comp); if (!p) throw new Error(`لا مونتاج لهذه التركيبة: ${comp}`);
-    const orient = /-L$/i.test(comp) ? "L" : "R";
-    const r = spawnSync(process.execPath, ["tools/render_queue.mjs", "add", "--spec", p, "--comp", comp, "--orient", orient, "--dest", QDEST], { encoding: "utf8", windowsHide: true, timeout: 180000 });
+    const comp = String(body.comp ?? ""), d = K.route("render", comp, body); if (d.do !== "queue") throw new Error(d.message);   // the kind's own job(s) (tools/comp_kinds.mjs)
+    const r = spawnSync(process.execPath, [...d.argv, ...(body.dry ? ["--dry"] : [])], { encoding: "utf8", windowsHide: true, timeout: 600000 });
     const out = (r.stdout + r.stderr).trim();
     if (r.status !== 0 || /✘ مرفوض/.test(out)) throw new Error(out.split(/\r?\n/).slice(0, 4).join(" | ") || "رُفض");
+    if (body.dry) return { dry: true, message: out };
     const started = startWorker();
     return { message: `✔ في الطابور: ${arTitleOf(comp)}${started ? " — بدأ الإخراج" : ""}`, ...queueState() };
   }
@@ -134,10 +146,14 @@ const grade = (url, body) => {
   if (url === "/api/grade/presets") return { presets: G.presets() };
   if (url === "/api/grade/savepreset") { G.savePreset(String(body.name ?? "").trim() || "لون جديد", body.grade ?? {}); return { presets: G.presets() }; }
   if (url === "/api/grade/delpreset") { G.deletePreset(String(body.name)); return { presets: G.presets() }; }
-  const p = project(String(body.comp ?? "")); if (!p) throw new Error(`لا أجد مواصفة للتركيب «${body.comp}» (data/specs)`);
-  if (url === "/api/grade/get") return { project: p, grade: G.getGrade(p) };
+  /* (user 2026-11-21) the grade lives where the kind keeps it: a montage spec's `grade`, or data/comp_grades.json for any other composition with a video layer
+     (src/compGrade.tsx); a composition without one is answered with the reason */
+  const comp = String(body.comp ?? ""), d = K.route("grade", comp, body); if (d.do !== "grade") throw new Error(d.message);
+  const p = d.r.project, cur = () => (d.where === "spec" ? G.getGrade(p) : G.getCompGrade(comp)), info = { project: p, comp, where: d.where, scope: d.scope, note: d.note };
+  if (url === "/api/grade/get") return { ...info, grade: cur() };
   if (job?.state === "running") throw Object.assign(new Error(`يعمل الآن: ${job.label}`), { code: 409 });
-  if (url === "/api/grade/set") return { project: p, grade: G.setGrade(p, body.grade ?? {}, !!body.replace) };
+  if (url === "/api/grade/set" && body.dry) return { ...info, dry: true, file: d.r.grade.file, grade: { ...(body.replace ? {} : cur()), ...G.clean(body.grade ?? {}) } };
+  if (url === "/api/grade/set") return { ...info, grade: d.where === "spec" ? G.setGrade(p, body.grade ?? {}, !!body.replace) : G.setCompGrade(comp, d.scope, body.grade ?? {}, !!body.replace) };
   throw new Error("not found");
 };
 
@@ -163,7 +179,7 @@ const start = (kind, p, args, label, onDone) => {
     j.state = code === 0 ? "done" : "failed"; j.endedAt = Date.now();
     try { onDone?.(code, j); } catch { /* the job result stands */ }
     const lines = j.log.trim().split("\n").filter(Boolean);
-    j.summary = code === 0 ? (lines.filter((l) => /^(cut_blocks: DONE|music_cut:)/.test(l)).slice(-1)[0] ?? lines.slice(-1)[0] ?? "تم") : (lines.filter((l) => l.startsWith("✘ cut_block:")).slice(0, 1)[0] ?? lines.filter((l) => l.startsWith("✘")).slice(-1)[0] ?? lines.slice(-1)[0] ?? "فشل");
+    if (!j.summary) j.summary = code === 0 ? (lines.filter((l) => /^(cut_blocks: DONE|music_cut:)/.test(l)).slice(-1)[0] ?? lines.slice(-1)[0] ?? "تم") : (lines.filter((l) => l.startsWith("✘ cut_block:")).slice(0, 1)[0] ?? lines.filter((l) => l.startsWith("✘")).slice(-1)[0] ?? lines.slice(-1)[0] ?? "فشل");
   });
   return j;
 };
@@ -190,20 +206,22 @@ http.createServer((req, res) => {
       if (url.startsWith("/api/queue/")) return send(res, 200, queue(url, body));
       /* «رندر» (user 2026-11-21: «ضع لي زر (رندر) في ريموشن يعطيك الأمر بالرندرة مباشرة»): the open composition goes to the render queue as a job — the
          pre-render check first (render_queue add --prerender), then the worker starts. A refusal is written to the «راسلني» inbox so the session that owns the video fixes it. */
+      if (url === "/api/kind") return send(res, 200, K.tools(String(body.comp ?? "")));   // which tools apply to the open composition, and why not (the strip)
       if (url === "/api/render") {
-        const comp = String(body.comp ?? ""), p = projectOf(comp);
-        /* (user 2026-11-21, a phone screenshot: «لا مونتاج لهذه التركيبة: Rudood-Ukhuwwa») a composition that is not an HK montage spec (the «شيخ الردود» videos,
-           cartoons, motion…) is rendered by the session that made it: the order goes to the «راسلني» inbox as «رندر هذا», where its owner picks it up */
-        if (!p) {
-          if (!comp) throw new Error("افتح فيديو أولاً");
-          const m = { id: Date.now().toString(36), at: new Date().toISOString(), comp, frame: Number(body.frame ?? 0), time: String(body.time ?? "0:00"), cutTime: 0, elements: "", text: "رندر هذا", reply: null };
-          fs.mkdirSync(".tmp", { recursive: true }); fs.appendFileSync(INBOX, JSON.stringify(m) + "\n");
-          return send(res, 200, { ok: true, routed: true, message: `✔ وصل طلب الرندر لـ«${arTitleOf(comp)}» — سيُرندر، وتصلك النتيجة في «راسلني»` });
-        }
-        const orient = /-L$/i.test(comp) ? "L" : "R";
-        const j = start("render", p, ["tools/render_queue.mjs", "add", "--spec", p, "--comp", comp, "--orient", orient, "--dest", QDEST, "--prerender"], `رندر ${arTitleOf(comp)}`, (code, jj) => {
+        const comp = String(body.comp ?? ""); if (!comp) throw new Error("افتح فيديو أولاً");
+        /* (user 2026-11-21) the kind decides (tools/comp_kinds.mjs): a montage/lesson/stream spec → the queue with its pre-render check, in its skill's folder with its
+           bumper; any other video (شيخ الردود، الدبلجة، المناظرة، الموشن…) → a generic --comp job (tools/gpu_render.mjs, then final_review); a demo or reference →
+           a still of this frame; an engine asset → not rendered, with the reason; an unknown composition → «رندر هذا» to its owner through «راسلني» (the earlier routing,
+           user's phone screenshot «لا مونتاج لهذه التركيبة: Rudood-Ukhuwwa») */
+        const d = K.route("render", comp, body);
+        if (d.do === "na") return send(res, 200, { ok: false, na: true, message: d.message, kind: d.r.kind });
+        if (d.do === "inbox") { toInbox(comp, d.text, body); return send(res, 200, { ok: true, routed: true, dry: !!body.dry, message: d.message, kind: d.r.kind }); }
+        if (body.dry) { const x = spawnSync(process.execPath, [...d.argv, "--dry"], { encoding: "utf8", windowsHide: true, timeout: 120000 }); return send(res, 200, { ok: x.status === 0, dry: true, kind: d.r.kind, mode: d.r.render.mode, jobs: d.r.render.jobs, argv: d.argv, plan: ((x.stdout || "") + (x.stderr || "")).trim() }); }
+        const p = d.r.project ?? comp, still = d.r.render.mode === "still";
+        const j = start("render", p, d.argv, still ? `لقطة ثابتة من ${arTitleOf(comp)}` : `رندر ${arTitleOf(comp)}`, (code, jj) => {
           const out = jj.log.trim(), bad = code !== 0 || /✘ مرفوض/.test(out);
-          if (!bad) { const st = startWorker(); jj.summary = `✔ في الطابور: ${arTitleOf(comp)}${st ? " — بدأ الإخراج" : ""}`; return; }
+          if (!bad && still) { jj.summary = out.split(NL_RE).filter((l) => l.startsWith("✔")).slice(-1)[0] ?? "✔ لقطة ثابتة"; return; }
+          if (!bad) { const st = startWorker(), to = [...new Set(d.r.render.jobs.map((x) => x.dest.replace(/^C:\/Users\/mshms\/Videos\//, "")))].join(" و"); jj.summary = `✔ في الطابور: ${arTitleOf(comp)} → ${to}${st ? " — بدأ الإخراج" : ""}`; return; }
           jj.state = "failed"; jj.summary = "✘ رُفض الرندر — أرسلتُ السبب لي في «راسلني» لأصلحه";
           const why = out.split(NL_RE).filter((l) => /✘/.test(l)).slice(0, 6).join(" | ").slice(0, 900) || out.slice(-600);
           const m = { id: Date.now().toString(36), at: new Date().toISOString(), comp, frame: 0, time: "0:00", cutTime: 0, elements: "", text: `رندر هذا — رُفض الرندر: ${why}`, reply: null };
@@ -241,11 +259,20 @@ http.createServer((req, res) => {
           return { id: x.id, name: String(x.name ?? x.text ?? x.title ?? x.el ?? x.t).slice(0, 40), slot: x.slot[o], choices: names.map((n) => ({ name: n, state: n === x.slot[o] ? "here" : taken.has(n) ? "taken" : "free" })) }; });
         return send(res, 200, { project: pj, o, t: +t.toFixed(2), items });
       }
+      if (url === "/api/preview" || url === "/api/delete" || url === "/api/music") {
+        const comp = String(body.comp ?? ""), d = K.route("cut", comp, body);
+        if (d.do === "inbox") {   /* (user 2026-11-21) this kind has no cut here: said clearly, and the request goes to its owner session through «راسلني» */
+          if (url === "/api/preview") return send(res, 200, { routed: true, na: d.r.cut.why, owner: d.r.owner, kind: d.r.kind, seconds: +(Math.abs(Number(body.b) - Number(body.a)) / 30).toFixed(1), words: [], count: 0 });
+          const m = toInbox(comp, url === "/api/music" ? d.text.replace(/^قصّ هذا/, "احذف الموسيقى") : d.text, body);
+          return send(res, 200, { ok: true, routed: true, dry: !!body.dry, message: d.message, inbox: m, kind: d.r.kind });
+        }
+      }
       const { p, fa, fb } = parse(body), A = (fa / 30).toFixed(4), B = (fb / 30).toFixed(4), secs = ((fb - fa) / 30).toFixed(1);
       if (url === "/api/preview") {
         const inside = words(p).filter((w) => w.s >= fa / 30 - 0.03 && w.e <= fb / 30 + 0.03).map((w) => w.w);
         return send(res, 200, { project: p, from: +A, to: +B, seconds: +secs, words: inside.length > 40 ? [...inside.slice(0, 20), "…", ...inside.slice(-15)] : inside, count: inside.length });
       }
+      if (body.dry && (url === "/api/delete" || url === "/api/music")) return send(res, 200, { dry: true, project: p, from: +A, to: +B, seconds: +secs, argv: url === "/api/delete" ? ["tools/cut_blocks.mjs", p, `${A}-${B}`, "--snap-words"] : ["tools/music_cut.mjs", p, A, B] });
       if (url === "/api/delete") { const j = start("delete", p, ["tools/cut_blocks.mjs", p, `${A}-${B}`, "--snap-words"], `حذف ${secs} ث من ${p}`); return send(res, 202, { id: j.id, label: j.label }); }
       if (url === "/api/music") { const j = start("music", p, ["tools/music_cut.mjs", p, A, B], `حذف الموسيقى ${secs} ث من ${p}`); return send(res, 202, { id: j.id, label: j.label }); }
       return send(res, 404, { error: "not found" });

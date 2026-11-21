@@ -1,0 +1,4 @@
+{
+ "_about": "The colour grade of a composition that is not a montage spec (tools/hk_grade.mjs setCompGrade, from the Studio's ☀️ sheet via tools/hk_server.mjs; read by src/compGrade.tsx). scope video = its video layers only, frame = the whole picture. Empty = nothing changes.",
+ "comps": {}
+}

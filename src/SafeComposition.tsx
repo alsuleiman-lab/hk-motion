@@ -1,5 +1,6 @@
 import React from "react";
 import { Composition as RemotionComposition } from "remotion";
+import { graded } from "./compGrade";
 
 /** Every composition of the Root runs inside this guard (user order 2026-11-15: no Studio error screen; problems are contained and healed in the background).
  *  A render/effect error inside a composition shows a calm placeholder instead of the red overlay, is logged to the console, and the composition is retried every 2 s,
@@ -27,4 +28,4 @@ const guarded = (id: string, C: React.ComponentType<unknown>): React.ComponentTy
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const Composition: React.FC<any> = (props) => <RemotionComposition {...props} component={guarded(String(props.id), props.component)} />;
+export const Composition: React.FC<any> = (props) => <RemotionComposition {...props} component={guarded(String(props.id), graded(String(props.id), props.component))} />;

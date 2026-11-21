@@ -143,12 +143,12 @@ export type VSlotProps = {
   fitZoom?: [number, number, number];
 };
 
-/** the montage's colour grade (src/MontageSpec.tsx provides it): the video layers whose file is `cut` get the matrix `gm` */
+/** the montage's colour grade (src/MontageSpec.tsx provides it): the video layers whose file is `cut` get the matrix `gm` (cut "*": all of them, src/compGrade.tsx) */
 export const GradeCtx = React.createContext<{ cut: string; gm: number[] } | null>(null);
 let SEQ = 0;
 export const VSlot: React.FC<VSlotProps> = ({ src, studioSrc, startFrom = 0, playbackRate = 1, muted = true, w, h, radius = 0, vx = 0, vy = 0, vw, vh, fx: fx0, style, matte, z: zProp, grow, fit, fitPos, fitZoom }) => {
   const z = zProp ?? React.useContext(HyLevelCtx);
-  const gc = React.useContext(GradeCtx), gm = gc && gc.cut === src ? gc.gm : undefined;
+  const gc = React.useContext(GradeCtx), gm = gc && (gc.cut === src || gc.cut === "*") ? gc.gm : undefined;   // "*" = every video layer of a composition graded as a whole (src/compGrade.tsx, 2026-11-21)
   const fx = gm ? { ...(fx0 ?? {}), gm } : fx0;   // the recording's layers carry the montage's colour grade
   const env = getRemotionEnvironment();
   const frame = useCurrentFrame();

@@ -274,14 +274,17 @@
    "id": "mufti-original-missed-in-purge",
    "date": "2026-11-20",
    "what": "عند اعتماد حلقة «مفتي الأردن والحرابة» ومسحها فات المسحَ التسجيلُ الأصلي فنُقل إلى السلة يدوياً بـtrash_file (ملخص الجلسة: «The mufti original was missed in the purge (trash_file)»).",
-   "cause": "لم يُعثر في المصادر على سبب موثَّق؛ المونتاج بُني على الشجرة الاحتياطية Remotion_Workspace_next، والمسح يقرأ مسار الأصل من .tmp/<p>/prep_config.json وحده.",
-   "guard": "بلا حارس",
-   "status": "بلا حارس",
+   "cause": "ريلز المشروع نفسه عُدّت «مستخدماً آخر» للأصل فلم يُنقل، ثم حذفها المسح نفسه فلم يعد يعرف الأصل عند إعادته (تكرر في gta6 2026-11-21).",
+   "guard": {
+    "file": "tools/montage_guard.mjs",
+    "how": "ريلز المشروع (<p>-…) جزء منه لا مستخدم آخر، والأصل المحجوز يُحفظ في data/pending_originals.json فيجده آخر مستخدميه أو إعادة المسح."
+   },
+   "status": "محروس بلا اختبار آلي",
    "selftest": {
     "cases": [],
     "manual": []
    },
-   "evidence": "ملخص الجلسة 120785d7 (قسم Errors and fixes ← Earlier in this part)؛ tools/montage_guard.mjs:96-108 (الرمي من prep_config، أقدم من الحادثة)"
+   "evidence": "ملخص الجلسة 120785d7 (قسم Errors and fixes ← Earlier in this part)؛ tools/montage_guard.mjs:96-108 (الرمي من prep_config، أقدم من الحادثة); 2026-11-21"
   },
   {
    "id": "bumper-orig-shared-folder",

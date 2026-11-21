@@ -95,16 +95,20 @@ if (cmd === "stage") {
     try { if (list.length) fs.writeFileSync(path.join(".tmp", "active_montage.json"), JSON.stringify({ projects: list, startedAt: reg.startedAt })); else fs.unlinkSync(path.join(".tmp", "active_montage.json")); console.log(`✔ أُنهي تسجيل المونتاج «${project}»`); } catch { console.log("لا مونتاج مسجَّل"); } }
   /* (2026-11-13, user: «لا أزال أشوف الفيديو الخاص به موجود في المكان الأصلي») the ORIGINAL he sent goes to the Recycle Bin on approval — read its path
      from .tmp/<p>/prep_config.json BEFORE clean_temp erases that folder */
-  { const orig = readJson(path.join(".tmp", project, "prep_config.json"), {}).original;
+  /* (2026-11-21, gta6 — the mufti miss again) its own reels (<p>-…) counted as «other users» so the original was kept, then the same end deleted those reels and
+     their prep_config: the re-run no longer knew the original and it stayed on disk. Reels/clips of the project are the project (they go in this same end), and a
+     kept original is remembered in data/pending_originals.json so the end of its last user (or a re-run) still finds it. */
+  const PEND = path.join("data", "pending_originals.json"), pend = readJson(PEND, {});
+  { const orig = readJson(path.join(".tmp", project, "prep_config.json"), {}).original ?? pend[project];
     /* (2026-11-20, gta6) ending a REEL cut from an episode trashed the EPISODE's original while the episode was still being edited. The original goes to the
        bin only when no other project still uses it (another .tmp/<x>/prep_config.json naming the same file whose spec still exists). */
     const norm = (p) => path.resolve(String(p)).toLowerCase();
-    const users = orig ? fs.readdirSync(".tmp").filter((d) => d !== project && fs.existsSync(path.join("data", "specs", `${d}.json`)) && (() => { try { return norm(readJson(path.join(".tmp", d, "prep_config.json"), {}).original ?? "") === norm(orig); } catch { return false; } })()) : [];
-    if (users.length) console.log(`✋ الأصل لا يُنقل إلى السلة: ما زال يستعمله ${users.join("، ")} — يُنقل حين يُعتمد آخرها`);
+    const users = orig ? fs.readdirSync(".tmp").filter((d) => d !== project && !d.startsWith(project + "-") && fs.existsSync(path.join("data", "specs", `${d}.json`)) && (() => { try { return norm(readJson(path.join(".tmp", d, "prep_config.json"), {}).original ?? "") === norm(orig); } catch { return false; } })()) : [];
+    if (users.length) { console.log(`✋ الأصل لا يُنقل إلى السلة: ما زال يستعمله ${users.join("، ")} — يُنقل حين يُعتمد آخرها`); for (const u of users) pend[u] = orig; fs.writeFileSync(PEND, JSON.stringify(pend, null, 1)); }
     else if (orig && fs.existsSync(orig)) {
       const ps = (await import("node:child_process")).spawnSync("powershell", ["-NoProfile", "-Command", `Add-Type -AssemblyName Microsoft.VisualBasic; [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($env:MG_ORIG, 'OnlyErrorDialogs', 'SendToRecycleBin')`], { encoding: "utf8", env: { ...process.env, MG_ORIG: orig } });
       console.log(fs.existsSync(orig) ? `✘ الأصل لم يُنقل إلى السلة: ${orig} ${ps.stderr || ""}` : `✔ الأصل نُقل إلى سلة المحذوفات: ${orig}`);
-      if (fs.existsSync(orig)) process.exitCode = 1;
+      if (fs.existsSync(orig)) process.exitCode = 1; else { delete pend[project]; fs.writeFileSync(PEND, JSON.stringify(pend, null, 1)); }
     } else if (orig) console.log(`الأصل غير موجود (نُقل من قبل): ${orig}`); }
   const cp = (await import("node:child_process")).spawnSync("node", ["tools/clean_temp.mjs", "--approval", "--project", project], { encoding: "utf8" });
   console.log("— تنظيف المؤقتات (الاعتماد: كل ما لم يُكتب في آخر 3 دقائق، ما لم يعمل رندر) —\n" + ((cp.stdout || "") + (cp.stderr || "")).trim().split("\n").slice(-6).join("\n"));

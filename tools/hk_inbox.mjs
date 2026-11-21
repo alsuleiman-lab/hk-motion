@@ -16,12 +16,19 @@ const show = (m) => `#${m.id} · ${m.comp} · ${m.time} (الإطار ${m.frame}
 const [cmd, ...a] = process.argv.slice(2);
 
 if (cmd === "wait") {
-  const max = Number(a.includes("--max") ? a[a.indexOf("--max") + 1] : 240) * 60e3, t0 = Date.now();
+  /* (user 2026-11-21: «المراقب اجعله جزء لا يتجزأ من الاستوديو») the watcher lives exactly as long as a Studio: it beats (tools/lib/inbox_watch.mjs) so the
+     Stop hook and the «راسلني» sheet know someone listens, and it ends by itself when the last Studio is gone (no idle service). --max is only a hard cap. */
+  const W = await import("./lib/inbox_watch.mjs");
+  const max = Number(a.includes("--max") ? a[a.indexOf("--max") + 1] : 720) * 60e3, t0 = Date.now();
+  process.on("exit", W.unbeat);
+  if (!W.studiosAlive().length && !open().length) { console.log("لا استوديو مفتوح — لا مراقبة"); process.exit(3); }
+  if (W.watcherAlive()) { console.log("مراقب آخر يعمل الآن — لا حاجة لثانٍ"); process.exit(4); }
   const tick = () => {
     const o = open();
     if (o.length) { console.log(`رسالة من الاستوديو (${o.length}):\n` + o.map(show).join("\n")); process.exit(0); }
+    if (!W.studiosAlive().length) { console.log("أُغلق الاستوديو — انتهت المراقبة"); process.exit(3); }
     if (Date.now() - t0 > max) process.exit(3);
-    setTimeout(tick, 3000);
+    W.beat(); setTimeout(tick, 3000);
   };
   tick();
 } else if (cmd === "open") {

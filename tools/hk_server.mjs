@@ -19,6 +19,7 @@ import { load as loadGallery } from "./hk_gallery.mjs";
 import * as G from "./hk_grade.mjs";
 import { state as progressState, nowItem } from "./render_progress.mjs";
 import { projectOf } from "./cut_lazy.mjs";
+import { registerStudio, watcherAlive } from "./lib/inbox_watch.mjs";
 
 /* THE RENDER QUEUE INSIDE HK-MOTION (user 2026-11-19: «ادمج طابور الرندر مع مستوى التقدم في البرنامج الجديد تبعنا»): the queue (tools/render_queue.mjs,
    data/render_queue/state.json) and the progress of every render (tools/render_progress.mjs state()) answered here, shown by the «الطابور» sheet of the
@@ -174,7 +175,7 @@ http.createServer((req, res) => {
   const url = (req.url ?? "").split("?")[0];
   if (req.method === "GET" && url === "/api/alive") { lastSeen = Date.now(); return send(res, 200, { ok: true, idleMin: IDLE_MIN }); }
   if (req.method === "GET" && url === "/api/queue") { try { return send(res, 200, queueState()); } catch (e) { return send(res, 500, { error: String(e.message) }); } }
-  if (req.method === "GET" && url === "/api/msg") return send(res, 200, { messages: inbox().slice(-30) });
+  if (req.method === "GET" && url === "/api/msg") return send(res, 200, { messages: inbox().slice(-30), listening: watcherAlive() });
   if (req.method === "GET" && url === "/api/ping") return send(res, 200, { ok: true, name: "HK-Motion", busy: job?.state === "running" });
   if (req.method === "GET" && url === "/api/job") return send(res, 200, job ? { ...job, seconds: Math.round(((job.endedAt ?? Date.now()) - job.startedAt) / 1000), log: job.log.slice(-1200) } : { state: "idle" });
   if (req.method !== "POST") return send(res, 404, { error: "not found" });
@@ -193,7 +194,7 @@ http.createServer((req, res) => {
         let cut = fr / 30; try { const b = pj ? JSON.parse(fs.readFileSync(path.join("data", "specs", `${pj}.json`), "utf8")).bumper : null; if (b && b.at >= 1 && !b.end && fr / 30 >= b.at) cut = fr / 30 < b.at + 5 ? b.at : fr / 30 - 5; } catch { /* no spec */ }
         const m = { id: Date.now().toString(36), at: new Date().toISOString(), comp: String(body.comp ?? ""), frame: fr, time: String(body.time ?? ""), cutTime: +cut.toFixed(2), elements: String(body.elements ?? "").slice(0, 300), text, reply: null };
         fs.mkdirSync(".tmp", { recursive: true }); fs.appendFileSync(INBOX, JSON.stringify(m) + "\n");
-        return send(res, 200, { ok: true, message: m, messages: inbox().slice(-30) });
+        return send(res, 200, { ok: true, message: m, messages: inbox().slice(-30), listening: watcherAlive() });
       }
       /* «تحريك» (user 2026-11-20: «التحريك لا يحتاج إلى الوصف، يحتاج فقط إلى حساب مواقع»): the elements on screen at the playhead with the grid slots they may
          take (/api/slots), and the move itself (/api/slot → tools/el.mjs slot: the place gates judge the drawn box as numbers, ~1 s, refused moves are undone) */
@@ -226,4 +227,4 @@ http.createServer((req, res) => {
     } catch (e) { return send(res, e.code === 409 ? 409 : 400, { error: e.message }); }
   });
 }).on("error", (e) => { if (e.code === "EADDRINUSE") { console.log(`HK-Motion tools server: :${PORT} is taken (already running)`); process.exit(0); } throw e; })
-  .listen(PORT, "0.0.0.0", () => console.log(`HK-Motion tools server on :${PORT}`));
+  .listen(PORT, "0.0.0.0", () => { registerStudio(PORT, STUDIO_PID); console.log(`HK-Motion tools server on :${PORT}`); });   // tools/lib/inbox_watch.mjs: the watcher lives with this Studio

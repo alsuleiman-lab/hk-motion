@@ -10,7 +10,7 @@ def files():
     out = []
     for d, _, fs in os.walk(ROOT):
         for n in sorted(fs):
-            if n.lower().endswith(".mp4"):
+            if n.lower().endswith((".mp4", ".jpg", ".png")):   # (2026-11-21) the YouTube thumbnail goes through the helper too
                 sub = os.path.relpath(d, ROOT).replace(os.sep, "/")
                 out.append({"sub": "" if sub == "." else sub, "name": n, "size": os.path.getsize(os.path.join(d, n))})
     return out

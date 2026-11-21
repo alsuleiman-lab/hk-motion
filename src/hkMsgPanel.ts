@@ -36,25 +36,30 @@ export const openMsgPanel = (ctx: GalleryCtx): void => {
   };
   const paintCtx = () => { const c = context(); ctxLine.textContent = `يُرفق تلقائياً: ${c.comp || "—"} · ${c.time} (الإطار ${c.frame})${c.elements ? ` · على الشاشة: ${c.elements}` : ""}`; };
 
+  /* (user 2026-11-21: «المراقب اجعله جزء لا يتجزأ من الاستوديو») whether the agent's watcher beats now (tools/lib/inbox_watch.mjs), shown in the head */
+  const listen = mk("span", "flex:0 0 auto;font-size:12px;padding:2px 8px;border-radius:8px;border:1px solid var(--hk-line)");
+  head.insertBefore(listen, status);
+  let listening = false;
+  const paintListen = (on: boolean) => { listening = on; listen.textContent = on ? "● أسمعك" : "○ المراقب متوقف"; listen.style.color = on ? "var(--hk-ok)" : "var(--hk-warn)"; listen.title = on ? "رسالتك تصلني فوراً" : "الرسالة محفوظة، تصلني مع أول حركة مني"; };
   const paint = (ms: Msg[]) => {
     list.textContent = "";
     for (const m of [...ms].reverse()) {
       const card = mk("div", "border:1px solid var(--hk-line);border-radius:10px;padding:8px 10px;background:var(--hk-bg2)");
       card.append(mk("div", "font-size:11px;color:var(--hk-dim)", `${m.time} · ${m.comp}${m.elements ? " · " + m.elements : ""}`), mk("div", "margin:4px 0;white-space:pre-wrap", m.text));
-      card.append(m.reply ? mk("div", "border-top:1px dashed var(--hk-line);padding-top:6px;color:var(--hk-ok);white-space:pre-wrap", `↩ ${m.reply.text}`) : mk("div", "font-size:12px;color:var(--hk-warn)", "… وصلت، أعمل عليها"));
+      card.append(m.reply ? mk("div", "border-top:1px dashed var(--hk-line);padding-top:6px;color:var(--hk-ok);white-space:pre-wrap", `↩ ${m.reply.text}`) : mk("div", "font-size:12px;color:var(--hk-warn)", listening ? "… وصلت، أعمل عليها" : "… محفوظة، تصلني مع أول حركة مني"));
       list.appendChild(card);
     }
   };
-  const refresh = async () => { try { paint(((await (await fetch(ctx.api("/api/msg"), { cache: "no-store" })).json()) as { messages: Msg[] }).messages ?? []); } catch { say("خادم الأدوات لا يجيب", "var(--hk-danger)"); } };
+  const refresh = async () => { try { const j = (await (await fetch(ctx.api("/api/msg"), { cache: "no-store" })).json()) as { messages: Msg[]; listening?: boolean }; paintListen(!!j.listening); paint(j.messages ?? []); } catch { say("خادم الأدوات لا يجيب", "var(--hk-danger)"); } };
 
   sendB.addEventListener("click", async () => {
     const text = ta.value.trim(); if (!text) { say("اكتب الرسالة أولاً", "var(--hk-danger)"); return; }
     sendB.disabled = true; say("… أرسل", "var(--hk-warn)");
     try {
       const res = await fetch(ctx.api("/api/msg"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...context(), text }) });
-      const j = (await res.json()) as { messages?: Msg[]; error?: string };
+      const j = (await res.json()) as { messages?: Msg[]; error?: string; listening?: boolean };
       if (!res.ok) throw new Error(j.error ?? String(res.status));
-      ta.value = ""; paint(j.messages ?? []); say("✔ وصلت", "var(--hk-ok)");
+      ta.value = ""; paintListen(!!j.listening); paint(j.messages ?? []); say("✔ وصلت", "var(--hk-ok)");
       window.setTimeout(() => { if (open) open.close(); }, 700);   /* (user 2026-11-20: «لما أرسل لك شيء تغلق إطار راسلني») the sheet closes itself once the message is in */
     } catch (e) { say(String((e as Error).message), "var(--hk-danger)"); }
     finally { sendB.disabled = false; }

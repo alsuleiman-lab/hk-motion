@@ -21,7 +21,7 @@ window.addEventListener('message', async (ev) => {
         for (let k = 0; k < 5 && !bl; k++) { try { const r = await fetch(u, { headers: { Range: 'bytes=' + a + '-' + e } }); const x = await r.blob(); if (x.size === e - a + 1) bl = x; } catch (_) { await new Promise((z) => setTimeout(z, 1500)); } }
         if (!bl) throw new Error('chunk ' + it.name); parts.push(bl);
       }
-      ev.source.postMessage({ cmd: 'file', file: new File(parts, it.name, { type: 'video/mp4' }), size: it.size, i: ++n, total: list.length }, O);
+      ev.source.postMessage({ cmd: 'file', file: new File(parts, it.name, { type: /\.jpe?g$/i.test(it.name) ? 'image/jpeg' : /\.png$/i.test(it.name) ? 'image/png' : 'video/mp4' }), size: it.size, i: ++n, total: list.length }, O);
     }
     ev.source.postMessage({ cmd: 'done', total: n }, O); log('تم');
     setTimeout(() => window.close(), 1500);   /* (user 2026-11-13: «هذا لازم يغلق بعد التمام») the files are already handed over */

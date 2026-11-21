@@ -258,13 +258,23 @@ if (mode === "post") {
   /* TIME BOX (user 2026-11-20, gta6: 15 minutes on one click at a cut join, alone, while nothing else ran; six refused element batches in a row).
      A blocker = a gate failure of a montage tool. 3 failures, or 6 minutes since its first failure without a success, → a loud order to PARK it and go on with the
      rest; it repeats (at most every 90 s) on every command until it is solved or parked (node tools/montage_kickoff.mjs park). And a lane that is ready and not
-     started for 2 minutes (the board) is named, at most every 3 minutes. */
+     started for 2 minutes (the board) is named, at most every 3 minutes.
+     STALE NAGS (2026-11-21, gta6: «الفحص فشل 17 مرة»، «بناء الريل»، «القص وبوابة الصوت» after every tool, hours after the episode was rendered and passed
+     final_review — a warning that is always wrong teaches the agent to ignore every warning). Since then:
+     • a failure counts only from a RUN of a montage tool or a READ of its log/output, never from a search of the source (a grep of stage.mjs printed «✘ الحارس»),
+       and never from a line that is code (console./say(/=>/grep «file:line:»);
+     • the stage's own success resets it; a proof newer than the failure drops it (.tmp/gates/<p>.final.ok for all, <p>.audio.ok for the cut);
+     • an approved project (data/publish_queue/<p>/ saved) or a purged one (not registered) nags nothing;
+     • a failure 30 min old is stale, and «6 minutes» = 6 minutes BETWEEN its first and last failure, not since the first;
+     • one nag per stage at most every TB_NAG_MIN minutes, never after every tool. */
   if ((tool === "Bash" || tool === "PowerShell") && activeProjects().length) {
     try {
       const c = String(ti.command ?? ""), r = input.tool_response ?? {};
       const outTxt = typeof r === "string" ? r : [r.stdout, r.stderr, r.output, typeof r.content === "string" ? r.content : ""].filter(Boolean).join("\n");
       const p = projectOf(c) ?? projectOf(outTxt.slice(0, 4000));
       if (!p) process.exit(0);
+      // approved (the publishing package is saved = «اعتمد» was said) → this project's time box and board are over; only the Studio inbox still speaks
+      if (fs.existsSync(path.join(ROOT, "data", "publish_queue", p))) { const ib = inboxOpen(); if (ib) emit({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: ib } }); process.exit(0); }
       const KEYS = [
         ["el", /✘ رُفض (الدفعة|إضافة|تعديل|حذف|نقل)|✘ plan-check|✘ لم تُطبَّق الدفعة/, /✔ طُبّقت الدفعة|✔ أُضيف|✔ عُدّل|✔ حُذف|✔ نُقل|✔ plan-check/, "عناصر الخطة"],
         ["cut", /✘ audio_gate|\[cut\] FAILED/, /\[cut\] OK|audio_gate ✔/, "القص وبوابة الصوت"],
@@ -274,16 +284,31 @@ if (mode === "post") {
       ];
       const tf = path.join(ROOT, ".tmp", p, "timebox.json"); let tb = {}; try { tb = JSON.parse(fs.readFileSync(tf, "utf8")); } catch { /* none */ }
       const now = Date.now(); let changed = false, newFail = null;
-      for (const [k, bad, good, ar] of KEYS) {
-        if (good.test(outTxt) && !bad.test(outTxt)) { if (tb[k]) { delete tb[k]; changed = true; } continue; }
-        if (bad.test(outTxt)) { const e = tb[k] ?? { n: 0, first: now, ar }; e.n++; e.last = now; e.msg = (outTxt.split(/\r?\n/).find((l) => bad.test(l)) ?? "").trim().slice(0, 200); delete e.parked; tb[k] = e; changed = true; newFail = k; }
+      const TB_NAG_MIN = 10, TB_STALE_MIN = 30;
+      const RUNS = /(^|[\s;&|(])(node|bun)(\.exe)?["']?\s[^;&|\n"]*\b(stage|montage_guard|montage_kickoff|el|el_rules|reel_from_episode|audio_gate)\.mjs\b/i;
+      const READS_LOG = /(^|[\s;&|(])(cat|tail|head|less|type|gc|Get-Content)\s[^;&|\n]*\.(log|output|out|txt)\b/i;
+      const counts = RUNS.test(c) || READS_LOG.test(c);
+      const isCode = (l) => /console\.|\bsay\(|=>|\.test\(|^\s*[^\s:]+:\d+[:-]|^\s*\d+[:-]\s|\.(m?js|py|tsx?|sh):\d+[:-]|^\s*"[\w-]+":\s/.test(l);   // the last = a JSON field (the time box file itself, printed)
+      const outLines = counts ? outTxt.split(/\r?\n/).filter((l) => !isCode(l)) : [];
+      const hit = (re) => outLines.find((l) => re.test(l));
+      // first: proofs newer than the failure, and stale failures, end the entry (so an old entry never grows with a new failure hours later)
+      const mt = (n) => { try { return fs.statSync(path.join(ROOT, ".tmp", "gates", n)).mtimeMs; } catch { return 0; } };
+      const finalAt = mt(`${p}.final.ok`), audioAt = mt(`${p}.audio.ok`);
+      for (const [k, e] of Object.entries(tb)) {
+        const last = e.last ?? e.first ?? 0;
+        if (finalAt > last || (k === "cut" && audioAt > last) || now - last > TB_STALE_MIN * 60e3) { delete tb[k]; changed = true; }
+      }
+      if (counts) for (const [k, bad, good, ar] of KEYS) {
+        if (hit(good) && !hit(bad)) { if (tb[k]) { delete tb[k]; changed = true; } continue; }
+        const b = hit(bad);
+        if (b) { const e = tb[k] ?? { n: 0, first: now, ar }; e.n++; e.last = now; e.msg = b.trim().slice(0, 200); delete e.parked; tb[k] = e; changed = true; newFail = k; }
       }
       const msgs = [];
       for (const [k, e] of Object.entries(tb)) {
         if (e.parked) continue;
-        const age = (now - e.first) / 60e3;
-        if ((e.n >= 3 || age >= 6) && (k === newFail || now - (e.nagAt ?? 0) > 90e3)) {
-          msgs.push(`⛔ حدّ الوقت (أمر المستخدم 2026-11-20: «لا أقبل مونتاجاً يطول»): «${e.ar}» فشل ${e.n} مرات خلال ${age.toFixed(1)} دقيقة (آخرها: ${e.msg}). توقف عن محاولته الآن: اركنه بـ node tools/montage_kickoff.mjs park ${p} "${e.ar}: …" أو أعطه وكيلاً في الخلفية، واعمل فوراً على غيره (اللوحة: node tools/montage_kickoff.mjs board ${p}). وقل للمستخدم سطراً بما ركنتَ.${k === "el" ? " للعناصر: node tools/el_rules.mjs rules <العناصر> ثم plan-check مرة واحدة بالخطة كلها." : ""}`);
+        const span = ((e.last ?? e.first) - e.first) / 60e3;
+        if ((e.n >= 3 || span >= 6) && now - (e.nagAt ?? 0) > TB_NAG_MIN * 60e3) {
+          msgs.push(`⛔ حدّ الوقت (أمر المستخدم 2026-11-20: «لا أقبل مونتاجاً يطول»): «${e.ar}» فشل ${e.n} مرات خلال ${Math.max(span, 0).toFixed(1)} دقيقة (آخرها: ${e.msg}). توقف عن محاولته الآن: اركنه بـ node tools/montage_kickoff.mjs park ${p} "${e.ar}: …" أو أعطه وكيلاً في الخلفية، واعمل فوراً على غيره (اللوحة: node tools/montage_kickoff.mjs board ${p}). وقل للمستخدم سطراً بما ركنتَ.${k === "el" ? " للعناصر: node tools/el_rules.mjs rules <العناصر> ثم plan-check مرة واحدة بالخطة كلها." : ""}`);
           e.nagAt = now; changed = true;
         }
       }
@@ -357,6 +382,18 @@ if (mode === "stop") {
     const prose = last.replace(/```[\s\S]*?```/g, " ").replace(/`[^`]*`/g, " ").replace(/\]\([^)]*\)/g, "]").replace(/https?:\/\/\S+/g, " ").replace(/[A-Za-z]:[\\/]\S*/g, " ").replace(/\S+\.(mp4|json|mjs|tsx?|md|py|sh|jpg|png)\b/g, " ");
     const lat = (prose.match(/[A-Za-z]/g) || []).length, ar = (prose.match(/[؀-ۿ]/g) || []).length;
     if (lat >= 40 && lat > ar) emit({ decision: "block", reason: "ردّك الأخير مكتوب بغير العربية. المستخدم لا يفهم إلا العربية (أمره 2026-11-11 و2026-11-13): أعد كتابة الرد نفسه كاملاً بالعربية الواضحة، بلا أسماء أوامر ولا إنجليزي." });
+  }
+  /* A PUBLISH CLAIM CARRIES ITS LINK (2026-11-21, gta6: I told him a stray OK tab was «left for him to close», and earlier that Studio messages «reached me» —
+     neither was true). A reply that says something was published / uploaded / scheduled, with no link in the same reply, goes back once: add the link of what
+     was verified, or say plainly what is not verified. Cheap regexes only; a negated mention («لم يُرفع»، «قبل النشر») and an honest «لم أتحقق» pass;
+     stop_hook_active (checked above) lets the rewritten reply through, so it never loops. */
+  {
+    const prose = last.replace(/```[\s\S]*?```/g, " ").replace(/`[^`]*`/g, " ");
+    const CLAIM = /(^|[^؀-ۿ])(و|ف)?(نُشِ?ر[تا]?|نشرتُ?ه?ا?|تم(ّ)? (ال)?نشر|رُفِ?ع[تا]?|رفعتُ?ه?ا?|تم(ّ)? (ال)?رفع|جُدوِ?ل[تا]?|جدولتُ?ه?ا?|تم(ّ)? (ال)?جدولة|مجدول[ةا]?ً?|منشور[ةا]?ً?)(?=$|[^؀-ۿ])/g;
+    const NEG = /(لم|لا|لن|ليس|ليست|غير|قبل|بعد أن|حين|عندما|إن|إذا|هل|سوف|سي)\s*(\S+\s+)?$/;
+    const claimed = [...prose.matchAll(CLAIM)].some((m) => !NEG.test(prose.slice(Math.max(0, m.index - 24), m.index + m[1].length)));
+    const honest = /لم أتحقق|لم يُتحقَّ?ق|غير متحقَّ?ق|لم أتأكد|غير مؤكد|لم أره بعد|بلا تحقق/.test(prose);
+    if (claimed && !honest && !/https?:\/\/\S+/.test(last)) emit({ decision: "block", reason: "ذكرتَ في ردك أن شيئاً نُشر أو رُفع أو جُدول، ولا رابط في الرد نفسه. أضف رابط كل ما تحققتَ منه في وجهته (يوتيوب، درايف، أوك)، أو قل صراحة ما لم تتحقق منه بعد («رُفع ولم أتحقق من ظهوره»). لا تدّعِ ما لم تره (2026-11-21)." });
   }
   if (/^\s*(✅\s*)?انتهيتُ من المونتاج/.test(last)) {
     const dir = path.join(ROOT, ".tmp", "gates");

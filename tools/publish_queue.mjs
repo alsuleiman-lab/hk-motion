@@ -25,5 +25,9 @@ if (cmd === "save") {
   if (!fs.existsSync(Q)) { console.log("لا حزمة محفوظة"); process.exit(1); }
   for (const n of fs.readdirSync(Q)) console.log(n);
 } else if (cmd === "clear") {
+  // (approval 2026-11-21: save → publish → purge after an explicit yes → trash outputs) the package outlives the purge: while the project is still registered
+  // the purge has not run, and clearing now would lose what the purge re-saves from
+  let reg = []; try { const r = JSON.parse(fs.readFileSync(path.join(".tmp", "active_montage.json"), "utf8")); reg = r.projects ?? (r.project ? [r.project] : []); } catch { /* none */ }
+  if (reg.some((x) => x.toLowerCase() === key)) { console.log(`✘ «${p}» ما زال مسجَّلاً: المسح لم يجرِ بعد (ينتظر موافقة المستخدم الصريحة على الحذف)، فالحزمة تبقى. احذفها بعد المسح.`); process.exit(1); }
   fs.rmSync(Q, { recursive: true, force: true }); console.log(`✔ حُذفت حزمة النشر ${p}`);
 } else { console.error("أمر غير معروف"); process.exit(2); }

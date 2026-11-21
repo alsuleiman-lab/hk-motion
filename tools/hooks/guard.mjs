@@ -53,6 +53,34 @@ const activeProjects = () => { try { const r = JSON.parse(fs.readFileSync(path.j
 /** the registered project a file path / command line names (case-insensitive); null = it names none, so it is not that montage's business */
 const projectOf = (text) => activeProjects().find((p) => String(text).toLowerCase().includes(p.toLowerCase())) ?? null;
 const guard = (...args) => { const r = spawnSync("node", ["tools/montage_guard.mjs", ...args], { cwd: ROOT, encoding: "utf8" }); return { ok: r.status === 0, out: ((r.stdout || "") + (r.stderr || "")).trim() }; };
+/* ── PLACEMENT FIRST + SEARCH BEFORE ASKING: shared helpers (2026-11-21, ledger placement-fix-delayed / asked-instead-of-searching; tools/guard_selftest.mjs place.* ask.*) ── */
+/** Arabic folded for matching: no diacritics or tatweel, أإآ→ا، ى→ي، ة→ه */
+const arNorm = (s) => String(s ?? "").replace(/[ً-ْـ]/g, "").replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه");
+const PLACE_V = /^(و|ف)?(حرك|انقل|نقل|كبر|صغر|اكبر|اصغر|ارفع|نزل|انزل|زيح|ازح|زح)(ه|ها|هم|ي|يه|يها)?$/;
+const PLACE_W = /^(و|ف)?(ب|ل|لل|ال|بال|الي|في)?(فوق|تحت|يمين|يسار|جنب|جانب|اعلي|اسفل|وسط|مكان|موضع|حجم)(ه|ها|هم)?$/;
+const PLACE_EL = /^(و|ف)?(ب|ل|لل|ال|بال)?(عنصر|صور|عنوان|كتاب|نص|خريط|بطاق|شعار|شريط|غلاف|كرتون|اطار|مربع|لوح|رسم|شكل|اسم|ايه|حديث|خانه|علامه|سهم|عداد|ملصق)/;
+/** a message that asks to move / size / place an element: a placement word + an element (a noun, a timestamp, or the Studio's «on screen» list) */
+const isPlacement = (text, onScreen = "") => {
+  const t = arNorm(text); if (!t.trim() || /حارس|هوك|guard|hook/i.test(t)) return false;   // talk ABOUT the guards is not a placement order
+  const words = t.split(/[^ء-ي]+/).filter(Boolean);
+  return words.some((w) => PLACE_V.test(w) || PLACE_W.test(w)) && (!!String(onScreen ?? "").trim() || /[0-9٠-٩]+\s*:\s*[0-9٠-٩]{2}/.test(t) || words.some((w) => PLACE_EL.test(w)));
+};
+const PW_F = path.join(ROOT, ".tmp", "placement_watch.json"), PLACE_GRACE = 60e3, PLACE_PROMPT_TTL = 20 * 60e3;
+const pwRead = () => { try { return JSON.parse(fs.readFileSync(PW_F, "utf8")); } catch { return {}; } };
+const pwWrite = (o) => { try { fs.mkdirSync(path.dirname(PW_F), { recursive: true }); fs.writeFileSync(PW_F, JSON.stringify(o)); } catch { /* never block */ } };
+/** the placement messages still waiting for their move: his prompt (20 min) and the «راسلني» notes without a reply (24 h) that arrived after the last move */
+const placementPending = () => {
+  const st = pwRead(), now = Date.now(), moved = Number(st.movedAt) || 0, out = [];
+  if (st.prompt && now - st.prompt.at < PLACE_PROMPT_TTL && st.prompt.at > moved) out.push({ at: st.prompt.at, text: st.prompt.text, src: "رسالته" });
+  try {
+    for (const l of fs.readFileSync(path.join(ROOT, ".tmp", "hk_inbox.jsonl"), "utf8").split(/\r?\n/)) {
+      if (!l.trim()) continue; let m; try { m = JSON.parse(l); } catch { continue; }
+      const at = Date.parse(m.at ?? 0);
+      if (!m.reply && now - at < 24 * 3600e3 && at > moved && isPlacement(m.text, m.elements)) out.push({ at, text: String(m.text ?? ""), src: `#${m.id}` });
+    }
+  } catch { /* no inbox */ }
+  return out;
+};
 
 if (mode === "prompt") {
   const p = String(input.prompt ?? "");
@@ -89,11 +117,45 @@ if (mode === "prompt") {
     } catch { /* never block a prompt */ }
   }
   { const ib = inboxOpen(); if (ib) contract.push(ib); }
+  /* PLACEMENT FIRST (ledger placement-fix-delayed): his message asks to move / size / place an element → the clock starts now (pre below); any other message
+     from him ends the prompt's watch (the «راسلني» notes keep theirs until replied) */
+  try {
+    const st = pwRead();
+    if (p.length <= 400 && isPlacement(p)) { pwWrite({ ...st, prompt: { at: Date.now(), text: p.slice(0, 200) } }); contract.push("• 📐 طلب نقل/تحجيم عنصر (أمر المستخدم 2026-11-20: «4 دقائق مرت ولم تعدل مكان عنصر»): الفعل الأول هو النقل نفسه — node tools/el.mjs items <المشروع> ثم slot/size/nudge/set — ثم ابحث في السبب. بعد 60 ث بلا نقل يُرفض البحث في tools/ وsrc/."); }
+    else if (st.prompt) pwWrite({ ...st, prompt: null });
+  } catch { /* never block a prompt */ }
   emit({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: contract.join("\n") } });
 }
 
 if (mode === "pre") {
   const tool = input.tool_name, ti = input.tool_input ?? {};
+  /* PLACEMENT FIRST (user 2026-11-20: the court picture at 0:05 sat 4 minutes in the wrong place while the agent traced code — «4 دقائق مرت ولم تعدل مكان
+     عنصر، هذا فساد كبير»; memory fix-first-then-investigate). A placement message is open (a «راسلني» note without a reply, or his prompt — see the prompt
+     handler): after 60 s with no move since it arrived, the MAIN session may not investigate — Read/Grep/Glob of tools/ or src/, a shell read/search of them,
+     a known long tool in the foreground — until it moved the element. A move = el.mjs slot|size|nudge|move|set, the Studio «تحريك» API (/api/slot,
+     /api/gallery/size), an edit of data/specs/, or a reply (hk_inbox.mjs reply); it is recorded for any session (a sub-agent's move counts), and sub-agents are
+     never blocked (their work is delegated). Reading the spec, el.mjs list/items and anything else stay free. State: .tmp/placement_watch.json {movedAt, prompt}. */
+  try {
+    const c = norm(ti.command ?? ""), fp = rel(ti.file_path ?? ti.notebook_path ?? "");
+    const MOVE = /\bel\.mjs["']?\s+(slot|size|nudge|move|set)\b|\bhk_inbox\.mjs["']?\s+reply\b|\/api\/(slot|gallery\/size)\b/;
+    if (((tool === "Bash" || tool === "PowerShell") && MOVE.test(c)) || (["Write", "Edit", "NotebookEdit"].includes(tool) && /^data\/specs\/[^/]+\.json$/.test(fp))) pwWrite({ ...pwRead(), movedAt: Date.now() });
+    else if (!input.agent_id) {
+      const under = (p) => /^(tools|src)(\/|$)/.test(rel(p && !/^[A-Za-z]:|^\//.test(norm(p)) && input.cwd ? path.join(input.cwd, p) : p));
+      let inv = null;
+      if (tool === "Read" && under(ti.file_path)) inv = rel(ti.file_path);
+      else if ((tool === "Grep" || tool === "Glob") && ((ti.path && under(ti.path)) || /^(\*\*\/)?(tools|src)\//.test(norm(tool === "Grep" ? ti.glob ?? "" : ti.pattern ?? "")))) inv = `${tool} ${rel(ti.path ?? "") || ti.glob || ti.pattern}`;
+      else if (tool === "Bash" || tool === "PowerShell") {
+        const READS = /^\s*(sudo\s+)?(grep|egrep|rg|cat|sed|head|tail|less|more|awk|wc|find|Get-Content|gc|Select-String|sls|findstr|type)(\.exe)?\s/i, SRC = /(^|[\s"'=(,:/])(tools|src)\//;
+        const LONG_FG = /\bstage\.mjs\s+(prep|cut|check)\b|reel_from_episode\.mjs|gpu_render\.mjs|render_project\.sh|judder_(probe|check)\.mjs|final_review\.mjs|transcribe_\w+\.py|research\.mjs|speech_loss_audit\.mjs|asr_audit\.mjs/;
+        if (!ti.run_in_background && LONG_FG.test(c)) inv = "أمر طويل";
+        else inv = c.split(/&&|\|\||;|\||\r?\n/).find((s) => READS.test(s) && SRC.test(s))?.trim().slice(0, 80) ?? null;
+      }
+      if (inv) {
+        const now = Date.now(), late = placementPending().filter((m) => now - m.at > PLACE_GRACE);
+        if (late.length) deny(`انقل العنصر أولاً (el.mjs slot/size) ثم ابحث في السبب — أمر المستخدم: إصلاح المكان في دقيقة (2026-11-20: «4 دقائق مرت ولم تعدل مكان عنصر، هذا فساد كبير»).\n${late.map((m) => `  ${m.src} منذ ${Math.round((now - m.at) / 1000)} ث: «${m.text.slice(0, 120)}»`).join("\n")}\nالمرفوض الآن: ${inv}. المسموح: قراءة المواصفة data/specs/<المشروع>.json، و node tools/el.mjs items|list <المشروع>، ثم النقل نفسه: node tools/el.mjs slot <المشروع> <#المعرّف> <الخانة> --land|--port، أو size <المشروع> <#المعرّف> k=… dx=… dy=…، أو set، أو تعديل العنصر في المواصفة؛ ثم node tools/hk_inbox.mjs reply <id> "…". بعد النقل يعود البحث مفتوحاً.`);
+      }
+    }
+  } catch { /* the placement watch never breaks a tool */ }
   if (["Read", "Grep", "Glob"].includes(tool)) {
     const raw = ti.file_path ?? ti.path ?? "";
     const f = raw && !/^[A-Za-z]:|^\//.test(norm(raw)) && input.cwd ? path.join(input.cwd, raw) : raw;
@@ -396,6 +458,40 @@ if (mode === "stop") {
     const claimed = [...prose.matchAll(CLAIM)].some((m) => !NEG.test(prose.slice(Math.max(0, m.index - 24), m.index + m[1].length)));
     const honest = /لم أتحقق|لم يُتحقَّ?ق|غير متحقَّ?ق|لم أتأكد|غير مؤكد|لم أره بعد|بلا تحقق/.test(prose);
     if (claimed && !honest && !/https?:\/\/\S+/.test(last)) emit({ decision: "block", reason: "ذكرتَ في ردك أن شيئاً نُشر أو رُفع أو جُدول، ولا رابط في الرد نفسه. أضف رابط كل ما تحققتَ منه في وجهته (يوتيوب، درايف، أوك)، أو قل صراحة ما لم تتحقق منه بعد («رُفع ولم أتحقق من ظهوره»). لا تدّعِ ما لم تره (2026-11-21)." });
+  }
+  /* SEARCH BEFORE ASKING (user 2026-11-20: he was asked for the link of the «مفتي الأردن» short while the element on screen held its words and one YouTube
+     search found it — «انت لازم تعرفه»، «لا تكن كسولا»; memory search-before-asking). A reply that asks him for a link / episode / name / source / date, in a
+     turn (the transcript after his last message) with no search — WebSearch/WebFetch, the web-fetch agent, the browser on youtube/google, a Grep / Read /
+     shell search of data/ (channel index, playlists, episode_refs), channel_index / episode_ref / research, shamela — goes back once (stop_hook_active above
+     lets the second reply through). Questions about his own decisions (approve, which option, delete?) are not lookups. Ledger asked-instead-of-searching. */
+  if (!input.agent_id) {
+    const prose = arNorm(last.replace(/```[\s\S]*?```/g, " ").replace(/`[^`]*`/g, " ").replace(/https?:\/\/\S+/g, " "));
+    const ASK_Q = /(^|[^ء-ي])((و|ف)?ما (هو |هي )?(ال)?(رابط|مصدر|تاريخ)|هل (عندك|لديك|معك) (ال)?رابط|(اي|ما) (ال)?حلقه|ما اسم|من اين|في اي (تاريخ|سنه|يوم|حلقه)|متي (كان|قال|سجل))/;
+    const ASK_IMP = /(^|[^ء-ي])(اعطني|اعطيني|ارسل|ارسلي|ابعث|ابعثلي|ضع|الصق|زودني)( لي)? (ب)?(ال)?(رابط|اسم|مصدر)/;
+    const DECISION = /توافق|موافق|اعتمد|تعتمد|تختار|اختر|خيار|تفضل|تريد|احذف|نحذف|تحذف|ابدا|نبدا|اكمل|نكمل|انشر|تسمح|اسمح|باذنك|اذنك/;
+    const asked = prose.split(/(?<=[.!؟?\n])/).find((s) => ASK_IMP.test(s) || (!DECISION.test(s) && /[؟?]/.test(s) && ASK_Q.test(s)));   // «أعطني الرابط» is never a decision
+    if (asked) {
+      let searched = false;
+      try {
+        const L = fs.readFileSync(input.transcript_path, "utf8").trim().split("\n"), rows = [];
+        for (let i = L.length - 1; i >= 0; i--) {
+          let o; try { o = JSON.parse(L[i]); } catch { continue; }
+          const ct = o.message?.content;
+          if (o.type === "user" && !o.isMeta && !(Array.isArray(ct) && ct.some((b) => b?.type === "tool_result"))) break;   // his last message: the turn starts after it
+          if (o.type === "assistant" && Array.isArray(ct)) rows.push(...ct.filter((b) => b?.type === "tool_use"));
+        }
+        const DATA = /(^|\/)data\/(channel|playlists|episode_refs|youtube|specs)\b|(^|\/)data(\/|$)/;
+        searched = rows.some((b) => {
+          const n = String(b.name ?? ""), x = b.input ?? {}, s = JSON.stringify(x), cmd = norm(x.command ?? "");
+          return /^(WebSearch|WebFetch)$/.test(n) || /shamela/i.test(n)
+            || ((n === "Agent" || n === "Task") && (x.subagent_type === "web-fetch" || /youtu|google|يوتيوب|ابحث|بحث|search/i.test(s)))
+            || (/claude-in-chrome|Claude_Browser/.test(n) && /youtu|google/i.test(s))
+            || ((n === "Grep" || n === "Glob" || n === "Read") && DATA.test(rel(x.path ?? x.file_path ?? "")))
+            || ((n === "Bash" || n === "PowerShell") && (/\b(grep|egrep|rg|Select-String|sls|findstr|jq|find|cat|Get-Content)\b[^\n]*(^|[\s"'=(,:/])data\//i.test(cmd) || /channel_index\.mjs|episode_ref\.mjs|research\.mjs|ytsearch|yt-dlp[^\n]*search/i.test(cmd)));
+        });
+      } catch { searched = true; }   // transcript unreadable: never block on a guess
+      if (!searched) emit({ decision: "block", reason: `ابحث أولاً بما هو موجود (نص العنصر، فهرس القناة، يوتيوب) ثم اسأل إن لم تجد — أمر المستخدم 2026-11-20: «لا تكن كسولا». سألتَه: «${asked.trim().slice(0, 120)}» ولا بحث في هذه الدورة. ابحث: نص العنصر في المواصفة، node tools/channel_index.mjs find "<الموضوع>"، data/playlists.json وdata/episode_refs/، بحث يوتيوب (WebSearch أو المتصفح)، أو الشاملة؛ ثم أعطه ما وجدت (بالرابط)، واسأل فقط إن لم تجد شيئاً مع ذكر ما بحثت فيه.` });
+    }
   }
   if (/^\s*(✅\s*)?انتهيتُ من المونتاج/.test(last)) {
     const dir = path.join(ROOT, ".tmp", "gates");

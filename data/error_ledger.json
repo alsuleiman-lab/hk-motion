@@ -736,26 +736,55 @@
    "date": "2026-11-20",
    "what": "صورة المحكمة عند 0:05 بقيت 4 دقائق في غير مكانها والوكيل يتتبع الكود: «4 دقائق مرت ولم تعدل مكان عنصر، هذا فساد كبير».",
    "cause": "التحقيق في السبب قُدّم على أمر نقل من سطر واحد.",
-   "guard": "بلا حارس",
-   "status": "بلا حارس",
+   "guard": {
+    "file": "tools/hooks/guard.mjs",
+    "how": "رسالة نقل/تحجيم عنصر مفتوحة (رسالة «راسلني» بلا رد في .tmp/hk_inbox.jsonl، أو رسالة المستخدم نفسها في هوك الرسائل) تُعرف بكلمات المكان (حرّك، انقل، فوق، يمين، كبّر…) مع ذكر عنصر أو وقت أو ما على الشاشة. بعد 60 ث بلا نقل منذ وصولها يرفض هوك ما قبل الأداة على الجلسة الرئيسية البحثَ (قراءة tools/ أو src/ أو البحث فيهما بـGrep/Glob أو بأوامر الصدفة، والأمر الطويل في المقدمة) بسبب «انقل العنصر أولاً (el.mjs slot/size) ثم ابحث في السبب». النقل = el.mjs slot|size|nudge|move|set أو واجهة «تحريك» في الاستوديو أو تعديل المواصفة أو الرد بـhk_inbox.mjs، ويُسجَّل في .tmp/placement_watch.json. قراءة المواصفة وel.mjs items/list مسموحة دائماً، والوكلاء المساعدون غير مقيَّدين. أُضيفت Read|Grep|Glob إلى مطابق هوك ما قبل الأداة في الإعدادين."
+   },
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "place.note_blocks_read",
+     "place.note_fresh_allowed",
+     "place.investigation_kinds_blocked",
+     "place.spec_and_list_allowed",
+     "place.move_unblocks",
+     "place.spec_edit_counts",
+     "place.agent_exempt",
+     "place.replied_or_other_free",
+     "place.prompt_watch"
+    ],
     "manual": []
    },
-   "evidence": "memory/fix-first-then-investigate.md"
+   "evidence": "memory/fix-first-then-investigate.md; tools/hooks/guard.mjs (isPlacement/placementPending، وكتلة PLACEMENT FIRST في prompt وpre)؛ .claude/settings.json"
   },
   {
    "id": "asked-instead-of-searching",
    "date": "2026-11-20",
    "what": "سُئل المستخدم عن رابط قصير مفتي الأردن وعنصر شريط البحث يحمل كلماته؛ بحث واحد في يوتيوب وجده. المستخدم: «انت لازم تعرفه»، «لا تكن كسولا».",
    "cause": "السؤال قبل البحث بما هو موجود (نص العنصر، فهرس القناة، يوتيوب).",
-   "guard": "بلا حارس",
-   "status": "بلا حارس",
+   "guard": {
+    "file": "tools/hooks/guard.mjs",
+    "how": "في هوك الإيقاف: رد يسأل المستخدم عن رابط أو حلقة أو اسم أو مصدر أو تاريخ («ما رابط…؟»، «أعطني الرابط»، «أي حلقة…؟»، «ما اسم…؟»، «من أين…؟»، «ما المصدر…؟») والدورة (ما بعد آخر رسالة منه في السجل) بلا بحث (WebSearch/WebFetch، وكيل الجلب، المتصفح على يوتيوب أو جوجل، Grep/Read/أوامر بحث في data/، channel_index/episode_ref/research، الشاملة) يُعاد مرة واحدة: «ابحث أولاً بما هو موجود (نص العنصر، فهرس القناة، يوتيوب) ثم اسأل إن لم تجد». أسئلة قراره (الاعتماد، أي خيار، الحذف) معفاة، وstop_hook_active يمرّر الرد الثاني فلا دوران."
+   },
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "ask.link_no_search_block",
+     "ask.imperative_block",
+     "ask.episode_name_block",
+     "ask.search_last_turn_not_counted",
+     "ask.after_websearch_ok",
+     "ask.after_channel_index_ok",
+     "ask.after_data_grep_ok",
+     "ask.after_browser_youtube_ok",
+     "ask.after_shamela_ok",
+     "ask.decision_exempt",
+     "ask.statement_ok",
+     "ask.stop_hook_active_passes"
+    ],
     "manual": []
    },
-   "evidence": "memory/search-before-asking.md"
+   "evidence": "memory/search-before-asking.md; tools/hooks/guard.mjs (كتلة SEARCH BEFORE ASKING في stop)"
   },
   {
    "id": "non-arabic-replies",

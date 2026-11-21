@@ -434,6 +434,96 @@ add("names.nisba_ok", ND, "name-doubt-nisba-missed", "ذُكرت نسبته في
   return r.verdict === "ok" ? { ok: true } : { ok: false, known: true, why: `ثغرة معروفة في tools/name_doubt.mjs: bare() يقطع لام «لبنان» كأنها حرف جر («بنان»)، فلا تطابق نسبته «اللبنانيين» — الحكم ${r.verdict} (يعني سؤالاً زائداً، لا عنصراً خاطئاً)` };
 });
 
+/* 18) PLACEMENT FIRST (guard.mjs prompt + pre, 2026-11-21; user 2026-11-20: the court picture at 0:05 sat 4 minutes in the wrong place — «4 دقائق مرت ولم تعدل
+   مكان عنصر، هذا فساد كبير»). A «راسلني» note / his prompt asking to move an element: after 60 s with no move, the main session may not investigate tools/ src/. */
+const PLC = "placement-fix-delayed";
+const plNote = (r, ago, extra = {}) => put(path.join(r, ".tmp", "hk_inbox.jsonl"), JSON.stringify({ id: "zzpl1", at: new Date(Date.now() - ago).toISOString(), comp: "Zz-L", frame: 150, elements: "صورة المحكمة", text: "صورة المحكمة عند 0:05 في غير مكانها، انقلها إلى اليمين", reply: null, ...extra }) + "\n");
+const pre = (r, tool_name, tool_input, extra = {}) => hook(r, "pre", { tool_name, tool_input, cwd: r, session_id: "selftest", ...extra });
+const readTools = (r, extra) => pre(r, "Read", { file_path: path.join(r, "tools", "el.mjs") }, extra);
+const PL_DENY = /انقل العنصر أولاً/;
+add("place.note_blocks_read", G, PLC, "رسالة نقل عمرها 90 ث بلا نقل ← قراءة tools/ مرفوضة بأمر «انقل العنصر أولاً»", async () => {
+  const r = mkRoot("pl_block"); plNote(r, 90e3); const h = await readTools(r);
+  return expect(h.decision === "deny" && PL_DENY.test(h.reason) && /#zzpl1/.test(h.reason), `لم تُرفض (${h.decision ?? "سُمح"})`);
+});
+add("place.note_fresh_allowed", G, PLC, "رسالة نقل عمرها 20 ث ← البحث ما زال مسموحاً (المهلة دقيقة)", async () => {
+  const r = mkRoot("pl_fresh"); plNote(r, 20e3); const h = await readTools(r);
+  return expect(h.decision !== "deny", `رُفض قبل الدقيقة: ${h.reason.slice(0, 60)}`);
+});
+add("place.investigation_kinds_blocked", G, PLC, "بعد الدقيقة: البحث في src/ وgrep على tools/ والأمر الطويل في المقدمة كلها مرفوضة", async () => {
+  const r = mkRoot("pl_kinds"); plNote(r, 90e3);
+  const a = await pre(r, "Grep", { pattern: "slot", path: path.join(r, "src") }), b = await pre(r, "Bash", { command: "cd /s/AI_Tools/Remotion_Workspace && grep -n slot tools/el.mjs" });
+  const c = await pre(r, "Glob", { pattern: "tools/**/*.mjs" }), d = await pre(r, "Bash", { command: "node tools/final_review.mjs --name zzst" });
+  const bad = [["Grep src", a], ["grep tools", b], ["Glob tools", c], ["أمر طويل", d]].filter(([, h]) => h.decision !== "deny").map(([n]) => n);
+  return expect(!bad.length, `لم يُرفض: ${bad.join("، ")}`);
+});
+add("place.spec_and_list_allowed", G, PLC, "بعد الدقيقة: قراءة المواصفة وel.mjs items/list مسموحة", async () => {
+  const r = mkRoot("pl_free"); plNote(r, 90e3);
+  const a = await pre(r, "Read", { file_path: path.join(r, "data", "specs", "zzst.json") }), b = await pre(r, "Bash", { command: "node tools/el.mjs items zzst" }), c = await pre(r, "Bash", { command: "node tools/el.mjs list zzst" });
+  const bad = [["المواصفة", a], ["items", b], ["list", c]].filter(([, h]) => h.decision === "deny").map(([n]) => n);
+  return expect(!bad.length, `رُفض خطأً: ${bad.join("، ")}`);
+});
+add("place.move_unblocks", G, PLC, "el.mjs slot يُسجَّل نقلاً ← البحث يعود مفتوحاً", async () => {
+  const r = mkRoot("pl_move"); plNote(r, 90e3);
+  const m = await pre(r, "Bash", { command: "node tools/el.mjs slot zzst #a1 right --land" }), h = await readTools(r);
+  return expect(m.decision !== "deny" && h.decision !== "deny", m.decision === "deny" ? "النقل نفسه رُفض" : "بعد النقل ما زال البحث مرفوضاً");
+});
+add("place.spec_edit_counts", G, PLC, "تعديل العنصر في المواصفة (أو size عبر الاستوديو) يُعدّ نقلاً", async () => {
+  const r = mkRoot("pl_spec"); plNote(r, 90e3);
+  await pre(r, "Edit", { file_path: path.join(r, "data", "specs", "zzst.json"), old_string: "a", new_string: "b" }); const a = await readTools(r);
+  const r2 = mkRoot("pl_api"); plNote(r2, 90e3);
+  await pre(r2, "Bash", { command: "curl -s -X POST localhost:3999/api/gallery/size -d '{\"id\":\"a1\"}'" }); const b = await readTools(r2);
+  return expect(a.decision !== "deny" && b.decision !== "deny", a.decision === "deny" ? "تعديل المواصفة لم يُعدّ نقلاً" : "تحجيم الاستوديو لم يُعدّ نقلاً");
+});
+add("place.agent_exempt", G, PLC, "الوكيل المساعد لا يُمنع (عمله مفوَّض)", async () => {
+  const r = mkRoot("pl_agent"); plNote(r, 90e3); const h = await readTools(r, { agent_id: "selftest-agent" });
+  return expect(h.decision !== "deny", "الوكيل مُنع");
+});
+add("place.replied_or_other_free", G, PLC, "رسالة مُجاب عنها أو ليست عن المكان ← لا منع", async () => {
+  const r = mkRoot("pl_replied"); plNote(r, 90e3, { reply: { at: new Date().toISOString(), text: "نُقلت" } }); const a = await readTools(r);
+  const r2 = mkRoot("pl_other"); plNote(r2, 90e3, { text: "الصوت منخفض هنا، ارفع صوت الشيخ", elements: "" }); const b = await readTools(r2);
+  return expect(a.decision !== "deny" && b.decision !== "deny", a.decision === "deny" ? "رسالة مُجاب عنها منعت" : "رسالة صوت عُدّت نقلاً");
+});
+add("place.prompt_watch", G, PLC, "رسالته «انقلها يمين» تبدأ العدّ وتذكّر بالنقل؛ رسالة تالية عادية تنهيه؛ والكلام عن الحارس ليس طلب نقل", async () => {
+  const r = mkRoot("pl_prompt"), f = path.join(r, ".tmp", "placement_watch.json");
+  const p1 = await hook(r, "prompt", { prompt: "صورة المحكمة عند ٠:٠٥ في غير مكانها، انقلها يمين", cwd: r });
+  let st = {}; try { st = JSON.parse(fs.readFileSync(f, "utf8")); } catch { /* none */ }
+  if (!st.prompt) return expect(false, "طلب النقل لم يُسجَّل");
+  st.prompt.at = Date.now() - 90e3; put(f, st);
+  const blocked = await readTools(r);
+  await hook(r, "prompt", { prompt: "شكراً، تابع", cwd: r }); const freed = await readTools(r);
+  const r2 = mkRoot("pl_prompt_guard"); await hook(r2, "prompt", { prompt: "اعمل حارساً: إن قلت انقل الصورة يمين فانقلها", cwd: r2 });
+  return expect(/📐/.test(p1.context) && blocked.decision === "deny" && freed.decision !== "deny" && !fs.existsSync(path.join(r2, ".tmp", "placement_watch.json")),
+    !/📐/.test(p1.context) ? "لا تذكير بالنقل" : blocked.decision !== "deny" ? "بعد الدقيقة لم يُمنع البحث" : freed.decision === "deny" ? "الرسالة التالية لم تنهِ العدّ" : "الكلام عن الحارس عُدّ طلب نقل");
+});
+
+/* 19) SEARCH BEFORE ASKING (guard.mjs stop, 2026-11-21; user 2026-11-20: asked for the link of the «مفتي الأردن» short that one YouTube search found —
+   «انت لازم تعرفه»، «لا تكن كسولا»). A reply asking him for a link / episode / name / source / date, with no search in the turn, goes back once. */
+const ASKL = "asked-instead-of-searching";
+const ASK_TXT = "لم أجد المقطع في الملفات. ما رابط قصير مفتي الأردن؟ أرسله لأضيفه.";
+const turn = (r, { before = [], tools = [], text }) => {
+  const U = (c) => JSON.stringify({ type: "user", message: { role: "user", content: c } }), A = (c) => JSON.stringify({ type: "assistant", message: { role: "assistant", content: c } });
+  const use = (t, i) => [A([{ type: "tool_use", id: `tu${i}`, name: t.name, input: t.input }]), U([{ type: "tool_result", tool_use_id: `tu${i}`, content: "نتيجة" }])];
+  const rows = [U("أول رسالة"), ...before.flatMap((t, i) => use(t, 100 + i)), A([{ type: "text", text: "تمّ." }]), U("أكمل الريل وضع قصير المفتي"), ...tools.flatMap((t, i) => use(t, i)), A([{ type: "text", text }])];
+  return put(path.join(r, "transcript.jsonl"), rows.join("\n") + "\n");
+};
+const askCase = (id, title, spec, block, extra = {}) => add(id, G, ASKL, title, async () => {
+  const r = mkRoot(id); turn(r, spec);
+  const h = await hook(r, "stop", { transcript_path: path.join(r, "transcript.jsonl"), session_id: "selftest", cwd: r, ...extra });
+  return expect((h.decision === "block") === block && (!block || /ابحث أولاً/.test(h.reason)), block ? `سؤال بلا بحث مرّ (${h.decision ?? "سُمح"})` : `مُنع خطأً: ${h.reason.slice(0, 80)}`);
+});
+askCase("ask.link_no_search_block", "«ما رابط…؟» بلا أي بحث في الدورة ← يُعاد «ابحث أولاً»", { text: ASK_TXT }, true);
+askCase("ask.imperative_block", "«أعطني الرابط» بلا بحث ← يُعاد", { text: "أعطني الرابط لأكمل الريل." }, true);
+askCase("ask.episode_name_block", "«في أي حلقة…؟» و«ما اسم…؟» بلا بحث ← يُعاد", { text: "في أي حلقة تكلمتَ عن هذا؟" }, true);
+askCase("ask.search_last_turn_not_counted", "بحث في دورة سابقة لا يُحسب لهذه ← يُعاد", { before: [{ name: "WebSearch", input: { query: "مفتي الأردن" } }], text: ASK_TXT }, true);
+askCase("ask.after_websearch_ok", "بعد بحث على الويب يمرّ السؤال", { tools: [{ name: "WebSearch", input: { query: "مفتي الأردن قصير" } }], text: ASK_TXT }, false);
+askCase("ask.after_channel_index_ok", "بعد البحث في فهرس القناة يمرّ", { tools: [{ name: "Bash", input: { command: "node tools/channel_index.mjs find \"مفتي الأردن\"" } }], text: ASK_TXT }, false);
+askCase("ask.after_data_grep_ok", "بعد Grep في data/ (قوائم التشغيل) يمرّ", { tools: [{ name: "Grep", input: { pattern: "مفتي", path: "data/playlists.json" } }], text: ASK_TXT }, false);
+askCase("ask.after_browser_youtube_ok", "بعد فتح يوتيوب في المتصفح يمرّ", { tools: [{ name: "mcp__claude-in-chrome__navigate", input: { url: "https://www.youtube.com/results?search_query=x" } }], text: ASK_TXT }, false);
+askCase("ask.after_shamela_ok", "بعد بحث الشاملة يمرّ", { tools: [{ name: "mcp__f3c712d1__shamela_search_exact", input: { q: "x" } }], text: "ما المصدر الذي قرأتَ منه؟" }, false);
+askCase("ask.decision_exempt", "سؤال عن قراره (الاعتماد، أي خيار) ليس طلب معلومة ← يمرّ", { text: "أعتمده وأحذف ملفات العمل نهائياً؟ أم أي الخيارين تفضّل لاسم الحلقة؟" }, false);
+askCase("ask.statement_ok", "«لا أعرف من أين…» بلا سؤال ← يمرّ", { text: "لا أعرف من أين جاء هذا الصوت، وسأفحصه الآن." }, false);
+askCase("ask.stop_hook_active_passes", "الرد الثاني (stop_hook_active) يمرّ فلا دوران", { text: ASK_TXT }, false, { stop_hook_active: true });
+
 /* ── run ── */
 if (argv.includes("--list")) { for (const c of C) console.log(`${c.id}\t${c.files.join(",")}\t${c.ledger ?? ""}\t${c.manual ? "يدوي" : c.todo ? "محجوز" : ""}`); process.exit(0); }
 const forRel = FOR ? relOf(path.resolve(ROOT, FOR)) : null;

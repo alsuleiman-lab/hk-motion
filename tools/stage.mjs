@@ -32,7 +32,9 @@ const opt = (n, d) => (rest.includes("--" + n) ? rest[rest.indexOf("--" + n) + 1
 if (!["prep", "cut", "check"].includes(stage) || !p) { console.error("usage: node tools/stage.mjs prep|cut|check <project> …  (see the header)"); process.exit(2); }
 /* (user 2026-11-19: «مطلوب منك أن توقف أي خدمة غير مستعملة») two checks of one project ran at once and one kept the CPU busy after its task was stopped:
    ONE stage per project at a time, registered (tools/proc.mjs ls), stopped with everything under it when the shell that started it dies (tools/bg.sh). */
-{ const { guardSelf, lock } = await import("./proc.mjs"); if (!lock(`stage_${p}`)) process.exit(3); guardSelf(`stage ${stage} ${p}`, { project: p, ttlMin: 120 }); }
+/* (2026-11-21, found by the dress rehearsal tools/rehearsal.mjs) the audio gate's own re-cut (STAGE_CUT_AUTOFIX, spawned by THIS command while it waits) hit this lock,
+   held by its own parent, and every cut whose gate marked a sound failed with «نسخة أخرى تعمل الآن»: the re-run child does not take the lock its parent holds */
+{ const { guardSelf, lock } = await import("./proc.mjs"); if (!(stage === "cut" && process.env.STAGE_CUT_AUTOFIX === "1") && !lock(`stage_${p}`)) process.exit(3); guardSelf(`stage ${stage} ${p}`, { project: p, ttlMin: 120 }); }
 /* (user 2026-11-19: «ممنوع تخطئ ثم تفحص ثم تعدل») what the pipeline needs is checked BEFORE the first step, not discovered in the middle */
 if (stage === "prep") { const r = spawnSync(process.execPath, ["tools/preflight.mjs", "--quick"], { encoding: "utf8", windowsHide: true }); if (r.status !== 0) { console.error(r.stdout.split("\n").filter((l) => l.startsWith("✘")).join("\n") + "\n✘ preflight: أصلح ما فوق قبل أي عمل (node tools/preflight.mjs)"); process.exit(1); } }
 const PY = process.env.PY ?? "S:/AI_Tools/ComfyUI_windows_portable/python_embeded/python.exe";   // has faster_whisper + torch (system python does not)

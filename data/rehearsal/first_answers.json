@@ -1,0 +1,14 @@
+{
+ "title": "تجربة شاملة للمحرك",
+ "_at": "2026-11-21T10:00:00.000Z",
+ "_note": "fixed first answers of the dress rehearsal (tools/rehearsal.mjs): landscape + one reel, no b-roll, nothing is ever uploaded",
+ "cover_text": "تجربة شاملة",
+ "broll": "لا",
+ "formats": [
+  "land",
+  "reel"
+ ],
+ "yt_channel": "none",
+ "yt_when": "none",
+ "dest_reel": "none"
+}

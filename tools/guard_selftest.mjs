@@ -591,7 +591,13 @@ add("seam.wired_src", SJ, SJL, "المصدر: بناء الريل يضبط ال�
 if (argv.includes("--list")) { for (const c of C) console.log(`${c.id}\t${c.files.join(",")}\t${c.ledger ?? ""}\t${c.manual ? "يدوي" : c.todo ? "محجوز" : ""}`); process.exit(0); }
 const forRel = FOR ? relOf(path.resolve(ROOT, FOR)) : null;
 const selected = forRel && forRel !== "tools/guard_selftest.mjs" ? C.filter((c) => c.files.includes(forRel)) : C;
-if (HOOK && !selected.some((c) => c.run)) process.exit(0);   // not a guarded tool: the hook says nothing
+/* (user 2026-11-21: «النص ساعة هذا الحد الأعلى») an edit of an ENGINE file (tools/rehearsal.mjs isEngineFile) gets one suggestion line — never an automatic run (it takes many
+   minutes); once per file per 30 min (.tmp/rehearsal/nudge.json). Printed on a pass too: the hook shows a passing run's output when it is not empty. */
+const rehearsalNote = HOOK ? await (async () => { try { const { isEngineFile } = await import(pathToFileURL(path.join(ROOT, "tools", "rehearsal.mjs")).href); if (!isEngineFile(forRel)) return "";
+  const nf = path.join(ROOT, ".tmp", "rehearsal", "nudge.json"); let n = {}; try { n = JSON.parse(fs.readFileSync(nf, "utf8")); } catch { /* first */ } if (Date.now() - (n[forRel] ?? 0) < 30 * 60e3) return "";
+  n[forRel] = Date.now(); fs.mkdirSync(path.dirname(nf), { recursive: true }); fs.writeFileSync(nf, JSON.stringify(n));
+  return `💡 عُدِّل ملف من المحرك (${forRel}): شغّل التجربة الكاملة قبل أول حلقة حقيقية — bash tools/bg.sh rehearsal -- node tools/rehearsal.mjs run (في الخلفية، دقائق كثيرة؛ --quick بلا رندر). اقتراح، لا تشغيل آلي.`; } catch { return ""; } })() : "";
+if (HOOK && !selected.some((c) => c.run)) { if (rehearsalNote) console.log(rehearsalNote); process.exit(0); }   // not a guarded tool: the hook says nothing (but the rehearsal line)
 const t0 = Date.now(), lines = [];
 let fail = 0, pass = 0, known = 0;
 try {
@@ -619,10 +625,10 @@ try {
 const nMan = selected.filter((c) => c.manual).length, nTodo = selected.filter((c) => c.todo).length;
 const sum = `${fail ? "✘" : "✔"} اختبار الحراس${forRel ? ` (${forRel})` : ""}: ${pass} نجح، ${fail} فشل، ${known} ثغرة معروفة، ${nMan} يدوي، ${nTodo} محجوز — ${((Date.now() - t0) / 1000).toFixed(1)} ث`;
 if (HOOK) {
-  if (!fail) process.exit(0);
-  const out = [`⛔ اختبار الحراس بعد تعديل ${forRel}: ${fail} حالة فشلت — حارسٌ بُني بعد خطأ سابق (data/error_ledger.json) انكسر. أصلحه الآن قبل أي عمل آخر، ثم: node tools/guard_selftest.mjs --for ${forRel}`, ...lines.filter((l) => l.startsWith("✘")), sum];
+  if (!fail) { if (rehearsalNote) console.log(rehearsalNote); process.exit(0); }
+  const out = [`⛔ اختبار الحراس بعد تعديل ${forRel}: ${fail} حالة فشلت — حارسٌ بُني بعد خطأ سابق (data/error_ledger.json) انكسر. أصلحه الآن قبل أي عمل آخر، ثم: node tools/guard_selftest.mjs --for ${forRel}`, ...lines.filter((l) => l.startsWith("✘")), sum, rehearsalNote];
   if (/^tools\/hooks\//.test(forRel)) { const ra = spawnSync(NODE, ["tools/rules_audit.mjs"], { cwd: ROOT, encoding: "utf8" }); out.push(`rules_audit بعد تعديل ${forRel}:`, ...((ra.stdout || ra.stderr || "").trim().split("\n").slice(-6))); }
-  console.log(out.join("\n")); process.exit(1);
+  console.log(out.filter(Boolean).join("\n")); process.exit(1);
 }
 console.log(lines.join("\n") + "\n\n" + sum);
 process.exit(fail ? 1 : 0);

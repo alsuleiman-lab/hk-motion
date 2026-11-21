@@ -1,0 +1,18 @@
+{
+ "_note": "the FIXED test video of the dress rehearsal (tools/rehearsal.mjs). The file itself lives in .tmp/rehearsal/source.mp4 (271 MB, not in git); rehearsal.mjs rebuilds it from these ranges when it is missing and the origin still exists. Chosen 2026-11-21: his face on camera all along, numbers (سبع سنوات، تسع سنوات، الصفات الأربعة، مقطعين ثلاثة), a country (مصري), names (الشافعي الحنفي الحنبلي المالكي، مفتي الجمهورية), a recited verse (آل عمران 110 at about 2:45). Like a real recording: HEVC 1080p30 with the 4 audio tracks of the recorder.",
+ "file": ".tmp/rehearsal/source.mp4",
+ "sha256": "657bcaf6cdd19204b6653de1eb7d6196aa33d0a963ff946655b9b38be3b0ac57",
+ "durationS": 230.5,
+ "origin": "public/anchor-kills-children_src.mp4",
+ "originTitle": "مذيع يقتل أطفاله (2026-11-18)",
+ "ranges": [[160.6, 227.7], [317.3, 395.5], [966.8, 1052.0]],
+ "audioTracks": 4,
+ "encode": ["-c:v", "hevc_nvenc", "-preset", "p5", "-rc", "vbr", "-cq", "21", "-b:v", "0", "-c:a", "aac", "-b:a", "192k"],
+ "creationTime": "2026-11-18T14:00:00Z",
+ "expect": {
+  "verse": "3:110",
+  "numbers": ["سبع", "تسع", "الأربعة"],
+  "names": ["الشافعي", "الحنفي", "الحنبلي", "المالكي"],
+  "place": "مصري"
+ }
+}

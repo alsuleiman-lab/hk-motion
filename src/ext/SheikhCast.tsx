@@ -4,7 +4,7 @@
    عشر نسخ للاختيار: الإطار رقم n = النسخة n. */
 import React from "react";
 import { AbsoluteFill, Audio, Freeze, Img, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
-import { SALADIN_MOUTH } from "./rudoodMouth";
+import { SALADIN_MOUTH, UKHUWWA_MOUTH } from "./rudoodMouth";
 
 export const SHEIKH_CAST_FRAMES = 10;
 const INK = "#2a1c14";
@@ -508,23 +508,25 @@ export const RUDOOD_OUTFITS: Partial<Design>[] = [
   { top: "track", c1: "#2b3f36", c2: "#efe6cf", pants: "#2f3338", shoe: "#f5f2ec", shoeAcc: "#2b3f36" },
 ];
 export const rudoodLook = (n: number): Design => ({ ...DESIGNS[3], chair: DESIGNS[0].chair, chairStyle: DESIGNS[0].chairStyle, wall: DESIGNS[0].wall, wall2: DESIGNS[0].wall2, floor: DESIGNS[0].floor, decor: DESIGNS[0].decor, device: "wall", arm: "rest", glasses: true, lightMustache: true, ...RUDOOD_OUTFITS[n % RUDOOD_OUTFITS.length] });
-const RUDOOD4: Design = { ...DESIGNS[3], chair: DESIGNS[0].chair, chairStyle: DESIGNS[0].chairStyle, wall: DESIGNS[0].wall, wall2: DESIGNS[0].wall2, floor: DESIGNS[0].floor, decor: DESIGNS[0].decor, device: "wall", arm: "rest", glasses: true, lightMustache: true };
-const ON = 15, CLIP = 276, REPLY_AT = ON + CLIP + 12, REPLY = SALADIN_MOUTH.length;
-export const RUDOOD_SALADIN_FRAMES = REPLY_AT + REPLY + 36;
+/* قالب «شيخ الردود» لكل فيديو: يكفيه المقطع المعالَج وصوته ورقم اللباس والرد وحركة الفم؛ مراحل الإنصات نسبية إلى طول المقطع */
+type RudoodProps = { look: number; clip: string; clipAudio: string; clipFrames: number; objPos: string; reply: string; mouthData: number[] };
+const ON = 15;
+export const rudoodFrames = (clipFrames: number, mouthLen: number) => ON + clipFrames + 12 + mouthLen + 36;
 const SX = 74, SY = 168, SWD = 932, SHT = 532;
-export const RudoodSaladin: React.FC = () => {
-  const f = useCurrentFrame(), d = RUDOOD4, FL = 884 + 760;
-  const r = f - REPLY_AT, mouth = r >= 0 && r < REPLY ? SALADIN_MOUTH[r] : 0;
+export const RudoodReply: React.FC<RudoodProps> = ({ look, clip, clipAudio, clipFrames: CLIP, objPos, reply, mouthData }) => {
+  const REPLY_AT = ON + CLIP + 12, REPLY = mouthData.length;
+  const f = useCurrentFrame(), d = rudoodLook(look), FL = 884 + 760;
+  const r = f - REPLY_AT, mouth = r >= 0 && r < REPLY ? mouthData[r] : 0;
   /* الكاميرا: تقترب قليلاً من الشاشة أثناء مقطعها، ثم تنزل إليه حين يرد */
   const zIn = interpolate(f, [ON, ON + 60], [1, 1.05], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const toHim = interpolate(f, [REPLY_AT - 10, REPLY_AT + 25], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const z = zIn + 0.03 * toHim, oy = interpolate(toHim, [0, 1], [420, 1180]);
   const t = f / 30, cl = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
   const attend = interpolate(f, [ON + 4, ON + 24, ON + CLIP + 4, ON + CLIP + 20], [0, 1, 1, 0], cl);
-  const listen = interpolate(f, [ON + 6, ON + 30, ON + 75, ON + 95, ON + 205, ON + 228, ON + CLIP + 2, ON + CLIP + 16], [0, 1, 1, 0, 0, 1, 1, 0], cl);
-  const lean = interpolate(f, [ON + 80, ON + 110, ON + 185, ON + 205], [0, 1, 1, 0], cl);
-  const shake = interpolate(f, [ON + 188, ON + 198, ON + 250, ON + 262], [0, 1, 1, 0], cl);
-  const act = r >= -6 && r < REPLY + 6 ? SALADIN_MOUTH.slice(Math.max(0, r - 12), Math.max(0, r + 12)).reduce((a, b) => a + b, 0) / 24 : 0;
+  const listen = interpolate(f, [ON + 6, ON + 30, ON + Math.round(0.27 * CLIP), ON + Math.round(0.34 * CLIP), ON + Math.round(0.74 * CLIP), ON + Math.round(0.83 * CLIP), ON + CLIP + 2, ON + CLIP + 16], [0, 1, 1, 0, 0, 1, 1, 0], cl);
+  const lean = interpolate(f, [ON + Math.round(0.29 * CLIP), ON + Math.round(0.4 * CLIP), ON + Math.round(0.67 * CLIP), ON + Math.round(0.74 * CLIP)], [0, 1, 1, 0], cl);
+  const shake = interpolate(f, [ON + Math.round(0.68 * CLIP), ON + Math.round(0.72 * CLIP), ON + Math.round(0.9 * CLIP), ON + Math.round(0.95 * CLIP)], [0, 1, 1, 0], cl);
+  const act = r >= -6 && r < REPLY + 6 ? mouthData.slice(Math.max(0, r - 12), Math.max(0, r + 12)).reduce((a, b) => a + b, 0) / 24 : 0;
   const talk = Math.min(1, act * 1.8) * interpolate(r, [-6, 10, REPLY, REPLY + 20], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const flash = interpolate(f, [ON - 2, ON + 2, ON + 8], [0, 0.85, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const paused = f >= ON + CLIP;
@@ -563,11 +565,11 @@ export const RudoodSaladin: React.FC = () => {
         {/* الشاشة: مقطعها يعمل ثم يتوقف عند آخر إطار */}
         <div style={{ position: "absolute", left: SX, top: SY, width: SWD, height: SHT, overflow: "hidden", background: "#141210" }}>
           <Sequence from={ON} durationInFrames={CLIP} layout="none">
-            <OffthreadVideo muted src={staticFile("rudood1/girl_saladin_blur.mp4")} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 60%" }} />
+            <OffthreadVideo muted src={staticFile(clip)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: objPos }} />
           </Sequence>
           {paused && (
             <Freeze frame={CLIP - 1}>
-              <OffthreadVideo muted src={staticFile("rudood1/girl_saladin_blur.mp4")} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 60%", filter: "brightness(.55) saturate(.7)" }} />
+              <OffthreadVideo muted src={staticFile(clip)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: objPos, filter: "brightness(.55) saturate(.7)" }} />
             </Freeze>
           )}
           {paused && (
@@ -584,8 +586,16 @@ export const RudoodSaladin: React.FC = () => {
       <Sequence from={ON - 3} durationInFrames={20}><Audio src={staticFile("ref_sfx/tap.wav")} volume={0.05} /></Sequence>
       <Sequence from={ON + CLIP} durationInFrames={20}><Audio src={staticFile("ref_sfx/tap.wav")} volume={0.05} /></Sequence>
       {/* صوتها عنصر مستقل: محرك كرت الشاشة لا يأخذ صوت الفيديو المضمَّن */}
-      <Sequence from={ON} durationInFrames={CLIP}><Audio src={staticFile("rudood1/girl_saladin_audio.wav")} /></Sequence>
-      <Sequence from={REPLY_AT} durationInFrames={REPLY + 30}><Audio src={staticFile("rudood1/reply_final2.wav")} /></Sequence>
+      <Sequence from={ON} durationInFrames={CLIP}><Audio src={staticFile(clipAudio)} /></Sequence>
+      <Sequence from={REPLY_AT} durationInFrames={REPLY + 30}><Audio src={staticFile(reply)} /></Sequence>
     </AbsoluteFill>
   );
 };
+
+/* الفيديو الأول: صلاح الدين (لباس ٠) */
+export const RUDOOD_SALADIN_FRAMES = rudoodFrames(276, SALADIN_MOUTH.length);
+export const RudoodSaladin: React.FC = () => <RudoodReply look={0} clip="rudood1/girl_saladin_blur.mp4" clipAudio="rudood1/girl_saladin_audio.wav" clipFrames={276} objPos="50% 60%" reply="rudood1/reply_final2.wav" mouthData={SALADIN_MOUTH} />;
+
+/* الفيديو الثاني: «الأخوة الإنسانية» وأبو جهل (لباس ١، مقطع شيخ قُصّت سكتاته وأُزيلت موسيقاه) */
+export const RUDOOD_UKHUWWA_FRAMES = rudoodFrames(1185, UKHUWWA_MOUTH.length);
+export const RudoodUkhuwwa: React.FC = () => <RudoodReply look={1} clip="rudood2/clip.mp4" clipAudio="rudood2/clip_audio.wav" clipFrames={1185} objPos="50% 42%" reply="rudood2/reply.wav" mouthData={UKHUWWA_MOUTH} />;

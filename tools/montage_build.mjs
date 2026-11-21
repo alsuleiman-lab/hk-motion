@@ -23,6 +23,7 @@ import { runGateSet, runIn } from "./lib/gate_set.mjs";
 import { coverItem, coverNames, NO_COVER_KINDS } from "./cover_item.mjs";
 import { RAIL_MAX, appliesToEpisode } from "./prepublish_gates.mjs";
 import { align as alignScraps } from "./lib/scraps_times.mjs";
+import { wpReadings, wpPlace, wpMinuteKey } from "./lib/writing_times.mjs";
 
 process.chdir(WS);
 const argv = process.argv.slice(2), p = argv[0];
@@ -33,7 +34,9 @@ const T = path.join(".tmp", p);
 const OUT = path.resolve(opt("out", path.join("data", "specs", `${p}.json`)));
 const REAL = OUT.toLowerCase() === path.resolve("data", "specs", `${p}.json`).toLowerCase();
 /* a scratch --out (a test) gets a scratch public/ of links: a matte or a test still made for it never reaches the real public/ (tools/lib/gate_sandbox.mjs) */
-const SB = has("picks-template") ? null : makeSandbox(p, { name: `build_${p}`, ownPublic: !REAL });
+/* a scratch --out build has a public/ of links, the real one a junction to public/: two sandboxes, so a real build after a test build never meets the other kind (rehearsal 2026-11-21) */
+const SB_NAME = `build_${p}${REAL ? "" : "_scratch"}`;
+const SB = has("picks-template") ? null : makeSandbox(p, { name: SB_NAME, ownPublic: !REAL });
 const PUB = SB && !REAL ? SB.pub : "public";
 const readJ = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return d; } };
 const mm = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -76,6 +79,8 @@ const RULE = {
   LC_LABEL: grab("late_check.mjs", /const LABEL = \[([^\]]*)\]/, "late_check labels", list),
   LC_STOP: new Set(grab("late_check.mjs", /const STOP = new Set\(\[([^\]]*)\]\)/, "late_check STOP", list)),
   WS_STOP: new Set(grab("writing_sync.mjs", /const STOP = new Set\(\[([^\]]*)\]\)/, "writing_sync STOP", list)),
+  /* coverage_check 1c: an episode carries spec.bumper (these kinds need none) — the builder places it with bumper_at itself (rehearsal 2026-11-21) */
+  NO_BUMPER: new Set(grab("coverage_check.mjs", /if \(!\[([^\]]*)\]\.includes\(spec\.kind\) && !\(spec\.bumper/, "bumper kinds", list)),
 };
 const SLOT_GAP = RULE.SLOT_MARGIN + 0.05;
 /* the token match of writing_sync / late_check (same normalisation, their own stop lists) */
@@ -126,6 +131,14 @@ const IMAGES = readJ(path.join(T, "images.json"), []);
 const NOIMG = readJ("data/no_image_terms.json", { terms: [], textTypes: [], textPicks: [] }), NOIMG_T = new Set(NOIMG.terms ?? []);
 const isTextCard = (x) => (NOIMG.textTypes ?? []).includes(x.t) || (x.t === "pick" && (NOIMG.textPicks ?? []).includes(x.el));
 const WRITING = readJ(path.join(T, "writing.json"), null);
+/* (ledger builder-writing-minute-drift) where writing_place will put a phrase — its own code (tools/lib/writing_times.mjs), never the builder's reading of the cut words */
+let WPR = null; try { WPR = wpReadings(T, WRITING?.fix); } catch { /* no final-audio transcript yet: the cut words */ }
+const wpOf = (text, from) => (WPR ? wpPlace(WPR, { text, from }) : null);
+/** the phrases writing_place refused (not his consecutive words in its reading, two in a minute…): never offered again in this build */
+const REJECTED = new Set();
+/** filler candidates a gate refused at a moment (a list card over the face during a push-in, no slot…): kind + side + start, never offered again — the
+    next round tries the other side or another kind there (before, the same card came back every round and the build stopped on the same failure) */
+const REFUSED = new Set(), refKey = (k, a) => `${k}@${Math.round(a * 4)}`;
 const EPREF = readJ(path.join("data", "episode_refs", `${p}.json`), { slots: {} });
 const SPLITS = BASE.splits ?? [];
 const inSplit = (a, b = a) => SPLITS.some((w) => a < w.to - 0.05 && b > w.from + 0.05);
@@ -503,7 +516,9 @@ function buildItems(picks, log) {
         } else board.add(x);
       }
     }
-    if (!ok && m.kind === "due" && !P[m.id]) {   // pick_triggers asks for the element in the video, not at one second: the first empty stretch whose words suit it
+    /* a template entry with no element chosen (el: null — the picks file IS the template in the rehearsal) is no pick: the moment is still the builder's
+       (rehearsal 2026-11-21, ledger builder-template-entry-not-a-pick: the reel's due BigQuestion was named «missing» instead of going to a gap) */
+    if (!ok && m.kind === "due" && !(P[m.id]?.el || P[m.id]?.code)) {   // pick_triggers asks for the element in the video, not at one second: the first empty stretch whose words suit it
       const g = placeInGaps(c.el, m.id, board, (x) => out.push(x));
       if (g) { ok = true; it = g; defaults.push({ id: m.id, el: c.el, note: `مواضعه مشغولة (${m.hits.map(mm).join("، ")}): وُضع في فراغ ${mm(spanOf(g)[0])} بكلماته هناك`, t: spanOf(g)[0] }); }
     }
@@ -516,7 +531,10 @@ function buildItems(picks, log) {
   // (c) the sections rail: the first free stretch (no clip window, nothing else on screen) — RAIL_MAX s at most when the start allows it
   const mr = M.find((m) => m.kind === "rail");
   if (mr) {
-    const secs = (P.sections?.vals?.sections ?? P.sections ?? mr.sections).map((s) => ({ title: s.title }));
+    /* the agent's sections (moments.sections.vals.sections, or a list), else the project's — a template entry {el: null, vals: {}} is no list (ledger
+       builder-template-entry-not-a-pick: the template taken as picks crashed «….map is not a function») */
+    const arr = (x) => (Array.isArray(x) && x.length ? x : null);
+    const secs = (arr(P.sections?.vals?.sections) ?? arr(P.sections) ?? arr(picks?.sections) ?? mr.sections).map((s) => ({ title: s.title }));
     const n = secs.length, len = 0.5 + n * 0.55 + RULE.HOLD + 1.2;
     let placed = false;
     for (let t0 = 0.3; t0 < Math.min(DUR - len, 120); t0 += 0.25) {
@@ -549,7 +567,7 @@ function buildItems(picks, log) {
   const needM = M.filter((m) => m.kind === "metaphor").length - metaUsed.length;
   const metaPicks = (picks?.metaphors ?? []).slice();
   for (let k = 0; k < needM; k++) {
-    const g = metaPicks.shift();
+    const g0 = metaPicks.shift(), g = g0?.el || g0?.code || g0?.vals?.at != null ? { ...g0, el: g0.el ?? g0.code } : null;   /* a template entry (el: null) is no choice */
     const gaps = gapsOf(board.items, { minGap: 4 }).filter(([a, b]) => b - a >= 4.5).sort((x, y) => (y[1] - y[0]) - (x[1] - x[0]));
     let ok = false;
     for (const [a, b] of g?.vals?.at != null ? [[g.vals.at, g.vals.at + 30]] : gaps) {
@@ -594,7 +612,9 @@ function gapsOf(items, { minGap = RULE.GAP } = {}) {
   const spans = [...items.filter((x) => !["wm", "cover"].includes(x.t)).map(spanOf), ...SPLITS.map((s) => [s.from, s.to]), ...(BASE.solos ?? []).map((s) => [s.from, s.to])].sort((a, b) => a[0] - b[0]);
   const out = []; let end = 0;
   for (const [a, b] of spans) { if (a - end > minGap) out.push([end, a]); end = Math.max(end, b); }
-  if (DUR - 3 - end > minGap) out.push([end, DUR - 3]);
+  /* the end: coverage_check counts to dur − 3, `layers gaps` to dur — the stricter of the two (rehearsal 2026-11-21, ledger builder-gap-end-drift: the reel's
+     last 6 s passed coverage on the builder's mirror and failed layers gaps) */
+  if (DUR - end > minGap) out.push([end, DUR]);
   return out;
 }
 /** the first minute as coverage_check §2b counts it: up to min(first-minute length, the whole video) — a short video is judged to its very end */
@@ -614,7 +634,7 @@ const contentFirst = (ph) => {
 };
 /** writing for the empty stretches: ≤ one torn and one scraps a minute (writing_place), list cards of his phrases for the rest */
 function fillGaps(board, writing, defaults, round) {
-  const perMin = new Set(writing.map((w) => `${w.t}@${Math.floor((findSpoken(w.text, w.from ?? 0)?.at ?? w.from ?? 0) / 60)}`));
+  const perMin = new Set(writing.map((w) => wpMinuteKey(w.t, wpOf(w.text, w.from ?? 0)?.at ?? findSpoken(w.text, w.from ?? 0)?.at ?? w.from ?? 0)));
   const added = [];
   const first = (a, b) => b <= RULE.FIRST_LEN + 1;
   const gaps = [...gapsOf(board.items, { minGap: RULE.GAP - 1 }), ...firstGapsOf(board.items, 0.4)];
@@ -624,16 +644,23 @@ function fillGaps(board, writing, defaults, round) {
     let t = a;
     const isFirst = first(a, b), endBy = b - SLOT_GAP - 0.05;
     while (t < b - (isFirst ? RULE.FIRST_GAP * 0.5 : RULE.GAP * 0.5)) {
-      const ph = phrasesIn(t, b, RULE.SCRAPS_MAX, isFirst ? 2 : 3).map(contentFirst).filter(Boolean).find((x) => x.at >= t - 0.01);
+      const ph = phrasesIn(t, b, RULE.SCRAPS_MAX, isFirst ? 2 : 3).map(contentFirst).filter(Boolean).find((x) => x.at >= t - 0.01 && !REJECTED.has(x.text));
       if (!ph) break;
-      const minute = Math.floor(ph.at / 60);
+      /* the minute writing_place will count it in (its reading: the later of the final-audio transcript and the cut words), and null when it would refuse it */
+      const wp = WPR ? wpOf(ph.text, Math.floor(ph.at)) : { at: ph.at };
+      const minute = Math.floor((wp?.at ?? ph.at) / 60);
       const tryWriting = () => {
         let it = null;
-        for (const kind of ["scraps", "torn"]) {
+        for (const kind of wp ? ["scraps", "torn"] : []) {
           if (perMin.has(`${kind}@${minute}`)) continue;
           if (kind === "torn" && writing.filter((w) => w.t === "torn").length + 1 > (writing.length + 1) * 0.5) continue;
-          const cand = { id: `mbw${round}_${added.length}`, t: kind, text: ph.text, at: ph.at, until: r2(Math.min(ph.end + RULE.HOLD, endBy)) };
-          if (cand.until - cand.at >= 1.2 && !board.clash(cand, cand.at, cand.until).length) { it = cand; perMin.add(`${kind}@${minute}`); writing.push({ t: kind, text: ph.text, from: Math.floor(ph.at), auto: "montage_build" }); break; }
+          /* at = where writing_place puts it (the later reading); its stay ends before the next element OF ITS AREA (the board), not at the gap's end: the gap
+             ends at any element, a list card on the side included, and the writing band beside it is free (rehearsal 2026-11-21: «ملخص القصة كلها» at 0.29 s
+             was refused for a side card at 1.6 s, and the first 1.6 s stayed empty) */
+          const at = r2(Math.max(ph.at, wp?.at ?? ph.at)), cand = { id: `mbw${round}_${added.length}`, t: kind, text: ph.text, at, until: r2(ph.end + RULE.HOLD) };
+          const nextIn = board.clash(cand, at, cand.until).filter((x) => !x.split).map((x) => spanOf(x)[0]).filter((s0) => s0 > at + 0.3);
+          if (nextIn.length) cand.until = r2(Math.min(cand.until, Math.min(...nextIn) - SLOT_GAP - 0.05));
+          if (cand.until - cand.at >= 1.2 && !REFUSED.has(refKey(kind, cand.at)) && !board.clash(cand, cand.at, cand.until).length) { it = cand; perMin.add(`${kind}@${minute}`); writing.push({ t: kind, text: ph.text, from: Math.floor(ph.at), auto: "montage_build" }); break; }
         }
         return it;
       };
@@ -646,7 +673,7 @@ function fillGaps(board, writing, defaults, round) {
             const cand = mk("StatRow", { from: r2(Math.max(from0, rows[0].at - 0.1)), to: r2(Math.min(endBy, rows.at(-1).end + RULE.HOLD + 0.5)), rows: rows.map((r) => ({ at: r.at, label: r.text })) }, "gap");
             if (side === "right") cand.side = "right";
             const [ca, cb] = spanOf(cand);
-            if (cb - ca >= 1.6 && cb <= endBy + 0.01 && ca >= a + SLOT_GAP && !board.clash(cand, ca, cb).length) { it = cand; break; }
+            if (cb - ca >= 1.6 && cb <= endBy + 0.01 && ca >= a + SLOT_GAP && !REFUSED.has(refKey(`rows:${side}`, ca)) && !board.clash(cand, ca, cb).length) { it = cand; break; }
           }
         }
         return it;
@@ -658,7 +685,7 @@ function fillGaps(board, writing, defaults, round) {
           if (ws.length >= 2) {
             const cand = mk("WordCloud", { at: r2(Math.max(a + SLOT_GAP + 0.05, ws[0].at - 0.1)), until: r2(Math.min(endBy, ws.at(-1).at + 0.8 + RULE.HOLD + 0.3)), words: ws.map((w, k) => ({ text: w.text, weight: k ? 2 : 3, at: w.at })) }, "gap");
             const [ca, cb] = spanOf(cand);
-            for (let s0 = 0; s0 <= 1.5 && cb + s0 <= endBy + 0.01; s0 += 0.25) if (ca + s0 >= a + SLOT_GAP && !board.clash(cand, ca + s0, cb + s0).length) { if (s0) setSpan(cand, r2(ca + s0), r2(cb + s0)); it = cand; break; }   // a little later when its portrait split would touch the card before it
+            for (let s0 = 0; s0 <= 1.5 && cb + s0 <= endBy + 0.01; s0 += 0.25) if (ca + s0 >= a + SLOT_GAP && !REFUSED.has(refKey("WordCloud", ca + s0)) && !board.clash(cand, ca + s0, cb + s0).length) { if (s0) setSpan(cand, r2(ca + s0), r2(cb + s0)); it = cand; break; }   // a little later when its portrait split would touch the card before it
           }
         }
         return it;
@@ -709,6 +736,9 @@ function extendIntoGaps(board, defaults) {
 
 // ───────────── 9) THE SCRATCH WORKSPACE: generators that place (grid_plan --write, writing_place --write, matte_windows) and the gates that judge
 const run = (sb, args) => runIn(sb.root, args);
+let MOVES_C;
+/** .tmp/<p>/moves.json, planned by tools/moves_plan.mjs when it is not there yet (its own rule: the most important sentence of every ~75 s window) */
+const MOVES = () => { if (MOVES_C !== undefined) return MOVES_C; const f = path.join(T, "moves.json"); if (!fs.existsSync(f)) spawnSync(process.execPath, ["tools/moves_plan.mjs", p], { encoding: "utf8", windowsHide: true }); return (MOVES_C = readJ(f, null)); };
 function assemble(built, writingItems) {
   const spec = JSON.parse(JSON.stringify(BASE));
   for (const k of ["skipRequired", "skipMentions", "skipPicks"]) if (spec[k]) { spec[k] = spec[k].filter((x) => typeof spec.waiverOK?.[typeof x === "string" ? x : x.el] === "string"); if (!spec[k].length) delete spec[k]; }   // no waiver the user did not give (coverage_check)
@@ -716,6 +746,10 @@ function assemble(built, writingItems) {
   const items = built.items.filter((x) => !["torn", "scraps"].includes(x.t)).map((x) => ({ ...x }));
   spec.items = [...(built.cover ? [built.cover] : []), ...items.sort((a, b) => spanOf(a)[0] - spanOf(b)[0])];
   spec.galleryRef = BASE.galleryRef ?? true;
+  /* the camera moves (coverage_check §3: push-ins ≤ 120 s apart and a shake list): spec_draft copies .tmp/<p>/moves.json for an episode, but nothing did it
+     for a reel cut from an episode (rehearsal 2026-11-21: «الحركات: 0 تقريب»). The planned moves (tools/moves_plan.mjs) when the base has none */
+  if (!(spec.zooms?.length)) { const mv = MOVES(); if (mv?.zooms?.length) { spec.zooms = mv.zooms.map(({ from, to }) => ({ from, to })); if (!(spec.shake?.length)) spec.shake = (mv.shake ?? []).map(({ from, to }) => ({ from, to })); } }
+  if (!Array.isArray(spec.shake)) spec.shake = [];
   return spec;
 }
 async function onSandbox(sb, spec, writing, { mattes, board }) {
@@ -747,6 +781,14 @@ async function onSandbox(sb, spec, writing, { mattes, board }) {
     const mw = await run(sb, ["tools/matte_windows.mjs", path.join("data", "specs", `${p}.json`)]);
     if (TRACE) console.error("[matte_windows]", mw.code, mw.out.trim().split(/\r?\n/).slice(-3).join(" | "));
     if (mw.code !== 0) return { fail: "matte_windows: " + mw.out.slice(-400) };
+    s = sb.readSpec();
+  }
+  /* the opening bumper (coverage_check 1c): bumper_at --write on the copy (his first greeting, the quiet point before it) — the check stage did it only after
+     the build, so the build itself failed «لا فاصل في الخطة» (rehearsal 2026-11-21) */
+  if (!RULE.NO_BUMPER.has(s.kind) && !(s.bumper && (Number(s.bumper.at) > 0 || s.bumper.end || s.bumper.position === "none"))) {
+    const bw = await run(sb, ["tools/bumper_at.mjs", p, "--write"]);
+    if (TRACE) console.error("[bumper_at --write]", bw.code, bw.out.trim().split(/\r?\n/).slice(-1).join(""));
+    if (bw.code !== 0) return { fail: "bumper_at: " + bw.out.slice(-400) };
     s = sb.readSpec();
   }
   // the slots: grid_plan --write per orientation (face zone + the first free slot of its kind, the gallery's place)
@@ -803,14 +845,26 @@ const wBoard = (list) => list.map((w, k) => { const sp = findSpoken(w.text, (w.f
 for (const w of wBoard(writing)) { const c = built.board.clash(w, w.at, w.until).filter((x) => !x.split); if (!c.length) { built.board.add(w); markOpt(w); } else built.dropped.push({ id: `writing «${w.text.slice(0, 30)}»`, why: `مكانه مشغول بـ${c.map((x) => x.t).join("+")} — حُذفت الكتابة (الأهم يبقى)` }); }
 writing = writing.filter((w, k) => built.board.items.some((x) => x.id === `w${k}`));
 built.board.items.forEach((x) => { if (/^w\d+$/.test(x.id)) x.id = `wl_${x.id}`; });
-let rounds = 0, gates = null, lastFails = [];
+let rounds = 0, gates = null, lastFails = [], genFail = null;
 for (; rounds < ROUNDS; rounds++) {
   const fill = fillGaps(built.board, writing, built.defaults, rounds);
   extendIntoGaps(built.board, built.defaults);
   for (const x of fill.filter((x) => !["torn", "scraps"].includes(x.t))) built.items.push(x);
   spec = assemble(built, writing);
   const r = await onSandbox(sb, spec, writing, { mattes: !has("no-mattes"), board: built.board });
-  if (r.fail) { console.log(`✘ مولّد على النسخة فشل: ${r.fail.trim().split(/\r?\n/).slice(-6).join(" | ")}`); BUGS.push("generator: " + r.fail.slice(0, 300)); break; }
+  if (r.fail) {
+    /* (rehearsal 2026-11-21, ledger builder-generator-fail-written) writing_place refused phrases the builder planned: they leave the plan (and are never offered
+       again), the gap they leave is filled again on the next round — before, the loop stopped here with no gate run and the spec was WRITTEN without writing */
+    const rej = new Set([...r.fail.matchAll(/«([^»]+)»/g)].map((m) => m[1]));
+    let acted = 0;
+    for (const t of rej) {
+      REJECTED.add(t);
+      for (const w of writing.filter((x) => x.text === t)) { writing = writing.filter((x) => x !== w); const b = built.board.items.find((x) => x.t === w.t && x.text === t); if (b) built.board.remove(b); built.dropped.push({ id: `writing «${t.slice(0, 30)}»`, why: "writing_place رفضها — مكانها يُملأ من جديد" }); acted++; }
+      for (const b of built.board.items.filter((x) => x.t === "rows" && x._opt && ((x.rows ?? []).some((q) => q.label === t || q.sub === t) || x.title?.text === t))) { built.board.remove(b); const k = built.items.indexOf(b); if (k >= 0) built.items.splice(k, 1); built.dropped.push({ id: b._why ?? b.id, why: `writing_place رفض «${t.slice(0, 30)}»` }); acted++; }
+    }
+    if (acted && rounds < ROUNDS - 1) { if (TRACE) console.error("[writing_place refused]", [...rej].join(" | ")); continue; }
+    console.log(`✘ مولّد على النسخة فشل: ${r.fail.trim().split(/\r?\n/).slice(-6).join(" | ")}`); BUGS.push("generator: " + r.fail.slice(0, 300)); genFail = r.fail; break;
+  }
   spec = r.spec;
   gates = await runGateSet(sb.root, p, { forms: FORMS, minutes: Math.max(1, Math.ceil(DUR / 60)) });
   const bad = gates.filter((g) => !g.ok);
@@ -824,7 +878,7 @@ for (; rounds < ROUNDS; rounds++) {
     for (const i of blame(l, spec)) {
       const it = spec.items[i], b = built.board.items.find((x) => x.id === it.id) ?? (["torn", "scraps"].includes(it.t) ? built.board.items.find((x) => x.t === it.t && x.text === it.text) : built.board.items.find((x) => x.t === it.t && Math.abs(spanOf(x)[0] - spanOf(it)[0]) < 0.06));
       if (!b) continue;
-      if (b._opt) { built.board.remove(b); const k = built.items.indexOf(b); if (k >= 0) built.items.splice(k, 1); if (["torn", "scraps"].includes(b.t)) writing = writing.filter((w) => w.text !== b.text); built.dropped.push({ id: b._why ?? b.id, why: l.slice(0, 140) }); acted++; }
+      if (b._opt) { REFUSED.add(refKey(b.t === "rows" ? `rows:${b.side ?? "left"}` : b.el ?? b.t, spanOf(b)[0])); built.board.remove(b); const k = built.items.indexOf(b); if (k >= 0) built.items.splice(k, 1); if (["torn", "scraps"].includes(b.t)) { writing = writing.filter((w) => w.text !== b.text); REJECTED.add(b.text); } built.dropped.push({ id: b._why ?? b.id, why: l.slice(0, 140) }); acted++; }
       else if (/فوق الوجه|لا خانة/.test(l) && b.slot?.land === "left") { b.slot.land = "right"; b.side = "right"; acted++; }
       else if (/باقٍ طويلاً/.test(l)) { const [a] = spanOf(b); setSpan(b, a, a + RULE.PIC_WARN - 0.3); acted++; }
     }
@@ -835,6 +889,9 @@ const secs = ((Date.now() - t0) / 1000).toFixed(1);
 // write the result (the real spec only when every gate passed on the copy; a scratch --out always, for the record)
 const bad = (gates ?? []).filter((g) => !g.ok);
 if (!spec) { console.log("✘ لم يُبنَ شيء"); process.exit(1); }
+/* a generator that failed on the copy means the gates never judged this spec: it is never written as the real one (ledger builder-generator-fail-written) */
+const genBad = genFail || !gates ? { name: genFail ? "مولّد على النسخة (writing_place/matte_windows)" : "لم تُشغَّل البوابات", ok: false, fails: [String(genFail ?? "").trim().split(/\r?\n/).slice(-3).join(" | ")], secs: 0 } : null;
+if (genBad) bad.push(genBad);
 if (REAL && bad.length) console.log(`✘ لم أكتب data/specs/${p}.json: ${bad.length} بوابة ما زالت تفشل على النسخة (خطأ في الباني — أدناه)`);
 else {
   if (REAL && fs.existsSync(OUT)) { const bk = path.join(T, "montage_build", `spec.before.${Date.now()}.json`); fs.mkdirSync(path.dirname(bk), { recursive: true }); fs.copyFileSync(OUT, bk); }
@@ -846,12 +903,12 @@ const proofT = Date.now();
 let proof = gates;
 if (REAL && !bad.length) proof = await runGateSet(WS, p, { forms: FORMS, minutes: Math.max(1, Math.ceil(DUR / 60)) });
 else if (!REAL) {   // a fresh scratch workspace (tools and .tmp/<p> copied again), the written file as its spec, the gates once
-  const pb = makeSandbox(p, { name: `build_${p}`, ownPublic: true });
+  const pb = makeSandbox(p, { name: SB_NAME, ownPublic: true });
   fs.writeFileSync(path.join(pb.tmp, "writing.json"), JSON.stringify({ ...(WRITING ?? {}), items: writing }, null, 1));
   pb.writeSpec(JSON.parse(fs.readFileSync(OUT, "utf8")));
   proof = await runGateSet(pb.root, p, { forms: FORMS, minutes: Math.max(1, Math.ceil(DUR / 60)) });
 }
-const pbad = (proof ?? []).filter((g) => !g.ok);
+const pbad = (proof ?? []).filter((g) => !g.ok); if (genBad && !pbad.includes(genBad)) pbad.push(genBad);
 const by = {}; for (const it of spec.items) { const k = it.el ?? it.t; by[k] = (by[k] ?? 0) + 1; }
 console.log(`\nالبناء: ${spec.items.length} عنصراً (${Object.entries(by).map(([k, n]) => `${k} ${n}`).join("، ")}) في ${secs}ث، ${rounds + 1} دورة على النسخة → ${path.relative(WS, OUT)}`);
 console.log(`البوابات (${proof?.length ?? 0}) في ${((Date.now() - proofT) / 1000 + (REAL ? 0 : 0)).toFixed(1)}ث:`);
@@ -861,5 +918,16 @@ if (built.dropped.length) { console.log(`\nما تُرك لأن مكانه لا 
 for (const n of built.notes) console.log(n);
 if (pbad.length) console.log(`\n✘ خطأ في الباني (BUILDER BUG): ${pbad.length} بوابة فشلت على ما بناه — ${pbad.map((g) => g.name).join("، ")}`);
 else console.log(`\n✔ كل البوابات (${proof.length}) نجحت من أول تشغيل على المواصفة المكتوبة`);
+/* the plan the guard reads (.tmp/<p>/plan.json, montage_guard check / tasks.mjs): every element this build placed is a plan item, closed with its evidence — the
+   gate set that just passed on the written spec. Only on a real build that passed; items of the agent's own plan are left as they are (rehearsal 2026-11-21:
+   the built spec passed every gate and the task list still said «الخطة فارغة») */
+if (REAL && !pbad.length) {
+  const PF = path.join(T, "plan.json"), plan = readJ(PF, []).filter((x) => !String(x.id).startsWith("mb:"));
+  const whyOf = new Map(built.board.items.filter((x) => x.id).map((x) => [x.id, x._why]));
+  const ev = `montage_build: ${proof.length} بوابة نجحت على المواصفة المكتوبة (${new Date().toISOString().slice(0, 16)})`;
+  spec.items.forEach((it, k) => { const [a] = spanOf(it), why = whyOf.get(it.id) ?? (it.t === "cover" ? "cover" : ""); plan.push({ id: `mb:${it.id ?? `${it.t}${k}`}`, at: Number.isFinite(a) ? mm(a) : "", what: `${it.el ?? it.t}${why ? ` (${why})` : ""}`, skill: "gallery-placement", status: "done", evidence: ev, usedSkill: "gallery-placement" }); });
+  fs.mkdirSync(T, { recursive: true }); fs.writeFileSync(PF, JSON.stringify(plan, null, 1));
+  console.log(`✔ الخطة: ${spec.items.length} بنداً بُني (${path.relative(WS, PF)}) — مغلقة بدليل البوابات`);
+}
 if (has("json")) console.log(JSON.stringify({ ok: !pbad.length, items: spec.items.length, secs: +secs, rounds: rounds + 1, gates: (proof ?? []).map((g) => ({ name: g.name, ok: g.ok, secs: g.secs })), defaults: built.defaults, dropped: built.dropped }));
 process.exit(pbad.length ? 1 : 0);

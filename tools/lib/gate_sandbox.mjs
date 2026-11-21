@@ -69,7 +69,9 @@ export function makeSandbox(p, { name, ownPublic = false } = {}) {
   copyTree(path.join(WS, "tools"), path.join(root, "tools"), SKIP_TOOLS);
   for (const d of ["src", "node_modules", "models"]) if (fs.existsSync(path.join(WS, d))) junction(path.join(WS, d), path.join(root, d));   /* models: the matte model (tools/matte_cache.mjs, matte_windows.mjs) */
   if (ownPublic) linkPublic(root, p);
-  else { try { if (!fs.lstatSync(path.join(root, "public")).isSymbolicLink()) throw new Error("gate_sandbox: public/ of links here; pass ownPublic"); } catch (e) { if (e.code !== "ENOENT") throw e; } junction(path.join(WS, "public"), path.join(root, "public")); }
+  /* a public/ of links left here by a scratch (--out) run: removed by wipe() (junctions unlinked, hard links removed — never followed), then the junction
+     (rehearsal 2026-11-21: a real build after a test build of the same project refused «public/ of links here») */
+  else { try { if (!fs.lstatSync(path.join(root, "public")).isSymbolicLink()) wipe(path.join(root, "public")); } catch (e) { if (e.code !== "ENOENT") throw e; } junction(path.join(WS, "public"), path.join(root, "public")); }
   for (const f of ["package.json", "tsconfig.json", "remotion.config.ts"]) if (fs.existsSync(path.join(WS, f))) copyKeep(path.join(WS, f), path.join(root, f));
   // data: top-level files copied (small, and some gates write theirs: gallery_geo.json), sub-folders linked, specs = the candidate only
   const D = path.join(root, "data"); fs.mkdirSync(D, { recursive: true });
@@ -83,6 +85,10 @@ export function makeSandbox(p, { name, ownPublic = false } = {}) {
   const T0 = path.join(WS, ".tmp", p), T = path.join(root, ".tmp", p);
   wipe(T); fs.mkdirSync(T, { recursive: true });
   if (fs.existsSync(T0)) for (const e of fs.readdirSync(T0, { withFileTypes: true })) if (e.isFile() && SMALL.test(e.name)) copyKeep(path.join(T0, e.name), path.join(T, e.name));
+  /* (rehearsal 2026-11-21, ledger builder-sandbox-cut-audio) the cut audio is the stamp of the lazy cut (tools/cut_lazy.mjs status: size + mtime): without it a
+     generator on the copy (matte_windows → ensureCut) saw «the sound changed», tried to remux from a file that is not there and failed. A hard link (same
+     volume, same size and mtime, read only by the gates) — never a copy of a 100 MB file, never written here */
+  for (const f of ["cut_audio.wav"]) { const a = path.join(T0, f), b = path.join(T, f); if (fs.existsSync(a) && !fs.existsSync(b)) { try { fs.linkSync(a, b); } catch { copyKeep(a, b); } } }
   fs.mkdirSync(path.join(root, ".tmp", "gates"), { recursive: true });
   for (const f of ["active_montage.json"]) if (fs.existsSync(path.join(WS, ".tmp", f))) copyKeep(path.join(WS, ".tmp", f), path.join(root, ".tmp", f));
   const sb = {

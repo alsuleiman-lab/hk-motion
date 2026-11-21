@@ -21,7 +21,11 @@ for o in ${GR_ONLY:-L R}; do
   under=$(node tools/window_frames.mjs $p under $o)
   t0=$(date +%s)
   node tools/gpu_render.mjs --comp $comp --out "$out/$comp.mp4" ${under:+--under "$under"} --procs 1 --windows 3 --name $p > "$out/$o.log" 2>&1
-  echo "$o: exit $? in $(( $(date +%s) - t0 ))s  $(grep -a 'DONE [0-9]* frames' "$out/$o.log")"
+  rc=$?
+  echo "$o: exit $rc in $(( $(date +%s) - t0 ))s  $(grep -a 'DONE [0-9]* frames' "$out/$o.log")"
+  # (rehearsal 2026-11-21, ledger judder-zero-steps-no-file) a refused / failed render has no file: say WHY (the render's own ✘ lines) and never run the judder
+  # check on nothing (it printed «0/0 steps … FAILED (stale/skipped frames)» and blamed frames that were never made)
+  if [ $rc != 0 ] || [ ! -f "$out/$comp.mp4" ]; then echo "   ✘ $o: لا ملف — سبب الرندر: $(grep -a '✘\|Error\|refus' "$out/$o.log" | tail -3 | tr '\n' ' ' | cut -c1-400)"; echo "   judder result: not measured (no file)"; continue; fi
   rep=$(ls -t render_work/gpu_render_${comp}_*.json | head -1)
   node -e "const j=require('./$rep');console.log('   ',JSON.stringify({frames:j.frames,totalMin:j.totalMinutes,fps:j.fpsGraphicsPlusComposite,fpsE2E:j.fpsEndToEnd,cpu:j.cpuDuringRender&&j.cpuDuringRender.mean,sizeMB:j.sizeMB,video:j.probe[0],audio:j.probe[1]&&j.probe[1].duration}))"
   chk=".tmp/$(node tools/project.mjs root $p)/bumper_orig/$comp.mp4"; [ -f "$chk" ] || chk=.tmp/bumper_orig/$comp.mp4; [ -f "$chk" ] || chk="$out/$comp.mp4"
@@ -43,5 +47,7 @@ for o in ${GR_ONLY:-L R}; do
   fi
   rm -f "$chk.tmp" 2>/dev/null; [ "$chk" != "$out/$comp.mp4" ] && cp -f "$chk" "$out/${comp}_prebumper.mp4" && rm -f "$chk"   # kept in the output folder: the final review maps the final file to this pre-bumper original (the gate is per project); cleaned at approval
 done
-node tools/lib/gpu_busy.mjs resume --by "$(node tools/project.mjs root $p 2>/dev/null || echo $p)" --reason "انتهى الرندر النهائي" 2>/dev/null   # (ledger prerender-gpu-silent-hang) a paused foreign GPU job resumes after the final render
+# (ledger prerender-gpu-silent-hang) a paused foreign GPU job resumes after the final render — unless the caller renders another orientation right after
+# (GPU_KEEP_PAUSED=1: the rehearsal renders the landscape then the reel, and resumes it itself at its end; 2026-11-21 the reel rendered beside the resumed training)
+[ -z "$GPU_KEEP_PAUSED" ] && node tools/lib/gpu_busy.mjs resume --by "$(node tools/project.mjs root $p 2>/dev/null || echo $p)" --reason "انتهى الرندر النهائي" 2>/dev/null
 echo "ALL DONE $(date +%T)"

@@ -59,7 +59,7 @@ export default async (api) => {
   /* ── one source: a gate whose number the builder reads changes shape → the builder stops loudly (never builds on a stale copy of a rule) */
   add("mb.rule_source_changed_loud", "tools/montage_build.mjs", "element-constraints-one-by-one", "إن تغيّر شكل قاعدة في بوابة يقرأ الباني رقمها منها (حد بقاء الصورة في late_check) يتوقف ويقول «مصدر القاعدة تغيّر» ولا يبني بنسخة قديمة", async () => {
     const R = path.join(D, "rootcopy");
-    const files = ["montage_build.mjs", "lib/gate_sandbox.mjs", "lib/gate_set.mjs", "lib/scraps_times.mjs", "cover_item.mjs", "prepublish_gates.mjs", "element_slots.mjs", "late_check.mjs", "coverage_check.mjs", "writing_sync.mjs", "writing_place.mjs", "mg_usage_audit.mjs", "pick_triggers.mjs", "names_scan.mjs", "grid_plan.mjs", "name_doubt.mjs"];
+    const files = ["montage_build.mjs", "lib/gate_sandbox.mjs", "lib/gate_set.mjs", "lib/scraps_times.mjs", "lib/writing_times.mjs", "cover_item.mjs", "prepublish_gates.mjs", "element_slots.mjs", "late_check.mjs", "coverage_check.mjs", "writing_sync.mjs", "writing_place.mjs", "mg_usage_audit.mjs", "pick_triggers.mjs", "names_scan.mjs", "grid_plan.mjs", "name_doubt.mjs"];
     for (const f of files) put(path.join(R, "tools", f), fs.readFileSync(path.join(ROOT, "tools", f), "utf8"));
     const lc = path.join(R, "tools", "late_check.mjs"); put(lc, fs.readFileSync(lc, "utf8").replace(/\$\{d > 10 \? "✘" : "⚠"\}/, '${d > LIMIT ? "✘" : "⚠"}'));
     const r = await runAsync(NODE, [path.join(R, "tools", "montage_build.mjs"), "x", "--picks-template"], { cwd: R, timeout: 30000 });

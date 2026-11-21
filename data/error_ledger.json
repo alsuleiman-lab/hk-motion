@@ -1089,6 +1089,213 @@
     "manual": []
    },
    "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (tools/rehearsal.mjs، data/rehearsal/times.jsonl، الإيداع 6bf1801) قبل أي حلقة حقيقية"
+  },
+  {
+   "id": "builder-writing-minute-drift",
+   "date": "2026-11-21",
+   "what": "الباني وضع قصاصتين في دقيقة واحدة (1:07 و2:00 عنده، 1:07 و1:59.8 عند writing_place) فرفض writing_place القائمة كلها.",
+   "cause": "الباني يعدّ «قصاصة في الدقيقة» بكلمات القص، وwriting_place بقراءته هو (الأحدث من التفريغ الأخير وكلمات القص) — قاعدة منسوخة انحرفت.",
+   "guard": {
+    "file": "tools/lib/writing_times.mjs + tools/writing_place.mjs + tools/montage_build.mjs",
+    "how": "زمن العبارة ودقيقتها من دالة واحدة (wpPlace / wpMinuteKey) يستوردها writing_place والباني معاً؛ والكتابة تبدأ عند زمن writing_place وتبقى حتى العنصر التالي في مساحتها لا حتى آخر الفراغ."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "wp.minute_is_writing_place_reading",
+     "wp.shared_by_builder_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (تشغيل 11:14، data/rehearsal/times.jsonl) قبل أي حلقة حقيقية؛ أُصلح وجُرّب في التجربة نفسها"
+  },
+  {
+   "id": "builder-generator-fail-written",
+   "date": "2026-11-21",
+   "what": "رفض writing_place خطة الكتابة، فتوقف الباني بلا بوابة وكتب المواصفة بلا كتابة: فراغات 8–12 ث (0:08، 1:07، 2:00) ولحظات فارغة في الدقيقة الأولى.",
+   "cause": "فشل مولّد على النسخة كان «break» قبل البوابات، و«لا بوابات» عُدّ «لا فشل» فكُتبت المواصفة الحقيقية.",
+   "guard": {
+    "file": "tools/montage_build.mjs",
+    "how": "العبارات التي يسمّيها writing_place تخرج من الخطة ولا تُعرض ثانية ويُملأ مكانها في الدورة التالية؛ ومولّد فشل أو بوابات لم تعمل = بوابة فاشلة فلا تُكتب المواصفة الحقيقية أبداً؛ والمرشّح المالئ الذي ترفضه بوابة (فوق الوجه وقت التقريب) لا يعود في المكان نفسه."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "mb.refused_writing_refilled",
+     "mb.generator_fail_never_written_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (تشغيل 11:14، data/rehearsal/times.jsonl) قبل أي حلقة حقيقية؛ أُصلح وجُرّب في التجربة نفسها"
+  },
+  {
+   "id": "builder-bumper-after-build",
+   "date": "2026-11-21",
+   "what": "فشلت مواصفة الباني «لا فاصل في الخطة» ثم وضعه فحص المرحلة بعدها.",
+   "cause": "الفاصل يضعه stage check (bumper_at --write) لا الباني، والبوابة على ما بناه تطلبه.",
+   "guard": {
+    "file": "tools/montage_build.mjs",
+    "how": "الباني يشغّل bumper_at --write على النسخة لكل حلقة تطلب فاصلاً (أنواعها تُقرأ من coverage_check نفسه)."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "mb.bumper_planned_by_build"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (تشغيل 11:14، data/rehearsal/times.jsonl) قبل أي حلقة حقيقية؛ أُصلح وجُرّب في التجربة نفسها"
+  },
+  {
+   "id": "builder-template-entry-not-a-pick",
+   "date": "2026-11-21",
+   "what": "ريل التجربة: العنصر المستحق «سؤال محوري» سُمّي «ينقص البناء» مع أن له فراغاً؛ وقالب فيه أقسام انهار «map is not a function».",
+   "cause": "مدخل القالب {el: null} عُدّ اختياراً من الوكيل (فلا فراغ يُبحث عنه)، ومدخل الأقسام في القالب عُدّ قائمة.",
+   "guard": {
+    "file": "tools/montage_build.mjs",
+    "how": "الاختيار = el أو code فقط، والأقسام قائمة غير فارغة فقط؛ القالب نفسه يصلح ملف اختيارات (طريقة التجربة)."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "mb.template_is_no_pick",
+     "mb.template_entry_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (تشغيل 11:14، data/rehearsal/times.jsonl) قبل أي حلقة حقيقية؛ أُصلح وجُرّب في التجربة نفسها"
+  },
+  {
+   "id": "builder-gap-end-drift",
+   "date": "2026-11-21",
+   "what": "ريل التجربة: فراغ 6 ث في آخره نجح في مرآة الباني وفشل في layers gaps.",
+   "cause": "مرآة الفراغات في الباني تنتهي قبل الآخر بثلاث ثوانٍ (coverage_check)، وlayers gaps يعدّ إلى الآخر.",
+   "guard": {
+    "file": "tools/montage_build.mjs",
+    "how": "المرآة تأخذ الأشد: إلى آخر الفيديو."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "mb.gaps_to_video_end_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (تشغيل 11:14، data/rehearsal/times.jsonl) قبل أي حلقة حقيقية؛ أُصلح وجُرّب في التجربة نفسها"
+  },
+  {
+   "id": "builder-sandbox-cut-audio",
+   "date": "2026-11-21",
+   "what": "matte_windows على نسخة العمل فشل «Error opening input files».",
+   "cause": "نسخة العمل بلا صوت القص (ملف كبير لا يُنسخ)، فرأى cut_lazy أن الصوت تغيّر وحاول إعادة التغليف من ملف غير موجود.",
+   "guard": {
+    "file": "tools/lib/gate_sandbox.mjs",
+    "how": "صوت القص مربوط في نسخة العمل برابط صلب (الحجم والزمن نفساهما، لا نسخ ولا كتابة)."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "sandbox.cut_audio_and_public_kind"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (تشغيل 11:14، data/rehearsal/times.jsonl) قبل أي حلقة حقيقية؛ أُصلح وجُرّب في التجربة نفسها"
+  },
+  {
+   "id": "builder-sandbox-public-kind",
+   "date": "2026-11-21",
+   "what": "بناء حقيقي بعد بناء تجريبي للمشروع نفسه انهار «public/ of links here».",
+   "cause": "البناءان في نسخة عمل واحدة، والتجريبي يترك مجلد روابط حيث يريد الحقيقي رابطاً واحداً.",
+   "guard": {
+    "file": "tools/montage_build.mjs + tools/lib/gate_sandbox.mjs",
+    "how": "نسختا عمل باسمين (الحقيقي والتجريبي)، وإن وُجد مجلد روابط حيث يلزم الرابط يُزال بأمان (الروابط تُفك لا تُتبع)."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "sandbox.cut_audio_and_public_kind",
+     "mb.sandbox_names_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (تشغيل 11:14، data/rehearsal/times.jsonl) قبل أي حلقة حقيقية؛ أُصلح وجُرّب في التجربة نفسها"
+  },
+  {
+   "id": "reel-not-built-by-builder",
+   "date": "2026-11-21",
+   "what": "فحص الريل: الدقيقة الأولى فارغة كلها، «استعمل أنواعاً أخرى»، 0 تقريب؛ وفحص الشبكة انهار على الريل.",
+   "cause": "الريل من الحلقة شريحة بلا مونتاج: لا حركات (zooms: [])، ولا كاميرا وجه (cams: [])، وغير مسجّل مونتاجاً، والباني لم يكتبه (رمز 3 على «سؤال محوري»).",
+   "guard": {
+    "file": "tools/reel_from_episode.mjs + tools/montage_build.mjs + tools/lib/face_zone.mjs + tools/rehearsal.mjs",
+    "how": "الريل يأخذ كاميرا الحلقة مزاحة إلى زمنه ويُسجَّل ويقول إن التالي بناؤه بالباني؛ والباني يأخذ الحركات من moves.json حين يخلو الأساس منها؛ ومنطقة الوجه تقبل قائمة كاميرا فارغة؛ والتجربة تبني الريل بالباني ثم تفحصه."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "mb.moves_when_base_has_none",
+     "reel.cams_and_registration_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (تشغيل 11:14، data/rehearsal/times.jsonl) قبل أي حلقة حقيقية؛ أُصلح وجُرّب في التجربة نفسها"
+  },
+  {
+   "id": "orphan-false-pause-pieces",
+   "date": "2026-11-21",
+   "what": "فحص العرضي: «5 مواضع تبدو بقايا» (هذا عنده، صفات أول، صفة أنه، متدين متدين، هو شيخ هل) — كلامه التام بعد حذف سكتاته الطويلة.",
+   "cause": "orphan_scan حكم «حُذف كلام هنا» بالتفريغ الخام: بداية كلمة باقية تقع فيه قبل مدّها بـ0.2–0.3 ث.",
+   "guard": {
+    "file": "tools/orphan_scan.mjs",
+    "how": "الحكم بجدول الكلمات المحاذى الذي خُطط عليه القص (words_table.json)، والخام احتياط."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "orphan.kept_words_not_orphans",
+     "orphan.real_removal_flagged"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (تشغيل 11:14، data/rehearsal/times.jsonl) قبل أي حلقة حقيقية؛ أُصلح وجُرّب في التجربة نفسها"
+  },
+  {
+   "id": "judder-zero-steps-no-file",
+   "date": "2026-11-21",
+   "what": "رندر الريل: «judder: 0/0 steps agree … FAILED (stale/skipped frames)» ثم «لا ملف».",
+   "cause": "الرندر رُفض (لا نجاح حديث لفحص ما قبل الرندر للريل) ففحص الارتجاف ملفاً غير موجود واتهم الرندر بإطارات متأخرة؛ ولم تكن النافذة خاطئة ولا الرندر متقطعاً.",
+   "guard": {
+    "file": "tools/judder_check.mjs + tools/gpu/render_project.sh + tools/rehearsal.mjs",
+    "how": "لا ملف = «NO FILE» ولا خطوة للمقارنة = «NO STEPS» (خروج 3، لا حكم)؛ ورندر خرج بغير صفر يقول سببه ولا يُقاس ارتجافه؛ والتجربة لا تستأنف عمل الكرت الموقوف بين رندريها."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "judder.no_file_no_verdict",
+     "judder.zero_steps_no_verdict",
+     "render.failed_render_not_measured_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (تشغيل 11:14، data/rehearsal/times.jsonl) قبل أي حلقة حقيقية؛ أُصلح وجُرّب في التجربة نفسها"
+  },
+  {
+   "id": "rehearsal-guard-unreported",
+   "date": "2026-11-21",
+   "what": "فحص العرضي والريل: «tasks: مفتوح 10» و«الخطة فارغة» على مواصفة نجحت بواباتها.",
+   "cause": "التجربة تقوم مقام الوكيل ولم تكتب للحارس تقرير مرحلة قط، والباني لا يسجّل ما بناه بنود خطة.",
+   "guard": {
+    "file": "tools/rehearsal.mjs + tools/montage_build.mjs + tools/reel_from_episode.mjs",
+    "how": "التجربة تكتب تقرير كل مرحلة نجحت (ما فعلته وملفاته)، والباني الحقيقي الناجح يسجّل عناصره بنود خطة مغلقة بدليل البوابات، والريل يُسجَّل مونتاجاً عند بنائه؛ و--to لتشغيل جزئي لا يُعدّ نجاحاً."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "rehearsal.reports_stages_src",
+     "rehearsal.to_stage_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (تشغيل 11:14، data/rehearsal/times.jsonl) قبل أي حلقة حقيقية؛ أُصلح وجُرّب في التجربة نفسها"
   }
  ]
 }

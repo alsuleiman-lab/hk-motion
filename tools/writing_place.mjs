@@ -10,39 +10,30 @@
 //    (user 2026-11-18, rules review w5/w15: every writing 1.5 s after its last part, ≥ 0.2 s before the next writing of the band; was torn 1.8 / scraps 1.0 / −0.15).
 import fs from "node:fs";
 import path from "node:path";
+import { wpReadings, wpPlace, wpNorm, wpMinuteKey } from "./lib/writing_times.mjs";
 
 const [p] = process.argv.slice(2), WRITE = process.argv.includes("--write");
 if (!p) { console.error("usage: node tools/writing_place.mjs <p> [--write]"); process.exit(2); }
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const T = path.join(".tmp", p), specF = path.join("data", "specs", `${p}.json`);
 const W = JSON.parse(fs.readFileSync(path.join(T, "writing.json"), "utf8"));
-const fresh = JSON.parse(fs.readFileSync(path.join(T, "drift_fresh.json"), "utf8"));
-const norm = (s) => String(s).replace(/[ً-ْٰـ]/g, "").replace(/[إأآٱا]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/[^\p{L}\p{N}]/gu, "");
-const FIX = Object.fromEntries(Object.entries(W.fix ?? {}).map(([k, v]) => [norm(k), norm(v)]));
-const N = fresh.map((w) => { const n = norm(w.w); return FIX[n] ?? n; });
-const cwRaw = fs.existsSync(path.join(T, "cut_words.json")) ? JSON.parse(fs.readFileSync(path.join(T, "cut_words.json"), "utf8")) : [];
-const CW = (cwRaw.words ?? cwRaw).map((w) => ({ s: +(w.s ?? w.start), n: norm(w.w ?? w.word) }));
-/* (2026-11-13) the fresh pass can hallucinate a stretch (a repeated loop over a clip) or spell a word otherwise; the merged large-model words of the cut are a second accurate reading: a phrase is accepted when it is consecutive words in EITHER */
-const CWl = CW.map((w) => ({ s: w.s, w: w.n })), CWn = CW.map((w) => FIX[w.n] ?? w.n);
+/* the phrase timing is shared with the builder (tools/lib/writing_times.mjs, ledger builder-writing-minute-drift): one reading of where a phrase goes */
+const RD = wpReadings(T, W.fix), { N, CWn } = RD, norm = wpNorm;
 const DANGLE = new Set(["و", "مع", "ان", "انه", "انها", "له", "لها", "علي", "في", "من", "الي", "عن", "الذي", "التي", "اللي", "بين", "او", "ثم", "لكن", "ولكن", "قد", "هو", "هي", "يعني", "بس", "ف"].map(norm));
 const bad = [], out = [];
 for (const it of W.items) {
-  const q = it.text.split(/\s+/).map(norm).filter(Boolean);
-  let hit = -1, L = fresh, NN = N;
-  for (let i = 0; i < NN.length; i++) { if (L[i].s < (it.from ?? 0) - 15) continue; /* later cut blocks move the words earlier */ if (q.every((x, j) => NN[i + j] === x)) { hit = i; break; } }
-  if (hit < 0) { L = CWl; NN = CWn; for (let i = 0; i < NN.length; i++) { if (L[i].s < (it.from ?? 0) - 15) continue; if (q.every((x, j) => NN[i + j] === x)) { hit = i; break; } } }
-  if (hit < 0) { bad.push(`«${it.text}» ليست كلماته متتابعة كما نطقها (من ${it.from}ث)`); continue; }
+  const pl = wpPlace(RD, it);
+  if (!pl) { bad.push(`«${it.text}» ليست كلماته متتابعة كما نطقها (من ${it.from}ث)`); continue; }
+  const { q, times, lastEnd } = pl;
   if (it.t === "scraps" && q.length > 7) bad.push(`«${it.text}» قصاصات أطول من 7 كلمات`);
   if (DANGLE.has(q[q.length - 1])) bad.push(`«${it.text}» تنتهي بكلمة معلّقة «${it.text.split(/\s+/).pop()}»`);
   if (DANGLE.has(q[0]) && !["و", "ولكن", "لكن", "هو", "هي"].includes(it.text.split(/\s+/)[0].replace(/[إأآ]/g, "ا"))) bad.push(`«${it.text}» تبدأ بكلمة معلّقة`);
-  /* two transcripts disagree on word starts by up to 0.7 s: a word shows at the LATER of the two, so writing is never ahead of his voice */
-  const times = q.map((x, j) => { const s0 = L[hit + j].s, c = CW.find((w) => Math.abs(w.s - s0) < 0.8 && (w.n === x || w.n.endsWith(x))); return +Math.max(s0, c?.s ?? 0).toFixed(2); }), lastEnd = L[hit + q.length]?.s ?? times[times.length - 1] + 0.6;
   out.push({ ...it, times, at: times[0], lastEnd });
 }
 /* (user 2026-11-12) «القصاصات والملاحظة الممزقة: كل واحدة منهما مرة واحدة في الدقيقة، ولا يجوز تكرارها»: per minute of the video at most ONE scraps and ONE torn */
 {
   const per = {};
-  for (const o of out) { const k = `${o.t}@${Math.floor(o.at / 60)}`; (per[k] ??= []).push(o); }
+  for (const o of out) { const k = wpMinuteKey(o.t, o.at); (per[k] ??= []).push(o); }
   for (const [k, list] of Object.entries(per)) if (list.length > 1) { const [t, m] = k.split("@"); bad.push(`الدقيقة ${m}: ${list.length} ${t === "torn" ? "ملاحظات ممزقة" : "قصاصات"} (المسموح واحدة): ${list.map((o) => `«${o.text}»`).join("، ")}`); }
 }
 /* (user 2026-11-12) «الكتابة لازم توافق قولي كلمة بكلمة»: a list card (rows) — its title, every label and every small line — is his spoken words, consecutive */

@@ -361,7 +361,11 @@ if (known) {
 }
 const cw = rd(path.join(TR, "cut_words.json"), []);
 fs.writeFileSync(path.join(TR, "reel_source.json"), JSON.stringify({ episode: P, order, wordsFrom, speakersFrom: speakersFrom ?? "none", ranges: chosen.map(({ turns, ...r }) => r), duration: D }, null, 1));
-const spec = { id, title: epSpec.title ?? id, cut: `${id}_cut_s.mp4`, duration: D, frames: Math.round(D * 30), fps: 30, kind: "reel", showTitleBar: false, cams: [], zooms: [], shake: [], items: [coverItem(id, { kind: "reel", fromEpisode: { project: P } })], date: epSpec.date ?? new Date().toISOString().slice(0, 10), fromEpisode: { project: P, order, ranges: chosen.map((r) => ({ from: r.from, to: r.to, cutFrom: r.cutFrom, cutTo: r.cutTo })) } };
+/* the portrait slice of his face (cams, cut time of the episode) carried to the reel's time piece by piece (rehearsal 2026-11-21: cams: [] crashed grid_plan's
+   face zone in portrait and left the crop centre to a default) */
+const reelCams = (() => { const out = []; (epSpec.cams ?? []).forEach((c) => pieces.forEach(([a, b], k) => { const lo = Math.max(a, c.from), hi = Math.min(b, c.to); if (hi - lo > 0.02) out.push({ from: +(lo - a + off[k]).toFixed(2), to: +(hi - a + off[k]).toFixed(2), cx: c.cx }); }));
+  out.sort((x, y) => x.from - y.from); const m = []; for (const c of out) { const l = m[m.length - 1]; if (l && l.cx === c.cx && c.from - l.to < 0.05) l.to = c.to; else m.push(c); } if (m.length) { m[0].from = 0; m[m.length - 1].to = 9999; } return m; })();
+const spec = { id, title: epSpec.title ?? id, cut: `${id}_cut_s.mp4`, duration: D, frames: Math.round(D * 30), fps: 30, kind: "reel", showTitleBar: false, cams: reelCams, zooms: [], shake: [], items: [coverItem(id, { kind: "reel", fromEpisode: { project: P } })], date: epSpec.date ?? new Date().toISOString().slice(0, 10), fromEpisode: { project: P, order, ranges: chosen.map((r) => ({ from: r.from, to: r.to, cutFrom: r.cutFrom, cutTo: r.cutTo })) } };
 fs.writeFileSync(path.join("data", "specs", `${id}.json`), JSON.stringify(spec, null, 1));
 // ── 7) البوابة على الناتج ──
 const probe = spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path.join("public", `${id}_cut_s.mp4`)], { encoding: "utf8", windowsHide: true });
@@ -380,5 +384,9 @@ gate.push(["بوابة الصوت", audioOk]);
   for (const x of bad) console.log("  ✘ " + SEAMJ.describe(x)); for (const x of res.filter((y) => y.notes?.length)) console.log("  ℹ " + SEAMJ.describe(x, true));
   gate.push([rj?.why ? `وصلات الريل: ${rj.why}` : `وصلات الريل (${res.length}) بلا نقرة ولا ذيل كلمة ولا قطع داخل كلمة`, !!rj?.joins && !bad.length]); }
 for (const [t, ok] of gate) console.log(`${ok ? "✔" : "✘"} ${t}`);
-console.log(`الريل ${id}: ${mmss(D)} من ${chosen.length} أجزاء (${order === "user" ? "بترتيب المستخدم" : "بترتيب القصة"}) → data/specs/${id}.json (kind reel)؛ بلا رندر. التالي: مراحل الريل في الشجرة من الاستخراج.`);
-process.exit(gate.every(([, ok]) => ok) ? 0 : 1);
+/* the reel is a montage of its own: registered like stage prep registers an episode (its task list and the hooks bind to it), and its spec is BUILT by the
+   builder — the slice alone is not a reel (skill reel-from-episode, «لا ريل بلا مونتاج»; rehearsal 2026-11-21: the reel was checked as the bare slice) */
+const allOk = gate.every(([, ok]) => ok);
+if (allOk) { const g = spawnSync(process.execPath, ["tools/montage_guard.mjs", "start", id], { encoding: "utf8", windowsHide: true }); if (g.status !== 0) console.log(`⚠ montage_guard start ${id}: ${(g.stdout || g.stderr || "").trim().split(/\r?\n/).pop()}`); }
+console.log(`الريل ${id}: ${mmss(D)} من ${chosen.length} أجزاء (${order === "user" ? "بترتيب المستخدم" : "بترتيب القصة"}) → data/specs/${id}.json (kind reel)؛ بلا رندر. التالي: مونتاجه بالباني — node tools/montage_build.mjs ${id} --picks-template ثم --picks <الملف> (الحركات من moves.json، والكتابة والعناصر بقواعد الريل)، ثم stage check.`);
+process.exit(allOk ? 0 : 1);

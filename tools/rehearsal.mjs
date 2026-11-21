@@ -11,6 +11,7 @@
 //   node tools/rehearsal.mjs purge [--dry]              remove everything of zz_rehearsal* (files whose name has «zzrehearsal» once - and _ are dropped) + its registry lines
 // --quick: no full render — two 10-second preview windows per orientation at half size (a render-speed sample), no final review.
 // --from <stage>: reuse the project as it is on disk up to that stage (a re-run after a fix); the record says from where.
+// --to <stage>: stop after that stage, nothing purged (a debugging run: the record says where it stopped; with --from it re-runs one span).
 // --keep : no purge at the end (to read the outputs; `purge` later).   --no-purge: no purge at all, neither the leftovers at the start nor at the end (a sub-agent may not
 //          delete in public/ .tmp/<p>/ data/specs/ — tools/hooks/guard.mjs, user 2026-11-21 — so a run started by a sub-agent uses it and the main session purges).
 // The fixed inputs: data/rehearsal/source.json (the test video: ranges of a real recording, rebuilt into .tmp/rehearsal/source.mp4 when missing),
@@ -146,7 +147,7 @@ function ensureSource() {
 const coverFrame = (dst, portrait) => { fs.mkdirSync(path.dirname(dst), { recursive: true }); const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-ss", "20", "-i", path.join(DIR, "source.mp4"), "-frames:v", "1", "-vf", portrait ? "crop=608:1080:656:0,scale=1080:1920" : "scale=1920:1080", dst], { encoding: "utf8", windowsHide: true }); return r.status === 0; };
 
 /* ── run ── */
-async function run({ quick, keep, noPurge, from = null }) {
+async function run({ quick, keep, noPurge, from = null, to = null }) {
   const { guardSelf, lock } = await import("./proc.mjs");
   if (!lock("rehearsal")) process.exit(3);
   guardSelf(`rehearsal${quick ? " --quick" : ""}`, { project: P, ttlMin: 120 });
@@ -159,9 +160,26 @@ async function run({ quick, keep, noPurge, from = null }) {
   /* --from <stage>: the stages before it are REUSED from the project as it is on disk (a re-run after a fix, or after a stage another tool was still finishing) */
   if (from) { if (!stages.some((s) => s.id === from)) { console.error(`✘ لا مرحلة ${from}: ${stages.map((s) => s.id).join(", ")}`); process.exit(2); } rec.from = from;
     ctx.minutes = +((json(R("public", `${P}_map.json`), {}).duration ?? 0) / 60).toFixed(2); rec.cutS = Math.round(ctx.minutes * 60); rec.sourceS = json(path.join(DATA, "source.json"), {}).durationS;
-    ctx.reelMinutes = +((json(R("public", `${REEL}_map.json`), null)?.duration ?? (json(R("data", "specs", `${REEL}.json`), {}).frames ?? 0) / FPS) / 60).toFixed(2); rec.reelS = Math.round(ctx.reelMinutes * 60); rec.gpuAtStart = gpuNow(); }
-  let reached = !from;
+    ctx.reelMinutes = +((json(R("public", `${REEL}_map.json`), null)?.duration ?? (json(R("data", "specs", `${REEL}.json`), {}).frames ?? 0) / FPS) / 60).toFixed(2); rec.reelS = Math.round(ctx.reelMinutes * 60); rec.gpuAtStart = gpuNow();
+    /* the setup stage is skipped: the pause of a foreign GPU job it does is done here (resumed at the end as always) */
+    { const GB = await import("./lib/gpu_busy.mjs"), pr = GB.pauseForMontage({ by: P }); if (pr.line) { rec.notes.push(pr.line); console.log("  " + pr.line); rec.gpuPaused = pr.paused.map((x) => ({ pid: x.pid, name: x.name })); } } }
+  let reached = !from, passedTo = false;   // --to <stage>: stop after it (a debugging run; the record says where it stopped)
+  if (to) { if (!stages.some((s) => s.id === to)) { console.error(`✘ لا مرحلة ${to}: ${stages.map((s) => s.id).join(", ")}`); process.exit(2); } rec.to = to; }
   const note = (s) => { rec.notes.push(s); console.log("  " + s); };
+  /* (rehearsal 2026-11-21, ledger rehearsal-guard-unreported) the rehearsal stands in for the agent, so it reports each stage it RAN to the montage guard
+     (tools/montage_guard.mjs stage: skill, what was done, artifacts the guard checks exist) — before, every check failed on «tasks: مفتوح 10» because no stage
+     was ever reported. Only a stage that passed is reported; a failed one stays unreported and the task list stays open, as it should. */
+  const G = (proj, stage, skill, done, artifacts = []) => { const r = spawnSync(process.execPath, ["tools/montage_guard.mjs", "stage", proj, stage, "--skill", skill, "--done", done, ...artifacts.flatMap((a) => ["--artifact", a])], { cwd: ROOT, encoding: "utf8", windowsHide: true }); if (r.status !== 0) note(`⚠ تقرير المرحلة ${stage} لـ${proj}: ${(r.stderr || r.stdout || "").trim().split(/\r?\n/).pop()}`); };
+  const REPORT = {
+    setup: () => G(P, "questions", "first-questions", "الأجوبة الأولى ثابتة للتجربة (data/rehearsal/first_answers.json: عرضي + ريل، بلا مقاطع مضافة)", [`.tmp/${P}/first_answers.json`]),
+    cut: () => G(P, "cut", "video-cutting", "stage cut بالاقتراح كما هو (الإعادات وكتل «مونتاج» من cut_proposal.md، وبوابة الصوت داخله)", [`public/${P}_map.json`]),
+    scans: () => { G(P, "context", "montage-orders", "orders_scan وتعليمات «مونتاج» والإعادات (montage_kickoff _early)"); G(P, "assets", "extraction", "سجل المطلوب والأماكن والتلاوة (requirements، names_scan، recitation_check)", [`.tmp/${P}/requirements.json`]); },
+    spec: () => G(P, "cover", "thumbnail-design", "غلاف التجربة: إطار من الفيديو الثابت، أول عنصر (cover_item --fix)", [`public/${P}/cover_land.png`]),
+    reel: () => { G(REEL, "questions", "first-questions", "أجوبة الحلقة (الريل منها)", [`.tmp/${P}/first_answers.json`]); G(REEL, "cut", "reel-from-episode", "شريحة من قص الحلقة بالقصة المعتمدة آلياً (وصلاتها مفحوصة)", [`public/${REEL}_map.json`]);
+      G(REEL, "context", "montage-orders", "تعليمات الحلقة؛ لا كتلة «مونتاج» في أجزاء الريل"); G(REEL, "assets", "extraction", "سجل مطلوب الريل من كلماته المزاحة", [`.tmp/${REEL}/requirements.json`]); G(REEL, "cover", "thumbnail-design", "غلاف الريل: إطار طولي من الفيديو الثابت", [`public/${P}/cover_reel.png`]); },
+  };
+  const reportBuilt = (proj, picks) => { G(proj, "plan", "video-montage", "الخطة = اختيارات الباني (قالبه بافتراضياته كما هو)", [path.relative(ROOT, picks)]); G(proj, "hook", "gallery-placement", "الهوك والدقيقة الأولى من الباني (لا فراغ > 1 ث)"); G(proj, "build", "video-montage", "montage_build: كل البوابات على المواصفة المكتوبة", [`data/specs/${proj}.json`]); };
+  const reportReview = (proj) => G(proj, "review", "checking", "المراجعة: stage check الكامل يجري الآن، ثم فحص ما قبل الرندر والرندر والفحص النهائي في هذه التجربة");
 
   const ops = {
     async setup() {
@@ -209,18 +227,18 @@ async function run({ quick, keep, noPurge, from = null }) {
       const bad = []; for (const c of s.cmds) { if (c[2] === REEL && !has(`data/specs/${REEL}.json`)) continue;
         const picks = R(".tmp", P, `rehearsal_picks_${c[2]}.json`), t = await runCmd(s.id, ["node", "tools/montage_build.mjs", c[2], "--picks-template", "--out", path.relative(ROOT, picks)], { timeoutMin: 10 });
         if (t.code !== 0 || !fs.existsSync(picks)) { bad.push(`${c[2]} --picks-template: ${lastLines(t.tail, 2)}`); continue; }
-        const r = await runCmd(s.id, [...c.slice(0, 3), "--picks", path.relative(ROOT, picks)], { timeoutMin: 20 }); if (r.code !== 0) bad.push(`${c[2]}: ${lastLines(r.tail, 2)}`); }
+        const r = await runCmd(s.id, [...c.slice(0, 3), "--picks", path.relative(ROOT, picks)], { timeoutMin: 20 }); if (r.code !== 0) bad.push(`${c[2]}: ${lastLines(r.tail, 2)}`); else reportBuilt(c[2], picks); }
       return { ok: !bad.length, why: bad.join(" ‖ ") };
     },
-    async check_land(s) { const a = s.cmds[0].map((x) => (x === "<Comp>-L" ? compOf(P, "land") : x === "<m>" ? String(Math.max(0.2, ctx.minutes)) : x)); const r = await runCmd(s.id, a, { timeoutMin: 30, watch: R(".tmp", P, "stage_check.log") }); rec.steps.check_land = r.steps; return { ok: r.code === 0, why: (r.tail.match(/^✘.*$/gm) ?? []).slice(0, 4).join(" ‖ ").slice(0, 500) || lastLines(r.tail) }; },
-    async check_reel(s) { if (!has(`data/specs/${REEL}.json`)) return { ok: false, why: "لا ريل (فشلت مرحلة الريل)" }; const a = s.cmds[0].map((x) => (x === "<Comp>" ? compOf(REEL, "port") : x === "<m>" ? String(Math.max(0.2, ctx.reelMinutes)) : x)); const r = await runCmd(s.id, a, { timeoutMin: 30, watch: R(".tmp", P, "stage_check.log") }); rec.steps.check_reel = r.steps; return { ok: r.code === 0, why: (r.tail.match(/^✘.*$/gm) ?? []).slice(0, 4).join(" ‖ ").slice(0, 500) || lastLines(r.tail) }; },
+    async check_land(s) { reportReview(P); const a = s.cmds[0].map((x) => (x === "<Comp>-L" ? compOf(P, "land") : x === "<m>" ? String(Math.max(0.2, ctx.minutes)) : x)); const r = await runCmd(s.id, a, { timeoutMin: 30, watch: R(".tmp", P, "stage_check.log") }); rec.steps.check_land = r.steps; return { ok: r.code === 0, why: (r.tail.match(/^✘.*$/gm) ?? []).slice(0, 4).join(" ‖ ").slice(0, 500) || lastLines(r.tail) }; },
+    async check_reel(s) { if (!has(`data/specs/${REEL}.json`)) return { ok: false, why: "لا ريل (فشلت مرحلة الريل)" }; reportReview(REEL); const a = s.cmds[0].map((x) => (x === "<Comp>" ? compOf(REEL, "port") : x === "<m>" ? String(Math.max(0.2, ctx.reelMinutes)) : x)); const r = await runCmd(s.id, a, { timeoutMin: 30, watch: R(".tmp", REEL, "stage_check.log") }); rec.steps.check_reel = r.steps; return { ok: r.code === 0, why: (r.tail.match(/^✘.*$/gm) ?? []).slice(0, 4).join(" ‖ ").slice(0, 500) || lastLines(r.tail) }; },
     async prerender(s) { if (!has(s.optional)) { note(`تخطٍّ: ${s.optional} لم يُبنَ بعد (وكيل آخر يبنيه)`); return { ok: true, skipped: true }; }
       const bad = []; for (const c of s.cmds) { if (c[2] === REEL && !has(`data/specs/${REEL}.json`)) continue; const r = await runCmd(s.id, c, { timeoutMin: 30 }); if (r.code !== 0) bad.push(`${c[2]}: ${r.timedOut ? "تجاوز 30 دقيقة — " : ""}${lastLines(r.tail, 2)}`); } return { ok: !bad.length, why: bad.join(" ‖ ") }; },
     async render(s, id, o) {
       if (!has(`data/specs/${id}.json`)) return { ok: false, why: "لا مواصفة" };
       const g = freeG(); if (g < MIN_FREE_G) return { ok: false, why: `مساحة S: ${g} غيغا < ${MIN_FREE_G}` };
       const comp = compOf(id, o), a = ["bash", "tools/gpu/render_project.sh", id, o === "land" ? comp : compOf(id, "land"), comp, ".tmp/rehearsal/out"];
-      const t = Date.now(), r = await runCmd(s.id, a, { timeoutMin: 60, env: { ...s.env, GR_MIN_FREE_G: String(MIN_FREE_G) } });
+      const t = Date.now(), r = await runCmd(s.id, a, { timeoutMin: 60, env: { ...s.env, GR_MIN_FREE_G: String(MIN_FREE_G), GPU_KEEP_PAUSED: "1" } });   /* the rehearsal resumes a paused foreign job itself, at its end (not between its two renders) */
       const m = r.tail.match(/\b[LR]: exit (\d+) in (\d+)s/), file = path.join(OUT, `${comp}.mp4`);
       const rep = (() => { try { return fs.readdirSync(R("render_work")).filter((n) => n.startsWith(`gpu_render_${comp}_`) && fs.statSync(R("render_work", n)).mtimeMs > t).sort().map((n) => json(R("render_work", n), null)).pop(); } catch { return null; } })();
       const videoS = rep?.frames ? rep.frames / FPS : Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file], { encoding: "utf8" }).stdout) || 0;
@@ -255,6 +273,7 @@ async function run({ quick, keep, noPurge, from = null }) {
   for (const s of stages) {
     if (!reached && s.id === from) reached = true;
     if (!reached) { res[s.id] = { status: "reused" }; continue; }
+    if (passedTo) { res[s.id] = { status: "skipped" }; continue; }   // a --to run keeps what it made (no purge)
     if (abort && s.id !== "purge") { res[s.id] = { status: "skipped" }; continue; }
     prog(s.id); const ts = Date.now();
     let r; try { r = await ops[s.id](s); } catch (e) { r = { ok: false, why: "انهار: " + String(e?.stack ?? e).slice(0, 300) }; }
@@ -262,7 +281,9 @@ async function run({ quick, keep, noPurge, from = null }) {
     res[s.id] = { status: r.skipped ? "skipped" : r.ok ? "ok" : "fail", sec, ...(r.ok ? {} : { why: r.why }) };
     rec.stages[s.id] = sec;
     console.log(`${r.skipped ? "◌" : r.ok ? "✔" : "✘"} ${s.ar}: ${mmss(sec)}${r.ok ? "" : ` — ${String(r.why ?? "").slice(0, 300)}`}`);
+    if (r.ok && !r.skipped) REPORT[s.id]?.();
     if (!r.ok && s.hard) abort = true;
+    if (to && s.id === to) passedTo = true;
   }
   const sum = (ids) => +ids.reduce((x, id) => x + (rec.stages[id] ?? 0), 0).toFixed(1);
   const montageIds = stages.filter((s) => s.montage).map((s) => s.id);
@@ -272,7 +293,7 @@ async function run({ quick, keep, noPurge, from = null }) {
   rec.render = ctx.renders;
   rec.result = Object.fromEntries(Object.entries(res).map(([k, v]) => [k, v.status]));
   const fails = Object.entries(res).filter(([, v]) => v.status === "fail");
-  rec.ok = !fails.length; rec.firstFail = fails[0]?.[0] ?? null; rec.fails = Object.fromEntries(fails.map(([k, v]) => [k, String(v.why ?? "").slice(0, 400)]));
+  rec.ok = !fails.length && !rec.to && !rec.from; if (rec.to || rec.from) rec.partial = true; rec.firstFail = fails[0]?.[0] ?? null; rec.fails = Object.fromEntries(fails.map(([k, v]) => [k, String(v.why ?? "").slice(0, 400)]));
   /* the 30-minute verdict for a 10-minute episode: every stage scaled by its own driver (recording length, cut length, reel length; fixed costs stay) */
   if (rec.sourceS && rec.cutS) {
     const ep = 600, src = rec.sourceS, cut = rec.cutS, k = { prep: ep / src, cut: ep / src, smooth: (ep * cut / src) / cut, scans: (ep * cut / src) / cut, check_land: (ep * cut / src) / cut };
@@ -285,7 +306,7 @@ async function run({ quick, keep, noPurge, from = null }) {
   { const GB = await import("./lib/gpu_busy.mjs"), rr = GB.resumePaused({ by: P, reason: "انتهت التجربة الشاملة" }); if (rr.line) note(rr.line); }   // (ledger prerender-gpu-silent-hang) never left suspended
   fs.appendFileSync(TIMES, JSON.stringify(rec) + "\n");
   prog(null);
-  console.log(`\n${rec.ok ? "✔ نجحت التجربة" : `✘ فشلت التجربة عند «${stages.find((s) => s.id === rec.firstFail)?.ar ?? rec.firstFail}»`} — المجموع ${mmss(rec.total)} (المونتاج ${mmss(rec.montageTotal)}) لفيديو ${mmss(rec.sourceS ?? 0)} قُصّ إلى ${mmss(rec.cutS ?? 0)}`);
+  console.log(`\n${rec.partial && !fails.length ? `✔ نجحت المراحل المشغّلة (تشغيل جزئي${rec.from ? ` من ${rec.from}` : ""}${rec.to ? ` حتى ${rec.to}` : ""} — ليس نجاح التجربة)` : rec.ok ? "✔ نجحت التجربة" : `✘ فشلت التجربة عند «${stages.find((s) => s.id === rec.firstFail)?.ar ?? rec.firstFail}»`} — المجموع ${mmss(rec.total)} (المونتاج ${mmss(rec.montageTotal)}) لفيديو ${mmss(rec.sourceS ?? 0)} قُصّ إلى ${mmss(rec.cutS ?? 0)}`);
   console.log(`  التفريغ ${mmss(rec.transcribeS)} · المحاذاة ${mmss(rec.alignS)} · المتحدثون ${mmss(rec.diarizeS)}`);
   for (const [o, x] of Object.entries(ctx.renders)) console.log(`  رندر ${o === "land" ? "العرضي" : "الريل"}: ${x.perMin ?? "—"} ث لكل دقيقة فيديو${x.sample ? " (عيّنة نوافذ بنصف الحجم)" : ` (${mmss(x.renderS)} لـ${mmss(x.videoS)}، ثم الارتجاف ${mmss(x.judderS)})`}`);
   if (rec.estimate10min) console.log(`  تقدير حلقة 10 دقائق: ${mmss(rec.estimate10min.total)} — ${Object.entries(rec.estimate10min).filter(([k]) => k !== "total").sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, v]) => `${k} ${mmss(v)}`).join("، ")}`);
@@ -315,6 +336,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const r = spawnSync(process.execPath, ["tools/proc.mjs", "run", "--label", "rehearsal", "--project", P, "--ttl", "120", "--log", path.join(DIR, "run.log"), "--", process.execPath, "tools/rehearsal.mjs", "run", ...(quick ? ["--quick"] : []), ...(keep ? ["--keep"] : []), ...(noPurge ? ["--no-purge"] : [])], { encoding: "utf8" });
     console.log(`✔ بدأت التجربة الشاملة${quick ? " السريعة" : ""} في الخلفية (العملية ${(r.stdout || "").trim().split(/\r?\n/).pop()}) — المتابعة: node tools/rehearsal.mjs status · السجل .tmp/rehearsal/run.log`); process.exit(r.status ?? 0);
   }
-  if (cmd === "run") await run({ quick, keep, noPurge, from: argv.includes("--from") ? argv[argv.indexOf("--from") + 1] : null });
+  if (cmd === "run") await run({ quick, keep, noPurge, from: argv.includes("--from") ? argv[argv.indexOf("--from") + 1] : null, to: argv.includes("--to") ? argv[argv.indexOf("--to") + 1] : null });
   else { console.error("usage: node tools/rehearsal.mjs start|run [--quick] [--keep] [--no-purge] [--from <stage>] | --dry-run [--quick] [--json] | status | times [--last N] | purge [--dry]"); process.exit(2); }
 }

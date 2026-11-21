@@ -60,7 +60,7 @@ export function faceZoner(spec) {
       const dx = bw ? bw.dx : sh ? sh.dx * shK : 0;
       map = ([px, py]) => [ox + (px - ox) * zm + dx, oy + (py - oy) * zm];
     } else {
-      const cams = spec.cams ?? [{ from: 0, to: 9999, cx: 990 }];
+      const cams = spec.cams?.length ? spec.cams : [{ from: 0, to: 9999, cx: 990 }];   /* an empty list too (a reel from an episode had cams: [] and grid_plan crashed, rehearsal 2026-11-21) */
       const cam = cams.find((c) => t >= c.from && t < c.to) ?? cams[cams.length - 1];
       const K = 1920 / 1080, zm = zoomAt(t, false), ps = (spec.psplits ?? []).find((q) => t >= q.from - 0.01 && t <= q.to + 0.4), s = ps ? ps.s ?? 0.66 : 1;
       map = ([px, py]) => { const X = (px - (cam.cx - 304)) * K, Y = py * K, a = 540 + (X - 540) * zm, b = 600 + (Y - 600) * zm; return [540 + (a - 540) * s, b * s]; };

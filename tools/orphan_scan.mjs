@@ -17,7 +17,11 @@ const norm = (s) => String(s).replace(/[ً-ْـ]/g, "").replace(/[إأآ]/g, "ا
 const text = (a, b) => words.filter((w) => w.s >= a - 0.05 && w.s < b).map((w) => w.w).join(" ");
 const found = [];
 // a gap counts only if SPEECH was removed there (words of the original transcript inside it), not a shortened pause
-const src = JSON.parse(fs.readFileSync(path.join(T, "words.json"), "utf8"));
+/* (rehearsal 2026-11-21, ledger orphan-false-pause-pieces) on the ALIGNED word table the cut itself was planned on (words_table.json), not the raw words.json:
+   a slow speaker's «الإنسان … هذا … عنده …» with 2–3 s pauses cut out was flagged five times, because the raw start of a KEPT word (13.41 raw, 13.71 aligned)
+   fell 0.2 s before its kept stretch and counted as «speech removed» */
+const WT = (() => { try { const t = JSON.parse(fs.readFileSync(path.join(T, "words_table.json"), "utf8")); const w = t.words ?? t; return Array.isArray(w) && w.length ? w : null; } catch { return null; } })();
+const src = WT ?? JSON.parse(fs.readFileSync(path.join(T, "words.json"), "utf8"));
 const speechIn = (a, b) => src.some((w) => w.s >= a && w.s < b - 0.05);
 let acc = 0; const segs = map.map((s) => { const r = { ...s, c0: acc, c1: acc + (s.b - s.a) }; acc = r.c1; return r; });
 for (let i = 1; i < segs.length - 1; i++) {

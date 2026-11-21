@@ -70,6 +70,9 @@ if (!process.argv.includes("--no-auto-avoid") && !process.argv.includes("--at") 
     for (const it of sp.items ?? []) { const a0 = it.at ?? it.from ?? (it.times ? it.times[0] : null), b0 = it.until ?? it.to ?? (it.dur != null && a0 != null ? a0 + it.dur : null); if (a0 == null) continue; avoid.push([a0 - 0.3 + off0, a0 + 1.2 + off0]); if (b0 != null) avoid.push([b0 - 0.3 + off0, b0 + 0.8 + off0]); } } catch { /* no spec items */ }
   if (spans.length) { let last = 0; const off = offset / fps; for (const [a, b] of spans) { if (a > last) avoid.push([last + off, a + off]); last = b; } avoid.push([last + off, 1e9]); console.log(`[judder] clear stretches from the spec: ${spans.length} — windows only there`); }
 }
+/* (rehearsal 2026-11-21, ledger judder-zero-steps-no-file) the reel render was refused (no fresh pre-render pass) and this check still ran on the missing file:
+   «0/0 steps agree … FAILED (stale/skipped frames)» blamed the render for frames that never existed. No file / no comparable step is its own verdict. */
+if (!fs.existsSync(out)) { console.log(`judder: ✘ لا ملف للقياس (${out}) — الرندر لم يُخرج ملفاً، فلا حكم على الارتجاف (NO FILE)`); process.exit(3); }
 const dur = Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", out], { encoding: "utf8" }).stdout);
 const raw = (file, startSec, n, [cx, cy, cw, ch]) => spawnSync("ffmpeg", ["-v", "error", "-ss", String(startSec), "-i", file, "-frames:v", String(n), "-vf", `crop=${cw}:${ch}:${cx}:${cy},scale=${W}:${H},format=gray`, "-f", "rawvideo", "-"], { maxBuffer: 1 << 28 }).stdout;
 const steps = (buf) => { const k = Math.floor(buf.length / SZ), r = []; for (let i = 1; i < k; i++) { let t = 0; for (let p = 0; p < SZ; p++) t += Math.abs(buf[i * SZ + p] - buf[(i - 1) * SZ + p]); r.push(t / SZ); } return r; };
@@ -87,6 +90,7 @@ for (const s of pick) {
   console.log(`  window ${s.toFixed(1)}s: ${n} steps`);
 }
 const ratio = total ? agree / total : 0, ok = ratio >= min;
+if (!total) { console.log(`judder: ✘ 0 خطوة للمقارنة في ${pick.length} نافذة (${pick.map((s) => s.toFixed(1)).join("، ")}ث من ${dur.toFixed(1)}ث) — النافذة خارج الملف أو المصدر أو لا إطارات فيها، لا حكم على الارتجاف (NO STEPS)`); process.exit(3); }
 console.log(`judder: ${agree}/${total} steps agree with the source (${(ratio * 100).toFixed(1)}%), render-made repeats: ${dup} — ${ok ? "PASSED" : "FAILED (stale/skipped frames in the output)"}`);
 fs.mkdirSync(".tmp/gates", { recursive: true });
 const gate = `.tmp/gates/${name}.judder.ok`;

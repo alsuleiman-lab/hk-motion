@@ -81,4 +81,7 @@ export const COMPOSITION_TITLES: Record<string, string> = {
   "Rudood-Ukhuwwa": "شيخ الردود يرد: الأخوة الإنسانية وأبو جهل",
   "Rudood-Jinn": "شيخ الردود يرد: طعام لمسلمي الجن",
   "Rudood-Shabbiha": "شيخ الردود يرد: الشبيحة ووزير الأوقاف",
+  "Rudood-Sultan": "شيخ الردود يرد: علماء السلطان",
+  "Rudood-Makan": "شيخ الردود يرد: الله موجود بلا مكان",
+  "Rudood-Razi": "شيخ الردود: الرازي والعجوز",
 };

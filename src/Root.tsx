@@ -19,7 +19,7 @@ import { KineticType, KINETIC_TYPE_FRAMES, KineticOver, KineticSplit, KINETIC_SP
 import { ActiveSpeaker, ACTIVE_FRAMES } from "./ext/ActiveSpeaker";
 import { CineSpeaker, CINE_SPEAKER_FRAMES } from "./ext/CineKit";
 import { StepsTemplate, STEPS_FRAMES } from "./ext/StepsKit";
-import { SheikhCast, SHEIKH_CAST_FRAMES, SheikhRudood, SHEIKH_RUDOOD_FRAMES, RudoodSaladin, RUDOOD_SALADIN_FRAMES, RudoodUkhuwwa, RUDOOD_UKHUWWA_FRAMES, RudoodJinn, RUDOOD_JINN_FRAMES, RudoodShabbiha, RUDOOD_SHABBIHA_FRAMES } from "./ext/SheikhCast";
+import { SheikhCast, SHEIKH_CAST_FRAMES, SheikhRudood, SHEIKH_RUDOOD_FRAMES, RudoodSaladin, RUDOOD_SALADIN_FRAMES, RudoodUkhuwwa, RUDOOD_UKHUWWA_FRAMES, RudoodJinn, RUDOOD_JINN_FRAMES, RudoodShabbiha, RUDOOD_SHABBIHA_FRAMES, RudoodSultan, RUDOOD_SULTAN_FRAMES, RudoodMakan, RUDOOD_MAKAN_FRAMES, RudoodRazi, RUDOOD_RAZI_FRAMES } from "./ext/SheikhCast";
 import { BoardTemplate, BOARD_FRAMES } from "./ext/BoardKit";
 import { CineWords, CINE_WORDS_FRAMES } from "./ext/CineWords";
 import { AnimeScene, ANIME_FRAMES, ANIME_FPS } from "./ext/AnimeScene";
@@ -110,6 +110,9 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Ref-KineticSplit" component={KineticSplit} durationInFrames={KINETIC_SPLIT_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-ActiveSpeaker" component={ActiveSpeaker} durationInFrames={ACTIVE_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-CineSpeaker" component={CineSpeaker} durationInFrames={CINE_SPEAKER_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Rudood-Sultan" component={RudoodSultan} durationInFrames={RUDOOD_SULTAN_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Rudood-Makan" component={RudoodMakan} durationInFrames={RUDOOD_MAKAN_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Rudood-Razi" component={RudoodRazi} durationInFrames={RUDOOD_RAZI_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Rudood-Jinn" component={RudoodJinn} durationInFrames={RUDOOD_JINN_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Rudood-Shabbiha" component={RudoodShabbiha} durationInFrames={RUDOOD_SHABBIHA_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Rudood-Ukhuwwa" component={RudoodUkhuwwa} durationInFrames={RUDOOD_UKHUWWA_FRAMES} fps={30} width={1080} height={1920} />

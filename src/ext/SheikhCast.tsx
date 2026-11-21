@@ -628,7 +628,7 @@ export const RudoodSaladin: React.FC = () => <RudoodReply look={0} clip="rudood1
 
 /* الفيديو الثاني: «الأخوة الإنسانية» وأبو جهل (لباس ١، مقطع شيخ قُصّت سكتاته وأُزيلت موسيقاه) */
 export const RUDOOD_UKHUWWA_FRAMES = rudoodFrames(1185, UKHUWWA_TUT.length);
-export const RudoodUkhuwwa: React.FC = () => <RudoodReply look={1} clip="rudood2/clip.mp4" clipAudio="rudood2/clip_audio.wav" clipFrames={1185} objPos="50% 42%" reply="rudood2/reply_tut.wav" mouthData={UKHUWWA_TUT} />;
+export const RudoodUkhuwwa: React.FC = () => <RudoodReply look={1} clip="rudood2/clip.mp4" clipAudio="rudood2/clip_audio.wav" clipFrames={1185} objPos="50% 42%" reply="rudood2/reply_tut2.wav" mouthData={UKHUWWA_TUT} />;
 
 /* الفيديو الثالث: طعام الجن (لباس ٢)، وصور الجائعين على التلفاز عند «اللي جعانين في غزة والسودان» (تنبيه المستخدم للمونتاج) */
 export const RUDOOD_JINN_FRAMES = rudoodFrames(432, JINN_TUT.length);
@@ -637,7 +637,7 @@ export const RudoodJinn: React.FC = () => <RudoodReply look={2} clip="rudood3/cl
 
 /* الفيديو الرابع: الشبيحة ووزير الأوقاف (لباس ٣) */
 export const RUDOOD_SHABBIHA_FRAMES = rudoodFrames(477, SHABBIHA_TUT.length);
-export const RudoodShabbiha: React.FC = () => <RudoodReply look={3} clip="rudood4/clip.mp4" clipAudio="rudood4/clip_audio.wav" clipFrames={477} objPos="50% 72%" reply="rudood4/reply_tut.wav" mouthData={SHABBIHA_TUT} />;
+export const RudoodShabbiha: React.FC = () => <RudoodReply look={3} clip="rudood4/clip.mp4" clipAudio="rudood4/clip_audio.wav" clipFrames={477} objPos="50% 72%" reply="rudood4/reply_tut2.wav" mouthData={SHABBIHA_TUT} />;
 
 /* الفيديو الخامس: «قلوب الأولياء لها سيوف» — علماء السلطان (لباس ٤، القاف همزة)، وصورتا الجفري وابن بيّه عند «من اليمن» و«من موريتانيا» */
 export const RUDOOD_SULTAN_FRAMES = rudoodFrames(354, SULTAN_TUT.length);

@@ -16,6 +16,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { appliesToEpisode, sectionsFailures, packageFailures } from "./prepublish_gates.mjs";
+import { hooksAlive } from "./lib/hooks_alive.mjs";
 
 process.chdir(path.resolve(import.meta.dirname, ".."));
 const argv = process.argv.slice(2);
@@ -218,7 +219,7 @@ if (cmd === "kickoff") {
   const pid = Number((r.stdout || "").trim().split(/\r?\n/).pop());
   editBoard(p, (b) => { b.runner = { pid, at: now() }; });
   // the hooks must be alive in this session, or nothing above is enforced (2026-11-20: a session opened outside the workspace ran with NO hook)
-  const hb = json(path.join(".tmp", "hooks_alive.json"), {}); const hooksOk = hb.at && now() - hb.at < 120e3;
+  const hooksOk = hooksAlive(".");   // the beat of tools/hooks/guard.mjs in .tmp/hooks_alive.json, fresher than 2 min (tools/lib/hooks_alive.mjs, tested by guard_selftest)
   const R = "S:/AI_Tools/Remotion_Workspace";
   console.log([
     `✔ بدأ «${p}» (${mmss(dur)}): المشغّل في الخلفية (العملية ${pid || "?"}) — التجهيز نحو ${lanes[0].etaMin} د، ثم معاً: اقتراح القص، وطابور البحث المبكر${flag("--no-cover") ? "" : "، وموجز الغلاف"}.`,

@@ -90,9 +90,13 @@
     "file": "tools/hooks/guard.mjs",
     "how": "الهوكات وُصلت في E:\\apps\\New remotion\\.claude\\settings.json و CLAUDE.md هناك يستورد قواعد مجلد العمل؛ والحارس يكتب نبضاً في .tmp/hooks_alive.json في كل تشغيل، وأمر الإطلاق (montage_kickoff.mjs) لا يعدّ الجلسة محروسة بلا نبض حديث (دقيقتان) ويعلن ذلك."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "hooks.heartbeat_written",
+     "hooks.kickoff_uses_beat",
+     "hooks.settings_wired"
+    ],
     "manual": []
    },
    "evidence": "1d75e13; tools/hooks/guard.mjs:20-22; tools/montage_kickoff.mjs:221; E:\\apps\\New remotion\\CLAUDE.md"
@@ -310,9 +314,12 @@
     "file": "tools/project.mjs",
     "how": "prepend_bumper وgpu_render يكتبان النسخة في .tmp/<root>/bumper_orig/ للمشروع نفسه؛ وproject.mjs clean يجد القديم في المجلد المشترك بالاسم أو بسجل الفاصل للمشروع (orig أو originalSize) فيحذفه معه."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "bumper.orig_found_by_project",
+     "bumper.orig_written_per_project"
+    ],
     "manual": []
    },
    "evidence": "f86d5b7; tools/project.mjs:57-61; tools/prepend_bumper.mjs:64-65; tools/gpu_render.mjs:378-381; .claude/skills/hk-motion/SKILL.md:64"
@@ -326,9 +333,11 @@
     "file": "tools/render_job.sh",
     "how": "الكاميرا هي التي تغطي نافذة الفحص نفسها، وكل مقطع صوّرته كاميرا أخرى يُضاف إلى ما تتجنبه النوافذ."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "judder.camera_at_window"
+    ],
     "manual": []
    },
    "evidence": "bc42595; tools/render_job.sh (فرع o=R قبل حساب crop)"
@@ -342,9 +351,12 @@
     "file": "tools/render_job.sh",
     "how": "بعد إعادة التغليف يُكتب في سجل الفاصل (.tmp/gates/hyb_<p>_<o>.bumper.json) اسم الملف المسلَّم وحجمه الجديد؛ وfinal_review يبحث عن السجل بالحجم."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "bumper.record_after_remux",
+     "bumper.final_review_by_size"
+    ],
     "manual": []
    },
    "evidence": "059ce60; tools/render_job.sh (بعد ffmpeg -movflags +faststart)؛ tools/final_review.mjs:18-20"
@@ -702,9 +714,11 @@
     "file": "tools/hk_restart.mjs",
     "how": "يعيد تحميل خادم الأدوات وحده (≈1 ث) دون مسّ الاستوديو؛ وملفات src تتحدث وحدها في الصفحة."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "studio.hk_restart_tools_only"
+    ],
     "manual": []
    },
    "evidence": "083df65; tools/hk_restart.mjs:1; memory/never-restart-studio-under-review.md"
@@ -718,10 +732,14 @@
     "file": "tools/grid_sheet.mjs",
     "how": "لا سقوط صامت إلى المعالج: فشل المحرك يوقف الأداة بخطأ ظاهر إلا بـ--browser أو GRID_BROWSER_FALLBACK=1 عمداً؛ والأعمال الطويلة تمر بـtools/bg.sh وتُسرد وتوقف بـtools/proc.mjs، والاستوديو يوقف نفسه بعد 30 دقيقة بلا صفحة."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
-    "manual": []
+    "cases": [
+     "grid.no_cpu_fallback"
+    ],
+    "manual": [
+     "idle.bg_proc_studio_stop"
+    ]
    },
    "evidence": "1e047fa, f610438, 305f116; tools/grid_sheet.mjs:37-40; memory/no-idle-services.md"
   },
@@ -753,9 +771,15 @@
     "file": "tools/short_limit.mjs",
     "how": "حدّ واحد (data/short_limit.json، 179 ث مع الفاصل) تفرضه reel_from_episode وcoverage_check وprepend_bumper (يرفض اللصق) وfinal_review على الملف كله."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "short.limit_math",
+     "short.coverage_counts_bumper",
+     "short.prepend_refuses",
+     "short.final_review_portrait",
+     "short.reel_build_budget"
+    ],
     "manual": []
    },
    "evidence": "32cfa0d; tools/short_limit.mjs:9"

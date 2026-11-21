@@ -191,7 +191,15 @@ http.createServer((req, res) => {
       /* «رندر» (user 2026-11-21: «ضع لي زر (رندر) في ريموشن يعطيك الأمر بالرندرة مباشرة»): the open composition goes to the render queue as a job — the
          pre-render check first (render_queue add --prerender), then the worker starts. A refusal is written to the «راسلني» inbox so the session that owns the video fixes it. */
       if (url === "/api/render") {
-        const comp = String(body.comp ?? ""), p = projectOf(comp); if (!p) throw new Error(`لا مونتاج لهذه التركيبة: ${comp}`);
+        const comp = String(body.comp ?? ""), p = projectOf(comp);
+        /* (user 2026-11-21, a phone screenshot: «لا مونتاج لهذه التركيبة: Rudood-Ukhuwwa») a composition that is not an HK montage spec (the «شيخ الردود» videos,
+           cartoons, motion…) is rendered by the session that made it: the order goes to the «راسلني» inbox as «رندر هذا», where its owner picks it up */
+        if (!p) {
+          if (!comp) throw new Error("افتح فيديو أولاً");
+          const m = { id: Date.now().toString(36), at: new Date().toISOString(), comp, frame: Number(body.frame ?? 0), time: String(body.time ?? "0:00"), cutTime: 0, elements: "", text: "رندر هذا", reply: null };
+          fs.mkdirSync(".tmp", { recursive: true }); fs.appendFileSync(INBOX, JSON.stringify(m) + "\n");
+          return send(res, 200, { ok: true, routed: true, message: `✔ وصل طلب الرندر لـ«${arTitleOf(comp)}» — سيُرندر، وتصلك النتيجة في «راسلني»` });
+        }
         const orient = /-L$/i.test(comp) ? "L" : "R";
         const j = start("render", p, ["tools/render_queue.mjs", "add", "--spec", p, "--comp", comp, "--orient", orient, "--dest", QDEST, "--prerender"], `رندر ${arTitleOf(comp)}`, (code, jj) => {
           const out = jj.log.trim(), bad = code !== 0 || /✘ مرفوض/.test(out);

@@ -682,7 +682,7 @@ const installHK = () => {
   ico(bRen, "🎬", "رندر هذا الفيديو", "var(--hk-accent)"); ico(bMsg, "✉️", "راسلني على هذه اللحظة", "var(--hk-accent)");
   ico(bA, "⇤", "بداية الجزء المراد حذفه"); ico(bB, "⇥", "نهاية الجزء المراد حذفه"); ico(bDel, "✂️", "احذف الجزء المحدد", "var(--hk-danger)"); ico(bCol, "☀️", "الإضاءة والألوان");
   const sep = () => { const d = document.createElement("div"); d.style.cssText = "width:22px;height:1px;background:var(--hk-line-strong);margin:2px 0"; return d; };
-  info.style.cssText = "position:absolute;right:44px;top:0;max-width:min(70vw,360px);display:none;padding:7px 10px;border-radius:9px;background:var(--hk-bg2);border:1px solid var(--hk-line-strong);font:600 12px Tahoma,Arial,sans-serif;line-height:1.6;white-space:normal;box-shadow:0 4px 14px rgba(0,0,0,.35);user-select:text;-webkit-user-select:text";
+  info.style.cssText = "position:absolute;right:44px;top:0;width:max-content;max-width:min(72vw,360px);display:none;padding:7px 10px;border-radius:9px;background:var(--hk-bg2);border:1px solid var(--hk-line-strong);font:600 12px Tahoma,Arial,sans-serif;line-height:1.6;white-space:normal;box-shadow:0 4px 14px rgba(0,0,0,.35);user-select:text;-webkit-user-select:text";
   let toastT = 0;
   new MutationObserver(() => { const t = (info.textContent ?? "").trim(); info.style.display = t ? "block" : "none"; window.clearTimeout(toastT); if (t && !t.startsWith("⏳")) toastT = window.setTimeout(() => { info.textContent = ""; }, 9000); }).observe(info, { childList: true, characterData: true, subtree: true });
   const strip = document.createElement("div"); strip.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:6px";
@@ -731,6 +731,7 @@ const installHK = () => {
     try {
       const r = await call("/api/render", { comp: c });
       if (!r.ok) { paint(`✘ ${String(r.data.error ?? r.status)}`, "#ff9a9a"); return; }
+      if (r.data.routed) { paint(String(r.data.message ?? "✔ وصل طلب الرندر"), "#8fe08f"); return; }   // not an HK montage: its owner session renders it
       for (;;) {
         await new Promise((res) => setTimeout(res, 2000));
         const j = (await (await fetch(api("/api/job"))).json()) as { state?: string; label?: string; seconds?: number; summary?: string };

@@ -63,7 +63,13 @@ const PLACE_EL = /^(و|ف)?(ب|ل|لل|ال|بال)?(عنصر|صور|عنوان|
 const isPlacement = (text, onScreen = "") => {
   const t = arNorm(text); if (!t.trim() || /حارس|هوك|guard|hook/i.test(t)) return false;   // talk ABOUT the guards is not a placement order
   const words = t.split(/[^ء-ي]+/).filter(Boolean);
-  return words.some((w) => PLACE_V.test(w) || PLACE_W.test(w)) && (!!String(onScreen ?? "").trim() || /[0-9٠-٩]+\s*:\s*[0-9٠-٩]{2}/.test(t) || words.some((w) => PLACE_EL.test(w)));
+  /* (2026-11-21 false alarm: «المونتاج ما يأخذ أكثر من نص ساعة… النص ساعة هذا الحد الأعلى» was read as a move order — «نص ساعة» = half an hour, «الحد الأعلى» =
+     the maximum) a time «نص/نصف ساعة|دقيقة» is not a text element, «الحد الأعلى/الأدنى» is not a place, and a place word without a move verb needs its element within 4 words */
+  const isEl = (k) => PLACE_EL.test(words[k]) && !(/^(ال)?نص$/.test(words[k]) && /^(ساعه|ساعات|دقيقه|دقايق|دقائق|يوم|شهر|سنه)$/.test(words[k + 1] ?? ""));
+  const isW = (k) => PLACE_W.test(words[k]) && !/^(ال)?حد$/.test(words[k - 1] ?? "");
+  const near = (k) => words.some((_, j) => Math.abs(j - k) <= 4 && j !== k && isEl(j));
+  const timed = /[0-9٠-٩]+\s*:\s*[0-9٠-٩]{2}/.test(t), screen = !!String(onScreen ?? "").trim();
+  return words.some((w, k) => (PLACE_V.test(w) && (screen || timed || words.some((_, j) => isEl(j)))) || (isW(k) && (screen || timed || near(k))));
 };
 const PW_F = path.join(ROOT, ".tmp", "placement_watch.json"), PLACE_GRACE = 60e3, PLACE_PROMPT_TTL = 20 * 60e3;
 const pwRead = () => { try { return JSON.parse(fs.readFileSync(PW_F, "utf8")); } catch { return {}; } };

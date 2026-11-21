@@ -542,7 +542,7 @@ export const RudoodSaladin: React.FC = () => {
       </AbsoluteFill>
       <Sequence from={ON - 3} durationInFrames={20}><Audio src={staticFile("ref_sfx/tap.wav")} volume={0.05} /></Sequence>
       <Sequence from={ON + CLIP} durationInFrames={20}><Audio src={staticFile("ref_sfx/tap.wav")} volume={0.05} /></Sequence>
-      <Sequence from={REPLY_AT} durationInFrames={REPLY + 30}><Audio src={staticFile("rudood1/reply_hb_egy2.wav")} /></Sequence>
+      <Sequence from={REPLY_AT} durationInFrames={REPLY + 30}><Audio src={staticFile("rudood1/reply_final.wav")} /></Sequence>
     </AbsoluteFill>
   );
 };

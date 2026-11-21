@@ -255,7 +255,31 @@ add("mg.shared_original_src", MG, "reel-end-trashed-episode-original", "المص
   const s = fs.readFileSync(path.join(ROOT, MG), "utf8"), iU = s.indexOf("if (users.length)"), iT = s.indexOf("SendToRecycleBin");
   return expect(/const users = orig \?/.test(s) && /prep_config\.json/.test(s) && /data", "specs"/.test(s) && iU > 0 && iT > iU, "فحص المستعملين اختفى أو صار بعد الرمي");
 });
-manual("mg.shared_original_run", MG, "reel-end-trashed-episode-original", "تشغيل «إنهاء المونتاج» على أصل مشترك", "لا تشغيل تجريبي ولا دالة نقية: الأمر نفسه مسحٌ (السلة، approve_purge، project clean). يلزم تصدير دالة originalUsers(project) أو خيار --dry-run في montage_guard ثم حالة هنا.");
+/* (2026-11-21, user: «اعمل حارس للأخطاء الأربعة الباقية») the decision itself, run read-only (montage_guard orig-plan --root <scratch>) — gta6/mufti: the
+   project's own reels kept its original, then the same end deleted them and the re-run no longer knew the original */
+const mgTree = (name, { other = false, ownReel = true, pendOnly = false } = {}) => {
+  const r = path.join(RUN, name), orig = path.join(r, "orig.mp4");
+  put(orig, "x");
+  if (!pendOnly) put(path.join(r, ".tmp", "ep", "prep_config.json"), { original: orig });
+  else put(path.join(r, "data", "pending_originals.json"), { ep: orig });
+  put(path.join(r, "data", "specs", "ep.json"), {});
+  if (ownReel) { put(path.join(r, ".tmp", "ep-reel", "prep_config.json"), { original: orig }); put(path.join(r, "data", "specs", "ep-reel.json"), {}); }
+  if (other) { put(path.join(r, ".tmp", "other", "prep_config.json"), { original: orig }); put(path.join(r, "data", "specs", "other.json"), {}); }
+  return r;
+};
+const origPlan = async (r, p) => { const x = await runAsync(NODE, [path.join(ROOT, MG), "orig-plan", p, "--root", r], { cwd: ROOT }); try { return JSON.parse(x.out.trim().split(String.fromCharCode(10)).pop().trim()); } catch { return { err: x.out + x.err }; } };
+add("mg.own_reel_not_user", MG, "mufti-original-missed-in-purge", "ريلز المشروع نفسه لا تحجز أصله: الحلقة تُعتمد فيُرمى الأصل", async () => {
+  const p = await origPlan(mgTree("mg_own"), "ep"); return expect(p.action === "trash" && !p.users?.length, `القرار ${JSON.stringify(p)}`);
+});
+add("mg.other_project_keeps", MG, "reel-end-trashed-episode-original", "مشروع آخر يستعمل الأصل نفسه: يبقى الأصل", async () => {
+  const p = await origPlan(mgTree("mg_other", { other: true }), "ep"); return expect(p.action === "keep" && p.users?.includes("other"), `القرار ${JSON.stringify(p)}`);
+});
+add("mg.reel_end_keeps_episode", MG, "reel-end-trashed-episode-original", "اعتماد ريل والحلقة ما زالت تُعدّل: لا يُرمى أصلها", async () => {
+  const p = await origPlan(mgTree("mg_reel"), "ep-reel"); return expect(p.action === "keep" && p.users?.includes("ep"), `القرار ${JSON.stringify(p)}`);
+});
+add("mg.pending_original_found", MG, "mufti-original-missed-in-purge", "أصل محجوز سابقاً يجده المسح ولو حُذف سجل التجهيز", async () => {
+  const p = await origPlan(mgTree("mg_pend", { ownReel: false, pendOnly: true }), "ep"); return expect(p.action === "trash" && /orig\.mp4$/.test(p.orig ?? ""), `القرار ${JSON.stringify(p)}`);
+});
 
 // 12) gpu_render refuses a FULL render of a montage without a bumper (user 2026-11-20) — no dry-run: read as source
 const GR = "tools/gpu_render.mjs";

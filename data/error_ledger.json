@@ -210,11 +210,11 @@
    "status": "محروس ومختبَر",
    "selftest": {
     "cases": [
-     "mg.shared_original_src"
+     "mg.shared_original_src",
+     "mg.other_project_keeps",
+     "mg.reel_end_keeps_episode"
     ],
-    "manual": [
-     "mg.shared_original_run"
-    ]
+    "manual": []
    },
    "evidence": "2f3da42; tools/montage_guard.mjs:99-103"
   },
@@ -277,11 +277,14 @@
    "cause": "ريلز المشروع نفسه عُدّت «مستخدماً آخر» للأصل فلم يُنقل، ثم حذفها المسح نفسه فلم يعد يعرف الأصل عند إعادته (تكرر في gta6 2026-11-21).",
    "guard": {
     "file": "tools/montage_guard.mjs",
-    "how": "ريلز المشروع (<p>-…) جزء منه لا مستخدم آخر، والأصل المحجوز يُحفظ في data/pending_originals.json فيجده آخر مستخدميه أو إعادة المسح."
+    "how": "ريلز المشروع (<p>-…) جزء منه لا مستخدم آخر، والأصل المحجوز يُحفظ في data/pending_originals.json فيجده آخر مستخدميه أو إعادة المسح. والقرار دالة قراءة فقط (montage_guard orig-plan --root) يختبرها الاختبار الذاتي."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "mg.own_reel_not_user",
+     "mg.pending_original_found"
+    ],
     "manual": []
    },
    "evidence": "ملخص الجلسة 120785d7 (قسم Errors and fixes ← Earlier in this part)؛ tools/montage_guard.mjs:96-108 (الرمي من prep_config، أقدم من الحادثة); 2026-11-21"

@@ -28,6 +28,16 @@ const rest = argv.slice(2);
 const all = (n) => rest.flatMap((x, i) => (x === "--" + n ? [rest[i + 1]] : []));
 const one = (n, d = "") => all(n)[0] ?? d;
 const list = (n) => all(n).flatMap((s) => String(s).split("|").map((x) => x.trim()).filter(Boolean));
+/* (2026-11-21, user: «اعمل حارس للأخطاء الأربعة الباقية») what `end` decides for the ORIGINAL recording, as a pure step: read-only, so the guard self-test can run it.
+   `--root <dir>` runs it inside a scratch tree (.tmp/<p>/prep_config.json, data/specs/, data/pending_originals.json). */
+if (cmd === "orig-plan" && one("root")) process.chdir(one("root"));
+function origPlan(p) {
+  const pend = readJson(path.join("data", "pending_originals.json"), {}), orig = readJson(path.join(".tmp", p, "prep_config.json"), {}).original ?? pend[p];
+  const norm = (x) => path.resolve(String(x)).toLowerCase();
+  let ds = []; try { ds = fs.readdirSync(".tmp"); } catch { /* none */ }
+  const users = orig ? ds.filter((d) => d !== p && !d.startsWith(p + "-") && fs.existsSync(path.join("data", "specs", `${d}.json`)) && (() => { try { return norm(readJson(path.join(".tmp", d, "prep_config.json"), {}).original ?? "") === norm(orig); } catch { return false; } })()) : [];
+  return { orig: orig ?? null, users, action: !orig ? "none" : users.length ? "keep" : fs.existsSync(orig) ? "trash" : "gone" };
+}
 const readJson = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return d; } };
 
 /** the ordered stages the router (skill video-montage) walks; `skills` = the skills allowed to own that stage */
@@ -76,6 +86,8 @@ if (cmd === "stage") {
   p.status = "done"; p.evidence = ev; p.usedSkill = one("skill", p.skill);
   fs.writeFileSync(planFile, JSON.stringify(plan, null, 1));
   console.log(`✔ بند ${id}: ${ev}${p.usedSkill !== p.skill ? `  ⚠ نُفِّذ بمهارة ${p.usedSkill} لا ${p.skill}` : ""}`);
+} else if (cmd === "orig-plan") {
+  console.log(JSON.stringify(origPlan(project)));
 } else if (cmd === "start") {
   // FIRST action of every montage (user order 2026-10-25: «ملزم من الأول حتى لا يعيد العمل مرتين»): registers the project so the hooks (tools/hooks/guard.mjs)
   // bind the session from now on: no new src/ file before the pre-build stages pass (`ready`), no final render before `check` passes.
@@ -99,11 +111,9 @@ if (cmd === "stage") {
      their prep_config: the re-run no longer knew the original and it stayed on disk. Reels/clips of the project are the project (they go in this same end), and a
      kept original is remembered in data/pending_originals.json so the end of its last user (or a re-run) still finds it. */
   const PEND = path.join("data", "pending_originals.json"), pend = readJson(PEND, {});
-  { const orig = readJson(path.join(".tmp", project, "prep_config.json"), {}).original ?? pend[project];
-    /* (2026-11-20, gta6) ending a REEL cut from an episode trashed the EPISODE's original while the episode was still being edited. The original goes to the
-       bin only when no other project still uses it (another .tmp/<x>/prep_config.json naming the same file whose spec still exists). */
-    const norm = (p) => path.resolve(String(p)).toLowerCase();
-    const users = orig ? fs.readdirSync(".tmp").filter((d) => d !== project && !d.startsWith(project + "-") && fs.existsSync(path.join("data", "specs", `${d}.json`)) && (() => { try { return norm(readJson(path.join(".tmp", d, "prep_config.json"), {}).original ?? "") === norm(orig); } catch { return false; } })()) : [];
+  { const { orig, users } = origPlan(project);
+    /* (2026-11-20, gta6) ending a REEL cut from an episode trashed the EPISODE's original while the episode was still being edited: the original goes to the bin
+       only when no other project still uses it (origPlan above). */
     if (users.length) { console.log(`✋ الأصل لا يُنقل إلى السلة: ما زال يستعمله ${users.join("، ")} — يُنقل حين يُعتمد آخرها`); for (const u of users) pend[u] = orig; fs.writeFileSync(PEND, JSON.stringify(pend, null, 1)); }
     else if (orig && fs.existsSync(orig)) {
       const ps = (await import("node:child_process")).spawnSync("powershell", ["-NoProfile", "-Command", `Add-Type -AssemblyName Microsoft.VisualBasic; [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($env:MG_ORIG, 'OnlyErrorDialogs', 'SendToRecycleBin')`], { encoding: "utf8", env: { ...process.env, MG_ORIG: orig } });

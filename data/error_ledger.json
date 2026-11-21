@@ -106,12 +106,15 @@
     "file": "tools/coverage_check.mjs",
     "how": "الرقم المتبوع بـ«ألف/مليون» يُطلب له العدّاد (GlowCounter) لا عنصر سنة، وكل إعفاء (skipRequired/skipMentions/skipPicks) بلا كلام المستخدم في waiverOK يُرفض؛ ومهارة gallery-placement تمنع طلب الإعفاء إلا لخطأ تفريغ."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "cov.count_not_year",
+     "cov.counter_waiver_refused"
+    ],
     "manual": []
    },
-   "evidence": "7ee336a, ca0baf1; tools/coverage_check.mjs:107 و141-149; .claude/skills/gallery-placement/SKILL.md:74; memory/fill-dont-ask-waivers.md"
+   "evidence": "7ee336a, ca0baf1; tools/coverage_check.mjs:107 و141-149; .claude/skills/gallery-placement/SKILL.md:74; memory/fill-dont-ask-waivers.md؛ اختُبر 2026-11-21: tools/selftest_cases/b_elements.mjs (الأداة نفسها على مواصفة وكلمات وهمية في .tmp/selftest)"
   },
   {
    "id": "self-written-waivers",
@@ -122,12 +125,15 @@
     "file": "tools/coverage_check.mjs",
     "how": "كل إعفاء يحتاج waiverOK[\"<البند>\"] = نص المستخدم الذي أذن به وتاريخه (4 أحرف على الأقل)، وإلا يفشل الفحص بـ«إعفاءات بلا إذن المستخدم»."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "cov.waiver_all_lists",
+     "cov.waiver_with_words_ok"
+    ],
     "manual": []
    },
-   "evidence": "f0c7fd7; tools/coverage_check.mjs:141-149"
+   "evidence": "f0c7fd7; tools/coverage_check.mjs:141-149؛ اختُبر 2026-11-21: tools/selftest_cases/b_elements.mjs (الأداة نفسها على مواصفة وكلمات وهمية في .tmp/selftest)"
   },
   {
    "id": "concurrent-spec-writers",
@@ -247,12 +253,15 @@
     "file": "tools/audio_clean.mjs",
     "how": "يُحشى المدخل بصمت 0.1 ث قبل arnndn ثم يُقص الناتج إلى طوله الأصلي (apad,arnndn,atrim)، ويحذّر إن لم يُعرف الطول؛ وfinal_review يفحص قمة آخر 0.6 ث ويرفض الذيل التالف."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "tail.clean_no_click",
+     "tail.final_review_rejects"
+    ],
     "manual": []
    },
-   "evidence": "f45c526; tools/audio_clean.mjs:11-16; tools/final_review.mjs:107"
+   "evidence": "f45c526; tools/audio_clean.mjs:11-16; tools/final_review.mjs:107; اختُبر 2026-11-21 (tools/selftest_cases/c_audio_text.mjs): صوت اصطناعي 1.013 ث (ليس عدداً تاماً من إطارات 480) في .tmp/selftest: بعد التنظيف الطول كما هو وقمة الذيل −29 dB، وبلا الحشو 0 dB و48960 عينة؛ والفحص النهائي يرفض ملفاً آخر 10 م.ث فيه بقمة كاملة ويقبل السليم"
   },
   {
    "id": "date-calendar-2005-crash",
@@ -263,12 +272,15 @@
     "file": "tools/el.mjs",
     "how": "كل حقل نوعه نص يُعطى أرقاماً يُحوَّل إلى نص قبل الكتابة؛ وel_rules يطبع قيد عنصر التاريخ «text نص لا رقم». وكُتب النص في المواصفة «٢٠٠٥ م»."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "el.date_text_string",
+     "el.plan_warns_number_text"
+    ],
     "manual": []
    },
-   "evidence": "dc0f9af; tools/el.mjs:172-173; tools/el_rules.mjs:67"
+   "evidence": "dc0f9af; tools/el.mjs:172-173; tools/el_rules.mjs:67؛ اختُبر 2026-11-21: tools/selftest_cases/b_elements.mjs (el.mjs add و el_rules plan-check على مواصفة وهمية بالخيار الجديد --spec، tools/lib/selftest_spec.mjs)"
   },
   {
    "id": "mufti-original-missed-in-purge",
@@ -516,12 +528,15 @@
     "file": "tools/el_rules.mjs",
     "how": "rules يطبع قيود كل عنصر من مصادر البوابات نفسها قبل الخطة، وplan-check يفحص الخطة كلها على نسخة ويطبع كل المشكلات مرة واحدة بإصلاحها؛ وel.mjs batch لا يطبّق دفعة قبل نجاحه."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "elr.plan_all_at_once",
+     "el.batch_refused_before_apply"
+    ],
     "manual": []
    },
-   "evidence": "d8c01fd; tools/el_rules.mjs:1; tools/el.mjs:222; .claude/skills/gallery-placement/SKILL.md:21"
+   "evidence": "d8c01fd; tools/el_rules.mjs:1; tools/el.mjs:222; .claude/skills/gallery-placement/SKILL.md:21؛ اختُبر 2026-11-21: tools/selftest_cases/b_elements.mjs (plan-check و el.mjs batch على مواصفة وهمية بالخيار الجديد --spec، tools/lib/selftest_spec.mjs)"
   },
   {
    "id": "error-then-check-then-fix",
@@ -572,12 +587,16 @@
     "file": "tools/late_check.mjs",
     "how": "يرفض عنصراً يظهر بعد كلماته بأكثر من 2.5 ث، وصورة تبقى أكثر من 10 ث، ومؤثر مشهد أطول من 8 ث؛ ويعمل في بوابة el وفي stage check."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "late.after_words",
+     "late.picture_too_long",
+     "late.scenefx_too_long"
+    ],
     "manual": []
    },
-   "evidence": "8814ebc, e0b6acc, 3cb6a36; tools/late_check.mjs:1 و38 و47; tools/stage.mjs:423"
+   "evidence": "8814ebc, e0b6acc, 3cb6a36; tools/late_check.mjs:1 و38 و47; tools/stage.mjs:423؛ اختُبر 2026-11-21: tools/selftest_cases/b_elements.mjs (الأداة نفسها على مواصفة وكلمات وهمية في .tmp/selftest)"
   },
   {
    "id": "push-ins-hid-empty-screen",
@@ -588,12 +607,14 @@
     "file": "tools/coverage_check.mjs",
     "how": "التقريب والهزّة حركة كاميرا لا عنصر فلا تملأ فراغاً، ومراقبة الفراغات (layers.mjs gaps) نافذةً نافذة مع ما يقوله في كل فراغ ضمن stage check."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "cov.pushin_not_element"
+    ],
     "manual": []
    },
-   "evidence": "f0c7fd7; tools/coverage_check.mjs:208-209; tools/layers.mjs:154; tools/stage.mjs:422"
+   "evidence": "f0c7fd7; tools/coverage_check.mjs:208-209; tools/layers.mjs:154; tools/stage.mjs:422؛ اختُبر 2026-11-21: tools/selftest_cases/b_elements.mjs (الأداة نفسها على مواصفة وكلمات وهمية في .tmp/selftest)"
   },
   {
    "id": "bleep-inside-quran",
@@ -604,12 +625,16 @@
     "file": "tools/bleep_words.py",
     "how": "لا صافرة داخل تلاوة (أزمنة verse_scan) ولا حديث، وbleep_fix يعيد كل كلمة ثم صافرة واحدة على النصف الأوسط من جذرها، وbleepKeep في المواصفة جذور تبقى بلا صافرة لتلك الحلقة."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "bleep.verse_protected_half",
+     "bleep.keep_root",
+     "bleep.fix_hadith_root_half"
+    ],
     "manual": []
    },
-   "evidence": "6a38a17, 6375a33, 9d26aa1; tools/bleep_words.py:9 و46; tools/bleep_fix.py:3 و14 و52"
+   "evidence": "6a38a17, 6375a33, 9d26aa1; tools/bleep_words.py:9 و46; tools/bleep_fix.py:3 و14 و52; اختُبر 2026-11-21 (c_audio_text.mjs): الأداتان على مجلد وهمي (كلمات وخريطة وصوت اصطناعي): «يقتلوا» داخل آية بلا صافرة، «القتل» صافرة على 25–75٪ بعد «ال»، bleepKeep يُبقي الجذر؛ وbleep_fix: كلمة داخل حديث يعود صوتها، والصافرة على النصف الأوسط من الجذر فقط (مقيسة على الصوت)"
   },
   {
    "id": "soft-afwan-missed",
@@ -620,12 +645,14 @@
     "file": "tools/find_restarts.mjs",
     "how": "يبحث عن الإعادة نفسها (تكرار الجملة بعد توقف) لا عن الكلمة وحدها، فتُكشف الإعادة ولو لم تُسمع «عفواً»."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "restart.unheard_marker"
+    ],
     "manual": []
    },
-   "evidence": "6a38a17; tools/find_restarts.mjs:34"
+   "evidence": "6a38a17; tools/find_restarts.mjs:34; اختُبر 2026-11-21 (c_audio_text.mjs): كلمات وهمية «وتسمى قطعة … سكتة 1.3 ث … وتسمى قطع الطريق» بلا «عفواً» ← إعادة؛ والتكرار نفسه بلا سكتة ليس إعادة"
   },
   {
    "id": "map-for-title-country",
@@ -636,12 +663,15 @@
     "file": "tools/names_scan.mjs",
     "how": "البلد الذي يكمل لقباً (بعد مفتي، ملك، وزير، رئيس…) لا يُطلب له خريطة."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "titlemap.title_no_map",
+     "titlemap.wazir"
+    ],
     "manual": []
    },
-   "evidence": "3cb6a36; tools/names_scan.mjs:80; .claude/skills/visual-thinking/SKILL.md:42"
+   "evidence": "3cb6a36; tools/names_scan.mjs:80; .claude/skills/visual-thinking/SKILL.md:42; اختُبر 2026-11-21 (c_audio_text.mjs، مشروع وهمي .tmp/zz_selftest_c_* بلا صوت يُحذف بعده): «مفتي/ملك الأردن» و«رئيس سوريا» بلا خريطة، و«إلى الأردن» خريطة. ثغرة معروفة (titlemap.wazir ⚠): «وزير الأردن» تُرسم له خريطة، لأن bare() يقطع واو «وزير» قبل مطابقة قائمة الألقاب"
   },
   {
    "id": "bumper-glued-by-render",
@@ -704,12 +734,15 @@
     "file": "tools/layers.mjs",
     "how": "كلمات المشاهد تنبّه إلى اللحظة فقط ولا تختار مؤثراً؛ وحُذف المؤثران، ومهارة visual-thinking تنص على أن الأمثلة لتعليم الطريقة."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "layers.scene_words_flag_only",
+     "layers.no_squeeze_water_src"
+    ],
     "manual": []
    },
-   "evidence": "e7cdfad, cb6aa23; tools/layers.mjs:101; .claude/skills/visual-thinking/SKILL.md:8"
+   "evidence": "e7cdfad, cb6aa23; tools/layers.mjs:101; .claude/skills/visual-thinking/SKILL.md:8؛ اختُبر 2026-11-21: tools/selftest_cases/b_elements.mjs (layers.mjs scan/write على مواصفة وهمية بـ--spec؛ وحذف المؤثرين يُقرأ من مصدر src/SceneFx.tsx لأنه مكوّن لا يُشغَّل بلا رندر)"
   },
   {
    "id": "shorts-length-without-bumper",
@@ -736,12 +769,14 @@
     "file": "tools/writing_sync.mjs",
     "how": "يرفض عبارة تنتهي برابط أو حرف جر أو «قال» أو تبدأ بـ«صفحة»."
    },
-   "status": "محروس بلا اختبار آلي",
+   "status": "محروس ومختبَر",
    "selftest": {
-    "cases": [],
+    "cases": [
+     "writing.dangling_refused"
+    ],
     "manual": []
    },
-   "evidence": "4de7d68; tools/writing_sync.mjs:32"
+   "evidence": "4de7d68; tools/writing_sync.mjs:32; اختُبر 2026-11-21 (c_audio_text.mjs): مواصفة وهمية: «صفحة 129 … وعند»، «… قال»، «… إلى»، «… الذي» مرفوضة، والجملة التامة تمرّ"
   },
   {
    "id": "placement-fix-delayed",

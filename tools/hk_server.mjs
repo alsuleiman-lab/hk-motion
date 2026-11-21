@@ -40,6 +40,7 @@ const queueState = () => {
   let log = ""; try { log = fs.readFileSync(".tmp/render_queue.log", "utf8").trim().split(/\r?\n/).slice(-6).join("\n"); } catch { /* none */ }
   return { jobs: jobs.map((j) => ({ ...j, ar: arTitleOf(j.comp) })), worker: workerAlive(), progress: progressState(), now: nowItem(), log, dest: QDEST };
 };
+const NL_RE = new RegExp("\r?\n");
 const queue = (url, body) => {
   if (url === "/api/queue/add") {
     const comp = String(body.comp ?? ""), p = projectOf(comp); if (!p) throw new Error(`لا مونتاج لهذه التركيبة: ${comp}`);
@@ -152,7 +153,7 @@ setInterval(() => {
   process.exit(0);
 }, 60e3).unref();
 
-const start = (kind, p, args, label) => {
+const start = (kind, p, args, label, onDone) => {
   if (job?.state === "running") throw Object.assign(new Error(`يعمل الآن: ${job.label}`), { code: 409 });
   const j = (job = { id: ++seq, kind, project: p, label, state: "running", startedAt: Date.now(), endedAt: null, summary: "", log: "" });
   const ch = spawn(process.execPath, args, { windowsHide: true, env: process.env });
@@ -160,6 +161,7 @@ const start = (kind, p, args, label) => {
   ch.stdout.on("data", add); ch.stderr.on("data", add);
   ch.on("close", (code) => {
     j.state = code === 0 ? "done" : "failed"; j.endedAt = Date.now();
+    try { onDone?.(code, j); } catch { /* the job result stands */ }
     const lines = j.log.trim().split("\n").filter(Boolean);
     j.summary = code === 0 ? (lines.filter((l) => /^(cut_blocks: DONE|music_cut:)/.test(l)).slice(-1)[0] ?? lines.slice(-1)[0] ?? "تم") : (lines.filter((l) => l.startsWith("✘ cut_block:")).slice(0, 1)[0] ?? lines.filter((l) => l.startsWith("✘")).slice(-1)[0] ?? lines.slice(-1)[0] ?? "فشل");
   });
@@ -186,6 +188,21 @@ http.createServer((req, res) => {
       if (url.startsWith("/api/gallery/")) return send(res, 200, gallery(url, body));
       if (url.startsWith("/api/grade/")) return send(res, 200, grade(url, body));
       if (url.startsWith("/api/queue/")) return send(res, 200, queue(url, body));
+      /* «رندر» (user 2026-11-21: «ضع لي زر (رندر) في ريموشن يعطيك الأمر بالرندرة مباشرة»): the open composition goes to the render queue as a job — the
+         pre-render check first (render_queue add --prerender), then the worker starts. A refusal is written to the «راسلني» inbox so the session that owns the video fixes it. */
+      if (url === "/api/render") {
+        const comp = String(body.comp ?? ""), p = projectOf(comp); if (!p) throw new Error(`لا مونتاج لهذه التركيبة: ${comp}`);
+        const orient = /-L$/i.test(comp) ? "L" : "R";
+        const j = start("render", p, ["tools/render_queue.mjs", "add", "--spec", p, "--comp", comp, "--orient", orient, "--dest", QDEST, "--prerender"], `رندر ${arTitleOf(comp)}`, (code, jj) => {
+          const out = jj.log.trim(), bad = code !== 0 || /✘ مرفوض/.test(out);
+          if (!bad) { const st = startWorker(); jj.summary = `✔ في الطابور: ${arTitleOf(comp)}${st ? " — بدأ الإخراج" : ""}`; return; }
+          jj.state = "failed"; jj.summary = "✘ رُفض الرندر — أرسلتُ السبب لي في «راسلني» لأصلحه";
+          const why = out.split(NL_RE).filter((l) => /✘/.test(l)).slice(0, 6).join(" | ").slice(0, 900) || out.slice(-600);
+          const m = { id: Date.now().toString(36), at: new Date().toISOString(), comp, frame: 0, time: "0:00", cutTime: 0, elements: "", text: `رندر هذا — رُفض الرندر: ${why}`, reply: null };
+          fs.mkdirSync(".tmp", { recursive: true }); fs.appendFileSync(INBOX, JSON.stringify(m) + "\n");
+        });
+        return send(res, 202, { id: j.id, label: j.label, message: "… أفحص قبل الرندر ثم أضيفه للطابور" });
+      }
       if (url === "/api/msg") {
         const text = String(body.text ?? "").trim().slice(0, 4000); if (!text) throw new Error("اكتب الرسالة");
         /* (2026-11-20) the Studio inserts the 5-s break (spec.bumper.at) into its timeline: the frame he sees is ahead of the cut by 150 frames after it —

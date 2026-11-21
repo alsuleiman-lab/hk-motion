@@ -667,7 +667,11 @@ const installHK = () => {
   const tag = document.createElement("span"); tag.textContent = "HK"; tag.style.cssText = "flex:0 0 auto;color:var(--hk-accent);font:800 12px Arial,sans-serif;letter-spacing:.5px";
   const bA = mk("بداية", "var(--hk-btn)"), bB = mk("نهاية", "var(--hk-btn)"), bDel = mk("حذف", "var(--hk-danger)"), bMus = mk("حذف موسيقى", "var(--hk-btn-on)"), bGal = mk("المعرض", "var(--hk-btn)"), bCol = mk("ألوان", "var(--hk-btn)"), bQue = mk("الطابور", "var(--hk-btn)"), bMsg = mk("راسلني", "var(--hk-accent)"), bMove = mk("تحريك", "var(--hk-btn-on)"), bTheme = mk(currentTheme() === "night" ? "نهاري" : "ليلي", "var(--hk-btn)");
   const info = document.createElement("span"); info.style.cssText = "flex:1 0 auto;min-width:80px;overflow:hidden;text-overflow:ellipsis;user-select:text;-webkit-user-select:text";
-  row.append(tag, bMsg, bMove, bA, bB, bDel, bMus, bGal, bCol, bQue, bTheme, info);
+  /* «رندر» (user 2026-11-21: «ضع لي زر (رندر) في ريموشن يعطيك الأمر بالرندرة مباشرة»): the open composition → POST /api/render (tools/hk_server.mjs):
+     the pre-render check, then the render queue and its worker; a refusal goes to «راسلني» so the session that owns the video fixes it */
+  const bRen = mk("رندر", "var(--hk-accent)");
+  bRen.title = "أرندر هذا الفيديو الآن: فحص ما قبل الرندر ثم الطابور؛ وإن رُفض يصلني السبب لأصلحه";
+  row.append(tag, bRen, bMsg, bMove, bA, bB, bDel, bMus, bGal, bCol, bQue, bTheme, info);
   bMsg.title = "اكتب لي ملاحظة على هذه اللحظة: تُرسل مع الإطار والعناصر الظاهرة";
   bMsg.addEventListener("click", () => { try { openMsgPanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // «راسلني» (src/hkMsgPanel.ts)
   bMove.title = "انقل عنصراً ظاهراً الآن إلى خانة أخرى من الشبكة: يُحسب مكانه بالأرقام ويُرفض ما يغطي الوجه أو عنصراً آخر";
@@ -691,6 +695,21 @@ const installHK = () => {
     let data: Record<string, unknown> = {}; try { data = await res.json(); } catch { /* ignore */ }
     return { ok: res.ok, status: res.status, data };
   };
+  bRen.addEventListener("click", async () => {
+    const c = comp(); if (!c) return;
+    bRen.disabled = true; paint("⏳ أفحص قبل الرندر…", "#ffd479");
+    try {
+      const r = await call("/api/render", { comp: c });
+      if (!r.ok) { paint(`✘ ${String(r.data.error ?? r.status)}`, "#ff9a9a"); return; }
+      for (;;) {
+        await new Promise((res) => setTimeout(res, 2000));
+        const j = (await (await fetch(api("/api/job"))).json()) as { state?: string; label?: string; seconds?: number; summary?: string };
+        if (j.state === "running") { paint(`⏳ ${j.label ?? "رندر"} — فحص ${j.seconds ?? 0} ث`, "#ffd479"); continue; }
+        paint(j.state === "done" ? `${j.summary ?? "✔ في الطابور"} — تابعه في «الطابور»` : `${j.summary ?? "✘ رُفض"}`, j.state === "done" ? "#8fe08f" : "#ff9a9a"); return;
+      }
+    } catch { paint("انقطع الاتصال بخادم HK", "#ff9a9a"); }
+    finally { bRen.disabled = false; }
+  });
   let busy = false;
   const poll = async () => {
     for (;;) {

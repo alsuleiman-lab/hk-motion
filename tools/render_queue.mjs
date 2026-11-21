@@ -10,11 +10,13 @@
 // (render_job.sh decides; an old spec without them keeps the legacy default with a warning). --bumper is kept only when given (no "start" default any more),
 // and `add` prints the planned bumper and file name (render_job.sh with RENDER_PLAN_ONLY=1: nothing is rendered).
 //   node tools/render_queue.mjs plan --spec <id> --comp <Comp> --orient R|L [--title <t>] [--bumper …]   → the same print, no job added
+// (user 2026-11-21) admission also needs a fresh pass of tools/prerender_check.mjs (.tmp/<p>/prerender.json); add … --prerender runs it first when stale.
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { overlapFailures } from "./lib/overlap_gate.mjs";
 import { coverFailure } from "./cover_item.mjs";
+import { freshness as prerenderFresh } from "./lib/prerender_gate.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 process.chdir(root);
@@ -35,6 +37,9 @@ const admit = (spec, orient) => {
   const bad = outs.flatMap((r) => (r.stdout.match(/✘[^\n]*/g) || []));
   { const why = coverFailure(spec, s); if (why) bad.unshift(why); }   /* (user 2026-11-21: «يعني يكون الغلاف في أوله») the cover first, its picture present */
   bad.push(...overlapFailures(spec, o));   /* (user 2026-11-20) no two elements in one place, whoever wrote them: refused at the queue entry too */
+  /* (user 2026-11-21: «ليش تظهر أخطاء بعد الرندر؟ … لازم حل جذري») no job without a fresh pass of tools/prerender_check.mjs for this orientation (newer than the
+     spec, the words, the cut list and the audio sources); `add --prerender` runs it first (the lesson/stream pipeline does) */
+  { let fr = prerenderFresh(spec, orient); if (!fr.ok && rest.includes("--prerender")) { const r = sh("node", ["tools/prerender_check.mjs", spec, "--o", o]); if (r.status !== 0) console.log((r.stdout || "").split(/\r?\n/).filter((l) => /^✘/.test(l)).slice(0, 6).join(" | ")); fr = prerenderFresh(spec, orient); } if (!fr.ok) bad.unshift("✘ " + fr.why); }
   return bad.length ? bad.slice(0, 3).map((b) => b.slice(0, 140)).join(" | ") : "";
 };
 

@@ -20,27 +20,30 @@ let bumper = null; try { bumper = JSON.parse(fs.readFileSync(`.tmp/gates/${gateN
 if (!bumper || bumper.size !== (() => { try { return fs.statSync(file).size; } catch { return -1; } })()) { try { const sz = fs.statSync(file).size; for (const f of fs.readdirSync(".tmp/gates").filter((x) => x.endsWith(".bumper.json"))) { const b = JSON.parse(fs.readFileSync(`.tmp/gates/${f}`, "utf8")); if (b.size === sz) { bumper = b; break; } } } catch { /* none */ } }   // فاصل الافتتاح: أول bumper.seconds ثانية فاصل (لا فحص سكتات فيها)
 const results = [];
 const add = (ok, msg) => { results.push(ok); console.log(`${ok ? "✔" : "✘"} ${msg}`); };
+/* (user 2026-11-21: «ليش تظهر أخطاء بعد الرندر؟ … لازم حل جذري») each line names its property (the twin ids of tools/prerender_check.mjs): a failure here on a property
+   the pre-render check PASSED is a fault of the program, printed at the end («عيب في البرنامج لا في الحلقة»), so the twin gets fixed */
+const FAILED = [], addI = (id, ok, msg) => { add(ok, msg); if (!ok) FAILED.push(id); };
 
 /* (2026-11-12) the opening bumper must sit right before his first greeting (tools/bumper_at.mjs), not at 0 when the video opens with a clip or a hook */
-if (gateName && bumper && bumper.position !== "end") { try { const want = Number(spawnSync("node", ["tools/bumper_at.mjs", gateName], { encoding: "utf8" }).stdout.trim()); add(Math.abs((bumper.at ?? 0) - want) <= 0.6, `فاصل الافتتاح عند ${(bumper.at ?? 0).toFixed(2)}ث${Math.abs((bumper.at ?? 0) - want) <= 0.6 ? " = قبل أول تحية" : ` والمطلوب ${want.toFixed(2)}ث (قبل «بسم الله/السلام عليكم»)`}`); } catch { /* no words */ } }
+if (gateName && bumper && bumper.position !== "end") { try { const want = Number(spawnSync("node", ["tools/bumper_at.mjs", gateName], { encoding: "utf8" }).stdout.trim()); addI("bumper", Math.abs((bumper.at ?? 0) - want) <= 0.6, `فاصل الافتتاح عند ${(bumper.at ?? 0).toFixed(2)}ث${Math.abs((bumper.at ?? 0) - want) <= 0.6 ? " = قبل أول تحية" : ` والمطلوب ${want.toFixed(2)}ث (قبل «بسم الله/السلام عليكم»)`}`); } catch { /* no words */ } }
 /* (2026-11-18) a short portrait video (reel, silent reaction; or any portrait file just over 3:00) must be <= the Shorts limit WITH its bumper */
-{ const SL = await import("./short_limit.mjs"); const portraitV = v && Number(v.height) > Number(v.width); const short = (gateName && SL.isShort(gateName)) || (portraitV && dur > SL.SHORT_MAX && dur <= 240); if (short) add(dur <= SL.SHORT_MAX, `طول القصير ${dur.toFixed(2)}ث والحد ${SL.SHORT_MAX}ث (الفاصل داخله)${dur > SL.SHORT_MAX ? " — لن يكون Short على يوتيوب: قصّر ثم أعد" : ""}`); }
+{ const SL = await import("./short_limit.mjs"); const portraitV = v && Number(v.height) > Number(v.width); const short = (gateName && SL.isShort(gateName)) || (portraitV && dur > SL.SHORT_MAX && dur <= 240); if (short) addI("short", dur <= SL.SHORT_MAX, `طول القصير ${dur.toFixed(2)}ث والحد ${SL.SHORT_MAX}ث (الفاصل داخله)${dur > SL.SHORT_MAX ? " — لن يكون Short على يوتيوب: قصّر ثم أعد" : ""}`); }
 /* THE COVER FIRST (user 2026-11-21, GTA 6 reels rendered without it: «يعني يكون الغلاف في أوله»): the montage of this file must open with its cover picture (tools/cover_item.mjs) */
-if (gateName && fs.existsSync(`data/specs/${gateName}.json`)) { const { coverFailure } = await import("./cover_item.mjs"); let sp = null; try { sp = JSON.parse(fs.readFileSync(`data/specs/${gateName}.json`, "utf8")); } catch { /* unreadable */ } const why = sp ? coverFailure(gateName, sp) : "✘ مواصفة المونتاج لا تُقرأ"; add(!why, why ? why.replace(/^✘ /, "") : "الغلاف أول عنصر في المونتاج وصورته موجودة"); }
+if (gateName && fs.existsSync(`data/specs/${gateName}.json`)) { const { coverFailure } = await import("./cover_item.mjs"); let sp = null; try { sp = JSON.parse(fs.readFileSync(`data/specs/${gateName}.json`, "utf8")); } catch { /* unreadable */ } const why = sp ? coverFailure(gateName, sp) : "✘ مواصفة المونتاج لا تُقرأ"; addI("cover", !why, why ? why.replace(/^✘ /, "") : "الغلاف أول عنصر في المونتاج وصورته موجودة"); }
 /* GAPS BEFORE APPROVAL (user 2026-11-21, GTA 6: sections.json appeared only at publishing, no sections rail, a package with no description/tags and the wrong playlist,
    and unanswered questions on the questions page — he caught each himself): the landscape file of a full episode needs the sections (count by the table) and the rail
    in its first seconds, and a YouTube package that passes; any project with a questions page needs every item answered or marked by him (tools/prepublish_gates.mjs) */
 if (gateName) {
   const G = await import("./prepublish_gates.mjs"); let sp = null; try { sp = JSON.parse(fs.readFileSync(`data/specs/${gateName}.json`, "utf8")); } catch { /* none */ }
   if (v && Number(v.width) > Number(v.height) && G.appliesToEpisode(gateName, sp)) {
-    const s = G.sectionsFailures(gateName, sp); add(!s.length, s.length ? `الأقسام: ${s.join(" · ")}` : "الأقسام بعدد الجدول، وخط الأقسام في أول الثواني");
-    const k = G.packageFailures(gateName); add(!k.length, k.length ? `حزمة يوتيوب: ${k.join(" · ")}` : "حزمة يوتيوب: الوصف والوسوم والفصول وقائمة التشغيل");
+    const s = G.sectionsFailures(gateName, sp); addI("sections", !s.length, s.length ? `الأقسام: ${s.join(" · ")}` : "الأقسام بعدد الجدول، وخط الأقسام في أول الثواني");
+    const k = G.packageFailures(gateName); addI("package", !k.length, k.length ? `حزمة يوتيوب: ${k.join(" · ")}` : "حزمة يوتيوب: الوصف والوسوم والفصول وقائمة التشغيل");
   }
-  const q = G.questionsFailures(gateName); if (q.length || fs.existsSync(`.tmp/${gateName}/questions.json`)) add(!q.length, q.length ? q[0] : "صفحة الأسئلة: كل بند مجاب");
+  const q = G.questionsFailures(gateName); if (q.length || fs.existsSync(`.tmp/${gateName}/questions.json`)) addI("questions", !q.length, q.length ? q[0] : "صفحة الأسئلة: كل بند مجاب");
 }
 /* JOIN SEAMS (ledger intro-reel-join-click, gta6-intro-reel 2026-11-20: a click at a join): a reel cut from an episode has no click and no word tail at any join of THIS file (tools/join_seam_check.mjs) */
-if (gateName) { const r = (await import("./join_seam_check.mjs")).finalReviewLine(gateName, file, bumper); if (r) add(r.ok, r.msg); }
-add(dur > minSec && dur > 0, `المدة ${dur.toFixed(2)}ث${bumper ? ` (منها فاصل الافتتاح «${bumper.title}» ${bumper.seconds}ث)` : ""}`);
+if (gateName) { const r = (await import("./join_seam_check.mjs")).finalReviewLine(gateName, file, bumper); if (r) addI("seams", r.ok, r.msg); }
+addI("audio", dur > minSec && dur > 0, `المدة ${dur.toFixed(2)}ث${bumper ? ` (منها فاصل الافتتاح «${bumper.title}» ${bumper.seconds}ث)` : ""}`);
 // the audio gate (tools/audio_gate.mjs) is MANDATORY for every montage (user order 2026-10-21)
 import fs from "node:fs";
 import crypto from "node:crypto";
@@ -59,7 +62,7 @@ import crypto from "node:crypto";
       stale = r.status === 0 && proof?.files ? Object.entries(proof.files).filter(([p, h]) => sha(p) !== h).map(([p]) => p) : ["(فشلت إعادة التشغيل: التفاصيل أعلاه)"];
     }
   }
-  add(gateName !== "" && proof !== null && stale.length === 0, gateName ? (stale.length ? `بوابة الصوت لـ${gateName} لم تنجح على الملفات الحالية: ${stale.join("، ")}` : `بوابة الصوت (audio_gate) نجحت لـ${gateName} على الملفات الحالية`) : "بلا --name لا يُعرف المشروع: أضف --name <المشروع>");
+  addI("audio_gate", gateName !== "" && proof !== null && stale.length === 0, gateName ? (stale.length ? `بوابة الصوت لـ${gateName} لم تنجح على الملفات الحالية: ${stale.join("، ")}` : `بوابة الصوت (audio_gate) نجحت لـ${gateName} على الملفات الحالية`) : "بلا --name لا يُعرف المشروع: أضف --name <المشروع>");
 }
 {
   // judder gate (tools/judder_check.mjs, user 2026-10-26): the rendered file must have passed the frame-by-frame comparison with its source, and be the SAME file (size) that passed
@@ -68,7 +71,7 @@ import crypto from "node:crypto";
   const hitId = ids.find((id) => fs.existsSync(`.tmp/gates/judder/${id}.json`));
   let legacy = null; if (!hitId) { try { const j = JSON.parse(fs.readFileSync(`.tmp/gates/${gateName}.judder.ok`, "utf8")); const size = fs.statSync(file).size; const jSize = bumper && bumper.size === size ? bumper.originalSize : size; legacy = j?.files ? Object.entries(j.files).find(([, s2]) => (s2 === jSize || s2 === size) && s2 > 0) : null; } catch { /* none */ } }
   const rec = hitId ? JSON.parse(fs.readFileSync(`.tmp/gates/judder/${hitId}.json`, "utf8")) : null;
-  add(!!(rec || legacy), rec ? `بوابة الارتجاف نجحت لهذا الملف بعينه (${rec.share}٪ متطابقة، الحد ${rec.min}٪)` : legacy ? "بوابة الارتجاف نجحت لهذا الملف (سجل قديم بالحجم)" : "بوابة الارتجاف لم تُشغَّل على هذا الملف بعينه: node tools/judder_check.mjs <الناتج> --src <القص المنعَّم> --offset <إطار> --name <المشروع>");
+  addI("judder", !!(rec || legacy), rec ? `بوابة الارتجاف نجحت لهذا الملف بعينه (${rec.share}٪ متطابقة، الحد ${rec.min}٪)` : legacy ? "بوابة الارتجاف نجحت لهذا الملف (سجل قديم بالحجم)" : "بوابة الارتجاف لم تُشغَّل على هذا الملف بعينه: node tools/judder_check.mjs <الناتج> --src <القص المنعَّم> --offset <إطار> --name <المشروع>");
 }
 if (v) {
   const [n, d] = v.r_frame_rate.split("/").map(Number);
@@ -82,7 +85,7 @@ if (gateName && planMap?.model === "cut_model") {
   const { words, source } = projectInputs(gateName);
   const b = bumper ? { at: bumper.position === "end" ? Infinity : (bumper.at ?? 0), seconds: bumper.seconds, end: bumper.position === "end" } : null;
   const vio = verifyCut({ segments: planMap.segments, words, file, bumper: b ? { ...b, seconds: b.end ? b.seconds : b.seconds } : null });
-  add(vio.length === 0, vio.length ? `القص في هذا الملف يخالف القاعدة في ${vio.length} موضعاً:\n${printViolations(vio).map((l) => "   " + l).join("\n")}` : `لا سكتة بين كلمتين فوق الحد ولا قطع داخل كلمة، والملف يطابق خطة القص (المقياس الواحد، الجدول: ${source})`);
+  addI("cut_plan", vio.length === 0, vio.length ? `القص في هذا الملف يخالف القاعدة في ${vio.length} موضعاً:\n${printViolations(vio).map((l) => "   " + l).join("\n")}` : `لا سكتة بين كلمتين فوق الحد ولا قطع داخل كلمة، والملف يطابق خطة القص (المقياس الواحد، الجدول: ${source})`);
 } else {
   console.log("ℹ لا خطة قص بالنموذج لهذا الملف (كرتون أو مشروع قديم): يُقاس الصمت في الملف");
 const sil = run("ffmpeg", ["-hide_banner", "-i", file, "-af", `silencedetect=noise=${db}dB:d=${maxGap}`, "-f", "null", "-"]).stderr;
@@ -93,23 +96,24 @@ const bAt = typeof bumper?.at === "number" ? bumper.at : 0, bEnd = bumper?.posit
 /* (2026-11-12) only the PART of a silence inside the bumper is excused: a silence that starts in the bumper and runs on after it (6 s of lost audio after a
    start bumper) was dropped whole and the file passed */
 const gaps = starts.map((s, i) => ({ s, d: durs[i] ?? dur - s })).map((g) => { if (!bumper) return g; const a = bAt - (bEnd ? 0.6 : 0), b = bAt + bumper.seconds; if (g.s >= a && g.s < b) { const e = g.s + g.d; return { s: b, d: e - b }; } return g; }).filter((g) => g.d > maxGap);
-add(gaps.length === 0, gaps.length ? `سكتات > ${maxGap}ث: ${gaps.map((g) => `${g.s.toFixed(2)}→${(g.s + g.d).toFixed(2)} (${g.d.toFixed(2)}ث)`).join("، ")}` : `لا سكتة > ${maxGap}ث`);
+addI("cut_plan", gaps.length === 0, gaps.length ? `سكتات > ${maxGap}ث: ${gaps.map((g) => `${g.s.toFixed(2)}→${(g.s + g.d).toFixed(2)} (${g.d.toFixed(2)}ث)`).join("، ")}` : `لا سكتة > ${maxGap}ث`);
 
 }
 const vol = run("ffmpeg", ["-hide_banner", "-i", file, "-af", "volumedetect", "-f", "null", "-"]).stderr;
 const max = Number(vol.match(/max_volume: (-?[\d.]+) dB/)?.[1]);
 const mean = Number(vol.match(/mean_volume: (-?[\d.]+) dB/)?.[1]);
-add(Number.isFinite(max) && max < -0.1, `قمة الصوت ${max} dB (المتوسط ${mean} dB)${max >= -0.1 ? " — قمة 0 dB: أخفّض أو أستمع" : ""}`);
+addI("peak", Number.isFinite(max) && max < -0.1, `قمة الصوت ${max} dB (المتوسط ${mean} dB)${max >= -0.1 ? " — قمة 0 dB: أخفّض أو أستمع" : ""}`);
 /* (2026-11-17, umawi reel) a corrupt audio tail at the very end of a render (peak +2 dB) was heard as a click at the bumper: the last 0.6 s must not peak above
    the body of the file nor near 0 dB. Fix in the engine; this gate catches it on every final file. */
 {
   const tail = run("ffmpeg", ["-hide_banner", "-sseof", "-0.6", "-i", file, "-af", "volumedetect", "-f", "null", "-"]).stderr;
   const tmax = Number(tail.match(/max_volume: (-?[\d.]+) dB/)?.[1]);
   const okTail = !Number.isFinite(tmax) || (tmax < -1 && !(Number.isFinite(max) && tmax > max - 0.05 && tmax > -3));
-  add(okTail, `ذيل الصوت (آخر 0.6ث) قمته ${Number.isFinite(tmax) ? tmax : "؟"} dB${okTail ? "" : " — ذيل تالف يُسمع نقرة: أصلح الصوت ثم أعد إلحاق الفاصل"}`);
+  addI("tail", okTail, `ذيل الصوت (آخر 0.6ث) قمته ${Number.isFinite(tmax) ? tmax : "؟"} dB${okTail ? "" : " — ذيل تالف يُسمع نقرة: أصلح الصوت ثم أعد إلحاق الفاصل"}`);
 }
 
 console.log("\nلا يزال عليك يدوياً: الوجه واللحية (face_check)، التلعثم بتفريغ الناتج، الصور والمصادر، الخلفيات.");
+if (gateName && FAILED.length) { try { const W2 = Number(v?.width), H2 = Number(v?.height); for (const l of (await import("./lib/prerender_gate.mjs")).programFaults(gateName, W2 > H2 ? "L" : "R", FAILED)) console.log("✘ " + l); } catch { /* no pre-render record */ } }
 const allOk = results.every(Boolean);
 // proof for the Stop hook (tools/hooks/guard.mjs): «✅ انتهيتُ من المونتاج» is refused without a fresh .final.ok
 if (allOk && gateName) { fs.mkdirSync(".tmp/gates", { recursive: true }); fs.writeFileSync(`.tmp/gates/${gateName}.final.ok`, JSON.stringify({ at: new Date().toISOString(), video: file, duration: dur })); }

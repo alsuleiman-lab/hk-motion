@@ -28,6 +28,11 @@ if (!["--start", "--end", "--frames"].some((a) => process.argv.includes(a))) {
   const sid = [arg("spec", null), arg("name", null)].find((x) => x && x !== true) ?? (await import("./cut_lazy.mjs")).projectOf(compId);
   let sp = null; try { sp = sid ? JSON.parse(fs.readFileSync(path.join(root, "data/specs", `${sid}.json`), "utf8")) : null; } catch { /* no spec: not a montage */ }
   if (sp) { const why = (await import("./cover_item.mjs")).coverFailure(sid, sp); if (why) { console.error(why); process.exit(1); } }
+  /* (user 2026-11-21: «ليش تظهر أخطاء بعد الرندر؟ … لازم حل جذري») a FULL render of a montage needs a pass of tools/prerender_check.mjs for this orientation, newer than the
+     spec, the words, the cut list and every audio source: every property final_review measures on the file was measured before it (data/prerender_map.md).
+     Refused here, before the lock and the bundle. The side-by-side review forms (-Both, -BothV) are not delivered and need none. */
+  const PO = /-(Both|BothV)$/i.test(compId) ? null : /-L$/i.test(compId) ? "L" : "R";
+  if (sp && PO) { const fr = (await import("./lib/prerender_gate.mjs")).freshness(sid, PO, { root }); if (!fr.ok) { console.error(`✘ ${compId}: ${fr.why} — لا رندر كامل قبل فحص ما قبل الرندر (bash tools/bg.sh prerender_${sid} -- node tools/prerender_check.mjs ${sid})`); process.exit(1); } }
 }
 try { os.setPriority(process.pid, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch {} // every child (Electron, its GPU process, python, ffmpeg) inherits BelowNormal
 const SMALL_JOB = arg("frames", false) !== false || (arg("start", false) !== false && arg("end", false) !== false && Number(arg("end", 0)) - Number(arg("start", 0)) <= 900);   // a short span / scattered frames may run beside another render (user 2026-11-15)
@@ -137,6 +142,7 @@ const FRAMES_DIR = FRAME_LIST ? path.resolve(root, String(arg("frames-dir", path
 if (FRAMES_DIR) fs.mkdirSync(FRAMES_DIR, { recursive: true });
 const start = FRAME_LIST ? FRAME_LIST[0] : Number(arg("start", 0)), end = FRAME_LIST ? FRAME_LIST[FRAME_LIST.length - 1] : Math.min(Number(arg("end", composition.durationInFrames - 1)), composition.durationInFrames - 1);
 const NF = FRAME_LIST ? FRAME_LIST.length : end - start + 1;
+const partialRange = !!FRAME_LIST || start !== 0 || end < composition.durationInFrames - 1;   /* the audio of a full render is the checked pre-render mix (below) */
 log(`${compId}: ${W}x${H} @${FPS}, frames ${start}-${end} (${NF})`);
 
 // ---- static background (rendered once, as in hybrid_any) ----
@@ -286,40 +292,22 @@ frames.sort((a, b) => a.frame - b.frame);
 /* every rendered frame must have its audio record: a missing block = silent audio there. Refuse to mux instead of delivering a silent stretch (2026-11-12) */
 { const have = new Set(frames.map((f) => f.frame)), miss = []; for (let f = start; f <= end; f++) if (!have.has(f)) miss.push(f);
   if (miss.length) { console.error(`✘ audio records missing for ${miss.length} frame(s) (first ${miss.slice(0, 5).join(", ")}): a graphics worker did not write its assets — the audio would be silent there. Not muxing.`); process.exit(1); } }
-const open = new Map(), segs = [];
-for (const f of frames) {
-  const rel = f.frame - start, present = new Set();
-  for (const a of f.audioAndVideoAssets) {
-    if (a.type !== "audio") continue;
-    present.add(a.id);
-    let o = open.get(a.id);
-    if (!o) { o = { id: a.id, src: a.src, startRel: rel, trim: a.mediaFrame, rate: a.playbackRate, vols: [], last: rel }; open.set(a.id, o); segs.push(o); }
-    o.vols.push(a.volume); o.last = rel;
-  }
-  for (const [id] of open) if (!present.has(id)) open.delete(id);
-}
-const toPath = (s) => { if (s.startsWith("file:")) return decodeURIComponent(new URL(s).pathname.replace(/^\//, "")); const u = new URL(s); const m = decodeURIComponent(u.pathname).match(/\/public\/(.*)$/); return m ? `${root}/public/${m[1]}` : s; };
-const inputs = [], parts = [], mixIn = [], uniq = new Map();
-segs.forEach((o, k) => {
-  const v = o.vols.reduce((a, b) => a + b, 0) / o.vols.length;
-  if (Math.max(...o.vols) - Math.min(...o.vols) > 0.02) log(`audio ${o.id}: volume varies (${Math.min(...o.vols).toFixed(2)}–${Math.max(...o.vols).toFixed(2)}), using the mean`);
-  const dur = (o.last - o.startRel + 1) / FPS, ms = Math.round((o.startRel / FPS) * 1000);
-  const sp0 = toPath(o.src), sp = EDL?.audio && path.resolve(sp0).toLowerCase() === path.resolve(EDL.heavy).toLowerCase() ? EDL.audio : sp0; if (!uniq.has(sp)) { uniq.set(sp, { idx: uniq.size, n: 0 }); inputs.push("-i", sp); } const u = uniq.get(sp); o.inLabel = `u${u.idx}_${u.n++}`;
-  parts.push(`[${o.inLabel}]atrim=start=${(o.trim / FPS).toFixed(4)}:duration=${(dur * o.rate).toFixed(4)},asetpts=PTS-STARTPTS${o.rate !== 1 ? `,atempo=${o.rate}` : ""},volume=${v.toFixed(4)},adelay=${ms}:all=1[a${k}]`);
-  mixIn.push(`[a${k}]`);
-});
+/* (2026-11-21, user: «ليش تظهر أخطاء بعد الرندر؟ … لازم حل جذري») the segments and the mix are ONE code (tools/lib/audio_plan.mjs) shared with
+   tools/prerender_check.mjs, which built and checked this montage's final audio BEFORE the render. A full render of a montage muxes THAT checked file when the
+   plan collected here is the same (same pieces, same frames, same sources, same bytes); a different plan is a fault of the program, said loudly, and the
+   render keeps its own mix (final_review still checks the file). Partial ranges and compositions without a spec mix as before. */
+const AP = await import("./lib/audio_plan.mjs");
+const segs = AP.segmentsFromFrames(frames, start);
 const audio = path.join(work, "audio.aac");
-let hasAudio = false;
-if (segs.length) {
-  const splits = [...uniq.values()].map((u) => `[${u.idx}:a]aresample=48000,${u.n > 1 ? `asplit=${u.n}${Array.from({ length: u.n }, (_, j) => `[u${u.idx}_${j}]`).join("")}` : `anull[u${u.idx}_0]`}`);
-  parts.unshift(...splits);
-  const fc = parts.join(";\n") + ";\n" + mixIn.join("") + `amix=inputs=${mixIn.length}:duration=longest:normalize=0:dropout_transition=0,aresample=48000,apad=whole_dur=${(NF / FPS).toFixed(4)},atrim=duration=${(NF / FPS).toFixed(4)}[a]`;   /* (2026-11-20) padded with silence to the picture: a bumper whose own sound is shorter (shelf: 3.84 s) left the file's audio 1.1 s short */
-  const fcFile = path.join(work, "audio_fc.txt"); fs.writeFileSync(fcFile, fc);
-  execFileSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", ...inputs, "-/filter_complex", fcFile, "-map", "[a]", "-c:a", "aac", "-b:a", "192k", audio]);
-  hasAudio = true;
+let hasAudio = false, audioFrom = "mix";
+if (segs.length && BSPEC && !partialRange) {
+  const v = (await import("./lib/prerender_gate.mjs")).verifiedAudio(BSPEC_ID, W > H ? "L" : "R", AP.planOf(segs, { root, edl: EDL, fps: FPS }), { root });
+  if (v.file) { execFileSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", v.file, "-c:a", "aac", "-b:a", "192k", audio]); hasAudio = true; audioFrom = "prerender"; log(`audio: the montage's checked pre-render mix (${path.relative(root, v.file)}) muxed as it is`); }
+  else for (const l of v.fault) log("✘ " + l);
 }
+if (segs.length && !hasAudio) { AP.mixToFile(segs, audio, { NF, fps: FPS, root, edl: EDL, codec: "aac", work, log }); hasAudio = true; }
 timing.audioSec = (Date.now() - t) / 1000;
-log(`audio: ${segs.length} segments mixed in ${timing.audioSec.toFixed(1)}s`);
+log(`audio: ${segs.length} segments ${audioFrom === "prerender" ? "= the checked pre-render mix" : "mixed"} in ${timing.audioSec.toFixed(1)}s`);
 
 // ---- mux ----
 /* --scale k (previews, the old render_clip SCALE=0.5): the picture is resized on the GPU (scale_cuda) and re-encoded on NVENC; 1 = the stream as encoded */

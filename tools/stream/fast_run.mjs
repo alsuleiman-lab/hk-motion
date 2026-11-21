@@ -66,7 +66,7 @@ else if (cmd === "slice") {
     const dest = arg("dest", "C:\\Users\\mshms\\Videos\\جاهز\\بثوث\\طولي");
     const ready = table.filter((c) => res[c.id]?.ok === true && (!only || only.has(c.id)));
     for (const c of ready) { const spec = rd(`data/specs/${c.id}.json`, {});
-      const r = spawnSync(process.execPath, ["tools/render_queue.mjs", "add", "--spec", c.id, "--comp", compOf(c.id, orientOf(c)), "--orient", orientOf(c), "--dest", orientOf(c) === "L" ? dest.replace(/طولي$/, "عرضي") : dest, "--title", spec.title ?? c.topic, "--bumper", "end"], { encoding: "utf8" });
+      const r = spawnSync(process.execPath, ["tools/render_queue.mjs", "add", "--spec", c.id, "--comp", compOf(c.id, orientOf(c)), "--orient", orientOf(c), "--dest", orientOf(c) === "L" ? dest.replace(/طولي$/, "عرضي") : dest, "--title", spec.title ?? c.topic, "--bumper", "end", "--prerender"], { encoding: "utf8" });
       console.log((r.stdout || r.stderr || "").trim().split("\n").pop()); }
     mark("render", "start");
     spawn(process.execPath, ["tools/render_queue.mjs", "run"], { detached: true, stdio: "ignore", windowsHide: true }).unref();

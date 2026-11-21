@@ -88,11 +88,16 @@ const firstAt = (forms) => {
 };
 const skip = new Set(spec.skipMentions ?? []);
 const seen = new Set(), missing = [];
+/* (2026-11-21, ledger builder-mention-image-missing) a sacred text (data/no_image_terms.json: the Quran, the Sahihs) is never a picture (القواعد_العامة §4):
+   its mention is covered by a TEXT card at its words, and a picture there does not count */
+const NOIMG = read(path.join("data", "no_image_terms.json"), { terms: [], textTypes: [], textPicks: [] }), NOIMG_T = new Set(NOIMG.terms ?? []);
+const textSpans = items.filter((i) => (NOIMG.textTypes ?? []).includes(i.t) || (i.t === "pick" && (NOIMG.textPicks ?? []).includes(i.el))).map(span).filter(Boolean);
 for (const t of terms) {
   if (seen.has(t.name) || skip.has(t.name)) continue;
   seen.add(t.name);
   const at = firstAt(t.forms);
   if (at == null) continue;
+  if (NOIMG_T.has(t.name)) { if (!textSpans.some(([a, b]) => a <= at + 4 && b >= at - 3)) missing.push(`${t.name} (${mm(at)} = ${at.toFixed(1)}s، بطاقة كتابة لا صورة)`); continue; }
   if (!visual.some(([a, b]) => a <= at + 4 && b >= at - 3)) missing.push(`${t.name} (${mm(at)} = ${at.toFixed(1)}s)`);
 }
 console.log(missing.length ? `✘ مذكور بلا صورة عند ذكره (${missing.length}): ${missing.join("، ")}` : `✔ كل مذكور له صورة عند أول ذكر (${seen.size} مصطلحاً فُحص)`);

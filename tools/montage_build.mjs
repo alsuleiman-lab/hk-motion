@@ -121,6 +121,10 @@ const SECTIONS = readJ(path.join(T, "sections.json"), null);
 const VERSES = readJ(path.join(T, "verses.json"), []);
 const HADITH = readJ(path.join(T, "hadith.json"), []);
 const IMAGES = readJ(path.join(T, "images.json"), []);
+/* (rehearsal 2026-11-21, ledger builder-mention-image-missing: the default for «القرآن» needed an image it could not fetch, and the build failed) a sacred text is
+   never a picture (القواعد_العامة §4) — data/no_image_terms.json, read by coverage_check §1 too */
+const NOIMG = readJ("data/no_image_terms.json", { terms: [], textTypes: [], textPicks: [] }), NOIMG_T = new Set(NOIMG.terms ?? []);
+const isTextCard = (x) => (NOIMG.textTypes ?? []).includes(x.t) || (x.t === "pick" && (NOIMG.textPicks ?? []).includes(x.el));
 const WRITING = readJ(path.join(T, "writing.json"), null);
 const EPREF = readJ(path.join("data", "episode_refs", `${p}.json`), { slots: {} });
 const SPLITS = BASE.splits ?? [];
@@ -249,6 +253,7 @@ function defaultPick(m) {
     case "cover": return { el: "PaperCover" };
     case "rail": return { el: "SectionsRail", sections: m.sections };
     case "person": case "depict": case "state": case "order": case "mention": {
+      if (m.kind === "mention" && NOIMG_T.has(m.text)) return { el: "NoteCard", noImage: true, note: `«${m.text}» نص شرعي: بطاقة كتابة بكلماته، لا صورة (لا صورة لمصحف ولا حديث)` };
       // an order names its element type (montage_notes plan: «tphoto@3:21»): the gallery code that draws that type
       const want = m.kind === "order" ? Object.values(CAT).find((e) => e.t === m.type && !e.el)?.code : null;
       if (m.kind === "order" && !want) return { el: null, media: true, note: `لا عنصر في المعرض يرسم «${m.type}»` };
@@ -259,6 +264,10 @@ function defaultPick(m) {
       if (!m.visual && m.kind !== "order" && (m.needTypes ?? []).includes("rows")) return { el: "StatRow", vals: { label: m.text }, note: "بلا صورة: بطاقة بند بكلمته (أضف صورة إن وُجدت)" };
       const lp = lastPersonBefore(m.t);
       if (lp) return { ...photo(lp), note: `بلا صورة له: صورة آخر من ذُكر قبله «${lp.name}» — تحقّق` };
+      /* the next VALID gallery element without a picture (his words on a note card), listed — when the moment accepts a text card (a requirement row whose
+         types name one); a moment that only a picture satisfies (an order of a picture type, a row of picture types, a lexicon name coverage_check §1 wants
+         pictured) stays a missing medium, named */
+      if (m.kind !== "order" && (m.needTypes ?? []).some((x) => (NOIMG.textTypes ?? []).includes(x) || x === "*")) return { el: "NoteCard", noImage: true, note: "بلا صورة: بطاقة كتابة بكلماته (العنصر التالي الصالح بلا صورة؛ صورة أفضل إن جُلبت: node tools/fetch_images.mjs أو src في الاختيارات)" };
       return { el: null, media: true, note: "يلزمه صورة: node tools/fetch_images.mjs أو src في الاختيارات" };
     }
     case "place": return { el: "PaperMap", note: "خريطة البلد" };
@@ -335,6 +344,11 @@ function contentFor(code, m, given = {}) {
     case "StickyNotes": { const ss = steps(t, 4, 3); v.notes ??= ss; v.at ??= r2(t); break; }
     case "VerseWords": { const x = m.v; v.words ??= x.words; v.times ??= x.cut; v.title ??= x.name; v.refText ??= x.ref; v.aya ??= x.aya; v.until ??= r2(x.cut.at(-1) + 0.6 + RULE.HOLD); return v; }
     case "NoteCard": {
+      if (!m.h) {   /* a mention with no picture: his phrase from the mention on (never before its words), the name as the tag */
+        const ph = phrasesIn(t - 0.05, t + 6, 6, 1)[0] ?? { text: clean(m.text ?? ""), at: r2(t), end: r2(t + 1) }, cps = v.cps ?? 16;
+        v.title ??= ph.text; v.tag ??= String(m.text ?? "").slice(0, 24) || "مذكور"; v.label ??= NOIMG_T.has(m.text) ? "نص شرعي" : "مذكور"; v.cps = cps; v.at ??= r2(ph.at);
+        v.until ??= r2(Math.max(ph.end + RULE.HOLD, v.at + 0.25 + [...v.title].length / cps + RULE.HOLD + 0.2)); return v;
+      }
       const h = m.h, title = v.title ?? h.text, cps = v.cps ?? 16;
       v.title = title; v.label ??= "حديث شريف"; v.tag ??= `${h.book ?? ""}${h.n ? ` (${h.n})` : ""}`.trim() || "حديث"; if (h.narrator) v.narrator ??= h.narrator; if (h.book) v.books ??= [{ book: h.book, n: h.n }];
       v.cps = cps; v.at ??= r2(h.at); v.until ??= r2(Math.max((h.until ?? h.at) + RULE.HOLD, v.at + 0.25 + [...title].length / cps + RULE.HOLD + 0.2)); return v;
@@ -447,7 +461,7 @@ function buildItems(picks, log) {
     /* a required element of the same kind already there (a news card, a date) serves the rule too (coverage §1b window) */
     if (m.kind === "required" && out.some((x) => (m.needTypes.includes(x.t) || m.needTypes.includes("*")) && (!m.rule?.srcPrefix || String(x.src ?? x.img ?? "").startsWith(m.rule.srcPrefix)) && spanOf(x)[0] <= m.t + m.after && spanOf(x)[1] >= m.t - m.before)) return;
     /* a picture already on screen at this moment (an order or a person row placed it) serves the mention / row too (requirements + coverage: any visual there) */
-    if (["mention", "person", "depict", "state"].includes(m.kind) && out.some((x) => (m.visual ? RULE.VISUAL.has(x.t) : (m.needTypes ?? []).includes(x.t) || RULE.VISUAL.has(x.t)) && spanOf(x)[0] <= m.t + Math.min(4, m.after ?? 4) && spanOf(x)[1] >= m.t - Math.min(3, m.before ?? 3))) { const d = defaults.findIndex((x) => x.id === m.id); if (d >= 0) defaults.splice(d, 1); return; }
+    if (["mention", "person", "depict", "state"].includes(m.kind) && out.some((x) => (m.kind === "mention" && NOIMG_T.has(m.text) ? isTextCard(x) : m.visual ? RULE.VISUAL.has(x.t) : (m.needTypes ?? []).includes(x.t) || RULE.VISUAL.has(x.t)) && spanOf(x)[0] <= m.t + Math.min(4, m.after ?? 4) && spanOf(x)[1] >= m.t - Math.min(3, m.before ?? 3))) { const d = defaults.findIndex((x) => x.id === m.id); if (d >= 0) defaults.splice(d, 1); return; }
     let it;
     try {
       if (c.el === "PaperMap") it = mapItem(m, c.vals);

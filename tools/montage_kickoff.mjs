@@ -79,6 +79,7 @@ const boardText = (q, { brief = false, nudge = false } = {}) => {
   for (const l of b.lanes) if (!brief || l.status !== "done") out.push(`  ${l.kind === "proc" ? "⚙" : "✋"} ${l.ar}: ${st(l)}`);
   if (ready.length) out.push(`⛔ جاهز ولم يبدأ (ابدأه الآن في الخلفية، ثم: node tools/montage_kickoff.mjs lane ${q} <المعرّف> start): ${ready.map((l) => `${l.ar} [${l.id}]`).join("، ")}`);
   for (const x of b.parked ?? []) out.push(`  ⏸ مركون: ${x.what} (منذ ${mins(t - x.at)} د)`);
+  if (b.gpu) out.push(`  🖥 الكرت: ${b.gpu}`);   // the pause / resume of a foreign GPU job (tools/lib/gpu_busy.mjs), one line
   return out.join("\n");
 };
 
@@ -210,7 +211,11 @@ if (cmd === "kickoff") {
   ].map((l) => ({ status: "waiting", ...l }));
   const board = { project: p, video, durationS: dur, createdAt: now(), lanes, parked: [] };
   const plan = lanes.filter((l) => l.kind === "proc").map((l) => `  ⚙ ${l.ar}${l.deps.length ? ` (بعد ${l.deps.join("،")})` : ""}: ${l.cmd.slice(1).join(" ")}`).join("\n");
-  if (dry) { console.log(`[تجربة بلا تشغيل] «${p}» — ${mmss(dur)} من التسجيل، التجهيز نحو ${lanes[0].etaMin} د. يعمل في الخلفية معاً:\n${plan}`); process.exit(0); }
+  /* (rehearsal 2026-11-21, ledger prerender-gpu-silent-hang) a busy card at the start is said at once, and a foreign long job holding it (another session's
+     voice-model training) is paused — never killed — until the final render / montage_guard end / 90 min (tools/lib/gpu_busy.mjs) */
+  const GB = await import("./lib/gpu_busy.mjs"), gst = !STUB || process.env.HK_GPU_FAKE ? GB.gpuState() : { ok: false }, gBusy = gst.ok && GB.isBusy(gst);
+  const gpuWarn = gBusy ? `⚠ الكرت مشغول بـ${GB.holderText(gst)} — المونتاج لن يكون في نصف ساعة` : "";
+  if (dry) { if (gpuWarn) console.log(gpuWarn + (GB.pausable(gst).length ? " (عند الإطلاق الحقيقي يُوقف مؤقتاً حتى الرندر النهائي)" : "")); console.log(`[تجربة بلا تشغيل] «${p}» — ${mmss(dur)} من التسجيل، التجهيز نحو ${lanes[0].etaMin} د. يعمل في الخلفية معاً:\n${plan}`); process.exit(0); }
   fs.mkdirSync(T(p), { recursive: true });
   fs.writeFileSync(BF(p), JSON.stringify(board, null, 1));
   if (!STUB) { const g = spawnSync(node, ["tools/montage_guard.mjs", "start", p], { encoding: "utf8" }); if (g.status !== 0) console.log(`⚠ montage_guard start: ${(g.stdout + g.stderr).trim().split(/\r?\n/).pop()}`); }
@@ -218,11 +223,15 @@ if (cmd === "kickoff") {
   const r = spawnSync(node, ["tools/proc.mjs", "run", "--label", `kickoff-${p}`, "--project", p, "--ttl", "180", "--log", path.join(T(p), "kickoff.log"), "--", node, ...me, "_run", p], { encoding: "utf8", env: process.env });
   const pid = Number((r.stdout || "").trim().split(/\r?\n/).pop());
   editBoard(p, (b) => { b.runner = { pid, at: now() }; });
+  let gpuLine = gpuWarn;
+  if (gBusy && !STUB) { const pr = GB.pauseForMontage({ by: p, state: gst }); gpuLine = pr.line ? `${pr.line} (ذاكرته تبقى محجوزة: ${(gst.memUsed / 1024).toFixed(0)} من ${(gst.memTotal / 1024).toFixed(0)} غيغا)` : `${gpuWarn}${pr.why ? ` — ${pr.why}` : ""}`; }
+  if (gpuLine) editBoard(p, (b) => { b.gpu ??= gpuLine; });
   // the hooks must be alive in this session, or nothing above is enforced (2026-11-20: a session opened outside the workspace ran with NO hook)
   const hooksOk = hooksAlive(".");   // the beat of tools/hooks/guard.mjs in .tmp/hooks_alive.json, fresher than 2 min (tools/lib/hooks_alive.mjs, tested by guard_selftest)
   const R = "S:/AI_Tools/Remotion_Workspace";
   console.log([
     `✔ بدأ «${p}» (${mmss(dur)}): المشغّل في الخلفية (العملية ${pid || "?"}) — التجهيز نحو ${lanes[0].etaMin} د، ثم معاً: اقتراح القص، وطابور البحث المبكر${flag("--no-cover") ? "" : "، وموجز الغلاف"}.`,
+    ...(gpuLine ? [gpuLine] : []),
     hooksOk ? "✔ الهوكات تعمل في هذه الجلسة." : `⛔ الهوكات لا تعمل في هذه الجلسة (لا نبض من tools/hooks/guard.mjs منذ دقيقتين): الإلزام الآلي معطّل. افتح الجلسة في ${R} أو في مجلد فيه .claude/settings.json بهوكات الحارس، وأخبر المستخدم.`,
     "", "الآن، بالتوازي، لا بالتسلسل:",
     "  1) أسئلة البداية بالنقر (مهارة first-questions) — والعمل لا ينتظر جوابها.",

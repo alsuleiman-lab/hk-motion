@@ -1,0 +1,6 @@
+{
+  "_": "Sacred texts that are NEVER shown as a picture (user rule, القواعد_العامة §4: «لا صور ذكاء اصطناعي لمصحف أو حديث أو نص شرعي، ولا صورة لله ولا لنبي ولا لملَك»). A mention of one of these names (data/mention_lexicon.json) is covered by a TEXT card at its words, never by an image: tools/montage_build.mjs defaults it to a NoteCard (its spoken phrase), and tools/coverage_check.mjs §1 accepts any text card of `textTypes` there. Ledger: builder-mention-image-missing (rehearsal 2026-11-21, «القرآن»).",
+  "terms": ["القرآن", "صحيح البخاري", "صحيح مسلم"],
+  "textTypes": ["note", "verse", "hadith", "torn", "scraps", "blur", "word", "words", "text", "title", "stamp", "rows"],
+  "textPicks": ["InkQuote", "Footnote", "QACard"]
+}

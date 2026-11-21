@@ -177,12 +177,12 @@ export function snapPiece(viewAt, S0, E0, words, { snapStart = true, snapEnd = t
   const straddle = (t) => words.find((w) => w.cs + S.wordMargin < t && w.ce - S.wordMargin > t);
   const within = words.filter((w) => (w.cs + w.ce) / 2 >= S0 && (w.cs + w.ce) / 2 <= E0), first = within[0], last = within[within.length - 1];
   const before = words.filter((w) => w.ce <= (first?.cs ?? S0)).pop(), after = words.find((w) => w.cs >= (last?.ce ?? E0));
-  let Sn = S0, fail = null;
+  let Sn = S0, fail = null, failStart = false, failEnd = false;
   if (snapStart && (!quietIn(S0) || straddle(S0))) {
     const lo = Math.max(S0 - 0.15, before ? before.ce : -Infinity), hi = Math.min(S0 + 0.08, first ? first.cs : Infinity), c = [];
     for (let t = lo; t <= hi + 1e-9; t += 0.005) if (quietIn(t) && !straddle(t)) c.push(t);
     if (c.length) { Sn = c.sort((a, b) => Math.abs(a - S0) - Math.abs(b - S0))[0]; notes.push(`بداية الجزء ${mmss(S0)} ← ${mmss(Sn)} (كانت على صوت كلمة)`); }
-    else fail = `بداية الجزء عند ${mmss(S0)} على صوت كلمة، ولا فراغ هادئ بين «${before?.w ?? "—"}» و«${first?.w ?? "—"}»`;
+    else { failStart = true; fail = `بداية الجزء عند ${mmss(S0)} على صوت كلمة، ولا فراغ هادئ بين «${before?.w ?? "—"}» و«${first?.w ?? "—"}»`; }
   }
   const m0 = Math.max(1, Math.round((E0 - S0) * fps)), En0 = Sn + m0 / fps;   // clip_slice keeps a whole number of frames from the piece start
   let En = En0;
@@ -190,30 +190,88 @@ export function snapPiece(viewAt, S0, E0, words, { snapStart = true, snapEnd = t
     const c = [];
     for (let m = m0 - 6; m <= m0 + 9; m++) { const t = Sn + m / fps; if (m < 1 || (last && t < last.ce) || (after && t > after.cs)) continue; if (quietOut(t) && !straddle(t)) c.push(t); }
     if (c.length) { En = c.sort((a, b) => Math.abs(a - En0) - Math.abs(b - En0))[0]; notes.push(`نهاية الجزء ${mmss(En0)} ← ${mmss(En)} (كانت في ذيل «${last?.w ?? "—"}»)`); }
-    else fail = (fail ? fail + "؛ " : "") + `نهاية الجزء عند ${mmss(En0)} في ذيل كلمة، ولا فراغ هادئ بين «${last?.w ?? "—"}» و«${after?.w ?? "—"}»`;
+    else { failEnd = true; fail = (fail ? fail + "؛ " : "") + `نهاية الجزء عند ${mmss(En0)} في ذيل كلمة، ولا فراغ هادئ بين «${last?.w ?? "—"}» و«${after?.w ?? "—"}»`; }
   }
-  return { S: Sn, E: En, notes, fail };
+  return { S: Sn, E: En, notes, fail, failStart, failEnd };
 }
 
 /** tools/reel_from_episode.mjs before the slice: ranges [{from, to}] (source s) of the episode → the same ranges with every reel join moved into a quiet
     point of its word gap. words = the episode's word table (source s); audio = the episode's cut file (what clip_slice slices). Returns {ranges, notes, fails} */
-export function snapReelRanges({ ranges, parentSegs, words, audio, fps = 30 }, S = SEAM) {
+export function snapReelRanges({ ranges, parentSegs, words, audio, fps = 30, view = null }, S = SEAM) {
   const segEnd = (g) => g.n + (g.b - g.a);
   const srcToCut = (t) => { for (const g of parentSegs) if (t >= g.a - 1e-6 && t <= g.b + 1e-6) return g.n + (t - g.a); return null; };
   const cutToSrc = (t) => { for (const g of parentSegs) if (t >= g.n - 1e-6 && t <= segEnd(g) + 1e-6) return g.a + (t - g.n); return null; };
   const cw = words.map((w) => { const m = srcToCut((w.s + w.e) / 2); return m === null ? null : { w: w.w, cs: m - (w.e - w.s) / 2, ce: m + (w.e - w.s) / 2 }; }).filter(Boolean).sort((a, b) => a.cs - b.cs);
-  const out = ranges.map((r) => ({ ...r })), pieces = reelPieces(out, parentSegs, fps), V = viewMaker(audio, S), notes = [], fails = [];
+  const out = ranges.map((r) => ({ ...r })), pieces = reelPieces(out, parentSegs, fps), V = view ?? viewMaker(audio, S), notes = [], fails = [], bad = [];
   pieces.forEach((p, k) => {
     if (pieces.length < 2) return;
     const raw0 = p.sub[0].cs, rawE = p.cs + (p.sub[p.sub.length - 1].ce - p.cs);   // reelPieces already holds the frame-rounded end
     const r = snapPiece(V, raw0, rawE, cw, { snapStart: k > 0, snapEnd: k < pieces.length - 1, fps }, S);
     const lab = `الجزء ${p.r0 + 1}${p.r1 !== p.r0 ? `–${p.r1 + 1}` : ""}`;
-    if (r.fail) { fails.push(`${lab}: ${r.fail}`); return; }
+    if (r.fail) { fails.push(`${lab}: ${r.fail}`); if (r.failStart) bad.push({ part: p.r0, edge: "from" }); if (r.failEnd) bad.push({ part: p.r1, edge: "to" }); return; }
     if (Math.abs(r.S - raw0) > 1e-4) { const a = cutToSrc(r.S); if (a !== null) out[p.r0].from = +a.toFixed(4); }
     if (Math.abs(r.E - rawE) > 1e-4) { const b = cutToSrc(r.E); if (b !== null) out[p.r1].to = +b.toFixed(4); }
     for (const n of r.notes) notes.push(`${lab}: ${n}`);
   });
-  return { ranges: out, notes, fails };
+  return { ranges: out, notes, fails, bad };
+}
+
+/** THE REEL SUGGESTER'S OWN OUTPUT IS BUILDABLE (rehearsal 2026-11-21, ledger reel-suggest-unbuildable: the story of reel_from_episode --story-only started a
+    part between «طفل» and «عمره», two words with no quiet point between them, and its own build refused it). Before the story is written every reel join is
+    judged by THE SAME RULE the build applies (snapReelRanges above: a quiet point of the cut audio, not inside a word); a boundary that fails moves to the
+    nearest word gap that has such a point — the gaps that leave the fewest context findings first (ctx(ranges) = how many findings; a sentence boundary
+    scores 0), then the nearest, within `reach` seconds and never into another part's words or under `minDur` — and a part with no such gap is dropped.
+    words = the episode's words in SOURCE seconds [{w,s,e}]; ranges = [{from, to}] source seconds in story order.
+    Returns {ranges, kept (input index of each), notes, dropped (input indexes), fails (left unresolved: [] unless maxIter ran out)} */
+export function seamSafeRanges({ ranges, parentSegs, words, audio = null, view = null, fps = 30, reach = 6, minDur = 3, ctx = null, maxIter = null }, S = SEAM) {
+  const segEnd = (g) => g.n + (g.b - g.a);
+  const srcToCut = (t) => { for (const g of parentSegs) if (t >= g.a - 1e-6 && t <= g.b + 1e-6) return g.n + (t - g.a); return null; };
+  const cutToSrc = (t) => { for (const g of parentSegs) if (t >= g.n - 1e-6 && t <= segEnd(g) + 1e-6) return g.a + (t - g.n); return null; };
+  const cw = words.map((w) => { const mid = (w.s + w.e) / 2, m = srcToCut(mid); return m === null ? null : { w: w.w, mid, cs: m - (w.e - w.s) / 2, ce: m + (w.e - w.s) / 2 }; }).filter(Boolean).sort((a, b) => a.cs - b.cs);
+  const V = view ?? viewMaker(audio, S);
+  const quietIn = (t) => { const A = V(t); return dB(rmsOf(A, t, t + S.win)) <= floorAt(A, t, S).thr; }, quietOut = (t) => { const A = V(t); return dB(rmsOf(A, t - S.win, t)) <= floorAt(A, t, S).thr; };
+  const straddle = (t) => cw.some((w) => w.cs + S.wordMargin < t && w.ce - S.wordMargin > t);   // snapPiece's «inside a word»
+  const strip = ({ _i, _tried, ...r }) => r, inR = (r) => cw.filter((w) => w.mid >= r.from && w.mid <= r.to);
+  let cur = ranges.map((r, i) => ({ ...r, _i: i, _tried: new Set() }));
+  const notes = [], dropped = [], lim = maxIter ?? 4 * ranges.length + 4;
+  const done = (fails = []) => ({ ranges: cur.map(strip), kept: cur.map((r) => r._i), notes, dropped, fails });
+  for (let it = 0; it < lim; it++) {
+    const sn = snapReelRanges({ ranges: cur.map((r) => ({ from: r.from, to: r.to })), parentSegs, words, audio, fps, view: V }, S);
+    if (!sn.fails.length) return done();
+    const b = sn.bad[0]; if (!b) return done(sn.fails);
+    const r = cur[b.part], ws = inR(r), lab = `الجزء ${r._i + 1}`;
+    const drop = (why) => { dropped.push(r._i); cur.splice(b.part, 1); notes.push(`${lab} حُذف من القصة: ${why}`); };
+    if (!ws.length) { drop("بلا كلام في قص الحلقة"); continue; }
+    const first = ws[0], last = ws[ws.length - 1], k0 = cw.indexOf(first), k1 = cw.indexOf(last), others = new Set(cur.filter((x) => x !== r).flatMap(inR));
+    const cands = [];
+    for (let j = 0; j < cw.length; j++) {
+      if (b.edge === "from") {
+        if (j > k1 || Math.abs(cw[j].cs - first.cs) > reach || last.ce - cw[j].cs < minDur || (j < k0 && cw.slice(j, k0).some((w) => others.has(w)))) continue;
+        const lo = j > 0 ? cw[j - 1].ce : Math.max(0, cw[j].cs - 0.3), hi = cw[j].cs; if (!(hi > lo)) continue;
+        cands.push({ j, lo, hi, target: Math.max((lo + hi) / 2, hi - 0.12), dist: Math.abs(cw[j].cs - first.cs), prev: cw[j - 1]?.w, next: cw[j].w });
+      } else {
+        if (j < k0 || Math.abs(cw[j].ce - last.ce) > reach || cw[j].ce - first.cs < minDur || (j > k1 && cw.slice(k1 + 1, j + 1).some((w) => others.has(w)))) continue;
+        const lo = cw[j].ce, hi = j + 1 < cw.length ? cw[j + 1].cs : cw[j].ce + 0.3; if (!(hi > lo)) continue;
+        cands.push({ j, lo, hi, target: Math.min((lo + hi) / 2, lo + 0.26), dist: Math.abs(cw[j].ce - last.ce), prev: cw[j].w, next: cw[j + 1]?.w });
+      }
+    }
+    for (const c of cands) { c.key = `${b.edge}:${c.j}`; c.src = cutToSrc((c.lo + c.hi) / 2); c.n = ctx && c.src !== null ? ctx(cur.map((x, i) => (i === b.part ? { ...strip(x), [b.edge]: c.src } : strip(x)))) : 0; }
+    const order = cands.filter((c) => c.src !== null && !r._tried.has(c.key)).sort((x, y) => x.n - y.n || x.dist - y.dist);
+    let moved = null;
+    for (const c of order) {
+      r._tried.add(c.key);
+      const pts = []; for (let t = c.lo; t <= c.hi + 1e-9; t += 0.005) if ((b.edge === "from" ? quietIn(t) : quietOut(t)) && !straddle(t)) pts.push(t);
+      if (!pts.length) continue;
+      const t = pts.sort((x, y) => Math.abs(x - c.target) - Math.abs(y - c.target))[0], src = cutToSrc(t);
+      if (src !== null) { moved = { t, src, c }; break; }
+    }
+    if (!moved) { drop(`لا فراغ هادئ بين كلمتين قرب ${b.edge === "from" ? "بدايته" : "نهايته"} (±${reach}ث)`); continue; }
+    const old = srcToCut(r[b.edge]);
+    r[b.edge] = +moved.src.toFixed(4);
+    notes.push(`${lab}: ${b.edge === "from" ? "بدايته" : "نهايته"} ${mmss(old ?? 0)} ← ${mmss(moved.t)} بين «${moved.c.prev ?? "—"}» و«${moved.c.next ?? "—"}» (الحدّ القديم بلا فراغ هادئ؛ أقرب فراغ بين كلمتين${moved.c.n ? "، بملاحظة سياق" : ""})`);
+  }
+  const last = snapReelRanges({ ranges: cur.map((r) => ({ from: r.from, to: r.to })), parentSegs, words, audio, fps, view: V }, S);
+  return done(last.fails);
 }
 /** a cached view maker for a long file: one decoded window of ±(floorWin + 0.5) s per region */
 export function viewMaker(file, S = SEAM) {

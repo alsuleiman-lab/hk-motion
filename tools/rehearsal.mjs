@@ -167,6 +167,8 @@ async function run({ quick, keep, noPurge, from = null }) {
     async setup() {
       const pg = noPurge ? { done: [] } : purge(); if (pg.done.length) note(`بقايا تجربة سابقة حُذفت: ${pg.done.length}`);
       rec.gpuAtStart = gpuNow(); if (rec.gpuAtStart?.util >= 30) note(`⚠ كرت الشاشة مشغول قبل البدء (${rec.gpuAtStart.util}%، ${rec.gpuAtStart.memMiB} م.ب): أوقات التفريغ والرندر هنا أبطأ من جهاز فارغ`);
+      /* (ledger prerender-gpu-silent-hang) a foreign long job holding the card is paused (never killed) for the rehearsal and resumed at its end (tools/lib/gpu_busy.mjs) */
+      { const GB = await import("./lib/gpu_busy.mjs"), pr = GB.pauseForMontage({ by: P }); if (pr.line) { note(pr.line); rec.gpuPaused = pr.paused.map((x) => ({ pid: x.pid, name: x.name })); } else if (pr.why) note(`⚠ ${pr.why}`); }
       const g = freeG(); rec.freeG = g; if (g < MIN_FREE_G) return { ok: false, why: `مساحة S: ${g} غيغا < ${MIN_FREE_G} (REHEARSAL_MIN_FREE_G)` };
       const e = ensureSource(); if (e) return { ok: false, why: e };
       fs.mkdirSync(R(".tmp", P), { recursive: true }); fs.copyFileSync(path.join(DATA, "first_answers.json"), R(".tmp", P, "first_answers.json"));
@@ -280,6 +282,7 @@ async function run({ quick, keep, noPurge, from = null }) {
     if (reel?.perMin) est.render_reel = Math.round(reel.perMin * (rec.reelS ?? 90) / 60 + (reel.judderS ?? 0));
     rec.estimate10min = { ...est, total: Object.values(est).reduce((a, b) => a + b, 0) };
   }
+  { const GB = await import("./lib/gpu_busy.mjs"), rr = GB.resumePaused({ by: P, reason: "انتهت التجربة الشاملة" }); if (rr.line) note(rr.line); }   // (ledger prerender-gpu-silent-hang) never left suspended
   fs.appendFileSync(TIMES, JSON.stringify(rec) + "\n");
   prog(null);
   console.log(`\n${rec.ok ? "✔ نجحت التجربة" : `✘ فشلت التجربة عند «${stages.find((s) => s.id === rec.firstFail)?.ar ?? rec.firstFail}»`} — المجموع ${mmss(rec.total)} (المونتاج ${mmss(rec.montageTotal)}) لفيديو ${mmss(rec.sourceS ?? 0)} قُصّ إلى ${mmss(rec.cutS ?? 0)}`);

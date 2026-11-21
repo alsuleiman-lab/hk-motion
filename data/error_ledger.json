@@ -1003,6 +1003,92 @@
     "manual": []
    },
    "evidence": "وجدته التجربة الشاملة الأولى 2026-11-21 (.tmp/rehearsal/run1.out)، وأُصلح ونجح القص في التجربة الثانية"
+  },
+  {
+   "id": "reel-suggest-unbuildable",
+   "date": "2026-11-21",
+   "what": "قصة الريل المقترحة بدأت جزءاً بين «طفل» و«عمره» ولا فراغ هادئ بينهما، فرفض بناء الريل قصته نفسها («بداية الجزء على صوت كلمة»).",
+   "cause": "المقترح (reel_from_episode --story-only) يضع الحدود على جدول الكلمات وحده، والبناء يحكم على الصوت (فراغ هادئ لا داخل كلمة، join_seam_check): قاعدتان مختلفتان.",
+   "guard": {
+    "file": "tools/join_seam_check.mjs + tools/reel_from_episode.mjs",
+    "how": "seamSafeRanges: قبل كتابة القصة تُقاس كل وصلة بقاعدة البناء نفسها (snapReelRanges على صوت القص)، والحد الذي يفشل يُزاح إلى أقرب فراغ هادئ بين كلمتين (حدود الجمل أولاً)، والجزء الذي لا فراغ قربه يُحذف ويُقال؛ فناتج المقترح يُبنى كما هو."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "reel.suggest_snaps_to_gap",
+     "reel.suggest_drops_unfixable",
+     "reel.story_wired_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (tools/rehearsal.mjs، data/rehearsal/times.jsonl، الإيداع 6bf1801) قبل أي حلقة حقيقية"
+  },
+  {
+   "id": "prerender-gpu-silent-hang",
+   "date": "2026-11-21",
+   "what": "فحص ما قبل الرندر علِق 15 دقيقة بلا سطر واحد: التفريغ الثاني وعيّنة الارتجاف ينتظران كرتاً يمسكه تدريب نموذج صوت لجلسة أخرى بنسبة 99%.",
+   "cause": "خطوات الكرت أوامر متزامنة بمهلة 15–30 دقيقة لا تقول شيئاً، ولا شيء يفحص الكرت قبلها ولا عند بدء المونتاج.",
+   "guard": {
+    "file": "tools/lib/gpu_busy.mjs + tools/prerender_check.mjs + tools/montage_kickoff.mjs + tools/rehearsal.mjs + tools/montage_guard.mjs + tools/render_job.sh + tools/gpu/render_project.sh",
+    "how": "قبل خطوة الكرت: سطر عربي يسمّي ما يمسكه (الاسم والعملية) وعدّ تنازلي حتى حدّ ثم «الكرت مشغول: …»؛ كل عملية للكرت بنبض وحدّ زمني تُقتل بعده؛ أمر الإطلاق يقول «الكرت مشغول بـ… — المونتاج لن يكون في نصف ساعة»، ويوقف مؤقتاً (لا يقتل) عملية بايثون خارجية طويلة تمسكه، ويُستأنف بعد الرندر النهائي أو بإنهاء المونتاج أو بنهاية التجربة أو بعد 90 دقيقة بحارس منفصل، بسطر في اللوحة."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "gpu.wait_busy_says_and_fails",
+     "gpu.wait_free_goes",
+     "gpu.child_timeout_kills",
+     "gpu.prerender_wired_src",
+     "gpu.kickoff_warns_busy",
+     "gpu.pausable_never_ours",
+     "gpu.pause_resume_dummy",
+     "gpu.watchdog_resumes",
+     "gpu.resume_wired_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (tools/rehearsal.mjs، data/rehearsal/times.jsonl، الإيداع 6bf1801) قبل أي حلقة حقيقية"
+  },
+  {
+   "id": "shared-typecheck-foreign-file",
+   "date": "2026-11-21",
+   "what": "الفحص الكامل فشل على src/ext/KeyArt2.tsx(436,9) TS2322: ملف نصف مكتوب لجلسة أخرى في المجلد المشترك، لا سطر منه في هذا المونتاج.",
+   "cause": "خطوة typecheck في stage check كانت tsc على المجلد كله، فخطأ أي جلسة يُفشل مونتاج غيرها.",
+   "guard": {
+    "file": "tools/project_typecheck.mjs + tools/stage.mjs",
+    "how": "tsc مرة واحدة، ثم يُحكم على كل خطأ بمكانه: ما في ملف تستورده تركيبات المشروع (SpecComps وما يستورده، وملفات المشروع نفسه) يُفشل؛ وما سواه «ملاحظة لا فشل» باسمه ومكانه (وتنبيه إن كان خطأ صياغة قد يكسر الحزمة)."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "typecheck.foreign_file_is_note",
+     "typecheck.own_file_fails",
+     "typecheck.stage_wired_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (tools/rehearsal.mjs، data/rehearsal/times.jsonl، الإيداع 6bf1801) قبل أي حلقة حقيقية"
+  },
+  {
+   "id": "builder-mention-image-missing",
+   "date": "2026-11-21",
+   "what": "البناء الآلي فشل لأن افتراض ذكر «القرآن» صورة لم تُجلب؛ وصورة المصحف ممنوعة أصلاً (لا صورة ذكاء اصطناعي لمصحف أو حديث أو نبي).",
+   "cause": "الباني يعامل كل مذكور في معجم الذكر طالب صورة، ولا بديل بلا صورة إلا وسيطاً ناقصاً يوقف البناء.",
+   "guard": {
+    "file": "tools/montage_build.mjs + tools/coverage_check.mjs + data/no_image_terms.json",
+    "how": "النصوص الشرعية (data/no_image_terms.json) افتراضها بطاقة كتابة بكلماته (NoteCard) لا صورة أبداً، وفحص التغطية يقبل بطاقة الكتابة لها ولا يقبل الصورة؛ وعموماً اللحظة التي تقبل بطاقة كتابة وتنقصها صورة تأخذ العنصر الصالح التالي بلا صورة ويُذكر في القائمة، وما لا يصح فيه إلا صورة يبقى ناقصاً مسمّى."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "mb.sacred_mention_default_text",
+     "mb.sacred_mention_builds",
+     "mb.picture_only_row_still_named"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته التجربة الشاملة للمحرك 2026-11-21 (tools/rehearsal.mjs، data/rehearsal/times.jsonl، الإيداع 6bf1801) قبل أي حلقة حقيقية"
   }
  ]
 }

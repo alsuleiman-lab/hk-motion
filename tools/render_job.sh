@@ -89,4 +89,6 @@ if true; then
   fi
 fi
 rc=$?
+# (ledger prerender-gpu-silent-hang) the portrait is the last render of a montage: a foreign GPU job its kickoff paused is resumed now (tools/lib/gpu_busy.mjs)
+[ "$o" = R ] && node tools/lib/gpu_busy.mjs resume --by "$(node tools/project.mjs root $p 2>/dev/null || echo $p)" --reason "انتهى الرندر النهائي" 2>/dev/null
 echo "$p RENDER exit $rc -> $o/$name"; (exit $rc)

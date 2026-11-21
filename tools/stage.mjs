@@ -404,7 +404,9 @@ if (stage === "check") {
   // (user 2026-11-17) the names are the gallery keeper's job, never the montage agent's: reported only, never a failed check
   await run("node", ["tools/el.mjs", "names", "--warn"]);
   await step("studio_drag_lint", "node", ["tools/studio_drag_lint.mjs"], /studio_drag_lint|^s+src/);
-  await step("typecheck", "node", ["node_modules/typescript/bin/tsc", "-p", "."], /error TS/);
+  /* (rehearsal 2026-11-21, ledger shared-typecheck-foreign-file) the montage's typecheck judges only the files its compositions import: another session's
+     half-written file in the shared src/ is a note, not a failure of this montage (tools/project_typecheck.mjs) */
+  await step("typecheck", "node", ["tools/project_typecheck.mjs", p, "--comp", comp], /typecheck|error TS|ملاحظة لا فشل/);
   // every video of the montage path reaches the render as a <VSlot> on the GPU (R-RENDER-GPU.2, user 2026-11-12: new elements use the new system)
   await step("video_lint", "node", ["tools/gpu/video_lint.mjs"], /video_lint|^\s+src\//);
   // one colour identity (src/brand.ts, user 2026-10-27): the montage's spec carries no colours of its own

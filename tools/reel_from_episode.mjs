@@ -249,7 +249,7 @@ const checkRanges = (ranges) => {
 };
 
 const KIND_AR = { hook: "الهوك", conclusion: "الخاتمة", dialogue: "حوار", point: "فكرة", user: "نطاق المستخدم" };
-const storyRanges = story.map((g, n) => { const a = g.units[0].kind === "dialogue" ? sents[g.k0].words[0] : sents[g.k0].core[0], b = sents[g.k1].core[sents[g.k1].core.length - 1]; const e = edgesOf(a, b); return rangeObj(e.from, e.to, { n: n + 1, kind: kindOf(g), score: +g.units.reduce((s, u) => s + u.score, 0).toFixed(1) }); });
+let storyRanges = story.map((g, n) => { const a = g.units[0].kind === "dialogue" ? sents[g.k0].words[0] : sents[g.k0].core[0], b = sents[g.k1].core[sents[g.k1].core.length - 1]; const e = edgesOf(a, b); return rangeObj(e.from, e.to, { n: n + 1, kind: kindOf(g), score: +g.units.reduce((s, u) => s + u.score, 0).toFixed(1) }); });
 
 const writeStory = () => {
   const tot = +storyRanges.reduce((a, r) => a + r.dur, 0).toFixed(1), issues = checkRanges(storyRanges);
@@ -263,9 +263,10 @@ const writeStory = () => {
     for (const t of r.turns) L.push(`- **${spName(t.sp)}:** «${t.text}»`);
     L.push("");
   }
+  if (seamNotes.length) L.push(`## ضبط الوصلات على فراغ هادئ بين كلمتين\n${seamNotes.map((x) => `- ${x}`).join("\n")}\n`);
   L.push(issues.length ? `## ملاحظات السياق\n${issues.map((x) => `- ${x}`).join("\n")}\n` : "", "للاعتماد: «اعتمدها» تبني الريل بهذه الأجزاء وهذا الترتيب؛ أو اذكر أرقام الأجزاء بترتيبك (مثل 3، 1، 2)، أو أمدية بدقيقة:ثانية من الحلقة.");
   fs.writeFileSync(path.join(T, "reel_story.md"), L.join("\n") + "\n");
-  fs.writeFileSync(path.join(T, "reel_ranges.json"), JSON.stringify({ episode: P, made: new Date().toISOString(), target: [tMin, tMax], sentenceGap: SG, wordsFrom, speakersFrom: speakersFrom ?? "none", total: tot, parts: storyRanges }, null, 1));
+  fs.writeFileSync(path.join(T, "reel_ranges.json"), JSON.stringify({ episode: P, made: new Date().toISOString(), seamNotes, target: [tMin, tMax], sentenceGap: SG, wordsFrom, speakersFrom: speakersFrom ?? "none", total: tot, parts: storyRanges }, null, 1));
   console.log(`قصة الريل: ${storyRanges.length} أجزاء، ${mmss(tot)} (المطلوب ${tMin}–${tMax}ث) | الكلمات من ${wordsFrom}، المتحدثون: ${speakersFrom ?? "غير مميَّزين"}`);
   for (const r of storyRanges) console.log(`  ${r.n}) ${KIND_AR[r.kind]} ${mmss(r.cutFrom)}–${mmss(r.cutTo)} ${Math.round(r.dur)}ث [${r.speakers.map(spName).join("+")}] «${r.turns.map((t) => t.text).join(" | ").slice(0, 90)}…»`);
   if (issues.length) { console.log("⚠ ملاحظات السياق:"); issues.forEach((x) => console.log("  " + x)); }
@@ -273,7 +274,21 @@ const writeStory = () => {
   return issues;
 };
 
-if (has("story-only")) { const iss = writeStory(); process.exit(iss.length ? 1 : 0); }
+/* THE STORY IS BUILDABLE AS IT IS (rehearsal 2026-11-21, ledger reel-suggest-unbuildable: part 2 began between «طفل» and «عمره», no quiet point there, and
+   --approved refused its own story). Every reel join of the story is judged now by the build's own rule (join_seam_check snapReelRanges, on the episode's cut
+   audio); a boundary that fails moves to the nearest word gap with a quiet point (sentence boundaries first), a part with none is dropped — and it is said. */
+let seamNotes = [];
+async function seamSafeStory() {
+  if (storyRanges.length < 2) return;
+  const aud = [path.join(T, "cut_audio.wav"), ...(rd(path.join("data", "specs", `${P}.json`), {})?.cut ? [path.join("public", rd(path.join("data", "specs", `${P}.json`), {}).cut)] : []), ...["cut_s", "cut"].map((x) => path.join("public", `${P}_${x}.mp4`))].find((f) => fs.existsSync(f));
+  if (!aud) { seamNotes = ["وصلات القصة لم تُقَس على الصوت: لا صوت لقص الحلقة (البناء يقيسها ويرفض ما لا فراغ هادئ عنده)"]; console.log("⚠ " + seamNotes[0]); return; }
+  const SJ = await import("./join_seam_check.mjs");
+  const r = SJ.seamSafeRanges({ ranges: storyRanges.map((x) => ({ from: x.from, to: x.to })), parentSegs: segs, words: ALL, audio: aud, minDur: PART_MIN, ctx: (rs) => checkRanges(rs.map((x) => rangeObj(x.from, x.to))).length });
+  storyRanges = r.kept.map((i, n) => { const o = storyRanges[i], nr = r.ranges[n]; return nr.from === o.from && nr.to === o.to ? { ...o, n: n + 1 } : rangeObj(nr.from, nr.to, { n: n + 1, kind: o.kind, score: o.score }); });
+  seamNotes = [...r.notes, ...r.fails.map((x) => `لم يُحسم: ${x}`)];
+  if (seamNotes.length) console.log(["↔ القصة ضُبطت على فراغات الكلمات بقاعدة وصلات البناء نفسها (فتُبنى كما هي):", ...seamNotes.map((x) => "  " + x)].join("\n"));
+}
+if (has("story-only")) { await seamSafeStory(); const iss = writeStory(); process.exit(iss.length ? 1 : 0); }
 
 // ── 6) البناء ──
 const parseT = (x) => { const s = String(x).trim(); if (s.includes(":")) { const [m, q] = s.split(":").map(Number); return m * 60 + q; } return Number(s); };

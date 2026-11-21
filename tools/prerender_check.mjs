@@ -163,11 +163,19 @@ export function audioGate(p) {
 
 /* ── the listening twin: the checked mix IS the delivered audio, so it is transcribed now (large-v3, the cue-word decoder) and searched for the markers ── */
 const PY = process.env.PY ?? "S:/AI_Tools/ComfyUI_windows_portable/python_embeded/python.exe";
-function listenTwin(c) {
+/* (rehearsal 2026-11-21, ledger prerender-gpu-silent-hang) the GPU children wait for a busy card with a visible countdown, beat every 30 s and have a hard
+   limit: «الكرت مشغول: …» instead of a silent 15-minute stall (tools/lib/gpu_busy.mjs) */
+const GPU = () => import("./lib/gpu_busy.mjs");
+const gpuLog = (m) => console.log(`[prerender] ${m}`);
+export const gpuLimitS = (kind, durS = 0) => { const env = Number(process.env.PRERENDER_GPU_TIMEOUT_S); if (env > 0) return env; return kind === "listen" ? Math.min(1800, Math.max(300, Math.round(120 + 0.5 * durS))) : 600; };
+async function listenTwin(c) {
   if (!c.wav || !fs.existsSync(c.wav)) return R(false, "لا صوت لفحصه");
   const sha = crypto.createHash("sha256").update(fs.readFileSync(c.wav)).digest("hex").slice(0, 16), out = projT(c.p, `listen_${sha}.json`);
   if (!fs.existsSync(out)) {
-    const r = run(PY, ["-X", "utf8", path.join(ROOT, "tools", "transcribe_words.py"), c.wav, out], { timeout: 1800000, env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
+    const G = await GPU(), w = await G.waitForGpu({ needG: 5, log: gpuLog, label: "التفريغ الثاني لصوت المونتاج" });
+    if (!w.ok) return R(false, w.why);
+    const r = await G.runTimed(PY, ["-X", "utf8", path.join(ROOT, "tools", "transcribe_words.py"), c.wav, out], { timeoutS: gpuLimitS("listen", (c.NF ?? 0) / FPS), label: "التفريغ الثاني لصوت المونتاج", log: gpuLog, env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
+    if (r.timedOut) return R(false, r.why);
     if (r.status !== 0 || !fs.existsSync(out)) return R(false, `التفريغ لم يعمل: ${String(r.stderr || r.stdout).trim().split(/\r?\n/).pop()?.slice(0, 200)}`);
   }
   const fr = run(process.execPath, ["tools/find_restarts.mjs", out]), m = (fr.stdout.match(/^markers: (.*)$/m)?.[1] ?? "").trim();
@@ -177,13 +185,16 @@ function listenTwin(c) {
 
 /* ── the pixel twins: a short preview of the risky moments, never the whole video ── */
 const projT = (p, ...a) => path.join(ROOT, ".tmp", p, "prerender", ...a);
-function probeTwin(c) {
+async function probeTwin(c) {
   const g = rd(path.join(ROOT, ".tmp/gates", `${c.p}.probe.ok`)), specM = fs.statSync(path.join(ROOT, "data/specs", `${c.p}.json`)).mtimeMs;
   if (g && g.id === c.comp && g.at > specM) return R(true, `عيّنة الارتجاف نجحت لـ${c.comp} بعد آخر تعديل للمواصفة (الإطارات ${g.frames?.join("–")})`);
   const src = path.join("public", c.spec.cut ?? `${c.p}_cut_s.mp4`);
   const cm = (c.spec.cams || []).map((x) => ({ cx: x.cx, d: Math.min(x.to, c.spec.frames / FPS) - x.from })).sort((a, b) => b.d - a.d)[0];
   const crop = c.o === "R" ? ["--crop", "250,300,580,700", "--src-crop", `${Math.round((cm?.cx ?? 940) - 163)},169,326,394`] : [];
-  const r = run(process.execPath, ["tools/judder_probe.mjs", c.comp, "--src", src, "--offset", "0", "--name", c.p, "--random", ...crop], { timeout: 900000 });
+  const G = await GPU(), w = await G.waitForGpu({ needG: 2, log: gpuLog, label: "عيّنة الارتجاف" });
+  if (!w.ok) return R(false, w.why);
+  const r = await G.runTimed(process.execPath, ["tools/judder_probe.mjs", c.comp, "--src", src, "--offset", "0", "--name", c.p, "--random", ...crop], { timeoutS: gpuLimitS("judder"), label: "عيّنة الارتجاف", log: gpuLog });
+  if (r.timedOut) return R(false, r.why);
   const last = `${r.stdout}\n${r.stderr}`.split(/\r?\n/).filter((l) => /judder|✘|✔/.test(l)).slice(-2).join(" · ").slice(0, 240);
   return R(r.status === 0, r.status === 0 ? `عيّنة الارتجاف 10ث نجحت: ${last}` : `عيّنة الارتجاف فشلت: ${last}`);
 }
@@ -200,10 +211,11 @@ export function riskyFrames(spec, o) {
 /** mean luma (0–255) of a picture; a frame under BLACK_Y is black (a dark root background blackens the split windows: إدلب 2026-11-15) */
 export const BLACK_Y = 16;
 export const meanLuma = (f) => Number((run("ffmpeg", ["-hide_banner", "-i", f, "-vf", "signalstats,metadata=print:key=lavfi.signalstats.YAVG", "-f", "null", "-"]).stderr || "").match(/YAVG=([\d.]+)/)?.[1]);
-function blackTwin(c) {
+async function blackTwin(c) {
   const dir = projT(c.p, `stills_${c.o}`); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
   const pts = riskyFrames(c.spec, c.o);
-  const r = run(process.execPath, ["tools/stills.mjs", c.comp, dir, ...pts.map(([n, x]) => `${n}:${x}`), "--scale", "0.25"], { timeout: 900000 });
+  const r = await (await GPU()).runTimed(process.execPath, ["tools/stills.mjs", c.comp, dir, ...pts.map(([n, x]) => `${n}:${x}`), "--scale", "0.25"], { timeoutS: gpuLimitS("stills"), label: "لقطات المواضع الخطرة", log: gpuLog });
+  if (r.timedOut) return R(false, r.why);
   if (r.status !== 0) return R(false, `لقطات المواضع الخطرة لم تُرسم: ${String(r.stderr || r.stdout).trim().split(/\r?\n/).pop()?.slice(0, 200)}`);
   const bad = [];
   for (const [n, x] of pts) {

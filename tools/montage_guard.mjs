@@ -101,6 +101,8 @@ if (cmd === "stage") {
   for (const s of STAGES) console.log(`  ${s.id.padEnd(10)} ${s.label}  [${s.skills.join("/")}]`);
   console.log(`\nلكل مرحلة: node tools/montage_guard.mjs stage ${project} <المرحلة> --skill <المهارة> --done "…"\nثم قبل أول ملف بناء: node tools/montage_guard.mjs ready ${project}`);
 } else if (cmd === "end") {
+  /* (ledger prerender-gpu-silent-hang) a foreign GPU job this montage paused at its start (tools/lib/gpu_busy.mjs) is resumed at its end, never left suspended */
+  { const GB = await import("./lib/gpu_busy.mjs"), rr = GB.resumePaused({ by: project, reason: `انتهى المونتاج «${project}»` }); if (rr.line) console.log(rr.line); }
   // APPROVAL step (user order 2026-10-25): unregister, purge Remotion's residue on C:, then report every leftover of the project in Remotion's data
   // (composition, component, public assets, tools, render_work, .tmp, titles/dates); exit 1 while anything remains so "approved & cleaned" cannot be claimed early.
   { const reg = readJson(path.join(".tmp", "active_montage.json"), {}); const list = (reg.projects ?? (reg.project ? [reg.project] : [])).filter((p) => p !== project);

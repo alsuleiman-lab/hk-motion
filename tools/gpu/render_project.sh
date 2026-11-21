@@ -43,4 +43,5 @@ for o in ${GR_ONLY:-L R}; do
   fi
   rm -f "$chk.tmp" 2>/dev/null; [ "$chk" != "$out/$comp.mp4" ] && cp -f "$chk" "$out/${comp}_prebumper.mp4" && rm -f "$chk"   # kept in the output folder: the final review maps the final file to this pre-bumper original (the gate is per project); cleaned at approval
 done
+node tools/lib/gpu_busy.mjs resume --by "$(node tools/project.mjs root $p 2>/dev/null || echo $p)" --reason "انتهى الرندر النهائي" 2>/dev/null   # (ledger prerender-gpu-silent-hang) a paused foreign GPU job resumes after the final render
 echo "ALL DONE $(date +%T)"

@@ -79,4 +79,6 @@ export const COMPOSITION_TITLES: Record<string, string> = {
   "Ref-SheikhCast": "شيخ الردود: عشر نسخ",
   "Ref-SheikhRudood": "شيخ الردود: الشكل الطولي",
   "Rudood-Ukhuwwa": "شيخ الردود يرد: الأخوة الإنسانية وأبو جهل",
+  "Rudood-Jinn": "شيخ الردود يرد: طعام لمسلمي الجن",
+  "Rudood-Shabbiha": "شيخ الردود يرد: الشبيحة ووزير الأوقاف",
 };

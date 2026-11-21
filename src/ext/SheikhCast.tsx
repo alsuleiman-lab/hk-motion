@@ -4,7 +4,7 @@
    عشر نسخ للاختيار: الإطار رقم n = النسخة n. */
 import React from "react";
 import { AbsoluteFill, Audio, Freeze, Img, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
-import { SALADIN_MOUTH, UKHUWWA_MOUTH } from "./rudoodMouth";
+import { SALADIN_MOUTH, UKHUWWA_MOUTH, JINN_MOUTH, SHABBIHA_MOUTH } from "./rudoodMouth";
 
 export const SHEIKH_CAST_FRAMES = 10;
 const INK = "#2a1c14";
@@ -509,11 +509,12 @@ export const RUDOOD_OUTFITS: Partial<Design>[] = [
 ];
 export const rudoodLook = (n: number): Design => ({ ...DESIGNS[3], chair: DESIGNS[0].chair, chairStyle: DESIGNS[0].chairStyle, wall: DESIGNS[0].wall, wall2: DESIGNS[0].wall2, floor: DESIGNS[0].floor, decor: DESIGNS[0].decor, device: "wall", arm: "rest", glasses: true, lightMustache: true, ...RUDOOD_OUTFITS[n % RUDOOD_OUTFITS.length] });
 /* قالب «شيخ الردود» لكل فيديو: يكفيه المقطع المعالَج وصوته ورقم اللباس والرد وحركة الفم؛ مراحل الإنصات نسبية إلى طول المقطع */
-type RudoodProps = { look: number; clip: string; clipAudio: string; clipFrames: number; objPos: string; reply: string; mouthData: number[] };
+/* pics: صور تُعرض على التلفاز أثناء الرد (a وb بالثواني من بداية الرد)، مثل «تنبيه للمونتاج: جيب صور ناس جوعانين واعرضها على التلفزيون» */
+type RudoodProps = { look: number; clip: string; clipAudio: string; clipFrames: number; objPos: string; reply: string; mouthData: number[]; pics?: { src: string; a: number; b: number }[] };
 const ON = 15;
 export const rudoodFrames = (clipFrames: number, mouthLen: number) => ON + clipFrames + 12 + mouthLen + 36;
 const SX = 74, SY = 168, SWD = 932, SHT = 532;
-export const RudoodReply: React.FC<RudoodProps> = ({ look, clip, clipAudio, clipFrames: CLIP, objPos, reply, mouthData }) => {
+export const RudoodReply: React.FC<RudoodProps> = ({ look, clip, clipAudio, clipFrames: CLIP, objPos, reply, mouthData, pics = [] }) => {
   const REPLY_AT = ON + CLIP + 12, REPLY = mouthData.length;
   const f = useCurrentFrame(), d = rudoodLook(look), FL = 884 + 760;
   const r = f - REPLY_AT, mouth = r >= 0 && r < REPLY ? mouthData[r] : 0;
@@ -572,7 +573,10 @@ export const RudoodReply: React.FC<RudoodProps> = ({ look, clip, clipAudio, clip
               <OffthreadVideo muted src={staticFile(clip)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: objPos, filter: "brightness(.55) saturate(.7)" }} />
             </Freeze>
           )}
-          {paused && (
+          {(() => { const rs = (f - (ON + CLIP + 12)) / 30, p = pics.find((q) => rs >= q.a && rs < q.b); if (!p) return null;
+            const k = (rs - p.a) / (p.b - p.a);
+            return <Img src={staticFile(p.src)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", transform: `scale(${1.04 + 0.08 * k})` }} />; })()}
+          {paused && !pics.some((q) => (f - (ON + CLIP + 12)) / 30 >= q.a && (f - (ON + CLIP + 12)) / 30 < q.b) && (
             <div style={{ position: "absolute", left: "50%", top: "50%", transform: `translate(-50%,-50%) scale(${interpolate(f, [ON + CLIP, ON + CLIP + 8], [1.4, 1], { extrapolateRight: "clamp" })})`, display: "flex", gap: 22 }}>
               {[0, 1].map((k) => <div key={k} style={{ width: 34, height: 110, background: "rgba(255,255,255,.92)", borderRadius: 6, boxShadow: "0 4px 18px rgba(0,0,0,.4)" }} />)}
             </div>
@@ -599,3 +603,12 @@ export const RudoodSaladin: React.FC = () => <RudoodReply look={0} clip="rudood1
 /* الفيديو الثاني: «الأخوة الإنسانية» وأبو جهل (لباس ١، مقطع شيخ قُصّت سكتاته وأُزيلت موسيقاه) */
 export const RUDOOD_UKHUWWA_FRAMES = rudoodFrames(1185, UKHUWWA_MOUTH.length);
 export const RudoodUkhuwwa: React.FC = () => <RudoodReply look={1} clip="rudood2/clip.mp4" clipAudio="rudood2/clip_audio.wav" clipFrames={1185} objPos="50% 42%" reply="rudood2/reply.wav" mouthData={UKHUWWA_MOUTH} />;
+
+/* الفيديو الثالث: طعام الجن (لباس ٢)، وصور الجائعين على التلفاز عند «اللي جعانين في غزة والسودان» (تنبيه المستخدم للمونتاج) */
+export const RUDOOD_JINN_FRAMES = rudoodFrames(432, JINN_MOUTH.length);
+export const RudoodJinn: React.FC = () => <RudoodReply look={2} clip="rudood3/clip.mp4" clipAudio="rudood3/clip_audio.wav" clipFrames={432} objPos="50% 30%" reply="rudood3/reply.wav" mouthData={JINN_MOUTH}
+  pics={[{ src: "stock/rudood_hunger_60743.jpg", a: 1.55, b: 3.3 }, { src: "stock/rudood_hunger_3829378.jpg", a: 3.3, b: 5.8 }]} />;
+
+/* الفيديو الرابع: الشبيحة ووزير الأوقاف (لباس ٣) */
+export const RUDOOD_SHABBIHA_FRAMES = rudoodFrames(477, SHABBIHA_MOUTH.length);
+export const RudoodShabbiha: React.FC = () => <RudoodReply look={3} clip="rudood4/clip.mp4" clipAudio="rudood4/clip_audio.wav" clipFrames={477} objPos="50% 72%" reply="rudood4/reply.wav" mouthData={SHABBIHA_MOUTH} />;

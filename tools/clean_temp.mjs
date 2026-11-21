@@ -4,14 +4,19 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
+/* (2026-11-21, tools/montage_build.mjs sandboxes link real folders into .tmp/selftest) a symbolic link or junction is removed AS A LINK — never walked into:
+   following it deleted the real folder's contents. lstat, not stat. */
+const dropLink = (p) => { try { fs.unlinkSync(p); } catch { try { fs.rmdirSync(p); } catch { /* left */ } } return 0; };
 function removeDirOrFile(p) {
   try {
+    if (fs.lstatSync(p).isSymbolicLink()) return dropLink(p);
     const stat = fs.statSync(p);
     if (stat.isDirectory()) {
       let sz = 0;
       for (const f of fs.readdirSync(p)) {
         const fp = path.join(p, f);
         try {
+          if (fs.lstatSync(fp).isSymbolicLink()) { dropLink(fp); continue; }
           const st = fs.statSync(fp);
           if (st.isDirectory()) sz += removeDirOrFile(fp);
           else { sz += st.size; fs.rmSync(fp, { force: true }); }

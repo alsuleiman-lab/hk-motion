@@ -17,6 +17,7 @@ import { CaseFile, CASE_FILE_FRAMES } from "./ext/CaseFile";
 import { FontSpecimen, FONT_SPECIMEN_FRAMES } from "./ext/FontSpecimen";
 import { KineticType, KINETIC_TYPE_FRAMES, KineticOver, KineticSplit, KINETIC_SPLIT_FRAMES } from "./ext/KineticType";
 import { ActiveSpeaker, ACTIVE_FRAMES } from "./ext/ActiveSpeaker";
+import { HaithamAmulets, HAITHAM_AMULETS_FRAMES } from "./ext/haithamAmulets";
 import { CineSpeaker, CINE_SPEAKER_FRAMES } from "./ext/CineKit";
 import { StepsTemplate, STEPS_FRAMES } from "./ext/StepsKit";
 import { SheikhCast, SHEIKH_CAST_FRAMES, SheikhRudood, SHEIKH_RUDOOD_FRAMES, SheikhRudoodScenes, SHEIKH_RUDOOD_SCENES_FRAMES } from "./ext/SheikhCast";
@@ -109,6 +110,7 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Ref-KineticOver" component={KineticOver} durationInFrames={KINETIC_TYPE_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-KineticSplit" component={KineticSplit} durationInFrames={KINETIC_SPLIT_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-ActiveSpeaker" component={ActiveSpeaker} durationInFrames={ACTIVE_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Ref-HaithamAmulets" component={HaithamAmulets} durationInFrames={HAITHAM_AMULETS_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-CineSpeaker" component={CineSpeaker} durationInFrames={CINE_SPEAKER_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-SheikhRudoodScenes" component={SheikhRudoodScenes} durationInFrames={SHEIKH_RUDOOD_SCENES_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-SheikhRudood" component={SheikhRudood} durationInFrames={SHEIKH_RUDOOD_FRAMES} fps={30} width={1080} height={1920} />

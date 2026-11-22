@@ -16,6 +16,7 @@ export const COMPOSITION_DATES: Record<string, number> = {
   "Ref-CineSpeaker": 1795165514039,
   "Ref-BoardTemplate": 1795165062082,
   "Ref-ActiveSpeaker": 1795164451195,
+  "Ref-HaithamAmulets": 1795170000000,
   "Dub-Kmr-Board2": 1795162776096,
   "Ref-AnimeScene": 1795160211224,
   "Ref-KineticType": 1795122424336,

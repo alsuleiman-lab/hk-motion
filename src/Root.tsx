@@ -101,71 +101,73 @@ export const RemotionRoot: React.FC = () => {
           <Composition id="Dub-Kmr-Sync" component={DubKmrSync} durationInFrames={DUBKMR_SYNC_FRAMES} fps={30} width={1080} height={1920} />
         </Folder>
       </Folder>
-      <Folder name="موشن توضيحي">
-        <Folder name="توقيفات وتضييقات على المشايخ في الأردن">
-          <Composition id="Jordan-Detain" component={JordanDetain} durationInFrames={JORDAN_FRAMES} fps={30} width={1080} height={1920} />
+      <Folder name="موشن">
+        <Folder name="موشن توضيحي">
+          <Folder name="توقيفات وتضييقات على المشايخ في الأردن">
+            <Composition id="Jordan-Detain" component={JordanDetain} durationInFrames={JORDAN_FRAMES} fps={30} width={1080} height={1920} />
+          </Folder>
         </Folder>
-      </Folder>
-      <Folder name="موشن هيثم">
-        <Folder name="تمائم (تجربة على المقطع)">
-          <Composition id="Ref-HaithamAmulets" component={HaithamAmulets} durationInFrames={HAITHAM_AMULETS_FRAMES} fps={30} width={1080} height={1920} />
+        <Folder name="موشن هيثم">
+          <Folder name="تمائم (تجربة على المقطع)">
+            <Composition id="Ref-HaithamAmulets" component={HaithamAmulets} durationInFrames={HAITHAM_AMULETS_FRAMES} fps={30} width={1080} height={1920} />
+          </Folder>
         </Folder>
-      </Folder>
-      <Folder name="نماذج مرجعية">
-        <Folder name="ورق ولوحة التحقيق">
-          <Composition id="Ref-PaperSteps" component={PaperSteps} durationInFrames={PAPER_STEPS_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ palette: "warm" as const }} />
-          <Composition id="Ref-CaseFile" component={CaseFile} durationInFrames={CASE_FILE_FRAMES} fps={30} width={1080} height={1920} />
-          <Composition id="Ref-StepsTemplate" component={StepsTemplate} durationInFrames={STEPS_FRAMES} fps={30} width={1080} height={1920} />
-          <Composition id="Ref-BoardTemplate" component={BoardTemplate} durationInFrames={BOARD_FRAMES} fps={30} width={1080} height={1920} />
+        <Folder name="نماذج مرجعية">
+          <Folder name="ورق ولوحة التحقيق">
+            <Composition id="Ref-PaperSteps" component={PaperSteps} durationInFrames={PAPER_STEPS_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ palette: "warm" as const }} />
+            <Composition id="Ref-CaseFile" component={CaseFile} durationInFrames={CASE_FILE_FRAMES} fps={30} width={1080} height={1920} />
+            <Composition id="Ref-StepsTemplate" component={StepsTemplate} durationInFrames={STEPS_FRAMES} fps={30} width={1080} height={1920} />
+            <Composition id="Ref-BoardTemplate" component={BoardTemplate} durationInFrames={BOARD_FRAMES} fps={30} width={1080} height={1920} />
+          </Folder>
+          <Folder name="خطوط وكلمات وكاميرا">
+            <Composition id="Ref-Fonts" component={FontSpecimen} durationInFrames={FONT_SPECIMEN_FRAMES} fps={30} width={1080} height={1920} />
+            <Composition id="Ref-KineticType" component={KineticType} durationInFrames={KINETIC_TYPE_FRAMES} fps={30} width={1080} height={1920} />
+            <Composition id="Ref-KineticOver" component={KineticOver} durationInFrames={KINETIC_TYPE_FRAMES} fps={30} width={1080} height={1920} />
+            <Composition id="Ref-KineticSplit" component={KineticSplit} durationInFrames={KINETIC_SPLIT_FRAMES} fps={30} width={1080} height={1920} />
+            <Composition id="Ref-CineWords" component={CineWords} durationInFrames={CINE_WORDS_FRAMES} fps={30} width={1080} height={1920} />
+            <Composition id="Ref-CineSpeaker" component={CineSpeaker} durationInFrames={CINE_SPEAKER_FRAMES} fps={30} width={1080} height={1920} />
+            <Composition id="Ref-ActiveSpeaker" component={ActiveSpeaker} durationInFrames={ACTIVE_FRAMES} fps={30} width={1080} height={1920} />
+          </Folder>
+          <Folder name="مشاهد ولوحات">
+            <Composition id="Ref-AnimeScene" component={AnimeScene} durationInFrames={ANIME_FRAMES} fps={ANIME_FPS} width={1920} height={1080} />
+            <Composition id="Ref-KeyArt1" component={KeyArt1} durationInFrames={1} fps={24} width={KEY1_W} height={KEY1_H} />
+            <Composition id="Ref-KeyArt2" component={KeyArt2} durationInFrames={2} fps={24} width={KEY2_W} height={KEY2_H} />
+          </Folder>
         </Folder>
-        <Folder name="خطوط وكلمات وكاميرا">
-          <Composition id="Ref-Fonts" component={FontSpecimen} durationInFrames={FONT_SPECIMEN_FRAMES} fps={30} width={1080} height={1920} />
-          <Composition id="Ref-KineticType" component={KineticType} durationInFrames={KINETIC_TYPE_FRAMES} fps={30} width={1080} height={1920} />
-          <Composition id="Ref-KineticOver" component={KineticOver} durationInFrames={KINETIC_TYPE_FRAMES} fps={30} width={1080} height={1920} />
-          <Composition id="Ref-KineticSplit" component={KineticSplit} durationInFrames={KINETIC_SPLIT_FRAMES} fps={30} width={1080} height={1920} />
-          <Composition id="Ref-CineWords" component={CineWords} durationInFrames={CINE_WORDS_FRAMES} fps={30} width={1080} height={1920} />
-          <Composition id="Ref-CineSpeaker" component={CineSpeaker} durationInFrames={CINE_SPEAKER_FRAMES} fps={30} width={1080} height={1920} />
-          <Composition id="Ref-ActiveSpeaker" component={ActiveSpeaker} durationInFrames={ACTIVE_FRAMES} fps={30} width={1080} height={1920} />
-        </Folder>
-        <Folder name="مشاهد ولوحات">
-          <Composition id="Ref-AnimeScene" component={AnimeScene} durationInFrames={ANIME_FRAMES} fps={ANIME_FPS} width={1920} height={1080} />
-          <Composition id="Ref-KeyArt1" component={KeyArt1} durationInFrames={1} fps={24} width={KEY1_W} height={KEY1_H} />
-          <Composition id="Ref-KeyArt2" component={KeyArt2} durationInFrames={2} fps={24} width={KEY2_W} height={KEY2_H} />
-        </Folder>
-      </Folder>
-      <Folder name="عروض وتجارب">
-        <SpecComps kind="spec-demo" />
-        <Folder name="أدوات الموشن التوضيحي المستقل">
-          <Composition id="Ext-Demo" component={ExtDemo} durationInFrames={EXT_DEMO_FRAMES} fps={30} width={1920} height={1080} />
-        </Folder>
-        {SHOW_REFERENCE && <Folder name="عروض العناصر والتجارب (مرجعية)">
-          <Composition id="KhAlphaTrial" component={KhAlphaTrial} durationInFrames={ALPHATRIAL_FRAMES} fps={30} width={1920} height={1080} />
-          <Composition id="ElementsLab" component={ElementsLab} durationInFrames={ELEMENTS_LAB_FRAMES} fps={30} width={1920} height={1080} />
-          <Composition id="EuText-Practice" component={EuTextPractice} durationInFrames={EU_TEXT_PRACTICE_FRAMES} fps={30} width={1920} height={1080} />
-          <Composition id="TimelineCounter-Demo" component={TimelineDemo} durationInFrames={TIMELINE_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
-          <Composition id="MorphKit-Demo" component={MorphDemo} durationInFrames={MORPH_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
-          <Composition id="TypeCompare-Demo" component={TypeCompareDemo} durationInFrames={TYPECOMPARE_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
-          <Composition id="FlashCut-Demo" component={FlashDemo} durationInFrames={FLASH_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
-          <Composition id="ConvergeMerge-Demo" component={ConvergeDemo} durationInFrames={CONVERGE_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
-          <Composition id="BlurRise-Demo" component={BlurRiseDemo} durationInFrames={BLURRISE_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
-          <Composition id="PanelToCanvas-Demo" component={PanelDemo} durationInFrames={PANEL_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
-          <Composition id="PhoneChips-Demo" component={PhoneDemo} durationInFrames={PHONE_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
-          <Composition id="SakugaMove-Demo" component={SakugaDemo} durationInFrames={SAKUGA_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
-          <Composition id="SpotlightCard-Demo" component={SpotDemo} durationInFrames={SPOT_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
-          <Composition id="TimelineTravel-Demo" component={TravelDemo} durationInFrames={TRAVEL_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
-          <Composition id="CollageAssemble-Demo" component={CollageDemo} durationInFrames={COLLAGE_DEMO_FRAMES} fps={30} width={1080} height={1920} />
-          <Composition id="CollageAssemble-L-Demo" component={CollageDemoL} durationInFrames={COLLAGE_DEMO_FRAMES} fps={30} width={1920} height={1080} />
-        </Folder>}
       </Folder>
       <Folder name="أصول الهجين (مخفية)">
+        <Folder name="عروض وتجارب">
+          <SpecComps kind="spec-demo" />
+          <Folder name="أدوات الموشن التوضيحي المستقل">
+            <Composition id="Ext-Demo" component={ExtDemo} durationInFrames={EXT_DEMO_FRAMES} fps={30} width={1920} height={1080} />
+          </Folder>
+          {SHOW_REFERENCE && <Folder name="عروض العناصر والتجارب (مرجعية)">
+            <Composition id="KhAlphaTrial" component={KhAlphaTrial} durationInFrames={ALPHATRIAL_FRAMES} fps={30} width={1920} height={1080} />
+            <Composition id="ElementsLab" component={ElementsLab} durationInFrames={ELEMENTS_LAB_FRAMES} fps={30} width={1920} height={1080} />
+            <Composition id="EuText-Practice" component={EuTextPractice} durationInFrames={EU_TEXT_PRACTICE_FRAMES} fps={30} width={1920} height={1080} />
+            <Composition id="TimelineCounter-Demo" component={TimelineDemo} durationInFrames={TIMELINE_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
+            <Composition id="MorphKit-Demo" component={MorphDemo} durationInFrames={MORPH_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
+            <Composition id="TypeCompare-Demo" component={TypeCompareDemo} durationInFrames={TYPECOMPARE_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
+            <Composition id="FlashCut-Demo" component={FlashDemo} durationInFrames={FLASH_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
+            <Composition id="ConvergeMerge-Demo" component={ConvergeDemo} durationInFrames={CONVERGE_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
+            <Composition id="BlurRise-Demo" component={BlurRiseDemo} durationInFrames={BLURRISE_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
+            <Composition id="PanelToCanvas-Demo" component={PanelDemo} durationInFrames={PANEL_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
+            <Composition id="PhoneChips-Demo" component={PhoneDemo} durationInFrames={PHONE_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
+            <Composition id="SakugaMove-Demo" component={SakugaDemo} durationInFrames={SAKUGA_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
+            <Composition id="SpotlightCard-Demo" component={SpotDemo} durationInFrames={SPOT_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
+            <Composition id="TimelineTravel-Demo" component={TravelDemo} durationInFrames={TRAVEL_DEMO_FRAMES} fps={30} width={1920} height={1080} defaultProps={{ theme: "teal" as const }} />
+            <Composition id="CollageAssemble-Demo" component={CollageDemo} durationInFrames={COLLAGE_DEMO_FRAMES} fps={30} width={1080} height={1920} />
+            <Composition id="CollageAssemble-L-Demo" component={CollageDemoL} durationInFrames={COLLAGE_DEMO_FRAMES} fps={30} width={1920} height={1080} />
+          </Folder>}
+        </Folder>
         <Composition id="HybridGrad" component={HybridGrad} durationInFrames={1} fps={30} width={1920} height={1080} />
         <Composition id="HybridVig" component={HybridVig} durationInFrames={1} fps={30} width={1920} height={1080} />
         <Composition id="HybridGradP135" component={HybridGradP135} durationInFrames={1} fps={30} width={1080} height={1920} />
         <Composition id="HybridGradP160" component={HybridGradP160} durationInFrames={1} fps={30} width={1080} height={1920} />
         <Composition id="HybridVigP" component={HybridVig} durationInFrames={1} fps={30} width={1080} height={1920} />
         <Composition id="HybridStar" component={HybridStar} durationInFrames={1} fps={30} width={140} height={140} />
+        <Archive />
       </Folder>
-      <Archive />
     </ByRecency>
   );
 };

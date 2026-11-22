@@ -11,12 +11,19 @@ export type SpecEntry = { p: string; id: string; spec: SpecLike };   // one per 
 
 /** top-level folder names (what the user sees first) */
 export const TOP = {
-  full: "حلقات", reel: "ريلز", stream: "بثوث", lesson: "دروس", cartoon: "كرتون", dubbing: "دبلجة", explainer: "موشن توضيحي", scholars: "موشن مشايخ",
+  motion: "موشن", full: "حلقات", reel: "ريلز", stream: "بثوث", lesson: "دروس", cartoon: "كرتون", dubbing: "دبلجة", explainer: "موشن توضيحي", scholars: "موشن مشايخ",
   haitham: "موشن هيثم", paper: "مونتاج ورقي", silent: "تعليق صامت", reference: "نماذج مرجعية", demo: "عروض وتجارب", archive: "الأرشيف",
   engine: "أصول الهجين (مخفية)", loose: "غير مصنّف — ضعه في مجلد نوعه",
 };
 
-/** kind (tools/comp_kinds.mjs) → its top-level folder */
+/** folders that live INSIDE another (user 2026-11-22: motion is one folder — توضيحي، هيثم، مشايخ، النماذج المرجعية inside «موشن»; the demos and the archive inside the hidden utility group «أصول الهجين (مخفية)») */
+export const PARENT: Record<string, string> = {
+  [TOP.explainer]: TOP.motion, [TOP.haitham]: TOP.motion, [TOP.scholars]: TOP.motion, [TOP.reference]: TOP.motion, [TOP.demo]: TOP.engine, [TOP.archive]: TOP.engine,
+};
+/** a kind-folder name → its path from the top of the list: ["موشن", "موشن هيثم"] or just ["حلقات"] */
+export const pathOfTop = (name: string): string[] => (PARENT[name] ? [PARENT[name], name] : [name]);
+
+/** kind (tools/comp_kinds.mjs) → its kind folder (the LAST name of its path; see PARENT) */
 export const KIND_TOP: Record<string, string> = {
   "hk-full": TOP.full, "hk-reel": TOP.reel, "debate-reel": TOP.reel, stream: TOP.stream, lesson: TOP.lesson, cartoon: TOP.cartoon, rudood: TOP.cartoon,
   dubbing: TOP.dubbing, explainer: TOP.explainer, scholars: TOP.scholars, paper: TOP.paper, silent: TOP.silent, reference: TOP.reference, still: TOP.reference,

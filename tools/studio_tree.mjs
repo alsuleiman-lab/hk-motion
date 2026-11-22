@@ -18,7 +18,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 /* the shared rule file is TypeScript (the Studio bundle reads it too); Node strips the types — its «module type not specified» notice is silenced for this one load */
 const SF = await (async () => { const ew = process.emitWarning; process.emitWarning = () => {}; try { return await import(pathToFileURL(path.join(ROOT, "src", "studioFolders.ts")).href); } finally { process.emitWarning = ew; } })();
 const K = await import(pathToFileURL(path.join(ROOT, "tools", "comp_kinds.mjs")).href);
-const { TOP, KIND_TOP } = SF;
+const { TOP, KIND_TOP, pathOfTop } = SF;
 
 const rd = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return d; } };
 const txt = (f) => { try { return fs.readFileSync(f, "utf8"); } catch { return ""; } };
@@ -66,9 +66,9 @@ export const buildTree = (o = {}) => {
     const r = K.resolve(c.id, { root, registry: reg }); c.kind = r.kind;
     if (c.path.length === 0) { problems.push(`«${c.id}» في أعلى القائمة بلا مجلد`); continue; }
     if (c.path[0] === TOP.loose) problems.push(`«${c.id}» في «${TOP.loose}»: ضعه في مجلد نوعه (${r.kind}) داخل مجلد مشروعه`);
-    const e = reg.get(c.id), want = e?.spec ? KIND_TOP[SF.topKeyOf(r.kind, SF.projectRootOf(e.spec, e.specData, names))] : SF.topOfStatic(c.id, r.kind);
-    if (c.path[0] !== want && c.path[0] !== TOP.loose) problems.push(`«${c.id}» نوعه ${r.kind} ومكانه «${c.path[0]}» والمفروض «${want}»`);
-    if (c.path.length < 2 && c.path[0] !== TOP.engine) problems.push(`«${c.id}» بلا مجلد مشروع داخل «${c.path[0]}»`);
+    const e = reg.get(c.id), kf = e?.spec ? KIND_TOP[SF.topKeyOf(r.kind, SF.projectRootOf(e.spec, e.specData, names))] : SF.topOfStatic(c.id, r.kind), want = pathOfTop(kf);
+    if (c.path[0] !== TOP.loose && want.some((w, i) => c.path[i] !== w)) problems.push(`«${c.id}» نوعه ${r.kind} ومكانه «${c.path.join(" / ")}» والمفروض تحت «${want.join(" / ")}»`);
+    if (c.path.length <= want.length && kf !== TOP.engine) problems.push(`«${c.id}» بلا مجلد مشروع داخل «${c.path.join(" / ")}»`);
   }
   for (const id of reg.keys()) if (!seenId.has(id)) problems.push(`«${id}» في سجل الأنواع وليس في قائمة الاستوديو`);
   for (const id of seenId.keys()) if (!reg.has(id)) problems.push(`«${id}» في قائمة الاستوديو وليس في سجل الأنواع`);

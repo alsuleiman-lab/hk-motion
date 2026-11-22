@@ -27,17 +27,18 @@ export default async ({ add, expect, put, RUN, ROOT, path }) => {
     return expect(bad.length === 0 && t.problems.length === 0, bad.concat(t.problems).join(" | "));
   });
 
-  add("studio_folders.catches_mistakes", FILES, null, "الفاحص يرفض: تركيبة في الأعلى، بلا مجلد مشروع، في مجلد نوع آخر، معرّف مكرر، ومجلدان بالاسم نفسه", async () => {
+  add("studio_folders.catches_mistakes", FILES, null, "الفاحص يرفض: تركيبة في الأعلى، بلا مجلد مشروع، في مجلد نوع آخر، معرّف مكرر، ومجلدان بالاسم نفسه، وموشن توضيحي خارج مجلد «موشن»", async () => {
     const { buildTree } = await load(), r = path.join(RUN, "studio_folders_fake");
     put(path.join(r, "src", "Root.tsx"), `<ByRecency>
   <Composition id="ZzLoose" component={X} durationInFrames={30} fps={30} width={1080} height={1920} />
   <Folder name="دبلجة"><Composition id="Dub-ZzNoProject" component={X} durationInFrames={30} fps={30} width={1080} height={1920} /></Folder>
   <Folder name="ريلز"><Folder name="p"><Composition id="Dub-ZzWrongKind" component={X} durationInFrames={30} fps={30} width={1080} height={1920} /></Folder></Folder>
   <Folder name="دبلجة"><Folder name="q"><Composition id="Dub-ZzOk" component={X} durationInFrames={30} fps={30} width={1080} height={1920} /><Composition id="Dub-ZzOk" component={X} durationInFrames={30} fps={30} width={1080} height={1920} /></Folder></Folder>
+  <Folder name="موشن توضيحي"><Folder name="p"><Composition id="Jordan-Detain" component={X} durationInFrames={30} fps={30} width={1080} height={1920} /></Folder></Folder>
 </ByRecency>`);
     put(path.join(r, "src", "compositionTitles.ts"), "export const COMPOSITION_TITLES = {};\n");
     const t = buildTree({ root: r, specDir: path.join(r, "data", "specs") }), all = t.problems.join(" | ");
-    const need = [["ZzLoose", "في أعلى القائمة"], ["Dub-ZzNoProject", "بلا مجلد مشروع"], ["Dub-ZzWrongKind", "والمفروض"], ["Dub-ZzOk", "مكرر"], ["دبلجة", "بالاسم نفسه"]];
+    const need = [["ZzLoose", "في أعلى القائمة"], ["Dub-ZzNoProject", "بلا مجلد مشروع"], ["Dub-ZzWrongKind", "والمفروض"], ["Dub-ZzOk", "مكرر"], ["دبلجة", "بالاسم نفسه"], ["Jordan-Detain", "تحت «موشن / موشن توضيحي»"]];
     const miss = need.filter(([k, w]) => !t.problems.some((p) => p.includes(k) && p.includes(w))).map(([k, w]) => `${k}/${w}`);
     return expect(miss.length === 0, `لم يُرفض: ${miss.join("، ")} — ما رُفض: ${all}`);
   });

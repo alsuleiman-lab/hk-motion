@@ -16,10 +16,21 @@ let input = {};
 try { input = JSON.parse(fs.readFileSync(0, "utf8") || "{}"); } catch { /* no stdin */ }
 const norm = (p) => String(p ?? "").replace(/\\/g, "/");
 const rel = (p) => { const n = norm(p), r = norm(ROOT); return n.toLowerCase().startsWith(r.toLowerCase() + "/") ? n.slice(r.length + 1) : n; };
-const emit = (obj) => { process.stdout.write(JSON.stringify(obj)); process.exit(0); };
+let EMITTED = false;
+const emit = (obj) => { EMITTED = true; try { const h = obj?.hookSpecificOutput, ln = conductLine(); if (ln && h && (h.hookEventName === "UserPromptSubmit" || h.hookEventName === "PostToolUse")) h.additionalContext = (h.additionalContext ? h.additionalContext + "\n" : "") + "• " + ln; } catch { /* never block */ } process.stdout.write(JSON.stringify(obj)); process.exit(0); };
 /* HEARTBEAT (2026-11-20, gta6 analysis): the montage session was opened in E:\apps\New remotion, so NOT ONE of these hooks ran for hours (Claude Code reads
    .claude/settings.json of the session folder only). Every run leaves a stamp; tools/montage_kickoff.mjs refuses to call the session «guarded» without a fresh one. */
 try { fs.mkdirSync(path.join(ROOT, ".tmp"), { recursive: true }); fs.writeFileSync(path.join(ROOT, ".tmp", "hooks_alive.json"), JSON.stringify({ at: Date.now(), mode, cwd: input.cwd ?? process.cwd(), session: input.session_id ?? "", agent: input.agent_id ?? null })); } catch { /* never block */ }
+
+/* THE CONDUCTOR (user 2026-11-22: «هذه هي مشكلتي الكبيرة معك، أنك ما تلتزم. كيف بدي ألزمك ما أعرف» — the stream plan was presented from memory, in the wrong order, verses and
+   hadiths missing). While a run is active (tools/conduct.mjs start, .tmp/conduct_active.json) for THIS session: pre refuses a pipeline command that is not the current step or an
+   allowed parallel one; every prompt and tool answer carries «الخطوة الحالية: … — المتبقي: … د»; stop sends back a «done» claim with steps open and a plan/timeline/estimate for a
+   video kind that did not come from `conduct.mjs plan <kind>` in this turn. Sub-agents are never bound. Absent module / no run = silent (tools/lib/conduct_core.mjs, tested by
+   tools/selftest_cases/m_conductor.mjs). */
+let CRUN = null;
+try { if (!input.agent_id) { const CC = await import("../lib/conduct_core.mjs"); CRUN = { CC, run: await CC.activeRun(ROOT, input.session_id) }; } } catch { /* no conductor here */ }
+const conductLine = () => { try { return CRUN?.run ? CRUN.CC.lineOf(CRUN.run.def, CRUN.run.st) : ""; } catch { return ""; } };
+process.on("exit", () => { if (!EMITTED && mode === "post") { try { const ln = conductLine(); if (ln) fs.writeSync(1, JSON.stringify({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "• " + ln } })); } catch { /* never block */ } } });
 
 /** files that ARE the rules: any change needs the user's yes (the agent cannot rewrite its own rules silently) */
 const RULE_FILES = [
@@ -242,6 +253,9 @@ if (mode === "pre") {
   }
   if (tool === "Bash" || tool === "PowerShell") {
     const c = String(ti.command ?? "");
+    /* CONDUCTOR (user 2026-11-22): the run's current step decides; a pipeline command that is not it (or an allowed parallel one) is refused with the step and its command named */
+    if (/conduct\.mjs["']?\s+start\b/.test(c) && input.session_id) { try { fs.writeFileSync(path.join(ROOT, ".tmp", "conduct_pending_owner.json"), JSON.stringify({ session: input.session_id, agent: input.agent_id ?? null, at: Date.now() })); } catch { /* the run then binds every main session */ } }
+    if (CRUN?.run && !input.agent_id) { try { const why = await CRUN.CC.hookVerdict(ROOT, input.session_id, c, { agentId: input.agent_id, run: CRUN.run }); if (why) deny(why); } catch { /* never block on a conductor fault */ } }
     /* DESTRUCTIVE TOOLS = MAIN SESSION ONLY, AFTER THE USER'S YES (user 2026-11-21: a sub-agent ran `montage_guard.mjs end` — the approval purge — so the reel files
        were deleted and the original recording trashed). A sub-agent's call carries input.agent_id (Claude Code hook input; seen 2026-11-21 in .tmp/hooks_alive.json,
        which this hook writes on every run). The main session has no agent_id (under --agent it gets agent_type only), and it asks the user in chat first.
@@ -471,6 +485,15 @@ if (mode === "stop") {
     const lat = (prose.match(/[A-Za-z]/g) || []).length, ar = (prose.match(/[؀-ۿ]/g) || []).length;
     if (lat >= 40 && lat > ar) emit({ decision: "block", reason: "ردّك الأخير مكتوب بغير العربية. المستخدم لا يفهم إلا العربية (أمره 2026-11-11 و2026-11-13): أعد كتابة الرد نفسه كاملاً بالعربية الواضحة، بلا أسماء أوامر ولا إنجليزي." });
   }
+  /* CONDUCTOR (user 2026-11-22), main session only, never loops (stop_hook_active returned above): (1) a reply that claims the video job done / finished / ready while a run has open steps
+     goes back with the open steps; (2) a reply that PRESENTS a plan, timeline or time estimate for a video kind (stream, lesson, episode, reel) without `conduct.mjs plan <kind>` run in
+     this turn goes back with «اطبع الخطة من الأداة». A question or a reply that presents no plan passes. */
+  if (!input.agent_id && CRUN) try {
+    const { CC, run } = CRUN;
+    if (run) { const ev = CC.evaluate(run.def, run.st); if (!ev.complete && CC.claimsDone(last)) emit({ decision: "block", reason: `أعلنتَ أن العمل انتهى أو جاهز والإجراء المعتمد «${run.st.project}» فيه ${ev.open.length} خطوة مفتوحة (تمّت ${ev.done.length} من ${run.def.steps.length}): ${ev.open.slice(0, 5).map((r) => r.s.ar).join("، ")}${ev.open.length > 5 ? "…" : ""}. الحالية: ${ev.current?.s.ar ?? "—"}. لا إنجاز بالكلام بل ببوابات تنجح (القواعد_العامة.md §2): أكمل الخطوات (node tools/conduct.mjs next)، أو قل بصدق ما أُنجز وما بقي دون كلمة «انتهى/جاهز».` }); }
+    const kinds = CC.kindsNamed(last, ROOT);
+    if (kinds.length && CC.presentsPlan(last) && CC.planToolRun(input.transcript_path, kinds, run?.st?.kind) === false) emit({ decision: "block", reason: `قدّمتَ خطة أو ترتيباً أو تقدير زمن لـ${kinds.join("/")} من الذاكرة (أمر المستخدم 2026-11-22: «أنا بدي كيف أنت تلتزم بالخطة الموجودة عندنا، دائماً تبقى ملتزم»؛ خطة بث قُدّمت من الذاكرة بترتيب خاطئ وبلا آيات وأحاديث). اطبع الخطة من الأداة: ${kinds.map((k) => "node tools/conduct.mjs plan " + k).join(" ثم ")} ثم قدّمها بنصها (وما لم يُجهَّز تقول الأداة إنه لم يُجهَّز). السؤال والرد بلا خطة لا يُمنعان.` });
+  } catch { /* the conductor check never breaks the stop */ }
   /* A PUBLISH CLAIM CARRIES ITS LINK (2026-11-21, gta6: I told him a stray OK tab was «left for him to close», and earlier that Studio messages «reached me» —
      neither was true). A reply that says something was published / uploaded / scheduled, with no link in the same reply, goes back once: add the link of what
      was verified, or say plainly what is not verified. Cheap regexes only; a negated mention («لم يُرفع»، «قبل النشر») and an honest «لم أتحقق» pass;

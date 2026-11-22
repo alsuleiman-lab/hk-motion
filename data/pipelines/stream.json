@@ -1,0 +1,226 @@
+{
+ "kind": "stream",
+ "ar": "البث المباشر (تقطيع ومونتاج ورندر)",
+ "version": 1,
+ "about": "المصدر الوحيد لإجراء البث: مبني من بنود مهارة lessons-and-streams (0–15) ومن references/rules.md ومن tools/stream/fast_run.mjs (الميزانية BUDGET). لا يُقدَّم للمستخدم ترتيب أو زمن للبث من الذاكرة: node tools/conduct.mjs plan stream. أمر المستخدم 2026-11-22: «أنا بدي كيف أنت تلتزم بالخطة الموجودة عندنا، دائماً تبقى ملتزم».",
+ "totalMin": 120,
+ "totalSource": "tools/stream/fast_run.mjs TOTAL = 120 (أمر 2026-11-16: ساعتان من التسجيل إلى المرندر)",
+ "guarded": [
+  { "tool": "tools/stage.mjs", "subs": ["prep", "cut", "check"] },
+  { "tool": "tools/montage_kickoff.mjs", "notSubs": ["board", "lane", "park"] },
+  { "tool": "tools/stream/fast_run.mjs", "subs": ["start", "slice", "checks", "queue"] },
+  { "tool": "tools/stream/clip_cut_all.mjs" },
+  { "tool": "tools/stream/clip_slice.mjs" },
+  { "tool": "tools/stream/cut_smart.sh" },
+  { "tool": "tools/stream/cut_loop.sh" },
+  { "tool": "tools/stream/post_cut.sh" },
+  { "tool": "tools/stream/clip_autobuild.mjs" },
+  { "tool": "tools/stream/clip_build.mjs" },
+  { "tool": "tools/stream/clip_repair.mjs" },
+  { "tool": "tools/stream/clip_pictures.mjs" },
+  { "tool": "tools/stream/clip_register.mjs" },
+  { "tool": "tools/stream/lost_speech_check.mjs" },
+  { "tool": "tools/element_slots.mjs", "flags": ["--fix"] },
+  { "tool": "tools/grid_plan.mjs", "flags": ["--write"] },
+  { "tool": "tools/verse_scan.mjs" },
+  { "tool": "tools/recitation_check.mjs" },
+  { "tool": "tools/hadith_scan.mjs" },
+  { "tool": "tools/hadith_verify.mjs" },
+  { "tool": "tools/name_doubt.mjs" },
+  { "tool": "tools/bleep_words.py" },
+  { "tool": "tools/bleep_fix.py" },
+  { "tool": "tools/bumper_at.mjs" },
+  { "tool": "tools/prerender_check.mjs" },
+  { "tool": "tools/render_queue.mjs", "subs": ["add", "run", "retry", "drop"] },
+  { "tool": "tools/gpu_render.mjs" },
+  { "tool": "tools/render_job.sh" },
+  { "tool": "tools/gpu/render_project.sh" },
+  { "tool": "tools/final_review.mjs" }
+ ],
+ "perClip": [
+  { "id": "verse_scan", "ar": "كشف الآيات (verse_scan)", "tool": "tools/verse_scan.mjs", "step": "slice", "artifact": ".tmp/{c}/verses.json", "skill": "extraction · البند 5 من الشجرة" },
+  { "id": "recitation_check", "ar": "فحص التلاوة بالمصحف (recitation_check)", "tool": "tools/recitation_check.mjs", "step": "checks", "artifact": ".tmp/{c}/recitation_check.json", "skill": "extraction (فحص التلاوة بالمصحف)" },
+  { "id": "hadith_scan", "ar": "كشف الأحاديث (hadith_scan)", "tool": "tools/hadith_scan.mjs", "step": "hadith_scan", "artifact": ".tmp/{c}/hadith.json", "skill": "extraction (الأحاديث)" },
+  { "id": "name_doubt", "ar": "الأسماء المشكوكة (name_doubt عبر سجل المطلوب)", "tool": "tools/name_doubt.mjs", "step": "slice", "artifact": ".tmp/{c}/requirements.json", "skill": "extraction (اسم مشكوك)" }
+ ],
+ "steps": [
+  {
+   "id": "source", "ar": "المصدر: التسجيل المحلي أو الرابط، ومدته مطابقة لمدة البث", "type": "creative", "skill": "lessons-and-streams · البند 13 و«التشغيل» في references/rules.md",
+   "deps": [], "budgetMin": null,
+   "creative": { "what": "مسار تسجيل البث على القرص C (مجلد Videos) أو رابطه، بعد التحقق أن مدته تطابق مدة البث؛ للتسجيل ثلاثة مسارات صوت والأول هو المزيج المذاع. «البث الأخير» = node tools/latest_recording.mjs stream", "setArg": "video" },
+   "gate": [{ "type": "evidence", "min": 8 }, { "type": "arg_set", "name": "video" }],
+   "done": "node tools/conduct.mjs done source --evidence \"<ما تحققتُ منه: المسار والمدة>\" --set video=\"<مسار التسجيل>\""
+  },
+  {
+   "id": "reading", "ar": "قراءة مهارة الدروس والبثوث كاملة وقواعدها (لا خطة من الذاكرة)", "type": "creative", "skill": "lessons-and-streams (كلها) + references/rules.md + القواعد_العامة.md §3 + شجرة_العمليات.md",
+   "deps": [], "budgetMin": null,
+   "creative": { "what": "اقرأ بأداة القراءة: .claude/skills/lessons-and-streams/SKILL.md كله، references/rules.md، ثم القواعد_العامة.md وشجرة_العمليات.md؛ وبحث لا قراءة كاملة في references/detail.md" },
+   "gate": [{ "type": "evidence", "min": 8 }],
+   "done": "node tools/conduct.mjs done reading --evidence \"<ما قرأتُه>\""
+  },
+  {
+   "id": "fast_start", "ar": "بدء ساعتي البث (المساحة الحرة وساعة fast_run)", "type": "auto", "skill": "lessons-and-streams · البند 15",
+   "deps": ["source"], "budgetMin": null, "fg": true,
+   "cmd": ["node", "tools/stream/fast_run.mjs", "start", "{p}"],
+   "gate": [{ "type": "fast_clock" }]
+  },
+  {
+   "id": "prep", "ar": "التجهيز والتفريغ على التسجيل كله مرة واحدة (بأمر الإطلاق)", "type": "auto", "async": true, "skill": "lessons-and-streams · البند 14(أ) · «تفريغ ومحاذاة في التجهيز 12 د» (rules.md)",
+   "deps": ["fast_start"], "budgetMin": 12, "fg": true,
+   "cmd": ["node", "tools/montage_kickoff.mjs", "{p}", "{video}", "--no-cover"],
+   "gate": [{ "type": "board_lane", "lane": "prep" }],
+   "note": "الإطلاق يعود في ثوانٍ ويعمل التجهيز في خلفيته؛ المحكّ هو لوحة المونتاج (التجهيز تمّ)"
+  },
+  {
+   "id": "orders", "ar": "حكم القص: الإعادات وكتل «مونتاج» وكل كلمة حساسة ← قائمة الحذف", "type": "creative", "skill": "montage-orders · sensitive-words · البند 0 والبند 14",
+   "deps": ["prep"], "budgetMin": null,
+   "creative": { "what": "احكم على .tmp/{p}/cut_proposal.md سطراً سطراً من سياقه، واكتب قائمة الحذف (ثواني المصدر a-b,c-d، أو سطراً فارغاً إن لم يُحذف شيء) في الملف الأول؛ وكلام هادئ خارج الكلام (حرف بلا VAD) في الثاني (اختياري) لـKS", "file": ".tmp/{p}/drops.txt", "files": [".tmp/{p}/drops.txt", ".tmp/{p}/ks.txt (اختياري)"] },
+   "gate": [{ "type": "files", "paths": [".tmp/{p}/drops.txt"] }, { "type": "evidence", "min": 8 }],
+   "done": "node tools/conduct.mjs done orders --evidence \"<ما حكمتُ به في الإعادات والكتل>\""
+  },
+  {
+   "id": "plan", "ar": "خطة المقاطع plan.json من قراءة التفريغ بالمتكلمين (التقسيم بالسياق)", "type": "creative", "skill": "lessons-and-streams · البند 0 (التقسيم بالسياق) والبند 14(ب) · rules.md «التقطيع بالسياق»",
+   "deps": ["prep"], "budgetMin": null,
+   "creative": { "what": "أقرأ التفريغ كاملاً بالمتكلمين (.tmp/{p}/transcript.txt وspeakers.txt) ثم أكتب .tmp/{p}/plan.json: { src, words, clips:[{ id, topic, kind?, ranges:[{ a, b, start, end }] }] }؛ كل مكالمة مقطع كامل من ترحيب المتصل إلى وداعه وتعليق الشيخ، وكل سؤال مكتوب من قراءته إلى آخر جوابه؛ start/end عبارتان من كلامه نفسه", "file": ".tmp/{p}/plan.json" },
+   "gate": [{ "type": "json_clips", "path": ".tmp/{p}/plan.json" }]
+  },
+  {
+   "id": "resolve", "ar": "حساب حدود المقاطع من الكلمات (clip_cut_all --resolve)", "type": "auto", "skill": "lessons-and-streams · البند 14(ب)",
+   "deps": ["plan"], "budgetMin": null, "fg": true,
+   "cmd": ["node", "tools/stream/clip_cut_all.mjs", ".tmp/{p}/plan.json", "--resolve"],
+   "gate": [{ "type": "files", "paths": [".tmp/{p}/clip_table.json"] }]
+  },
+  {
+   "id": "cut", "ar": "القص الواحد للبث كله (قص السكتات + الصافرة + التنقية + كلمات النموذج الكبير)", "type": "auto", "bg": true, "exclusive": true, "skill": "lessons-and-streams · البند 14(ج) و15 · video-cutting §4 · sensitive-words (داخل stage cut) · «قص 8 + كلمات 12 د» (fast_run BUDGET)",
+   "deps": ["orders", "resolve"], "budgetMin": 20, "budgetNote": "قص 8 + كلمات النموذج الكبير 12؛ التنعيم 15 د بالتوازي معها", "fastMark": "cut",
+   "cmd": ["bash", "tools/stream/cut_smart.sh", "{p}", "{file:.tmp/{p}/drops.txt}"],
+   "env": { "KS": "{file:.tmp/{p}/ks.txt}" },
+   "gate": [
+    { "type": "files", "paths": ["public/{p}_cut.mp4", "public/{p}_map.json", ".tmp/{p}/cut_words.json"], "newer": ".tmp/{p}/clip_table.json" },
+    { "type": "log_has", "file": ".tmp/{p}/stage_cut.log", "text": "bleep ✔", "why": "الصافرة على الكلمات الحساسة (sensitive-words) لم تعمل داخل القص" }
+   ]
+  },
+  {
+   "id": "lost_check", "ar": "كشف كلام ضاع بالقص على البث كله", "type": "auto", "skill": "lessons-and-streams · البند 14(ج)",
+   "deps": ["cut"], "budgetMin": null, "fg": true,
+   "cmd": ["node", "tools/stream/lost_speech_check.mjs", "{p}"]
+  },
+  {
+   "id": "titles", "ar": "عناوين المقاطع وكلمات الأغلفة titles.json (الغلاف بالعنوان، خلفيته صورة حقيقية)", "type": "creative", "skill": "lessons-and-streams · البند 15 و§0.5 · thumbnail-design",
+   "deps": ["resolve"], "budgetMin": null,
+   "creative": { "what": "لكل مقطع من .tmp/{p}/clip_table.json: { title (≤99 حرفاً)، main، accent، sub، bg من 1 إلى 6 أو مسار صورة حقيقية لموضوعه، pose اختياري }؛ صورة الشيخ من public/cov/sheikh_poses وحدها", "file": ".tmp/{p}/titles.json" },
+   "gate": [{ "type": "json_covers_clips", "path": ".tmp/{p}/titles.json", "fields": ["title", "main"] }]
+  },
+  {
+   "id": "slice", "ar": "تقسيم المقاطع شرائح من القص الواحد (أربعة معاً) ومعها الآيات والسجل وبوابة الصوت", "type": "auto", "bg": true, "skill": "lessons-and-streams · البند 14(د) و15 · «تقسيم 12 د» · extraction (الآيات)",
+   "deps": ["cut", "lost_check"], "budgetMin": 12,
+   "cmd": ["node", "tools/stream/fast_run.mjs", "slice", "{p}", "--jobs", "4"],
+   "also": ["tools/verse_scan.mjs", "tools/requirements.mjs", "tools/name_doubt.mjs", "tools/audio_gate.mjs", "tools/moves_plan.mjs"],
+   "gate": [{ "type": "files", "paths": ["public/{c}_cut.mp4", ".tmp/{c}/cut_words.json", ".tmp/{c}/verses.json", ".tmp/{c}/requirements.json", ".tmp/gates/{c}.audio.ok"] }]
+  },
+  {
+   "id": "hadith_scan", "ar": "كشف الأحاديث المروية في كل مقطع (hadith_scan)", "type": "auto", "bg": true, "foreach": "clips", "jobs": 3, "skill": "extraction (الأحاديث) · البند 5 من الشجرة",
+   "deps": ["slice"], "budgetMin": null,
+   "cmd": ["node", "tools/hadith_scan.mjs", "{c}"],
+   "gate": [{ "type": "files", "paths": [".tmp/{c}/hadith.json"] }]
+  },
+  {
+   "id": "hadith_verify", "ar": "توثيق كل حديث من الكتب (الشاملة ثم hadith_verify) وملء المتن والكتاب والرقم", "type": "creative", "skill": "extraction (التوثيق) · لا حديث بلا كتاب ورقم",
+   "deps": ["hadith_scan"], "budgetMin": null,
+   "creative": { "what": "لكل مقطع: node tools/hadith_verify.mjs --p <المقطع> (أو الشاملة)، ثم أحدّد أول كلمة وآخرها وأملأ text وbook وn وnarrator وverified:true في .tmp/<المقطع>/hadith.json (وما ليس حديثاً skip:true)", "files": [".tmp/{c}/hadith.json"] },
+   "allow": [{ "tool": "tools/hadith_verify.mjs" }],
+   "gate": [{ "type": "hadith_verified" }, { "type": "evidence", "min": 8 }],
+   "done": "node tools/conduct.mjs done hadith_verify --evidence \"<ما وُثِّق وأين>\""
+  },
+  {
+   "id": "pictures_in", "ar": "صور المذكورات pictures.json (كل اسم ومكان وحالة ومصحف له صورته)", "type": "creative", "skill": "rules.md «صور المذكورات» (أمر المستخدم 2026-11-19) · gallery-placement",
+   "deps": ["slice"], "budgetMin": null,
+   "creative": { "what": ".tmp/{p}/pictures.json = { \"<مقطع>\": [ { el, at, until, src, name? } ] } لكل مقطع، ولا إعفاء لمذكور من صورته", "file": ".tmp/{p}/pictures.json" },
+   "gate": [{ "type": "json_covers_clips", "path": ".tmp/{p}/pictures.json", "fields": [], "array": true }]
+  },
+  {
+   "id": "build", "ar": "بناء المقاطع آلياً من العناوين (القالب السريع) وتسجيل تركيباتها", "type": "auto", "bg": true, "skill": "lessons-and-streams · البند 15 · «بناء 35 د»",
+   "deps": ["slice", "titles"], "budgetMin": 35, "fastMark": "build",
+   "cmd": ["node", "tools/stream/clip_autobuild.mjs", "{p}", "--run"],
+   "gate": [{ "type": "files", "paths": ["data/specs/{c}.json"] }]
+  },
+  {
+   "id": "pictures", "ar": "تركيب صور المذكورات بعد البناء وقبل الإصلاح", "type": "auto", "bg": true, "skill": "rules.md «صور المذكورات»",
+   "deps": ["build", "pictures_in"], "budgetMin": null,
+   "cmd": ["node", "tools/stream/clip_pictures.mjs", "{p}", "{clips}"]
+  },
+  {
+   "id": "hadith_write", "ar": "وضع بطاقة كل حديث موثَّق في المواصفة (hadith_scan --write)", "type": "auto", "bg": true, "foreach": "clips", "jobs": 3, "skill": "extraction (التوثيق ← بطاقة الكتاب والرقم)",
+   "deps": ["build", "hadith_verify"], "budgetMin": null,
+   "cmd": ["node", "tools/hadith_scan.mjs", "{c}", "--write"]
+  },
+  {
+   "id": "repair", "ar": "الإصلاح الآلي: سدّ الفراغات وفكّ التداخل وإكمال الأنواع وبطاقات الآيات", "type": "auto", "bg": true, "skill": "lessons-and-streams · البند 15 (clip_repair)",
+   "deps": ["pictures", "hadith_write"], "budgetMin": null,
+   "cmd": ["node", "tools/stream/clip_repair.mjs", "{clips}"]
+  },
+  {
+   "id": "slots", "ar": "عنصر واحد في كل مساحة ثم شبكة المواضع لكل مقطع", "type": "auto", "bg": true, "foreach": "clips", "jobs": 3, "skill": "القواعد_العامة.md §4 (عنصر واحد في كل مساحة) · rules.md",
+   "deps": ["repair"], "budgetMin": null,
+   "cmds": [["node", "tools/element_slots.mjs", "{c}", "--fix"], ["node", "tools/grid_plan.mjs", "data/specs/{c}.json", "--write"]]
+  },
+  {
+   "id": "prerender", "ar": "فحص ما قبل الرندر لكل مقطع (صوته وغلافه وفاصله) — لا شيء جديد بعد الرندر", "type": "auto", "bg": true, "foreach": "clips", "jobs": 2, "skill": "القواعد_العامة.md (فحص ما قبل الرندر، أمر 2026-11-21) · data/prerender_map.md",
+   "deps": ["slots"], "budgetMin": null,
+   "cmd": ["node", "tools/prerender_check.mjs", "{c}", "--o", "{o}"],
+   "gate": [{ "type": "prerender_fresh" }]
+  },
+  {
+   "id": "checks", "ar": "فحص كل مقطع (ثلاثة معاً): التلاوة، الأسماء، طمس النساء، الغلاف، الفاصل، التغطية", "type": "auto", "bg": true, "skill": "lessons-and-streams · البند 15 · checking · «فحوص 15 د»",
+   "deps": ["prerender"], "budgetMin": 15,
+   "cmd": ["node", "tools/stream/fast_run.mjs", "checks", "{p}", "--jobs", "3"],
+   "also": ["tools/stage.mjs", "tools/verse_audit.mjs", "tools/recitation_check.mjs", "tools/clip_people_gate.py", "tools/bumper_at.mjs", "tools/coverage_check.mjs"],
+   "gate": [
+    { "type": "fast_checks_ok" },
+    { "type": "perclip_artifacts" },
+    { "type": "cmd", "foreach": "clips", "cmd": ["node", "tools/requirements.mjs", "{c}", "--check"], "why": "سجل المطلوب: لكل اسم وآية وحديث عنصره، والأسماء المشكوكة محسومة (name_doubt)" },
+    { "type": "cover_ok" },
+    { "type": "cmd", "foreach": "clips", "cmd": ["{PY}", "-I", "tools/clip_people_gate.py", "data/specs/{c}.json"], "why": "طمس النساء: لا امرأة حقيقية غير مطموسة" }
+   ]
+  },
+  {
+   "id": "queue", "ar": "طابور الرندر: الفاصل في الآخر، والوجهة بالطول (≤ دقيقتين طولي، وأكثر عرضي)", "type": "auto", "skill": "lessons-and-streams · البند 7 و1 (خريطة التوزيع) · identity (الفاصل)",
+   "deps": ["checks"], "budgetMin": null, "fg": true,
+   "cmd": ["node", "tools/stream/fast_run.mjs", "queue", "{p}"],
+   "gate": [{ "type": "queue_jobs" }, { "type": "prerender_fresh" }]
+  },
+  {
+   "id": "render", "ar": "الرندر على كرت الشاشة بعامل واحد (تلقائي بلا إذن للبثوث)", "type": "watch", "exclusive": false, "skill": "lessons-and-streams · البند 7 · «رندر 45 د» · remotion-render",
+   "deps": ["queue"], "budgetMin": 45,
+   "watch": "الطابور يعمل: node tools/render_queue.mjs ls",
+   "gate": [{ "type": "render_done" }]
+  },
+  {
+   "id": "final_review", "ar": "الفحص النهائي على كل ملف مرندر", "type": "auto", "bg": true, "foreach": "clips", "jobs": 2, "skill": "lessons-and-streams · البند 3 (خطوة 1.4) · checking",
+   "deps": ["render"], "budgetMin": null,
+   "cmd": ["node", "tools/final_review.mjs", "{file}", "--name", "{c}"],
+   "gate": [{ "type": "final_ok" }]
+  },
+  {
+   "id": "listen", "ar": "فحص ما لا تراه البوابات: فكّ صوت المرندر بالنموذج الكبير والبحث عن «عفواً/أعيد/مونتاج» والتكرار", "type": "creative", "skill": "checking · القواعد_العامة.md §6 («لا نشر قبل فحص ما لا تراه البوابات»)",
+   "deps": ["final_review"], "budgetMin": null,
+   "creative": { "what": "أفك صوت كل ملف مرندر بالنموذج الكبير وأبحث فيه عن «عفواً/أعيد/مونتاج» والتكرار؛ وأذكر ما لم أستطع فحصه" },
+   "gate": [{ "type": "evidence", "min": 12 }],
+   "done": "node tools/conduct.mjs done listen --evidence \"<ما فحصتُه وما لم أستطع فحصه>\""
+  },
+  {
+   "id": "approve", "ar": "الاعتماد: سؤال المستخدم بالنقر بنصه المعتمد", "type": "creative", "skill": "approval · CLAUDE.md («أعتمده وأحذف ملفات العمل نهائياً وأرسل التسجيل الأصلي للسلة؟»)",
+   "deps": ["listen"], "budgetMin": null,
+   "creative": { "what": "بالنقر: «أعتمده وأحذف ملفات العمل نهائياً وأرسل التسجيل الأصلي للسلة؟»؛ الدليل جوابه" },
+   "gate": [{ "type": "evidence", "min": 6 }],
+   "done": "node tools/conduct.mjs done approve --evidence \"<جواب المستخدم>\""
+  },
+  {
+   "id": "publish", "ar": "الحزمة ثم النشر ثم المسح بعد موافقة صريحة (مهارتا approval وpublishing)", "type": "creative", "skill": "approval · publishing · lessons-and-streams (التصدير والنشر في rules.md)",
+   "deps": ["approve"], "budgetMin": null,
+   "creative": { "what": "حفظ الحزمة ← النشر (درايف وأوك) ← المسح بعد موافقته الصريحة ← حذف النواتج بعد التحقق من كل وجهة؛ كل ذلك خارج المُوصِل بمهارتيه" },
+   "gate": [{ "type": "evidence", "min": 12 }],
+   "done": "node tools/conduct.mjs done publish --evidence \"<الروابط المتحقَّق منها>\""
+  }
+ ]
+}

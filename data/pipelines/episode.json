@@ -1,0 +1,164 @@
+{
+ "kind": "episode",
+ "ar": "الحلقة العادية (عرضي ثم طولي)",
+ "version": 1,
+ "single": true,
+ "about": "مبني من شجرة_العمليات.md (٠–١٢) ومن لوحة tools/montage_kickoff.mjs (مساراتها وتبعياتها) ومن حراس tools/hooks/guard.mjs (بوابة القراءة والرندر). الريل من الحلقة والريل المستقل والدروس والكرتون وغيرها أنواع أخرى مسجَّلة في data/pipelines/kinds.json. أمر المستخدم 2026-11-22: «أنا بدي كيف أنت تلتزم بالخطة الموجودة عندنا، دائماً تبقى ملتزم».",
+ "totalMin": null,
+ "totalSource": "لا ميزانية كلية مكتوبة للحلقة (أمر 2026-11-20 يحدّد «نصف ساعة» للمونتاج ولم يُنقل إلى القواعد رقماً) — غير مقيس",
+ "guarded": [
+  { "tool": "tools/stage.mjs", "subs": ["prep", "cut", "check"] },
+  { "tool": "tools/montage_kickoff.mjs", "notSubs": ["board", "lane", "park"] },
+  { "tool": "tools/montage_guard.mjs", "subs": ["end"] },
+  { "tool": "tools/approve_purge.mjs" },
+  { "tool": "tools/prerender_check.mjs" },
+  { "tool": "tools/judder_probe.mjs" },
+  { "tool": "tools/render_queue.mjs", "subs": ["add", "run", "retry", "drop"] },
+  { "tool": "tools/gpu_render.mjs" },
+  { "tool": "tools/render_job.sh" },
+  { "tool": "tools/gpu/render_project.sh" },
+  { "tool": "tools/final_review.mjs" }
+ ],
+ "perClip": [],
+ "steps": [
+  {
+   "id": "questions", "ar": "أسئلة البداية بالنقر دفعة واحدة (العنوان، المقاطع المضافة، الصيغ، الوجهات، يوتيوب نشر أم جدولة)", "type": "creative", "skill": "first-questions · شجرة_العمليات ١",
+   "deps": [], "budgetMin": null,
+   "creative": { "what": "أسئلة البداية بالنقر (مهارة first-questions) والعمل لا ينتظر جوابها؛ الأجوبة تُسجَّل في المشروع", "file": ".tmp/{p}/stages/questions.json" },
+   "gate": [{ "type": "files", "paths": [".tmp/{p}/stages/questions.json"] }]
+  },
+  {
+   "id": "reading", "ar": "قراءة القواعد العامة والشجرة والمهارات كاملة (لكل فيديو من جديد)", "type": "creative", "skill": "CLAUDE.md «قبل أي عمل على فيديو» · القواعد_العامة.md (أول قائمة) · بوابة القراءة في الهوك",
+   "deps": [], "budgetMin": null,
+   "creative": { "what": "اقرأ بأداة القراءة: القواعد_العامة.md ثم شجرة_العمليات.md ثم router ثم first-questions وmontage-orders وvideo-cutting وvideo-montage (SKILL وcritical-rules وworkflow-plan) وgallery-placement وchecking وdelivery-links" },
+   "gate": [{ "type": "evidence", "min": 8 }],
+   "done": "node tools/conduct.mjs done reading --evidence \"<ما قرأتُه>\""
+  },
+  {
+   "id": "prep", "ar": "الإطلاق: التجهيز والتفريغ ثم معاً اقتراح القص وطابور البحث وموجز الغلاف", "type": "auto", "async": true, "skill": "القواعد_العامة.md (أول أمر لكل فيديو) · montage_kickoff · شجرة_العمليات ١–٢",
+   "deps": [], "budgetMin": null, "fg": true, "budgetNote": "نحو ثلث مدة التسجيل (مقاس في gta6: 21:45 ← 7 د) — غير مقيس رسمياً",
+   "cmd": ["node", "tools/montage_kickoff.mjs", "{p}", "{video}"],
+   "gate": [{ "type": "board_lane", "lane": "prep" }]
+  },
+  {
+   "id": "orders", "ar": "حكم القص: إعادات وكتل «مونتاج» وتعليمات المستخدم المنطوقة ← قائمة الحذف", "type": "creative", "skill": "montage-orders · شجرة_العمليات ٣",
+   "deps": ["prep"], "budgetMin": null,
+   "creative": { "what": "احكم على .tmp/{p}/cut_proposal.md من سياق كل سطر، وسجّل تعليمات «مونتاج» مهاماً (montage_notes.mjs add)؛ واكتب نطاقات الحذف (ثواني المصدر a-b,c-d، أو فارغاً) في الملف", "file": ".tmp/{p}/rem.txt" },
+   "gate": [{ "type": "files", "paths": [".tmp/{p}/rem.txt"] }, { "type": "any_files", "paths": [".tmp/{p}/montage_notes.json", ".tmp/{p}/stages/context.json"] }]
+  },
+  {
+   "id": "cut", "ar": "القص (نموذج القص الواحد) وبوابة الصوت والصافرة والتنقية وبناء القص", "type": "auto", "bg": true, "exclusive": true, "skill": "video-cutting · sensitive-words · شجرة_العمليات ٤",
+   "deps": ["orders"], "budgetMin": null,
+   "cmd": ["node", "tools/stage.mjs", "cut", "{p}", "--rem", "{file:.tmp/{p}/rem.txt}"],
+   "gate": [{ "type": "files", "paths": ["public/{p}_cut.mp4", "public/{p}_map.json", ".tmp/{p}/cut_words.json", ".tmp/gates/{p}.audio.ok"] }]
+  },
+  {
+   "id": "research", "ar": "البحث والتحقق: الأحاديث في الشاملة، صور الأشخاص والأماكن، مصادر الأرقام", "type": "creative", "skill": "extraction · gallery-placement · شجرة_العمليات ٢ و٥",
+   "deps": ["prep"], "budgetMin": null,
+   "creative": { "what": "من .tmp/{p}/early_queue.md بوكيل في الخلفية: توثيق كل رواية، صور المذكورات (لكل اسم وآية وحديث ورقم وحلقة سابقة عنصره)", "file": ".tmp/{p}/stages/assets.json" },
+   "gate": [{ "type": "files", "paths": [".tmp/{p}/stages/assets.json"] }]
+  },
+  {
+   "id": "cover", "ar": "الغلاف (ChatGPT، صورة الشيخ المفرّغة، فحص الجوال)", "type": "creative", "skill": "thumbnail-design · شجرة_العمليات ٧",
+   "deps": ["prep"], "budgetMin": null,
+   "creative": { "what": "من .tmp/{p}/cover_brief.md: الغلاف منظور بالحجم الكامل وبحجم الجوال وشروطه محققة", "file": ".tmp/{p}/stages/cover.json" },
+   "gate": [{ "type": "files", "paths": [".tmp/{p}/stages/cover.json"] }]
+  },
+  {
+   "id": "elements", "ar": "العناصر الخاصة من أوامر «مونتاج» (وكلاء في الخلفية)", "type": "creative", "skill": "montage-orders · motion-graphics · شجرة_العمليات ٨",
+   "deps": ["orders"], "budgetMin": null,
+   "creative": { "what": "كل تعليمة «مونتاج» ذات عنصر خاص يبنيها وكيل بعنصره من المعرض (el.mjs show ثم add) ويُسجَّل دليلها" },
+   "gate": [{ "type": "evidence", "min": 8 }],
+   "done": "node tools/conduct.mjs done elements --evidence \"<العناصر الخاصة وأين>\""
+  },
+  {
+   "id": "plan", "ar": "خطة العناصر: el_rules ثم plan-check ثم دفعة واحدة (كل بند باسم مهارته)", "type": "creative", "skill": "video-montage · gallery-placement · القواعد_العامة.md (العناصر) · شجرة_العمليات ٨",
+   "deps": ["cut"], "budgetMin": null,
+   "creative": { "what": "node tools/el_rules.mjs rules <العناصر> قبل كتابة الخطة، ثم plan-check بكل مشكلاته مرة واحدة، ثم دفعة واحدة؛ تقرير المرحلة في .tmp/{p}/stages/plan.json", "file": ".tmp/{p}/stages/plan.json" },
+   "gate": [{ "type": "files", "paths": [".tmp/{p}/stages/plan.json"] }]
+  },
+  {
+   "id": "sections", "ar": "أقسام الفيديو: sections.json وخط الأقسام في أول الثواني", "type": "creative", "skill": "video-sections · شجرة_العمليات ٥",
+   "deps": ["cut"], "budgetMin": null,
+   "creative": { "what": "عدد الأقسام: node tools/yt_package.mjs {p} --count؛ ثم .tmp/{p}/sections.json وSectionsRail", "file": ".tmp/{p}/sections.json" },
+   "gate": [{ "type": "sections_ok" }]
+  },
+  {
+   "id": "package", "ar": "حزمة يوتيوب: الوصف والوسوم والفصول وقائمة التشغيل (لا تنتظر النشر)", "type": "creative", "skill": "publishing · video-sections · أمر 2026-11-21",
+   "deps": ["sections"], "budgetMin": null,
+   "creative": { "what": "node tools/yt_package.mjs {p} --desc \"…\" --tags \"…\" [--event]" },
+   "gate": [{ "type": "package_ok" }]
+  },
+  {
+   "id": "build", "ar": "البناء: المواصفة من الخطة بعد اكتمال ما قبل البناء", "type": "creative", "skill": "video-montage · gallery-placement · شجرة_العمليات ٨",
+   "deps": ["plan", "research", "cover", "elements"], "budgetMin": null,
+   "creative": { "what": "المواصفة data/specs/{p}.json (spec_draft) بعناصر المعرض بأسمائها ومتغيراتها؛ لا بناء قبل نجاح montage_guard ready", "file": "data/specs/{p}.json" },
+   "gate": [{ "type": "files", "paths": ["data/specs/{p}.json"] }, { "type": "cmd", "cmd": ["node", "tools/montage_guard.mjs", "ready", "{p}"], "why": "مراحل ما قبل البناء لم تكتمل (montage_guard ready)" }]
+  },
+  {
+   "id": "review_link", "ar": "رابط المراجعة (يُرسل بعد المونتاج ولا ينتظر الفحوص)", "type": "creative", "skill": "delivery-links · شجرة_العمليات ١٠",
+   "deps": ["build"], "budgetMin": null,
+   "creative": { "what": "node tools/ready.mjs {p} <التركيبة> ويُرسل نصه كما هو: «الفيديو جاهز للمراجعة» والرابط وحده في سطر" },
+   "gate": [{ "type": "evidence", "min": 8 }],
+   "done": "node tools/conduct.mjs done review_link --evidence \"<الرابط المرسل>\""
+  },
+  {
+   "id": "checks", "ar": "الفحص: الأنواع والتغطية والوجوه والتلاوة والعناصر في مساحاتها", "type": "auto", "bg": true, "skill": "checking · شجرة_العمليات ٩",
+   "deps": ["build"], "budgetMin": null,
+   "cmd": ["node", "tools/stage.mjs", "check", "{p}", "{comp}", "--file", "src/Root.tsx", "--minutes", "{minutes}"],
+   "gate": [{ "type": "cmd", "cmd": ["node", "tools/montage_guard.mjs", "check", "{p}", "--stages", "questions,cut,context,assets,cover,plan,hook,build"], "why": "الحارس لم ينجح" }]
+  },
+  {
+   "id": "prerender", "ar": "فحص ما قبل الرندر للعرضي والطولي", "type": "auto", "bg": true, "skill": "القواعد_العامة.md (فحص ما قبل الرندر، 2026-11-21) · data/prerender_map.md",
+   "deps": ["checks"], "budgetMin": null,
+   "cmds": [["node", "tools/prerender_check.mjs", "{p}", "--o", "land"], ["node", "tools/prerender_check.mjs", "{p}", "--o", "port"]],
+   "gate": [{ "type": "prerender_fresh", "orients": ["L", "R"] }]
+  },
+  {
+   "id": "judder_probe", "ar": "فحص ارتجاف عشر ثوانٍ من الوسط قبل أي رندر كامل", "type": "guided", "skill": "القواعد_العامة (حارس الرندر في الهوك) · remotion-render",
+   "deps": ["checks"], "budgetMin": null,
+   "cmd": ["node", "tools/judder_probe.mjs", "{comp}", "--src", "{src}", "--offset", "{offset}", "--name", "{p}"],
+   "gate": [{ "type": "files", "paths": [".tmp/gates/{p}.probe.ok"] }]
+  },
+  {
+   "id": "render_permission", "ar": "إذن المستخدم بالرندر (الحلقات والريلز بإذنه)", "type": "creative", "skill": "القواعد_العامة.md §4 (لا رندر دون إذن المستخدم)",
+   "deps": ["checks", "prerender", "judder_probe"], "budgetMin": null,
+   "creative": { "what": "أسأله بالنقر عن الرندر؛ الدليل جوابه نصاً" },
+   "gate": [{ "type": "evidence", "min": 6 }],
+   "done": "node tools/conduct.mjs done render_permission --evidence \"<جوابه>\""
+  },
+  {
+   "id": "render", "ar": "الرندر: العرضي ثم الطولي، كرت الشاشة، عامل واحد", "note": "اسم التركيبة الطولية {comp} والعرضية {comp}-L (كما في fast_run compOf)؛ تحقّق منهما في Root.tsx قبل الأمر", "type": "guided", "skill": "remotion-render · شجرة_العمليات ١١",
+   "deps": ["render_permission"], "budgetMin": null,
+   "cmds": [["node", "tools/render_queue.mjs", "add", "--spec", "{p}", "--comp", "{comp}-L", "--orient", "L", "--dest", "C:/Users/mshms/Videos/جاهز", "--prerender"], ["node", "tools/render_queue.mjs", "add", "--spec", "{p}", "--comp", "{comp}", "--orient", "R", "--dest", "C:/Users/mshms/Videos/جاهز", "--prerender"], ["node", "tools/render_queue.mjs", "run"]],
+   "gate": [{ "type": "render_done", "orients": ["L", "R"] }]
+  },
+  {
+   "id": "final_review", "ar": "الفحص النهائي على الملف المرندر", "type": "guided", "skill": "checking · شجرة_العمليات ١١ («تمّت = الفحص النهائي نجح»)",
+   "deps": ["render"], "budgetMin": null,
+   "cmd": ["node", "tools/final_review.mjs", "{file}", "--name", "{p}"],
+   "gate": [{ "type": "final_ok" }]
+  },
+  {
+   "id": "listen", "ar": "فحص ما لا تراه البوابات: فكّ صوت المرندر بالنموذج الكبير والبحث عن «عفواً/أعيد/مونتاج» والتكرار", "type": "creative", "skill": "checking · القواعد_العامة.md §6",
+   "deps": ["final_review"], "budgetMin": null,
+   "creative": { "what": "أفك صوت الملف المرندر كاملاً وأبحث فيه؛ وأذكر ما لم أستطع فحصه" },
+   "gate": [{ "type": "evidence", "min": 12 }],
+   "done": "node tools/conduct.mjs done listen --evidence \"<ما فحصتُه وما لم أستطع>\""
+  },
+  {
+   "id": "approve", "ar": "الاعتماد: سؤال المستخدم بالنقر بنصه المعتمد", "type": "creative", "skill": "approval · CLAUDE.md",
+   "deps": ["listen"], "budgetMin": null,
+   "creative": { "what": "«أعتمده وأحذف ملفات العمل نهائياً وأرسل التسجيل الأصلي للسلة؟»؛ الدليل جوابه" },
+   "gate": [{ "type": "evidence", "min": 6 }],
+   "done": "node tools/conduct.mjs done approve --evidence \"<جواب المستخدم>\""
+  },
+  {
+   "id": "publish", "ar": "الحزمة ثم النشر ثم المسح بعد موافقة صريحة (approval وpublishing)", "type": "creative", "skill": "approval · publishing · شجرة_العمليات ١٢",
+   "deps": ["approve"], "budgetMin": null,
+   "creative": { "what": "حفظ الحزمة ← النشر (يوتيوب، درايف، أوك) ← المسح بعد موافقته الصريحة؛ كل ذلك بمهارتيه" },
+   "gate": [{ "type": "evidence", "min": 12 }],
+   "done": "node tools/conduct.mjs done publish --evidence \"<الروابط المتحقَّق منها>\""
+  }
+ ]
+}

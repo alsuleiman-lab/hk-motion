@@ -1,6 +1,6 @@
 {
  "about": "سجل الأخطاء: كل خطأ سابق ← سببه ← الحارس الذي بُني بعده ← حالات اختباره في tools/guard_selftest.mjs (أمر المستخدم 2026-11-21: «اعمل خطة سبر لكل ما يجنبك الوقوع في الأخطاء مستقبلا ونفذها»). خطأ جديد = سطر هنا + حالة في الاختبار.",
- "updated": "2026-11-21",
+ "updated": "2026-11-22",
  "entries": [
   {
    "id": "studio-inbox-unread",
@@ -1319,6 +1319,39 @@
     "manual": []
    },
    "evidence": "لقطة هاتف المستخدم 2026-11-21؛ جُرّب في الاستوديو على تركيب من كل نوع بالتجربة الجافة"
+  },
+  {
+   "id": "plan-from-memory",
+   "date": "2026-11-22",
+   "what": "قدّمتُ للمستخدم خطة بث من الذاكرة: ترتيب خاطئ وبلا آيات وأحاديث، رغم أن الإجراء مكتوب في مهارة الدروس والبثوث (البنود 0–15). قال: «هذه هي مشكلتي الكبيرة معك، أنك ما تلتزم. كيف بدي ألزمك ما أعرف… أنا بدي كيف أنت تلتزم بالخطة الموجودة عندنا، دائماً تبقى ملتزم».",
+   "cause": "الإجراء نصٌّ يُقرأ ويُنسى؛ لا شيء يحدّد الخطوة التالية ولا يمنع أمراً من خارج ترتيبها ولا يردّ خطة قُدّمت دون الرجوع إلى المكتوب، فيبقى الالتزام بذاكرتي.",
+   "guard": {
+    "file": "tools/conduct.mjs + tools/lib/conduct_core.mjs + data/pipelines/*.json + tools/hooks/guard.mjs",
+    "how": "المُوصِل: الإجراء المكتوب (البث والحلقة) بيانات في data/pipelines (خطوات وتبعيات ومتوازٍ وأمر أو إدخال إبداعي وبوابة بفاحص وميزانية وبند مهارة وأدوات كل مقطع) وآلة حالة: conduct.mjs plan|start|next|done|status|lint|end، و`next` يطبع خطوة واحدة ويشغّل التلقائية والمتوازية، ولا تُغلق خطوة قبل ما قبلها وبوابتها. والهوك: PreToolUse يرفض أمر إجراء ليس الخطوة الحالية ولا موازياً مسموحاً (للجلسة صاحبة التشغيل، لا للوكلاء) ويسمّي الخطوة وأمرها، وكل رسالة وأداة تحمل «الخطوة الحالية: … — المتبقي: … د»، وStop يردّ «انتهيتُ/جاهز» وخطوات مفتوحة، ويردّ كل خطة أو ترتيب أو تقدير زمن لبث/درس/حلقة/ريل لم تُطبع بـ`conduct.mjs plan <النوع>` في الدورة نفسها («اطبع الخطة من الأداة»)؛ والفاحص lint يفشل على أداة غير موجودة أو بوابة بلا فاحص أو أمر غير مصنَّف أو دورة. الدرس والريل وغيرهما مسجَّلة «لم يُجهَّز»."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "conduct.hook_refuses_out_of_order",
+     "conduct.hook_allows_current_and_parallel",
+     "conduct.hook_binds_only_main_session_of_the_run",
+     "conduct.hook_silent_without_run",
+     "conduct.line_on_prompt_and_post",
+     "conduct.stop_done_claim_blocked",
+     "conduct.plan_from_memory_refused",
+     "conduct.plan_check_lets_questions_and_reports_pass",
+     "conduct.lint_fails_on_bad_json",
+     "conduct.real_definitions_lint_clean",
+     "conduct.next_prints_one_step_and_gates",
+     "conduct.run_owner_session",
+     "conduct.plan_and_unprepared_kinds",
+     "conduct.stream_definition_order",
+     "conduct.hook_wired_src",
+     "conduct.argv_fill"
+    ],
+    "manual": []
+   },
+   "evidence": "أمر المستخدم 2026-11-22 (نصه في القواعد_العامة.md ومهارة الدروس والبثوث)؛ جُرِّب كله على مشاريع وهمية zz_conduct_* وفي جذور مؤقتة فقط"
   }
  ]
 }

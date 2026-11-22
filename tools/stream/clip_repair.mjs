@@ -75,13 +75,14 @@ for (const id of ids) {
       if (prevOk && SOLO.has(prev.t) && next && SOLO.has(next.t) && g1 - endOf(prev) <= 4 && snapSolo(prev, next)) { ch++; log.push(`ضُبط الفاصل بين البطاقتين عند ${fix(next.at)}`); continue; }
       if (prevOk && SOLO.has(prev.t) && g1 - endOf(prev) <= 1.5) { setEnd(prev, room(g1 - (next && SOLO.has(next.t) ? 0.5 : 0))); ch++; log.push(`مُدّ ${prev.t}@${fix(start(prev))} قليلاً`); continue; }
       if (prevOk && PANEL.has(prev.t) && g1 - endOf(prev) < 12) { setEnd(prev, g1 - 0.2); ch++; log.push(`مُدّ ${prev.t}@${fix(start(prev))} إلى ${fix(g1)}`); continue; }
-      if (next && PANEL.has(next.t) && g1 - g0 < 14 && !(lsGap.length && g1 - g0 >= 1.6)) {   // لا تُقدَّم لوحة فتظهر فارغة قبل أول سطر: إن وُجد كلام في الفراغ توضع لوحة حقيقية بدلاً منها
+      /* (2026-11-22, stream dress rehearsal) a panel is held after its LAST line (the engine's pickUntil: last line + its typing + 2.3 s), not only to `until`: a panel built here with its lines up to
+         the end of the gap was held 1–2 s into the next element and prerender_check refused «pick مع pick». Only the lines that are done (held) before the gap ends are kept; when none is (a gap
+         under about 3 s), no panel can be built and the next element is advanced into the gap instead — before this the gap was left open and coverage_check refused «لحظات بلا عنصر». */
+      const until1 = fix(next ? g1 - 0.2 : g1), held = (l, many) => l.at + (many ? 0 : Math.max(0.5, String(l.text ?? "").length * 0.06)) + 2.3 <= until1 + 1e-6;
+      const at1 = fix(g0 + 0.2), rs0 = lsGap.map((l) => ({ text: l.text, at: fix(Math.max(at1 + 0.1, l.s)) })), rsK0 = rs0.filter((l) => held(l, rs0.length > 1)), rsK = rsK0.length === 1 ? rsK0.filter((l) => held(l, false)) : rsK0;
+      if (next && PANEL.has(next.t) && g1 - g0 < 14 && !(lsGap.length && g1 - g0 >= 1.6 && rsK.length)) {   // لا تُقدَّم لوحة فتظهر فارغة قبل أول سطر: إن وُجد كلام في الفراغ توضع لوحة حقيقية بدلاً منها
       const oldAt = start(next); next.at = fix(g0 + 0.2); if (next.t === "rows") next.from = next.at; ch++; log.push(`قُدِّم ${next.t}@${fix(oldAt)} إلى ${fix(g0)}`); continue; }
       const ls = lsGap;   // لوحة جديدة بأسطر قيلت قبل نهاية الفراغ
-      /* (2026-11-22, stream dress rehearsal) a panel is held after its LAST line (the engine's pickUntil: last line + its typing + 2.3 s), not only to `until`: a panel built here with its lines up to
-         the end of the gap was held 1–2 s into the next element and prerender_check refused «pick مع pick». Only the lines that are done (held) before the gap ends are kept. */
-      const until1 = fix(next ? g1 - 0.2 : g1), held = (l, many) => l.at + (many ? 0 : Math.max(0.5, String(l.text ?? "").length * 0.06)) + 2.3 <= until1 + 1e-6;
-      const at1 = fix(g0 + 0.2), rs0 = ls.map((l) => ({ text: l.text, at: fix(Math.max(at1 + 0.1, l.s)) })), rsK0 = rs0.filter((l) => held(l, rs0.length > 1)), rsK = rsK0.length === 1 ? rsK0.filter((l) => held(l, false)) : rsK0;
       if (ls.length && g1 - g0 >= 1.6 && rsK.length) { sp.items.push({ at: at1, until: until1, t: "pick", el: rsK.length > 1 ? "FlapBoard" : "InkQuote", ...(rsK.length > 1 ? { rows: rsK } : { lines: rsK }) }); ch++; log.push(`لوحة جديدة ${fix(g0)}–${fix(g1)}`); continue; }
       if (!prev && g1 - g0 >= 3.3) { const sv = items().filter((x) => SOLO.has(x.t) && start(x) > g1).sort((a, b) => (a.t === "nameTag" ? 0 : 1) - (b.t === "nameTag" ? 0 : 1))[0]; if (sv) { sv.at = fix(g0 + 0.1); sv.dur = fix(Math.min(4.5, g1 - g0 - 0.2)); ch++; log.push(`نُقلت ${sv.t} إلى الفراغ الأول`); continue; } }
       if (prevOk && SOLO.has(prev.t) && g1 - start(prev) <= 14) { setEnd(prev, room(g1)); ch++; log.push(`مُدّ ${prev.t} لعدم وجود كلام`); }

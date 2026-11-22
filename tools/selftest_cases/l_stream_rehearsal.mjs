@@ -124,6 +124,40 @@ export default async (api) => {
     return expect(t.includes("held = (l, many) => l.at + (many ? 0 : Math.max(0.5") && t.includes("+ 2.3 <= until1") && t.includes("rsK.length"), "حساب الإمساك غاب عن لوحة سدّ الفراغ");
   });
 
+  /* ── 3d) the mix is the picture's length: a stream clip with an END bumper whose sound is shorter than its picture ── */
+  const AUD = "tools/lib/audio_plan.mjs", AUL = "mix-shorter-than-picture";
+  const mixLen = async (codec) => {   // 6 s stereo voice, two 0.05 s mono ticks (44.1 kHz), a mono 1.5 s bumper sound delayed to 6.0 s whose picture is 2 s: picture = 8 s (240 frames)
+    const T = path.join(D, "mix");
+    fs.mkdirSync(T, { recursive: true });
+    const mk = async (n, a) => { const o = path.join(T, n); if (!fs.existsSync(o)) { const r = await runAsync("ffmpeg", ["-v", "error", "-y", ...a, o], { cwd: T, timeout: 60000 }); if (r.status !== 0) throw new Error("ffmpeg: " + r.err.slice(-200)); } return o; };
+    const voice = await mk("voice.wav", ["-f", "lavfi", "-i", "sine=f=300:d=6,aformat=channel_layouts=stereo,aresample=48000"]), tick = await mk("tick.wav", ["-f", "lavfi", "-i", "sine=f=2000:d=0.05"]), bump = await mk("bump.wav", ["-f", "lavfi", "-i", "sine=f=500:d=1.5,aresample=48000"]);
+    const seg = (id, src, startRel, last, vol) => ({ id, src, startRel, last, trim: 0, rate: 1, vols: [vol] }), AP = await imp(AUD), out = path.join(T, "out_" + codec + (codec === "pcm" ? ".wav" : ".m4a"));
+    AP.mixToFile([seg("t0", tick, 3, 47, 0.04), seg("v", voice, 0, 179, 0.8), seg("t1", tick, 30, 74, 0.04), seg("b", bump, 180, 239, 1)], out, { NF: 240, fps: 30, root: ROOT, codec });
+    const p = await runAsync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", out], { timeout: 20000 }); return Number(p.out.trim());
+  };
+  add("sr.mix_length_pcm_master", [AUD, "tools/prerender_check.mjs"], AUL, "مزيج الصوت (الماستر wav لفحص ما قبل الرندر) بطول الصورة 8.0ث رغم فاصل خاتمة صوته أقصر من صورته وبضعة مؤثرات قصيرة (كان 7.5ث)", async () => {
+    const d = await mixLen("pcm"); return expect(Math.abs(d - 8) < 0.03, `الطول ${d}ث والصورة 8ث`);
+  });
+  add("sr.mix_length_aac_mux", [AUD, "tools/gpu_render.mjs"], AUL, "مزيج الصوت (الـaac الذي يدمجه الرندر) بطول الصورة أيضاً — دالة واحدة للاثنين", async () => {
+    const d = await mixLen("aac"); return expect(Math.abs(d - 8) < 0.06, `الطول ${d}ث والصورة 8ث`);
+  });
+  add("sr.mix_one_function_src", [AUD, "tools/prerender_check.mjs", "tools/gpu_render.mjs"], AUL, "المصدر: prerender_check وgpu_render يمزجان بـAP.mixToFile نفسها، وفيها مصدر الصمت بطول الصورة مدخلاً لـamix", async () => {
+    const pr = src("tools/prerender_check.mjs"), gr = src("tools/gpu_render.mjs"), ap = src(AUD);
+    return expect(pr.includes("AP.mixToFile(segs, wav") && gr.includes("AP.mixToFile(segs, audio") && ap.includes("anullsrc=r=48000:cl=stereo:d=") && ap.includes("[sil]amix=inputs="), "المزيج لم يعد دالة واحدة أو غاب مصدر الصمت");
+  });
+
+  add("sr.repair_short_gap_advances_next", "tools/stream/clip_repair.mjs", "repair-panel-overlap", "فراغ أقصر من 3ث بعد صورة: لا لوحة تُبنى (إمساكها يدخل التالية) فتُقدَّم اللوحة التالية إلى بدايته (كان الفراغ يبقى ويرفضه coverage_check)", async () => {
+    const root = path.join(D, "rp"); fs.mkdirSync(path.join(root, "tools", "stream"), { recursive: true }); fs.copyFileSync(path.join(ROOT, "tools", "stream", "clip_repair.mjs"), path.join(root, "tools", "stream", "clip_repair.mjs"));
+    put(path.join(root, ".tmp", "zq", "cut_words.json"), Array.from({ length: 90 }, (_, i) => ({ w: "كلمة" + i, s: +(i * 0.45).toFixed(2), e: +(i * 0.45 + 0.4).toFixed(2) })));
+    put(path.join(root, "data", "specs", "zq.json"), { id: "zq", frames: 1500, items: [{ t: "cover", at: 0 }, { t: "pic", at: 19.2, until: 23.2 }, { t: "pick", el: "InkQuote", at: 24.9, until: 32, lines: [{ text: "كلمة55 كلمة56", at: 25.2 }] }] });
+    const r = await runAsync(NODE, [path.join(root, "tools", "stream", "clip_repair.mjs"), "zq"], { cwd: root, timeout: 30000 }), sp = JSON.parse(fs.readFileSync(path.join(root, "data", "specs", "zq.json"), "utf8")), q = sp.items.find((i) => i.t === "pick" && i.el === "InkQuote");
+    return expect(q && q.at < 23.6 && q.at >= 23.2, `اللوحة عند ${q?.at} (${(r.out + r.err).slice(0, 120)})`);
+  });
+  add("sr.clip_guard_wired_src", ["tools/stream/clip_guard.mjs", "tools/stream/fast_run.mjs"], "stream-clip-unregistered", "المصدر: fast_run checks يسجّل المقطع ويكتب تقارير مراحله (clip_guard --review) قبل stage check، وclip_guard لا يكتب تقريراً لمرحلة بلا دليل", async () => {
+    const fr = src("tools/stream/fast_run.mjs"), cg = src("tools/stream/clip_guard.mjs"), iG = fr.indexOf("clip_guard.mjs"), iC = fr.indexOf('"tools/stage.mjs", "check"');
+    return expect(iG > 0 && iC > iG && cg.includes("miss(") && cg.includes(".audio.ok") && cg.includes('"start", id'), "التسجيل قبل الفحص اختفى");
+  });
+
   /* ── 4) the rehearsal tool itself: scoped names, the plan, never under Videos ── */
   const SRL = "stream-rehearsal-scoped", SR = "tools/stream/stream_rehearsal.mjs";
   add("sr.own_name_scoped", SR, SRL, "التنظيف يخص أسماء zz_stream_rehearsal وحدها (لا مشروعاً آخر ولا تجربة الحلقة)", async () => {

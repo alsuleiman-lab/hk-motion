@@ -54,6 +54,9 @@ else if (cmd === "slice") {
     const todo = table.filter((c) => (!only || only.has(c.id)) && fs.existsSync(`data/specs/${c.id}.json`) && res[c.id]?.ok !== true);
     const jobs = Math.max(1, Number(arg("jobs", "3"))); let next = 0;
     const one = (c) => new Promise((done) => {
+      /* (2026-11-22, stream dress rehearsal) the clip is registered with the guard and its stage reports written from the evidence that exists, BEFORE the check: nothing did it for a slice and every check
+         failed «tasks: ✘ المونتاج غير مسجَّل» (tools/stream/clip_guard.mjs reports a stage only when its artifact and gate are really there) */
+      spawnSync(process.execPath, ["tools/stream/clip_guard.mjs", P, c.id, "--review"], { windowsHide: true });
       const t0 = Date.now(), ch = spawn(process.execPath, ["tools/stage.mjs", "check", c.id, compOf(c.id, orientOf(c)), "--file", "src/Root.tsx", "--minutes", String(Math.max(0.2, realDur(c) / 60).toFixed(2))], { windowsHide: true });
       let out = ""; ch.stdout.on("data", (d) => (out += d)); ch.stderr.on("data", (d) => (out += d));
       ch.on("close", (code) => { res[c.id] = { ok: code === 0, s: Math.round((Date.now() - t0) / 1000), why: code === 0 ? "" : out.split("\n").filter((l) => /✘/.test(l)).slice(-2).join(" | ").slice(0, 300) }; fs.writeFileSync(CF, JSON.stringify(res, null, 1));

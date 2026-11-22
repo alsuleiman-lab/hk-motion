@@ -55,9 +55,13 @@ export function mixGraph(segs, { NF, fps = 30, root, edl = null, log = () => {} 
   const splits = [...uniq.values()].map((u) => `[${u.idx}:a]aresample=48000,${u.n > 1 ? `asplit=${u.n}${Array.from({ length: u.n }, (_, j) => `[u${u.idx}_${j}]`).join("")}` : `anull[u${u.idx}_0]`}`);
   parts.unshift(...splits);
   /* (2026-11-20) padded with silence to the picture: a bumper whose own sound is shorter (shelf: 3.84 s) left the file's audio 1.1 s short */
-  /* OPEN BUG (stream dress rehearsal 2026-11-22, not fixed): the apad below did NOT pad when the last record was a delayed bumper (adelay 42733 ms, sound 3.84 s of 5): a stream clip's mix stayed
-     1.16 s short of its picture (46.573 s vs 47.733 s) whatever the pad option (whole_dur, whole_len, pad_dur). Proposed fix, untested: a silent anullsrc of the picture's length as one more amix input. */
-  const fc = parts.join(";\n") + ";\n" + mixIn.join("") + `amix=inputs=${mixIn.length}:duration=longest:normalize=0:dropout_transition=0,aresample=48000,apad=whole_dur=${(NF / fps).toFixed(4)},atrim=duration=${(NF / fps).toFixed(4)}[a]`;
+  /* (2026-11-22, stream dress rehearsal) the apad below does NOT pad with this ffmpeg when the mix mixes inputs of different rate/layout (a mono 0.05 s tick wav, a stereo cut, a mono 3.84 s
+     bumper sound delayed 42733 ms): a stream clip's mix stayed 1.16 s short of its picture (46.573 s vs 47.733 s) whatever the pad option (whole_dur, whole_len, pad_dur), and the same graph on
+     uniform synthetic inputs padded fine. The length is now CARRIED by a silent 48 kHz stereo source of exactly the picture's length that is one more amix input: amix runs to its longest input,
+     so the file is the picture's length by construction (silence adds nothing to a normalize=0 mix); the apad / atrim after it stay as a belt. Both the wav master (prerender_check) and the aac the render
+     muxes (gpu_render) come from this one function. Self-test: tools/selftest_cases/l_stream_rehearsal.mjs «sr.mix_length_*». */
+  const dur = (NF / fps).toFixed(4), pad = `anullsrc=r=48000:cl=stereo:d=${dur}[sil];\n`;
+  const fc = parts.join(";\n") + ";\n" + pad + mixIn.join("") + `[sil]amix=inputs=${mixIn.length + 1}:duration=longest:normalize=0:dropout_transition=0,aresample=48000,apad=whole_dur=${dur},atrim=duration=${dur}[a]`;
   return { inputs, fc };
 }
 

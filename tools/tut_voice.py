@@ -14,6 +14,8 @@ from omnivoice.models.omnivoice import OmniVoice
 ap = argparse.ArgumentParser(); ap.add_argument("texts"); ap.add_argument("out"); ap.add_argument("--ids", default=""); ap.add_argument("--seeds", default="7,21")
 ap.add_argument("--ref", default=r"S:\AI_Tools\Remotion_Workspace\data\voices\rudood_short.wav"); ap.add_argument("--ref_text", default=r"S:\AI_Tools\Remotion_Workspace\data\voices\rudood_short.txt")
 ap.add_argument("--whole", action="store_true", help="النص كله دفعة واحدة (الطريقة القديمة)")
+ap.add_argument("--cseed", default="", help="بذرة مقطع بعينه: 4=5,5=9 (إعادة مقطع خرج بصوت مختلف دون مسّ الباقي؛ تنبيه المستخدم 2026-11-22)")
+ap.add_argument("--save_chunks", action="store_true", help="يحفظ كل مقطع وحده <id>_s<seed>_c<k>.wav لمقارنة الصوت")
 a = ap.parse_args()
 PAUSE = {"،": 0.25, ",": 0.25, "؛": 0.25, ";": 0.25, ":": 0.25, "؟": 0.3, "?": 0.3, "!": 0.3, ".": 0.5, "": 0.0}   # «!» لا يُقطع عنده، فوقفته تأتي فقط إن كان آخر النص
 
@@ -73,9 +75,11 @@ for r in rows:
     for seed in [int(s) for s in a.seeds.split(",")]:
         pieces = []
         for k, (c, mark) in enumerate(cs):
-            torch.manual_seed(seed * 100 + k)
+            cs_ = dict(x.split("=") for x in a.cseed.split(",") if x)
+            torch.manual_seed(int(cs_[str(k)]) * 100 + k if str(k) in cs_ else seed * 100 + k)
             w = m.generate(text=c, language="arz", ref_audio=a.ref, ref_text=rt, num_step=48, guidance_scale=2.5, speed=1.0)[0].cpu().numpy().astype(np.float32).reshape(-1)
             if not a.whole: w = fade(squeeze(trim(w, SR), SR), SR)
+            if a.save_chunks: torchaudio.save(os.path.join(a.out, f"{r['id']}_s{seed}_c{k}.wav"), torch.from_numpy(np.clip(w, -1, 1)).unsqueeze(0), SR)
             pieces += [w, np.zeros(int(SR * PAUSE.get(mark, 0.25)), np.float32)]
         x = np.concatenate(pieces)
         rng = np.random.default_rng(1); b = np.cumsum(rng.standard_normal(len(x)).astype(np.float32)); b -= np.convolve(b, np.ones(2000) / 2000, mode="same")

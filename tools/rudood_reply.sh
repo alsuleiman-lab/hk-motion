@@ -18,7 +18,10 @@ W = 18; mn = np.array([db[max(0, i-W):i+W].min() for i in range(n)]); mx = np.ar
 o = np.clip((db - mn - 6) / np.maximum(mx - mn - 6, 6), 0, 1) * (db > -36)
 f = np.array([o[i*4:(i+1)*4].mean() for i in range(n // 4)])
 f = np.round(np.clip(np.convolve(f, [0.25, 0.5, 0.25], "same") * 1.15, 0, 1), 2)
-p = r"S:/AI_Tools/Remotion_Workspace/src/ext/rudoodMouth.ts"; t = open(p, encoding="utf-8").read()
+import os
+p = r"S:/AI_Tools/Remotion_Workspace/src/ext/rudoodMouth.ts"
+t = open(p, encoding="utf-8").read() if os.path.exists(p) else "/* حركة فم «شيخ الردود» لكل فيديو (يكتبها tools/rudood_reply.sh): قيم 0..1 لكل إطار */
+"
 line = f"export const {name}: number[] = " + json.dumps(f.tolist()) + ";"
 pat = rf"export const {name}: number\[\] = [^\n]*"
 t = re.sub(pat, lambda m: line, t) if re.search(pat, t) else t.rstrip("\n") + "\n" + line + "\n"

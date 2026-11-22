@@ -4,7 +4,6 @@
    عشر نسخ للاختيار: الإطار رقم n = النسخة n. */
 import React from "react";
 import { AbsoluteFill, Audio, Freeze, Img, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
-import { SALADIN_MOUTH, RAZI_MOUTH, BURJ_INTRO_TUT, BURJ_TUT, UKHUWWA_TUT, JINN_TUT, SHABBIHA_TUT, SULTAN_TUT, MAKAN_TUT } from "./rudoodMouth";
 
 export const SHEIKH_CAST_FRAMES = 10;
 const INK = "#2a1c14";
@@ -842,37 +841,3 @@ export const SheikhRudoodScenes: React.FC = () => {
     </AbsoluteFill>
   );
 };
-
-/* الفيديو الأول: صلاح الدين (لباس ٠) */
-export const RUDOOD_SALADIN_FRAMES = rudoodFrames(276, SALADIN_MOUTH.length);
-export const RudoodSaladin: React.FC = () => <RudoodReply look={0} clip="rudood1/girl_saladin_blur.mp4" clipAudio="rudood1/girl_saladin_audio.wav" clipFrames={276} objPos="50% 60%" reply="rudood1/reply_final2.wav" mouthData={SALADIN_MOUTH} />;
-
-/* الفيديو الثاني: «الأخوة الإنسانية» وأبو جهل (لباس ١، مقطع شيخ قُصّت سكتاته وأُزيلت موسيقاه) */
-export const RUDOOD_UKHUWWA_FRAMES = rudoodFrames(1185, UKHUWWA_TUT.length);
-export const RudoodUkhuwwa: React.FC = () => <RudoodReply look={1} clip="rudood2/clip.mp4" clipAudio="rudood2/clip_audio.wav" clipFrames={1185} objPos="50% 42%" reply="rudood2/reply_final.wav" mouthData={UKHUWWA_TUT} />;
-
-/* الفيديو الثالث: طعام الجن (لباس ٢)، وصور الجائعين على التلفاز عند «اللي جعانين في غزة والسودان» (تنبيه المستخدم للمونتاج) */
-export const RUDOOD_JINN_FRAMES = rudoodFrames(432, JINN_TUT.length);
-export const RudoodJinn: React.FC = () => <RudoodReply look={2} clip="rudood3/clip.mp4" clipAudio="rudood3/clip_audio.wav" clipFrames={432} objPos="50% 15%" reply="rudood3/reply_final.wav" mouthData={JINN_TUT}
-  pics={[{ src: "stock/rudood_hunger_60743.jpg", a: 1.0, b: 2.4 }, { src: "stock/rudood_hunger_3829378.jpg", a: 2.4, b: 4.7 }]} />;
-
-/* الفيديو الرابع: الشبيحة ووزير الأوقاف (لباس ٣) */
-export const RUDOOD_SHABBIHA_FRAMES = rudoodFrames(477, SHABBIHA_TUT.length);
-export const RudoodShabbiha: React.FC = () => <RudoodReply look={3} clip="rudood4/clip.mp4" clipAudio="rudood4/clip_audio.wav" clipFrames={477} objPos="50% 72%" reply="rudood4/reply_final2.wav" mouthData={SHABBIHA_TUT} />;
-
-/* الفيديو الخامس: «قلوب الأولياء لها سيوف» — علماء السلطان (لباس ٤، القاف همزة)، وصورتا الجفري وابن بيّه عند «من اليمن» و«من موريتانيا» */
-export const RUDOOD_SULTAN_FRAMES = rudoodFrames(354, SULTAN_TUT.length);
-export const RudoodSultan: React.FC = () => <RudoodReply look={4} clip="rudood5/clip.mp4" clipAudio="rudood5/clip_audio.wav" clipFrames={354} objPos="50% 11%" reply="rudood5/reply_final3.wav" mouthData={SULTAN_TUT}
-  pics={[{ src: "stock/rudood_jifri.jpg", a: 18.7, b: 19.7 }, { src: "stock/rudood_binbayyah.jpg", a: 19.7, b: 21.9 }]} />;
-
-/* الفيديو السادس: «علموا أولادكم الله موجود بلا مكان» (لباس ٥) */
-export const RUDOOD_MAKAN_FRAMES = rudoodFrames(591, MAKAN_TUT.length);
-export const RudoodMakan: React.FC = () => <RudoodReply look={5} clip="rudood6/clip.mp4" clipAudio="rudood6/clip_audio.wav" clipFrames={591} objPos="50% 32%" reply="rudood6/reply_final.wav" mouthData={MAKAN_TUT} />;
-
-/* الفيديو السابع: الفخر الرازي والعجوز — نمط جديد: تعليقه أولاً ثم المقطع مختصراً (لباس ٦) */
-export const RUDOOD_RAZI_FRAMES = rudoodIntroFrames(1404, RAZI_MOUTH.length);
-export const RudoodRazi: React.FC = () => <RudoodReply introFirst look={6} clip="rudood7/clip.mp4" clipAudio="rudood7/clip_audio.wav" clipFrames={1404} objPos="50% 21%" reply="rudood7/reply.wav" mouthData={RAZI_MOUTH} />;
-
-/* الفيديو الثامن: برج خليفة — تعليق «بص الحتة دي» ثم المقطع ثم الرد (هيئة ٨ بالطاقية البيضاء، نص مشكول) */
-export const RUDOOD_BURJ_FRAMES = rudoodFullFrames(BURJ_INTRO_TUT.length, 705, BURJ_TUT.length);
-export const RudoodBurj: React.FC = () => <RudoodReply look={8} intro={{ src: "rudood8/intro_tut.wav", mouth: BURJ_INTRO_TUT }} clip="rudood8/clip.mp4" clipAudio="rudood8/clip_audio.wav" clipFrames={705} objPos="50% 38%" reply="rudood8/reply_tut.wav" mouthData={BURJ_TUT} />;

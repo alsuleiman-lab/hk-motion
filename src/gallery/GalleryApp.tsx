@@ -15,7 +15,8 @@ import type { GridEmbed } from "./GridTab";
  * Marks, notes and grid-mode places are saved per element (doc id = element id) to data/gallery_notes.json through tools/gallery_serve.mjs, or to the
  * claude.ai page db; only the fields the user changed are sent, so an edit never overwrites what Claude wrote meanwhile.
  */
-type Section = "bg" | "transition" | "move" | "text" | "image" | "grid";
+type Section = "bg" | "transition" | "move" | "text" | "image" | "grid" | "models";
+type Model = { id: string; ar: string; comp: string; file: string; sec: number; ref: string; look: string; when: string };
 type Orient = "land" | "port";
 type Mode = "full" | "half" | "iso";
 type Item = { id: string; kind: "element" | "transition"; section: Section; ar: string; kit: string; group: string; where: string; note: string; code: string; still: number; mode: Mode; slot: { land: string; port: string }; orient: "both" | Orient; cost?: { landExtra?: number; portExtra?: number; make?: number; makeWhy?: string } | null };
@@ -25,13 +26,13 @@ type Rect = [number, number, number, number];
 type GridData = { grids?: Record<Orient, Record<string, { slots?: Record<string, { rect: Rect; kinds: string[] }> }>>; zone?: Rect };
 type Db = { collection: (p: string) => { doc: (id: string) => { set: (d: Record<string, unknown>, o?: { merge: boolean }) => Promise<void> }; onSnapshot: (n: (s: { docs: { id: string; data: () => Record<string, unknown> | undefined }[] }) => void, e?: () => void) => () => void } };
 
-const DATA: { items: Item[]; built: string; grid?: GridEmbed } = JSON.parse(document.getElementById("gallery-data")!.textContent!);
+const DATA: { items: Item[]; built: string; grid?: GridEmbed; models?: Model[] } = JSON.parse(document.getElementById("gallery-data")!.textContent!);
 const GD: GridData = (DATA.grid?.data as GridData) ?? {};
 const LABEL: Record<string, string> = { keep: "أبقِه", change: "عدّله", drop: "احذفه" };
 const MODE_AR: Record<Mode, string> = { full: "ملء الشاشة", half: "نصف الشاشة", iso: "عزل الخلفية" };
 const MODE_HINT: Record<Mode, string> = { full: "أنت كامل الإطار", half: "مصدر معروض بجانبك (مقطع، صفحة كتاب، خبر)", iso: "خلفيتك معزولة وخلفك صورة أو خريطة" };
 const OR_AR: Record<Orient, string> = { land: "العرضي", port: "الطولي" };
-const SECTIONS: [Exclude<Section, "grid">, string][] = [["text", "عناصر الكتابة"], ["image", "عناصر الصور والمصادر"], ["move", "أساليب الحركة"], ["transition", "الانتقالات"], ["bg", "الخلفيات"]];
+const SECTIONS: [Exclude<Section, "grid" | "models">, string][] = [["text", "عناصر الكتابة"], ["image", "عناصر الصور والمصادر"], ["move", "أساليب الحركة"], ["transition", "الانتقالات"], ["bg", "الخلفيات"]];
 /** the order the groups are shown in: the text elements by role first (his words, the quote, the opponent's words, verses, lists, numbers, marks, the fixed pieces) */
 const GROUP_ORDER = ["العبارات والكلمات", "الاقتباس والسؤال", "كلام الخصم", "الآيات", "البنود والقوائم", "الأرقام والزمن", "علامات على النص", "الهوية الثابتة",
   "الأشخاص والأماكن", "المصادر المعروضة", "علامات على الصور", "القصاصات", "الخرائط", "نماذج الرد", "نهاية الفيديو",
@@ -254,15 +255,30 @@ const App: React.FC = () => {
       <nav className="tabs" role="tablist" aria-label="الأقسام">
         {SECTIONS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => pickTab(k)}>{l} <b>{DATA.items.filter((i) => i.section === k && inO(i)).length}</b></button>)}
         <button type="button" role="tab" aria-selected={tab === "grid"} onClick={() => pickTab("grid")}>الشبكات</button>
+        {DATA.models?.length ? <button type="button" role="tab" aria-selected={tab === "models"} onClick={() => pickTab("models")}>نماذج الموشن <b>{DATA.models.length}</b></button> : null}
       </nav>
-      <div className="bar" style={tab === "grid" ? { display: "none" } : undefined}>
+      <div className="bar" style={tab === "grid" || tab === "models" ? { display: "none" } : undefined}>
         <span className="legend">{(Object.keys(MODE_AR) as Mode[]).map((m) => <span key={m} className={"mode m-" + m} title={MODE_HINT[m]}>{MODE_AR[m]}</span>)}</span>
         <input type="search" placeholder="بحث بالاسم أو الكود" value={q} onChange={(e) => setQ(e.target.value)} />
         <button type="button" className="theme-btn" onClick={copyAll}>{copied ? "نُسخ ✓" : "نسخ ملاحظاتي"}</button>
       </div>
       <p id="conn" data-ok={conn === "on" || conn === "local" ? "1" : "0"} role="status">{connText}</p>
       {DATA.grid ? <GridTab g={DATA.grid} active={tab === "grid"} onGo={goTo} /> : null}
-      {tab === "grid" ? null : groups.map((g) => (
+      {tab === "models" ? (
+        <section className="group"><h3>نماذج الموشن <small>الأربعة التي تدرّبتُ عليها وبنيتُ قوالبها؛ قل لي اسم النموذج وما تريد تغييره</small></h3>
+          <div className="mm">{(DATA.models ?? []).map((m) => (
+            <article key={m.id} className="mcard" id={"model-" + m.id}>
+              <video src={"motion_models/" + m.file} controls loop muted playsInline preload="metadata" />
+              <div className="mbody">
+                <h3>{m.ar}</h3>
+                <small>{m.ref} · {m.sec} ث · طولي</small>
+                <p><b className="l">الشكل:</b> {m.look}</p>
+                <p><b className="l">متى يُستعمل:</b> {m.when}</p>
+              </div>
+            </article>))}</div>
+        </section>
+      ) : null}
+      {tab === "grid" || tab === "models" ? null : groups.map((g) => (
         <section key={o + tab + g} className="group">
           <h3>{g} <small>{items.filter((i) => i.group === g).length}</small></h3>
           <main className={"grid " + o}>{items.filter((i) => i.group === g).map((it) => <Card key={o + it.id} it={it} o={o} n={notes[it.id] ?? {}} brand={brand} onSave={onSave} />)}</main>

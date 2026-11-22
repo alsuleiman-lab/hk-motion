@@ -123,8 +123,12 @@ footer{margin-top:28px;color:var(--mute);font-size:13px}
 /* portrait: the tall picture on one side, its mode bar, notes and buttons beside it, so all of a card is seen at once (user 2026-10-31: «في الطولي لا تظهر مساحات الكتابة والأزرار») */
 .grid.port .card{display:grid;grid-template-columns:minmax(200px,42%) 1fr;grid-template-rows:auto 1fr;align-items:start}.grid.port .card>.stage{grid-row:1/3;grid-column:1}.grid.port .card>.gridbar{grid-column:2;padding-top:12px}.grid.port .card>.body{grid-column:2}   /* the frame of each card has the shape of its orientation, so the grid overlay matches the picture */
 .mode{display:inline-block;font-size:12.5px;font-weight:800;padding:3px 10px;border-radius:999px;border:1.5px solid}.mode.m-full{color:#2f6fb3;border-color:#2f6fb3}.mode.m-half{color:#b06a12;border-color:#b06a12}.mode.m-iso{color:#2f8a62;border-color:#2f8a62}.legend{display:flex;gap:6px;flex-wrap:wrap}
-.gridlayer .slot.cur{border-style:solid;border-color:#7dffb0}.palette-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);margin:0 0 10px;padding-block:10px;border-bottom:1px solid var(--line);font-weight:700}`;
-const data = JSON.stringify({ items, grid, built: new Date().toISOString().slice(0, 16).replace("T", " ") }).replace(/</g, "\\u003c");
+.gridlayer .slot.cur{border-style:solid;border-color:#7dffb0}.mm{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:18px;margin-top:14px}.mm .mcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:grid;align-content:start}.mm video{width:100%;aspect-ratio:9/16;background:#000;display:block}.mm .mbody{padding:12px 14px 16px;display:grid;gap:8px;line-height:1.6}.mm h3{font-family:var(--f-title);font-size:22px;margin:0}.mm small{color:var(--mute);font-weight:700}.mm p{margin:0;font-size:15px}.mm b.l{color:var(--accent)}.palette-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);margin:0 0 10px;padding-block:10px;border-bottom:1px solid var(--line);font-weight:700}`;
+// the motion models (the four reference templates I trained on; user 2026-11-22: «اضف نماذج الموشن الى المعرض»): their approved preview renders, played in the 7th tab
+const MODELS = JSON.parse(fs.readFileSync("data/motion_models.json", "utf8"));
+fs.mkdirSync(path.join(OUT, "motion_models"), { recursive: true });
+for (const m of MODELS) fs.copyFileSync(path.join("data/motion_models", m.file), path.join(OUT, "motion_models", m.file));
+const data = JSON.stringify({ items, grid, models: MODELS, built: new Date().toISOString().slice(0, 16).replace("T", " ") }).replace(/</g, "\\u003c");
 const html = `<title>معرض عناصر المونتاج</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Noto+Kufi+Arabic:wght@600;800&display=swap">

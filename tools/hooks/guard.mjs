@@ -28,7 +28,7 @@ try { fs.mkdirSync(path.join(ROOT, ".tmp"), { recursive: true }); fs.writeFileSy
    video kind that did not come from `conduct.mjs plan <kind>` in this turn. Sub-agents are never bound. Absent module / no run = silent (tools/lib/conduct_core.mjs, tested by
    tools/selftest_cases/m_conductor.mjs). */
 let CRUN = null;
-try { if (!input.agent_id) { const CC = await import("../lib/conduct_core.mjs"); CRUN = { CC, run: await CC.activeRun(ROOT, input.session_id) }; } } catch { /* no conductor here */ }
+try { const CC = await import("../lib/conduct_core.mjs"); CRUN = { CC, run: input.agent_id ? null : await CC.activeRun(ROOT, input.session_id) }; } catch { /* no conductor here */ }
 const conductLine = () => { try { return CRUN?.run ? CRUN.CC.lineOf(CRUN.run.def, CRUN.run.st) : ""; } catch { return ""; } };
 process.on("exit", () => { if (!EMITTED && mode === "post") { try { const ln = conductLine(); if (ln) fs.writeSync(1, JSON.stringify({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "• " + ln } })); } catch { /* never block */ } } });
 
@@ -38,12 +38,17 @@ const RULE_FILES = [
   /^\.claude\/skills\/(?!remotion-|lessons-and-streams|gbro-)[^/]+\/[^/]+\.md$/,
   /^rules_registry\/(?!proposals\/)[^/]+\.md$/,
   /^\.claude\/settings(\.local)?\.json$/, /^tools\/hooks\//,
+  /^tools\/conduct\.mjs$/, /^tools\/lib\/conduct_core\.mjs$/, /^data\/pipelines\/[^/]+\.json$/,   // the conductor (user 2026-11-22): its code and its plans
 ];
 // sessions run in git worktrees (.claude/worktrees/<name>/): strip that prefix so their copies count as rule files too
 const WT = /^\.claude\/worktrees\/[^/]+\//;
 const inner = (p) => rel(p).replace(WT, "");
 const inWorktree = (p) => WT.test(rel(p));
 const isRuleFile = (p) => RULE_FILES.some((re) => re.test(inner(p)));
+/** the conductor's own files (the hook, its code, its plans): a sub-agent asks even when the session was approved, and the 3 h approval is not stamped by its edit */
+const CONDUCT_PROT = [/^tools\/hooks\//, /^tools\/conduct\.mjs$/, /^tools\/lib\/conduct_core\.mjs$/, /^data\/pipelines\/[^/]+\.json$/];
+const isConductProt = (p) => CONDUCT_PROT.some((re) => re.test(inner(p)));
+const vlog = (tried, why, step = null) => { try { CRUN?.CC.logViolation(ROOT, { session: input.session_id ?? null, project: CRUN?.run?.a.project ?? null, step, tried, why }); } catch { /* the refusal stands */ } };
 /** rules are READ only from the main folder (user order 2026-10-27: «لازم تكون ثابتة على الجهاز»): a worktree copy can be older than master */
 const READ_PINNED = (p) => isRuleFile(p) || /^(القواعد_العامة|شجرة_العمليات)\.md$/.test(inner(p));
 const mainPath = (p) => norm(ROOT) + "/" + inner(p);
@@ -112,6 +117,7 @@ const placementPending = () => {
 
 if (mode === "prompt") {
   const p = String(input.prompt ?? "");
+  try { CRUN?.CC.recordPrompt(ROOT, input.session_id, p); } catch { /* never block a prompt */ }
   // SLEEP MODE (user 2026-11-12: «لم تفِ بعهدك… نمت واستيقظت والكمبيوتر شغال»): a message saying he goes to sleep sets .tmp/user_sleeping;
   // any other message from him means he is awake and clears it. The Stop handler below hibernates the PC when I stop while he sleeps.
   try {
@@ -157,6 +163,11 @@ if (mode === "prompt") {
 
 if (mode === "pre") {
   const tool = input.tool_name, ti = input.tool_input ?? {};
+  /* READS ARE SEEN (user 2026-11-22: «كيف ألزمك أنك ما تنفذ شيء إلا بعد الرجوع إلى المهارات والتعليمات؟»): the main session's Read / whole-file cat / grep is recorded with its line range and
+     time (tools/lib/conduct_core.mjs noteTool) — the reading step's gate and every pipeline command ask whether the step's skill files were read WHOLE after the run started */
+  if (!input.agent_id && CRUN) { try { CRUN.CC.noteTool(ROOT, input.session_id, tool, ti, CRUN.run?.a.project ?? null, input.cwd); } catch { /* never block a read */ } }
+  /* the conductor's state (.tmp/<p>/conduct.json, conduct_active.json, the reads, the user's recorded messages, data/conduct_violations.jsonl) is written by the machine only */
+  if (["Write", "Edit", "NotebookEdit"].includes(tool) && CRUN) { const f0 = ti.file_path ?? ti.notebook_path; if (f0 && CRUN.CC.isMachineState(inner(f0))) { vlog(`${tool} ${rel(f0)}`, "كتابة يدوية في حالة المُوصِل"); deny("حالة المُوصِل تكتبها الأدوات وحدها (tools/conduct.mjs والهوك): لا تعدّل \"" + rel(f0) + "\" باليد — فهذه هي الطريقة التي تُحذف بها الخطوات المفتوحة بلا بوابة (أمر المستخدم 2026-11-22). الخطوة التالية: node tools/conduct.mjs next"); } }
   /* PLACEMENT FIRST (user 2026-11-20: the court picture at 0:05 sat 4 minutes in the wrong place while the agent traced code — «4 دقائق مرت ولم تعدل مكان
      عنصر، هذا فساد كبير»; memory fix-first-then-investigate). A placement message is open (a «راسلني» note without a reply, or his prompt — see the prompt
      handler): after 60 s with no move since it arrived, the MAIN session may not investigate — Read/Grep/Glob of tools/ or src/, a shell read/search of them,
@@ -194,6 +205,10 @@ if (mode === "pre") {
     /* (user 2026-11-21: «مللت من هذه الرسالة، كل شوي تطلع لي… بدي اظل طول الوقت جالس بس احط موافق») one approval per session covers its rule edits for 3 h:
        the PostToolUse of an approved rule edit stamps .tmp/rules_edit_ok.json[session] (post runs only after he allowed it) */
     let okRules = false; try { okRules = Date.now() - (JSON.parse(fs.readFileSync(path.join(ROOT, ".tmp", "rules_edit_ok.json"), "utf8"))[input.session_id] ?? 0) < 3 * 3600e3; } catch { /* none yet */ }
+    if (f && isConductProt(f) && (!okRules || input.agent_id)) {
+      vlog(`${tool} ${rel(f)}${input.agent_id ? " (وكيل)" : ""}`, "تعديل حارس أو خطة المُوصِل: طُلبت موافقة المستخدم");
+      emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: `تعديل حارس المُوصِل أو خطته (${rel(f)}): لا يُنفَّذ إلا بموافقة صريحة من المستخدم، ولا إعفاء للوكيل الفرعي (أمر المستخدم 2026-11-22: «كيف ألزمك أنك ما تنفذ شيء إلا بعد الرجوع إلى المهارات والتعليمات؟»). وافق فقط إن كان هذا ما طلبه.` } });
+    }
     if (f && isRuleFile(f) && !okRules) {
       emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: `تعديل ملف قواعد/مهارة (${rel(f)}): لا يُنفَّذ إلا بتوجيه صريح من المستخدم، ويُحلّ الجديد محل القديم في الدورة نفسها وينتقل القديم للسجل (بروتوكول الإحلال). وافق فقط إن كان هذا ما طلبه.` } });
     }
@@ -253,6 +268,11 @@ if (mode === "pre") {
   }
   if (tool === "Bash" || tool === "PowerShell") {
     const c = String(ti.command ?? "");
+    if (CRUN) { try {
+      const sc0 = CRUN.CC.scanCommand(CRUN.run?.def ?? { guarded: [] }, c, ROOT), bp = CRUN.CC.bashProtected(c, ROOT, sc0.bodies);
+      if (bp?.kind === "deny") { vlog(c.slice(0, 200), "كتابة يدوية في حالة المُوصِل (بالشلّ)"); deny("حالة المُوصِل تكتبها الأدوات وحدها: الأمر يكتب في «" + bp.file + "» (أمر المستخدم 2026-11-22). لا حذف ولا تعديل ولا إعادة توجيه؛ الخطوة التالية: node tools/conduct.mjs next"); }
+      if (bp?.kind === "ask") { vlog(c.slice(0, 200), "كتابة بالشلّ في حارس أو خطة المُوصِل: طُلبت موافقة المستخدم"); ask("هذا الأمر يكتب في «" + bp.file + "» وهي من حارس المُوصِل وخططه: لا يُنفَّذ إلا بموافقة صريحة من المستخدم، ولو من وكيل فرعي (أمر المستخدم 2026-11-22). وافق فقط إن كان هذا ما طلبه."); }
+    } catch { /* never block on a conductor fault */ } }
     /* CONDUCTOR (user 2026-11-22): the run's current step decides; a pipeline command that is not it (or an allowed parallel one) is refused with the step and its command named */
     if (/conduct\.mjs["']?\s+start\b/.test(c) && input.session_id) { try { fs.writeFileSync(path.join(ROOT, ".tmp", "conduct_pending_owner.json"), JSON.stringify({ session: input.session_id, agent: input.agent_id ?? null, at: Date.now() })); } catch { /* the run then binds every main session */ } }
     if (CRUN?.run && !input.agent_id) { try { const why = await CRUN.CC.hookVerdict(ROOT, input.session_id, c, { agentId: input.agent_id, run: CRUN.run }); if (why) deny(why); } catch { /* never block on a conductor fault */ } }
@@ -337,8 +357,8 @@ if (mode === "post") {
   // GUARD SELF-TEST (user 2026-11-21: «اعمل خطة سبر لكل ما يجنبك الوقوع في الأخطاء مستقبلا»): an edit of a guarded tool re-runs its cases (tools/guard_selftest.mjs, data/error_ledger.json); silent when all pass
   /* (user 2026-11-21: «النص ساعة هذا الحد الأعلى») an ENGINE file (tools/rehearsal.mjs isEngineFile, also its .py/.sh and src/MontageSpec…) gets ONE suggestion line
      «شغّل التجربة الكاملة» from the same call even when every case passes (a suggestion, never an automatic run: the rehearsal takes many minutes; once per file per 30 min) */
-  if (f && !inWorktree(f) && /^(tools\/.+\.mjs|tools\/.+\.(py|sh)|src\/(MontageSpec|SpecComps|MontageBoth)\.tsx)$/.test(rel(f))) { const st = spawnSync("node", ["tools/guard_selftest.mjs", "--hook", rel(f)], { cwd: ROOT, encoding: "utf8", timeout: 20000 }); if (st.status !== 0) emit({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: ((st.stdout || "").trim() || `✘ اختبار الحراس لم يعمل بعد تعديل ${rel(f)}: ${(st.stderr || "انتهت المهلة").trim().slice(-400)}`).slice(-3000) } }); else if ((st.stdout || "").trim() && !isRuleFile(f)) emit({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: st.stdout.trim().slice(-1000) } }); }
-  if (f && isRuleFile(f) && input.session_id) { try { const okF = path.join(ROOT, ".tmp", "rules_edit_ok.json"); let o = {}; try { o = JSON.parse(fs.readFileSync(okF, "utf8")); } catch { /* first */ } o[input.session_id] = Date.now(); fs.writeFileSync(okF, JSON.stringify(o)); } catch { /* next edit asks again */ } }
+  if (f && !inWorktree(f) && /^(tools\/.+\.mjs|tools\/.+\.(py|sh)|src\/(MontageSpec|SpecComps|MontageBoth)\.tsx)$/.test(rel(f))) { const st = spawnSync("node", ["tools/guard_selftest.mjs", "--hook", rel(f)], { cwd: ROOT, encoding: "utf8", timeout: 27000 }); if (st.status !== 0) emit({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: ((st.stdout || "").trim() || `✘ اختبار الحراس لم يعمل بعد تعديل ${rel(f)}: ${(st.stderr || "انتهت المهلة").trim().slice(-400)}`).slice(-3000) } }); else if ((st.stdout || "").trim() && !isRuleFile(f)) emit({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: st.stdout.trim().slice(-1000) } }); }
+  if (f && isRuleFile(f) && input.session_id && !(input.agent_id && isConductProt(f))) { try { const okF = path.join(ROOT, ".tmp", "rules_edit_ok.json"); let o = {}; try { o = JSON.parse(fs.readFileSync(okF, "utf8")); } catch { /* first */ } o[input.session_id] = Date.now(); fs.writeFileSync(okF, JSON.stringify(o)); } catch { /* next edit asks again */ } }
   if (f && isRuleFile(f)) {
     const r = spawnSync("node", ["tools/rules_audit.mjs"], { cwd: ROOT, encoding: "utf8" });
     const out = (r.stdout || r.stderr || "").trim();
@@ -490,9 +510,9 @@ if (mode === "stop") {
      this turn goes back with «اطبع الخطة من الأداة». A question or a reply that presents no plan passes. */
   if (!input.agent_id && CRUN) try {
     const { CC, run } = CRUN;
-    if (run) { const ev = CC.evaluate(run.def, run.st); if (!ev.complete && CC.claimsDone(last)) emit({ decision: "block", reason: `أعلنتَ أن العمل انتهى أو جاهز والإجراء المعتمد «${run.st.project}» فيه ${ev.open.length} خطوة مفتوحة (تمّت ${ev.done.length} من ${run.def.steps.length}): ${ev.open.slice(0, 5).map((r) => r.s.ar).join("، ")}${ev.open.length > 5 ? "…" : ""}. الحالية: ${ev.current?.s.ar ?? "—"}. لا إنجاز بالكلام بل ببوابات تنجح (القواعد_العامة.md §2): أكمل الخطوات (node tools/conduct.mjs next)، أو قل بصدق ما أُنجز وما بقي دون كلمة «انتهى/جاهز».` }); }
+    if (run) { const ev = CC.evaluate(run.def, run.st); if (!ev.complete && CC.claimsDone(last)) (vlog("ادّعاء إنجاز: " + last.slice(0, 120), "انتهيتُ/جاهز والخطوات مفتوحة", ev.current?.s.id ?? null), emit)({ decision: "block", reason: `أعلنتَ أن العمل انتهى أو جاهز والإجراء المعتمد «${run.st.project}» فيه ${ev.open.length} خطوة مفتوحة (تمّت ${ev.done.length} من ${run.def.steps.length}): ${ev.open.slice(0, 5).map((r) => r.s.ar).join("، ")}${ev.open.length > 5 ? "…" : ""}. الحالية: ${ev.current?.s.ar ?? "—"}. لا إنجاز بالكلام بل ببوابات تنجح (القواعد_العامة.md §2): أكمل الخطوات (node tools/conduct.mjs next)، أو قل بصدق ما أُنجز وما بقي دون كلمة «انتهى/جاهز».` }); }
     const kinds = CC.kindsNamed(last, ROOT);
-    if (kinds.length && CC.presentsPlan(last) && CC.planToolRun(input.transcript_path, kinds, run?.st?.kind) === false) emit({ decision: "block", reason: `قدّمتَ خطة أو ترتيباً أو تقدير زمن لـ${kinds.join("/")} من الذاكرة (أمر المستخدم 2026-11-22: «أنا بدي كيف أنت تلتزم بالخطة الموجودة عندنا، دائماً تبقى ملتزم»؛ خطة بث قُدّمت من الذاكرة بترتيب خاطئ وبلا آيات وأحاديث). اطبع الخطة من الأداة: ${kinds.map((k) => "node tools/conduct.mjs plan " + k).join(" ثم ")} ثم قدّمها بنصها (وما لم يُجهَّز تقول الأداة إنه لم يُجهَّز). السؤال والرد بلا خطة لا يُمنعان.` });
+    if (kinds.length && CC.presentsPlan(last) && CC.planToolRun(input.transcript_path, kinds, run?.st?.kind) === false) (vlog("خطة من الذاكرة: " + last.slice(0, 120), "خطة أو تقدير زمن بلا conduct.mjs plan في الدورة"), emit)({ decision: "block", reason: `قدّمتَ خطة أو ترتيباً أو تقدير زمن لـ${kinds.join("/")} من الذاكرة (أمر المستخدم 2026-11-22: «أنا بدي كيف أنت تلتزم بالخطة الموجودة عندنا، دائماً تبقى ملتزم»؛ خطة بث قُدّمت من الذاكرة بترتيب خاطئ وبلا آيات وأحاديث). اطبع الخطة من الأداة: ${kinds.map((k) => "node tools/conduct.mjs plan " + k).join(" ثم ")} ثم قدّمها بنصها (وما لم يُجهَّز تقول الأداة إنه لم يُجهَّز). السؤال والرد بلا خطة لا يُمنعان.` });
   } catch { /* the conductor check never breaks the stop */ }
   /* A PUBLISH CLAIM CARRIES ITS LINK (2026-11-21, gta6: I told him a stray OK tab was «left for him to close», and earlier that Studio messages «reached me» —
      neither was true). A reply that says something was published / uploaded / scheduled, with no link in the same reply, goes back once: add the link of what

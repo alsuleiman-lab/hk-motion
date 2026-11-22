@@ -119,6 +119,7 @@ if (cmd === "start") {
   fs.writeFileSync(C.activeFile(ROOT), JSON.stringify({ project: p, kind: L.def.kind, session, at: Date.now() }));
   say(`✔ بدأ ${L.def.ar ?? L.def.kind} «${p}» — الساعة تعدّ من الآن (${L.def.totalMin ? L.def.totalMin + " د" : "غير مقيس"}) والحالة في .tmp/${p}/conduct.json`);
   say(`${L.def.steps.length} خطوة. من الآن المُوصِل يقرّر التالي: الهوك يرفض أي أمر إجراء ليس خطوة حالية أو موازية.\nالخطوة الأولى: node tools/conduct.mjs next`);
+  try { const { hooksAlive } = await import("./lib/hooks_alive.mjs"); if (!hooksAlive(ROOT)) say("⛔ الهوكات لا تعمل في هذه الجلسة (لا نبض منذ دقيقتين): لن تُسجَّل قراءتي ولن يُحرس الترتيب، وخطوات القراءة لن تُغلق. افتح الجلسة في مجلد العمل وأخبر المستخدم."); } catch { /* no beat file here */ }
   process.exit(0);
 }
 
@@ -213,6 +214,7 @@ if (cmd === "next" || cmd === "status") {
       const state = { done: "تمّت", running: "جارية", failed: "فشلت", pending: ev.eligible.includes(r) ? "جاهزة" : `تنتظر ${s.deps.filter((d) => !["done", "skipped"].includes(st.steps[d]?.status)).join("،")}`, skipped: "تخطّتها بسبب" }[r.status] ?? r.status;
       say(`${mark} ${String(def.steps.indexOf(s) + 1).padStart(2)} [${s.id}] ${s.ar} — ${state} — ${bud}${ss.why && r.status === "failed" ? ` — ${ss.why.slice(0, 120)}` : ""}${ss.waiting && r.status === "running" ? ` — ينتظر: ${String(ss.waiting).slice(0, 100)}` : ""}`);
     }
+    { const v = C.violationsSummary(ROOT, p); say(`محاولات الخروج عن الخطة المرفوضة: ${v.n}${v.last ? ` (آخرها: ${v.last.why} — ${String(v.last.tried).slice(0, 70)})` : ""} — data/conduct_violations.jsonl`); }
     say(ev.complete ? "\n✔ الخطوات كلها تمّت." : `\n${C.lineOf(def, st, ev)}`);
     process.exit(0);
   }
@@ -223,7 +225,10 @@ if (cmd === "next" || cmd === "status") {
   const started = []; const errors = [];
   const toStart = [cur, ...ev.parallel].filter((r) => ["pending", "failed"].includes(r.status) && ["auto", "watch"].includes(r.s.type) && ev.eligible.includes(r));
   const exclusive = toStart.find((r) => r.s.exclusive);
+  const unreadOf = (s) => C.unreadFor(ROOT, null, st.project, C.requiresOf(def, s), st.t0);
   for (const r of exclusive ? [exclusive] : toStart) {
+    const miss0 = unreadOf(r.s);
+    if (miss0.length) { errors.push(`[${r.s.id}] لم تُقرأ مهارتها: ${miss0.map((m) => m.file).join("، ")} — اقرأها بأداة القراءة (الملف كله) ثم أعد next`); C.logViolation(ROOT, { project: st.project, step: r.s.id, tried: `next ← بدء ${r.s.id}`, why: "لم تُقرأ مهارة الخطوة" }); continue; }
     const res = startStep(def, st, r.s);
     if (res?.error) errors.push(`[${r.s.id}] ${res.error}`);
     else if (res?.fgPromise) { const code = await res.fgPromise; started.push(`[${r.s.id}] نُفِّذت الآن ${code === 0 ? "ونجحت بوابتها" : "وفشلت (انظر السجل)"}`); }
@@ -239,6 +244,7 @@ if (cmd === "next" || cmd === "status") {
   if (s.watch) say(`  المراقبة: ${s.watch}`);
   if (s.note) say(`  ملاحظة: ${s.note}`);
   say(`  البوابة: ${gatesText(s)}`);
+  { const miss = unreadOf(s); if (miss.length) say(`  ✘ القراءة الناقصة (بأداة القراءة، الملف كله، بعد بدء التشغيل): ${miss.map((m) => m.file + (m.mode === "whole" ? "" : " [بحث يكفي]")).join(" ، ")}`); }
   say(`  الميزانية: ${budgetText(s)} — المتبقي: ${C.remainingText(def, st, ev)}`);
   if (ss.status === "failed") say(`  ✘ فشلت: ${ss.why ?? ""}${ss.log ? ` (السجل ${ss.log})` : ""} — أصلح السبب ثم node tools/conduct.mjs next (لا تتجاوز البوابة)`);
   if (ss.overBudget) say("  ✘ تجاوزت ميزانيتها: أوقف الحلقة وعالج السبب ولا تُعد المرحلة (حدّ الوقت)");
@@ -258,9 +264,11 @@ if (cmd === "done") {
   const s = R.def.steps.find((x) => x.id === id); if (!s) { say(`✘ لا خطوة «${id}»: ${R.def.steps.map((x) => x.id).join("، ")}`); process.exit(1); }
   if (s.type === "auto" || s.type === "watch") { say(`✘ «${id}» خطوة ${s.type === "auto" ? "تلقائية" : "مراقبة"}: يُغلقها المُوصِل ببوابتها لا بقولي (node tools/conduct.mjs next).`); process.exit(1); }
   const pend = s.deps.filter((d) => !["done", "skipped"].includes(R.st.steps[d]?.status));
-  if (pend.length) { say(`✘ «${id}» لا تُغلق قبل ما قبلها: ${pend.join("، ")} (node tools/conduct.mjs status)`); process.exit(1); }
+  if (pend.length) { C.logViolation(ROOT, { project: p, step: id, tried: `done ${id}`, why: `قبل ما قبلها: ${pend.join("،")}` }); say(`✘ «${id}» لا تُغلق قبل ما قبلها: ${pend.join("، ")} (node tools/conduct.mjs status)`); process.exit(1); }
+  { const miss = C.unreadFor(ROOT, null, p, C.requiresOf(R.def, s), R.st.t0); if (miss.length) { C.logViolation(ROOT, { project: p, step: id, tried: `done ${id}`, why: `لم تُقرأ: ${miss.map((m) => m.file).join("،")}` }); say(`✘ «${id}» لا تُغلق قبل قراءة مهارتها (بأداة القراءة، الملف كله، بعد بدء التشغيل): ${miss.map((m) => m.file).join(" ، ")}`); process.exit(1); } }
   C.editState(ROOT, p, (st) => { setArgs(st); const ss = C.stepState(st, id); if (flags.evidence) ss.evidence = String(flags.evidence); if (!ss.startedAt) ss.startedAt = Date.now(); });
   const st = C.readState(ROOT, p), g = await C.checkGates(s, { root: ROOT, def: R.def, state: st, p, args: st.args, clips: C.clipsFor(ROOT, R.def, st) });
+  if (!g.ok && g.gate === "files_read") C.logViolation(ROOT, { project: p, step: id, tried: `done ${id} --evidence …`, why: "إغلاق خطوة القراءة بالنص قبل القراءة" });
   if (!g.ok) { say(`✘ بوابة «${id}» لم تنجح: ${g.why}\nلا تُغلق الخطوة بقولي؛ أكمل المطلوب ثم أعد.`); process.exit(1); }
   C.editState(ROOT, p, (x) => { const ss = C.stepState(x, id); ss.status = "done"; ss.endedAt = Date.now(); });
   const st2 = C.readState(ROOT, p); const ev = await finishIfComplete(R.def, st2);
@@ -281,7 +289,7 @@ if (cmd === "end") {
   const p = resolveP(rest[0]); if (!p) { say("لا تشغيل مفتوح"); process.exit(1); }
   const R = loadRun(p); if (R.error) { say(R.error); process.exit(1); }
   const ev = C.evaluate(R.def, R.st);
-  if (!ev.complete && !(typeof flags["user-said"] === "string" && flags["user-said"].trim().length >= 6)) { say(`✘ بقيت ${ev.open.length} خطوة مفتوحة: لا يُنهى التشغيل إلا بتمامه أو بقول المستخدم نصاً (--user-said "…")؛ تُسجَّل كلماته في الحالة.`); process.exit(1); }
+  if (!ev.complete && !C.userSaid(ROOT, typeof flags["user-said"] === "string" ? flags["user-said"] : "", R.st.t0)) { C.logViolation(ROOT, { project: p, step: null, tried: `end ${flags["user-said"] ?? ""}`, why: "إنهاء التشغيل مبكراً بلا نص المستخدم" }); say(`✘ بقيت ${ev.open.length} خطوة مفتوحة: لا يُنهى التشغيل إلا بتمامه أو بنص من رسالة المستخدم نفسها (--user-said "…" بعد بدء التشغيل؛ يتحقق الحارس من رسائله المسجَّلة فلا ينفع نص أكتبه أنا).`); process.exit(1); }
   C.editState(ROOT, p, (x) => { x.active = false; x.endedAt = Date.now(); if (!ev.complete) x.endedByUser = String(flags["user-said"]); });
   const a = C.rd(C.activeFile(ROOT), null); if (a?.project === p) fs.rmSync(C.activeFile(ROOT), { force: true });
   say(`✔ انتهى تشغيل «${p}»${ev.complete ? "" : ` بقول المستخدم: «${flags["user-said"]}» (بقيت ${ev.open.length} خطوة مفتوحة)`}`);

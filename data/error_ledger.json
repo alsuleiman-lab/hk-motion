@@ -1327,7 +1327,7 @@
    "cause": "الإجراء نصٌّ يُقرأ ويُنسى؛ لا شيء يحدّد الخطوة التالية ولا يمنع أمراً من خارج ترتيبها ولا يردّ خطة قُدّمت دون الرجوع إلى المكتوب، فيبقى الالتزام بذاكرتي.",
    "guard": {
     "file": "tools/conduct.mjs + tools/lib/conduct_core.mjs + data/pipelines/*.json + tools/hooks/guard.mjs",
-    "how": "المُوصِل: الإجراء المكتوب (البث والحلقة) بيانات في data/pipelines (خطوات وتبعيات ومتوازٍ وأمر أو إدخال إبداعي وبوابة بفاحص وميزانية وبند مهارة وأدوات كل مقطع) وآلة حالة: conduct.mjs plan|start|next|done|status|lint|end، و`next` يطبع خطوة واحدة ويشغّل التلقائية والمتوازية، ولا تُغلق خطوة قبل ما قبلها وبوابتها. والهوك: PreToolUse يرفض أمر إجراء ليس الخطوة الحالية ولا موازياً مسموحاً (للجلسة صاحبة التشغيل، لا للوكلاء) ويسمّي الخطوة وأمرها، وكل رسالة وأداة تحمل «الخطوة الحالية: … — المتبقي: … د»، وStop يردّ «انتهيتُ/جاهز» وخطوات مفتوحة، ويردّ كل خطة أو ترتيب أو تقدير زمن لبث/درس/حلقة/ريل لم تُطبع بـ`conduct.mjs plan <النوع>` في الدورة نفسها («اطبع الخطة من الأداة»)؛ والفاحص lint يفشل على أداة غير موجودة أو بوابة بلا فاحص أو أمر غير مصنَّف أو دورة. الدرس والريل وغيرهما مسجَّلة «لم يُجهَّز»."
+    "how": "المُوصِل: الإجراء المكتوب (البث والحلقة) بيانات في data/pipelines (خطوات وتبعيات ومتوازٍ وأمر أو إدخال إبداعي وبوابة بفاحص وميزانية وبند مهارة وأدوات كل مقطع) وآلة حالة: conduct.mjs plan|start|next|done|status|lint|end، و`next` يطبع خطوة واحدة ويشغّل التلقائية والمتوازية، ولا تُغلق خطوة قبل ما قبلها وبوابتها. والهوك: PreToolUse يرفض أمر إجراء ليس الخطوة الحالية ولا موازياً مسموحاً (للجلسة صاحبة التشغيل، لا للوكلاء) ويسمّي الخطوة وأمرها، وكل رسالة وأداة تحمل «الخطوة الحالية: … — المتبقي: … د»، وStop يردّ «انتهيتُ/جاهز» وخطوات مفتوحة، ويردّ كل خطة أو ترتيب أو تقدير زمن لبث/درس/حلقة/ريل لم تُطبع بـ`conduct.mjs plan <النوع>` في الدورة نفسها («اطبع الخطة من الأداة»)؛ والفاحص lint يفشل على أداة غير موجودة أو بوابة بلا فاحص أو أمر غير مصنَّف أو دورة. الدرس والريل وغيرهما مسجَّلة «لم يُجهَّز». ثم أمر 2026-11-22 «كيف ألزمك أنك ما تنفذ شيء إلا بعد الرجوع إلى المهارات والتعليمات؟»: الهوك يسجّل كل قراءة (Read أو cat كامل أو grep) وبوابة files_read تتحقق من قراءة ملفات خطوة القراءة كاملة بعد بدء التشغيل، ولا يُنفَّذ أمر إجراء قبل قراءة مهارة خطوته؛ والأغلفة (bash -c، node -e، ملف خارج tools، powershell، cmd /c، eval، xargs، heredoc) تُفتح أو تُرفض؛ وتعديل الهوك والمُوصِل وخططه (بأدوات التحرير أو بالشلّ) يطلب موافقة المستخدم حتى من وكيل، وحالة المُوصِل لا تُكتب باليد؛ وإنهاء التشغيل يتطلب نصاً من رسالة المستخدم المسجَّلة؛ وكل محاولة مرفوضة في سجل المخالفات data/conduct_violations.jsonl."
    },
    "status": "محروس ومختبَر",
    "selftest": {
@@ -1347,7 +1347,20 @@
      "conduct.plan_and_unprepared_kinds",
      "conduct.stream_definition_order",
      "conduct.hook_wired_src",
-     "conduct.argv_fill"
+     "conduct.argv_fill",
+     "bypass.skip_a_step",
+     "bypass.render_before_prerender",
+     "bypass.command_without_reading_its_skill",
+     "bypass.whole_file_by_cat_counts_and_pipes_do_not",
+     "bypass.plan_or_estimate_from_memory",
+     "bypass.edit_conductor_files_without_approval",
+     "bypass.edit_conductor_files_by_shell",
+     "bypass.tamper_with_conductor_state",
+     "bypass.wrappers_around_a_guarded_tool",
+     "bypass.claim_done_with_open_steps",
+     "bypass.reading_step_cannot_be_closed_by_text",
+     "bypass.end_the_run_early",
+     "bypass.violation_log_and_status_line"
     ],
     "manual": []
    },

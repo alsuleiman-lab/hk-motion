@@ -111,6 +111,10 @@ export const CHECKERS = {
     if (!perClip) { const r = one(g.paths); return r === true ? { ok: true } : { ok: false, why: r }; }
     return needClips(ctx) ?? eachClip(ctx, (c) => one(g.paths, c));
   },
+  files_read: (g, ctx) => {
+    const need = unreadFor(ctx.root, null, ctx.p, g.files.map((x) => (typeof x === "string" ? { file: x } : x)).map((r) => ({ file: r.file, mode: r.mode ?? "whole" })), ctx.state.t0 ?? 0);
+    return need.length ? { ok: false, why: `لم تُقرأ بعد (بأداة القراءة، الملف كله، بعد بدء التشغيل): ${need.map((n) => n.file + (n.mode === "whole" ? "" : " [بحث]")).join("، ")}` } : { ok: true };
+  },
   any_files: (g, ctx) => (g.paths.some((f) => fileOk(ctx.root, fill(f, ctx))) ? { ok: true } : { ok: false, why: `لا أحد من: ${g.paths.map((f) => fill(f, ctx)).join("، ")}` }),
   sections_ok: async (g, ctx) => { try { const M = await import(pathToFileURL(path.join(ctx.root, "tools", "prepublish_gates.mjs")).href); const sp = rd(path.join(ctx.root, "data", "specs", `${ctx.p}.json`), null); if (!sp) return { ok: false, why: "لا مواصفة بعد" }; if (!M.appliesToEpisode(ctx.p, sp)) return { ok: true }; const f = M.sectionsFailures(ctx.p, sp); return f.length ? { ok: false, why: String(f[0]).slice(0, 140) } : { ok: true }; } catch (e) { return { ok: false, why: "تعذّر prepublish_gates: " + String(e.message).slice(0, 80) }; } },
   package_ok: async (g, ctx) => { try { const M = await import(pathToFileURL(path.join(ctx.root, "tools", "prepublish_gates.mjs")).href); const sp = rd(path.join(ctx.root, "data", "specs", `${ctx.p}.json`), null); if (!sp) return { ok: false, why: "لا مواصفة بعد" }; if (!M.appliesToEpisode(ctx.p, sp)) return { ok: true }; const f = M.packageFailures(ctx.p); return f.length ? { ok: false, why: String(f[0]).slice(0, 140) } : { ok: true }; } catch (e) { return { ok: false, why: "تعذّر prepublish_gates: " + String(e.message).slice(0, 80) }; } },
@@ -176,7 +180,7 @@ export const CHECKERS = {
   },
 };
 /** the keys a gate type needs, so the lint can say what is missing */
-const GATE_NEEDS = { files: ["paths"], any_files: ["paths"], json_clips: ["path"], json_covers_clips: ["path"], board_lane: ["lane"], log_has: ["file", "text"], cmd: ["cmd"], arg_set: ["name"] };
+const GATE_NEEDS = { files_read: ["files"], files: ["paths"], any_files: ["paths"], json_clips: ["path"], json_covers_clips: ["path"], board_lane: ["lane"], log_has: ["file", "text"], cmd: ["cmd"], arg_set: ["name"] };
 
 export async function checkGates(step, ctx) {
   const gates = step.gate ?? [];
@@ -233,6 +237,9 @@ export function lintDef(def, root = ROOT) {
   for (const g of guarded) exist(g.tool, "guarded");
   for (const s of def.steps) for (const a of s.cmds ?? (s.cmd ? [s.cmd] : [])) { const sig = signatureOf(a); if (sig && !guardedEntryFor(def, sig.tool, sig.args)) P.push(`الخطوة «${s.id}»: أمرها ${sig.tool} غير مصنَّف في guarded: يمرّ من الهوك بلا حراسة`); }
   for (const t of def.perClip ?? []) { exist(t.tool, `perClip ${t.id}`); if (!set.has(t.step)) P.push(`perClip ${t.id}: الخطوة «${t.step}» غير موجودة`); if (!t.artifact) P.push(`perClip ${t.id}: لا artifact`); }
+  const reqExist = (list, where) => { for (const x of list ?? []) { const r = typeof x === "string" ? { file: x } : x; if (!r?.file || !fs.existsSync(path.join(root, r.file))) P.push(`${where}: ملف مطلوب قراءته غير موجود «${r?.file}»`); if (r?.mode && !["whole", "any", "search"].includes(r.mode)) P.push(`${where}: نمط قراءة مجهول «${r.mode}»`); } };
+  reqExist(def.defaultRequires, "defaultRequires");
+  for (const s of def.steps) { reqExist(s.requires, `الخطوة «${s.id}» requires`); for (const g of s.gate ?? []) if (g.type === "files_read") reqExist(g.files, `الخطوة «${s.id}» بوابة files_read`); }
   if (def.totalMin !== undefined && def.totalMin !== null && typeof def.totalMin !== "number") P.push("totalMin ليس رقماً");
   return P;
 }
@@ -291,7 +298,7 @@ export function newState(def, p, extra = {}) {
   return { kind: def.kind, project: p, defPath: extra.defPath ?? null, t0: Date.now(), args: extra.args ?? {}, steps: {}, clips: [], active: true, ...extra.more };
 }
 const ctxOf = (root, def, st) => ({ root, def, state: st, p: st.project, args: st.args ?? {}, clips: clipsFor(root, def, st) });
-const GATE_CHEAP = new Set(["files", "any_files", "json_clips", "json_covers_clips", "board_lane", "fast_clock", "fast_checks_ok", "log_has", "evidence", "arg_set", "hadith_verified", "perclip_artifacts", "queue_jobs", "render_done", "final_ok"]);
+const GATE_CHEAP = new Set(["files_read", "files", "any_files", "json_clips", "json_covers_clips", "board_lane", "fast_clock", "fast_checks_ok", "log_has", "evidence", "arg_set", "hadith_verified", "perclip_artifacts", "queue_jobs", "render_done", "final_ok"]);
 
 /** bring the state up to date WITHOUT side effects beyond the state: a finished runner's step whose gate passes is done; a dead runner is failed; a watch step whose gate passes is done */
 export async function reconcile(root, def, st, { cheap = false } = {}) {
@@ -357,29 +364,179 @@ export async function activeRun(root, sessionId, { cheap = true } = {}) {
   if (await reconcile(root, L.def, st, { cheap })) editState(root, a.project, (s) => { Object.assign(s.steps, st.steps); });
   return { a, st, def: L.def, root };
 }
+/* ── what I READ is seen by the hook (user 2026-11-22: «كيف ألزمك أنك ما تنفذ شيء إلا بعد الرجوع إلى المهارات والتعليمات؟») ─────────────────────────────────────────────
+   Every Read of the main session (and a whole-file cat, and a grep over a file) is recorded with its line range and its time: .tmp/conduct_reads_<session>.json always, and
+   .tmp/<project>/conduct_reads.json too while a run is active. A step's gate and a pipeline command both ask: were the required files read WHOLE (the union of the ranges that
+   were read after the run started covers every line), or — for a file marked «search» — touched by any read or grep. */
+const lc = (s) => norm(s).toLowerCase().replace(/^\/([a-z])\//, "$1:/");
+export const relTo = (root, p) => { const n = lc(p), r = lc(root).replace(/\/+$/, ""); return n.startsWith(r + "/") ? n.slice(r.length + 1) : n.replace(/^\.\//, ""); };
+const toFs = (root, p) => { const n = norm(p).replace(/^\/([A-Za-z])\//, "$1:/"); return path.isAbsolute(n) ? n : path.join(root, n); };
+export const readsFile = (root, sid) => path.join(root, ".tmp", `conduct_reads_${String(sid || "none").replace(/[^\w-]/g, "_")}.json`);
+const lineCount = (f) => { try { const t = fs.readFileSync(f, "utf8"); return t.split("\n").length - (t.endsWith("\n") ? 1 : 0); } catch { return 0; } };
+export function recordRead(root, sid, file, { offset, limit, search = false, whole = false } = {}, project = null) {
+  const rel = relTo(root, file), total = lineCount(toFs(root, file)), a = Math.max(1, Number(offset) || 1), b = whole ? total : Math.min(total, a + (Number(limit) || 2000) - 1);
+  const now = Date.now();
+  for (const f of [readsFile(root, sid), project ? path.join(root, ".tmp", project, "conduct_reads.json") : null].filter(Boolean)) {
+    const d = rd(f, {}), e = (d[rel] ??= { total, reads: [], searches: [] }); e.total = total;
+    if (search) e.searches = [...(e.searches ?? []), now].slice(-20); else e.reads = [...(e.reads ?? []), { a, b, at: now }].slice(-60);
+    try { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(d)); } catch { /* the next read records again */ }
+  }
+}
+const covered = (e, mode, since) => {
+  if (!e) return false;
+  if (mode === "search" || mode === "any") return (e.reads ?? []).some((r) => r.at >= since) || (e.searches ?? []).some((t) => t >= since);
+  const rs = (e.reads ?? []).filter((r) => r.at >= since).map((r) => [r.a, r.b]).sort((x, y) => x[0] - y[0]); if (!rs.length) return false;
+  if (!e.total) return true;
+  let reach = 0; for (const [a, b] of rs) { if (a > reach + 1) return false; reach = Math.max(reach, b); if (reach >= e.total) return true; }
+  return reach >= e.total;
+};
+export const requiresOf = (def, step) => { const seen = new Set(), out = []; for (const x of [...(def.defaultRequires ?? []), ...(step?.requires ?? []), ...(step?.gate ?? []).filter((g) => g.type === "files_read").flatMap((g) => g.files ?? [])]) { const r = typeof x === "string" ? { file: x } : x, k = lc(r.file); if (!seen.has(k)) { seen.add(k); out.push({ file: r.file, mode: r.mode ?? "whole" }); } } return out; };
+/** the required files not yet read (after `since`) by this session (a session id) or by the run's bound session (the mirror file) */
+export function unreadFor(root, sid, project, requires, since = 0) {
+  const d = sid ? rd(readsFile(root, sid), {}) : rd(path.join(root, ".tmp", project, "conduct_reads.json"), {});
+  return requires.filter((r) => !covered(d[lc(r.file)], r.mode, since));
+}
+/** a tool call of the main session → the reads it makes: Read, a whole-file cat, a grep over a file */
+export function noteTool(root, sid, tool, ti, project = null, cwd = null) {
+  const at = (f) => (path.isAbsolute(norm(f)) || /^\/[A-Za-z]\//.test(norm(f)) ? f : path.join(cwd || root, f));
+  if (tool === "Read" && ti.file_path) return recordRead(root, sid, at(ti.file_path), { offset: ti.offset, limit: ti.limit }, project);
+  if (tool === "Grep" && ti.path) return recordRead(root, sid, at(ti.path), { search: true }, project);
+  if ((tool === "Bash" || tool === "PowerShell") && ti.command) {
+    const c = String(ti.command), piped = /\|/.test(c.replace(/\|\|/g, ""));
+    for (const seg of c.split(/&&|\|\||;|\r?\n|\|/)) {
+      const tk = tokenize(seg.trim()), b = norm(tk[0] ?? "").split("/").pop().toLowerCase().replace(/\.exe$/, "");
+      const files = tk.slice(1).filter((t) => !t.startsWith("-") && /[./\\]/.test(t));
+      if (["cat", "get-content", "gc", "type"].includes(b) && files.length === 1 && !piped) recordRead(root, sid, at(files[0]), { whole: true }, project);
+      else if (["grep", "egrep", "rg", "select-string", "sls", "findstr"].includes(b)) for (const f of files) if (fs.existsSync(toFs(root, at(f)))) recordRead(root, sid, at(f), { search: true }, project);
+    }
+  }
+}
+
+/* ── the user's own words (so `end` cannot be closed on a quote I made up) ──────────────────────────────────────────────────────────────────────────── */
+export const promptsFile = (root) => path.join(root, ".tmp", "user_prompts.jsonl");
+export function recordPrompt(root, sid, text) {
+  try {
+    const f = promptsFile(root); let L = []; try { L = fs.readFileSync(f, "utf8").split(/\r?\n/).filter(Boolean); } catch { /* first */ }
+    L.push(JSON.stringify({ at: Date.now(), session: sid ?? null, text: String(text ?? "").slice(0, 4000) })); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, L.slice(-60).join("\n") + "\n");
+  } catch { /* never block a prompt */ }
+}
+const fold = (s) => String(s ?? "").replace(/[ً-ْـ]/g, "").replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/\s+/g, " ").trim().toLowerCase();
+export function userSaid(root, said, since = 0) {
+  const q = fold(said); if (q.length < 6) return false;
+  try { return fs.readFileSync(promptsFile(root), "utf8").split(/\r?\n/).filter(Boolean).some((l) => { const o = JSON.parse(l); return o.at >= since && fold(o.text).includes(q); }); } catch { return false; }
+}
+
+/* ── the log of every refused attempt ────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+export const violationsFile = (root) => path.join(root, "data", "conduct_violations.jsonl");
+export function logViolation(root, { session = null, project = null, step = null, tried = "", why = "" } = {}) {
+  try { fs.mkdirSync(path.dirname(violationsFile(root)), { recursive: true }); fs.appendFileSync(violationsFile(root), JSON.stringify({ at: new Date().toISOString(), session, project, step, tried: String(tried).slice(0, 240), why: String(why).slice(0, 240) }) + "\n"); } catch { /* the refusal stands without its log */ }
+}
+export function violationsSummary(root, project = null) {
+  let L = []; try { L = fs.readFileSync(violationsFile(root), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { /* none */ }
+  const mine = project ? L.filter((o) => o.project === project) : L;
+  return { n: mine.length, total: L.length, last: mine[mine.length - 1] ?? null };
+}
+
+/* ── reading a shell line the way a shell would: wrappers are opened, never trusted ───────────────────────────────────────────────────────────────── */
+const SHELLS = new Set(["bash", "sh", "zsh", "dash"]), CODE_INTERP = new Set(["node", "bun", "deno", "python", "python3", "py", "perl", "ruby", "bash", "sh", "zsh", "dash"]);
+const READERS = new Set(["grep", "egrep", "fgrep", "rg", "cat", "head", "tail", "less", "more", "wc", "ls", "dir", "find", "diff", "stat", "test", "[", "type", "gc", "get-content", "select-string", "sls", "findstr", "get-childitem", "gci", "tree", "sort", "uniq", "file", "du", "realpath", "basename", "dirname", "cd", "pushd", "popd", "set-location", "sl", "echo", "printf", "write-output", "ls-files", "pwd", "which", "where", "tasklist", "ps", "date", "sleep", "start-sleep", "true", "false", "export", "set"]);
+const GIT_READ = new Set(["add", "commit", "diff", "log", "status", "show", "blame", "ls-files", "rev-parse", "branch", "config", "remote", "fetch", "describe", "shortlog", "grep", "cat-file"]);
+const baseOf = (t) => norm(t ?? "").split("/").pop().toLowerCase().replace(/\.exe$/, "");
+const basenames = (def) => [...new Set((def.guarded ?? []).map((g) => path.basename(g.tool).toLowerCase()))];
+export const mentionsGuarded = (def, text) => { const t = lc(text); return basenames(def).some((b) => t.includes(b)); };
+const dirOf = (cmd) => cmd;
+/** {invs:[{tool,args,raw}], wrapped:[why…], bodies:[script texts scanned]} — a shell wrapper (bash -c, cmd /c, powershell -Command, eval, xargs, node -e, a script file outside tools/) is opened;
+    what cannot be seen into (an encoded command, a script that names a guarded tool, stdin fed to an interpreter) is reported as `wrapped` */
+export function scanCommand(def, cmd, root, depth = 0) {
+  const out = { invs: [], wrapped: [], bodies: [] }; if (depth > 4) { out.wrapped.push("تداخل أغلفة أعمق من المسموح"); return out; }
+  const whole = String(cmd ?? ""), merge = (r) => { out.invs.push(...r.invs); out.wrapped.push(...r.wrapped); out.bodies.push(...r.bodies); };
+  for (const seg of whole.split(/&&|\|\||;|\r?\n|\|/)) {
+    let tk = tokenize(seg.trim()); while (tk.length && (tk[0] === "&" || /^(sudo|time|nohup|command|call|exec|env)$/i.test(tk[0]) || /^[A-Za-z_]\w*=/.test(tk[0]))) tk.shift();
+    if (!tk.length) continue;
+    const b = baseOf(tk[0]), raw = seg.trim();
+    if (/(^|[\\/])bg\.sh$/.test(tk[1] ?? "") && tk.includes("--")) { merge(scanCommand(def, tk.slice(tk.indexOf("--") + 1).join(" "), root, depth + 1)); continue; }
+    if (b === "git" && GIT_READ.has(tk[1] ?? "")) continue;
+    if (SHELLS.has(b)) { const i = tk.findIndex((t, k) => k > 0 && /^-[a-z]*c$/i.test(t)); if (i > 0 && tk[i + 1] !== undefined) { merge(scanCommand(def, tk.slice(i + 1).join(" "), root, depth + 1)); continue; } }
+    if (b === "cmd") { const i = tk.findIndex((t) => /^\/[ck]$/i.test(t)); if (i > 0) { merge(scanCommand(def, tk.slice(i + 1).join(" "), root, depth + 1)); continue; } }
+    if (b === "powershell" || b === "pwsh") {
+      if (tk.some((t) => /^-e(nc|ncodedcommand)?$/i.test(t))) { out.wrapped.push("أمر مشفّر (-EncodedCommand)"); continue; }
+      const i = tk.findIndex((t) => /^-(c|command)$/i.test(t)); if (i > 0) { merge(scanCommand(def, tk.slice(i + 1).join(" "), root, depth + 1)); continue; }
+    }
+    if (["eval", "iex", "invoke-expression", "xargs", "start-process", "start", "source", ".", "invoke-command", "icm", "wsl"].includes(b)) {
+      const r = scanCommand(def, tk.slice(1).join(" "), root, depth + 1); merge(r);
+      if (!r.invs.length && mentionsGuarded(def, whole)) out.wrapped.push(`${tk[0]}: أمر إجراء داخل ما لا يُرى`); continue;
+    }
+    if (CODE_INTERP.has(b) || /^python/.test(b)) {
+      const ci = tk.findIndex((t, k) => k > 0 && /^(-e|-p|--eval|--print|-c|-ec|-pe)$/i.test(t));
+      if (ci > 0) { const code = tk.slice(ci + 1).join(" "); if (mentionsGuarded(def, code)) out.wrapped.push(`${b} ${tk[ci]}: كود يذكر أداة إجراء`); out.bodies.push(code); continue; }
+      let i = 1; while (i < tk.length && tk[i].startsWith("-") && tk[i] !== "-") i++;
+      const sc = tk[i];
+      if (sc === undefined || sc === "-") { if (mentionsGuarded(def, whole)) out.wrapped.push(`${b} بلا ملف (يقرأ من المدخل أو heredoc) وفي الأمر أداة إجراء`); out.bodies.push(whole); continue; }
+      const m = norm(sc).match(/(?:^|\/)(tools\/[^\s]+)$/);
+      if (m) { out.invs.push({ tool: m[1], args: tk.slice(i + 1), raw }); continue; }
+      const f = toFs(root, sc); let body = ""; try { if (fs.statSync(f).size < 400e3) body = fs.readFileSync(f, "utf8"); } catch { /* not a file */ }
+      if (body) { out.bodies.push(body); if (mentionsGuarded(def, body)) out.wrapped.push(`ملف ${path.basename(sc)} خارج tools/ يذكر أداة إجراء`); }
+      continue;
+    }
+    if (/\.sh$/i.test(tk[0])) { const f = toFs(root, tk[0]); let body = ""; try { if (fs.statSync(f).size < 400e3) body = fs.readFileSync(f, "utf8"); } catch { /* none */ } const m = norm(tk[0]).match(/(?:^|\/)(tools\/[^\s]+)$/); if (m) out.invs.push({ tool: m[1], args: tk.slice(1), raw }); else { out.bodies.push(body); if (mentionsGuarded(def, body)) out.wrapped.push(`ملف ${path.basename(tk[0])} خارج tools/ يذكر أداة إجراء`); } continue; }
+    if (!READERS.has(b) && mentionsGuarded(def, seg)) out.wrapped.push(`«${tk[0]}» يذكر أداة إجراء ولا يُعرف كيف يشغّلها`);
+  }
+  return out;
+}
+
+/* ── the files the hook and the plans live in: an edit needs the user's «ask» (a sub-agent too); the machine's own state may not be written by hand at all ── */
+export const CONDUCT_PROTECTED = [/^tools\/hooks\//, /^tools\/conduct\.mjs$/, /^tools\/lib\/conduct_core\.mjs$/, /^data\/pipelines\/[^/]+\.json$/];
+export const MACHINE_STATE = [/^\.tmp\/[^/]+\/conduct\.json$/, /^\.tmp\/conduct_(active|pending_owner)\.json$/, /^\.tmp\/conduct_reads/, /^\.tmp\/[^/]+\/conduct_reads\.json$/, /^data\/conduct_violations\.jsonl$/, /^\.tmp\/user_prompts\.jsonl$/];
+export const isProtected = (rel) => CONDUCT_PROTECTED.some((re) => re.test(String(rel)));
+export const isMachineState = (rel) => MACHINE_STATE.some((re) => re.test(String(rel)));
+const PROT_TEXT = [/tools\/hooks\/[^\s"'|;&]+/i, /tools\/conduct\.mjs/i, /tools\/lib\/conduct_core\.mjs/i, /data\/pipelines\/[\w.-]+/i], STATE_TEXT = [/\.tmp\/[\w.-]+\/conduct\.json/i, /\.tmp\/conduct_(active|pending_owner)\.json/i, /conduct_reads/i, /conduct_violations\.jsonl/i, /user_prompts\.jsonl/i];
+const WRITE_VERB = /(^|[\s;&|(`])(rm|rmdir|del|erase|mv|move|cp|copy|ren|rename|tee|truncate|unlink|Remove-Item|Move-Item|Copy-Item|Rename-Item|Set-Content|Add-Content|Out-File|Clear-Content|New-Item|sed\s+-i\S*|perl\s+-i\S*|git\s+(checkout|restore|reset|stash|clean|apply|rm|mv|revert))(\s|$)|writeFileSync|appendFileSync|rmSync|unlinkSync|renameSync|copyFileSync|writeFile\(|appendFile\(|createWriteStream|write_text|write_bytes|shutil\.(copy|move|rmtree)|os\.(remove|rename|replace|unlink)|\[IO\.File\]::(Write|Delete|Move|Copy)|open\([^)]*['"][wax]\+?['"]/i;
+/** a shell line that WRITES to a protected plan/hook file (→ ask) or to the machine's state (→ deny); reading it (grep, cat, git diff…) is free */
+export function bashProtected(cmd, root, bodies = []) {
+  const text = norm(cmd), segs = text.split(/&&|\|\||;|\r?\n|\|/);
+  const hits = (list) => list.flatMap((re) => { const m = text.match(re); return m ? [m[0]] : []; });
+  const check = (list, kind) => {
+    const mentioned = [...hits(list), ...bodies.flatMap((b) => list.flatMap((re) => { const m = norm(b).match(re); return m ? [m[0]] : []; }))]; if (!mentioned.length) return null;
+    const nonReader = segs.filter((s) => list.some((re) => re.test(s))).filter((s) => { const tk = tokenize(s.trim()); const b = baseOf(tk[0]); return !(READERS.has(b) || (b === "git" && GIT_READ.has(tk[1] ?? ""))); });
+    const inBodies = bodies.some((b) => list.some((re) => re.test(norm(b))) && WRITE_VERB.test(b));
+    const redirect = list.some((re) => new RegExp(">>?\\s*[\"']?[^\\s\"'|;&<>]*" + re.source.replace(/^\(\^\|\\\/\)/, ""), "i").test(text));
+    if (redirect || (nonReader.length && WRITE_VERB.test(text)) || inBodies) return { kind, file: mentioned[0] };
+    return null;
+  };
+  return check(STATE_TEXT, "deny") ?? check(PROT_TEXT, "ask");
+}
+
 const FLAGS_FREE = /(^|\s)(--help|-h|--dry|--dry-run)(\s|$)/;
-/** the PreToolUse verdict: null = free, else the Arabic refusal */
+const stepOfAllowed = (ev, inv, ctx) => ev.allowed.find((r) => stepAllows(r.s, inv, ctx));
+/** the PreToolUse verdict: null = free, else the Arabic refusal (and one line in data/conduct_violations.jsonl) */
 export async function hookVerdict(root, sessionId, cmd, { agentId, run: given } = {}) {
   if (agentId) return null;                                                    // a sub-agent works on delegated tasks beside the main session
   const run = given ?? await activeRun(root, sessionId); if (!run) return null;
-  const { def, st } = run, ev = evaluate(def, st); if (ev.complete) return null; const ctx = { p: st.project, clips: clipsFor(root, def, st) };
-  if (FLAGS_FREE.test(String(cmd))) return null;
-  const invs = invocations(cmd).map((i) => ({ i, g: guardedHit(def, i) })).filter((x) => x.g);
-  if (!invs.length) return null;
-  for (const { i } of invs) {
-    if (ev.allowed.some((r) => stepAllows(r.s, i, ctx))) continue;
-    const cur = ev.current;
-    const what = cur ? (cur.s.cmds ?? (cur.s.cmd ? [cur.s.cmd] : [])).map((a) => fillArgv(a, { root, p: st.project, args: st.args, clips: ctx.clips, ...(def.single ? { c: st.project } : {}) }).join(" ")).join(" ثم ") : "";
-    const clipNote = /^tools\/stage\.mjs$/.test(i.tool) && ["prep", "cut"].includes(i.args[0]) && ctx.clips.some((c) => c.toLowerCase() === norm(i.args[1] ?? "").toLowerCase()) ? "\n«مقطع من بث: لا تجهيز ولا قص له وحده» (مهارة الدروس والبثوث، البند 14: القص مرة واحدة ثم شرائح)." : "";
-    const others = ev.allowed.filter((r) => r !== cur).map((r) => `${r.s.ar} [${r.s.id}]`);
-    return `ليس هذا أوانه — الإجراء المعتمد (${def.ar ?? def.kind}، «${st.project}») يمشي بالترتيب ويقرّر المُوصِل التالي لا الذاكرة (أمر المستخدم 2026-11-22: «كيف أنت تلتزم بالخطة الموجودة عندنا، دائماً تبقى ملتزم»).\n` +
-      `الأمر المرفوض: ${i.raw.slice(0, 140)}${clipNote}\n` +
-      (cur ? `الخطوة الحالية: ${cur.s.ar} [${cur.s.id}] — ${cur.s.skill}\n${what ? `أمرها: ${what}\n` : cur.s.creative?.what ? `المطلوب منك: ${cur.s.creative.what.slice(0, 220)}\n` : ""}` : "لا خطوة متاحة الآن (تنتظر ما يجري في الخلفية).\n") +
-      (others.length ? `المسموح معها بالتوازي: ${others.slice(0, 6).join("، ")}\n` : "") +
-      `المتبقي: ${remainingText(def, st, ev)}.\nاطبع الخطوة: node tools/conduct.mjs next   ·   الجدول: node tools/conduct.mjs status`;
+  const { def, st } = run, ev = evaluate(def, st); if (ev.complete) return null;
+  const ctx = { p: st.project, clips: clipsFor(root, def, st) }, cur = ev.current;
+  const refuse = (tried, shortWhy, text) => { logViolation(root, { session: sessionId, project: st.project, step: cur?.s.id ?? null, tried, why: shortWhy }); return text; };
+  const head = `ليس هذا أوانه — الإجراء المعتمد (${def.ar ?? def.kind}، «${st.project}») يمشي بالترتيب ويقرّر المُوصِل التالي لا الذاكرة (أمر المستخدم 2026-11-22: «كيف أنت تلتزم بالخطة الموجودة عندنا، دائماً تبقى ملتزم»).\n`;
+  const fillCtx = { root, p: st.project, args: st.args, clips: ctx.clips, ...(def.single ? { c: st.project } : {}) };
+  const curText = () => (cur ? `الخطوة الحالية: ${cur.s.ar} [${cur.s.id}] — ${cur.s.skill}\n${(cur.s.cmds ?? (cur.s.cmd ? [cur.s.cmd] : [])).length ? `أمرها: ${(cur.s.cmds ?? [cur.s.cmd]).map((a) => fillArgv(a, fillCtx).join(" ")).join(" ثم ")}\n` : cur.s.creative?.what ? `المطلوب منك: ${cur.s.creative.what.slice(0, 220)}\n` : ""}` : "لا خطوة متاحة الآن (تنتظر ما يجري في الخلفية).\n");
+  const tail = `المتبقي: ${remainingText(def, st, ev)}.\nاطبع الخطوة: node tools/conduct.mjs next   ·   الجدول: node tools/conduct.mjs status`;
+  const sc = scanCommand(def, cmd, root);
+  const hit = sc.invs.map((i) => ({ i, g: guardedHit(def, i) })).filter((x) => x.g);
+  if (!sc.wrapped.length && !hit.length) return null;
+  if (FLAGS_FREE.test(String(cmd)) && !sc.wrapped.length) return null;
+  if (sc.wrapped.length) return refuse(String(cmd).slice(0, 200), `غلاف: ${sc.wrapped[0]}`, head + `الأمر المرفوض: ${String(cmd).slice(0, 140)}\nالسبب: غلاف يُخفي أمر الإجراء عن الحارس (${sc.wrapped[0]}). أمر الإجراء يُكتب مباشراً: node tools/… أو bash tools/… بلا bash -c ولا node -e ولا ملف خارج tools/، وإلا فالخطوة التالية يقررها المُوصِل.\n` + curText() + tail);
+  for (const { i } of hit) {
+    const r = stepOfAllowed(ev, i, ctx);
+    if (!r) {
+      const clipNote = /^tools\/stage\.mjs$/.test(i.tool) && ["prep", "cut"].includes(i.args[0]) && ctx.clips.some((c) => c.toLowerCase() === norm(i.args[1] ?? "").toLowerCase()) ? "\n«مقطع من بث: لا تجهيز ولا قص له وحده» (مهارة الدروس والبثوث، البند 14: القص مرة واحدة ثم شرائح)." : "";
+      const others = ev.allowed.filter((x) => x !== cur).map((x) => `${x.s.ar} [${x.s.id}]`);
+      return refuse(i.raw, `ليس أوانه (الحالية ${cur?.s.id ?? "—"})`, head + `الأمر المرفوض: ${i.raw.slice(0, 140)}${clipNote}\n` + curText() + (others.length ? `المسموح معها بالتوازي: ${others.slice(0, 6).join("، ")}\n` : "") + tail);
+    }
+    const need = unreadFor(root, sessionId, st.project, requiresOf(def, r.s), st.t0);
+    if (need.length) return refuse(i.raw, `لم تُقرأ مهارة الخطوة «${r.s.id}»: ${need.map((n) => n.file).join("، ")}`, `لا تنفيذ قبل الرجوع إلى المهارة (أمر المستخدم 2026-11-22: «كيف ألزمك أنك ما تنفذ شيء إلا بعد الرجوع إلى المهارات والتعليمات؟»).\nالأمر المرفوض: ${i.raw.slice(0, 140)}\nالخطوة: ${r.s.ar} [${r.s.id}] — ${r.s.skill}\nاقرأ الآن بأداة القراءة (الملف كله لا مقتطف، بعد بدء هذا التشغيل): ${need.map((n) => `${norm(root)}/${norm(n.file)}${n.mode === "whole" ? "" : " (بحث يكفي)"}`).join(" ، ")}\nثم أعد الأمر.`);
   }
   return null;
 }
+
 export async function hookLine(root, sessionId) {
   const run = await activeRun(root, sessionId); if (!run) return "";
   return lineOf(run.def, run.st);
@@ -406,7 +563,9 @@ export function presentsPlan(text) {
   const lines = t.split(/\r?\n/), list = lines.filter((l) => /^\s*([0-9٠-٩]+\s*[.\-)\u066B]|[-•*▪◦]|[①-⑳]|[٠-٩]+\s*[-.)])\s*\S/.test(l)).length;
   const timeNear = /(الخطة|خطتي|الجدول|تقدير|المتوقع|سيستغرق|سيأخذ|ستستغرق|ستأخذ|يستغرق|يأخذ|سأحتاج|ميزانية)[^\n]{0,70}?([0-9٠-٩]+\s*(دقيقة|دقائق|د\b|ساعة|ساعات|س\b)|ساعتان|ساعتين|نصف ساعة)/.test(t);
   const stepsWords = /(الخطة|خطتي|الترتيب|الجدول الزمني|سأبدأ|سنبدأ|سأقوم|سنقوم|الخطوة التالية)/.test(t);
-  const planShaped = (list >= 3 && stepsWords) || timeNear;
+  const inline = (t.match(/(?:^|\s)(?:[0-9٠-٩]+[.)]|[-•*])\s+\S/g) || []).length;                     // the same list written on ONE line («- أجهّز - أقص - أبني»)
+  const chain = (t.match(/(?:^|\s)ثم\s+\S/g) || []).length >= 3 && /(?:^|\s)(?:سأ|سن|سوف)\S+/.test(t);   // «سأجهّز ثم أقص ثم أقسّم ثم …»
+  const planShaped = (Math.max(list, inline) >= 3 && stepsWords) || timeNear || chain;
   if (!planShaped) return false;
   const question = /[؟?]\s*$/.test(t.trim()) && list < 3 && !timeNear;       // a reply that is a question is not a plan
   return !question;

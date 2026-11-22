@@ -13,7 +13,20 @@ const run = [only0, ...more].includes("--run"), onlyArg = only0 && !only0.starts
 const rd = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return d; } };
 const plan = rd(path.join(".tmp", P, "plan.json"), null), titles = rd(path.join(".tmp", P, "titles.json"), {});
 if (!plan) { console.error(`لا خطة .tmp/${P}/plan.json`); process.exit(1); }
+if (run) {
+  const cfg = rd(path.join(".tmp", P, "prep_config.json"), {}), source = path.resolve(cfg.source ?? path.join("public", `${P}_src.mp4`));
+  if (!fs.existsSync(source)) { console.error(`✘ لا يوجد فيديو المصدر للبناء: ${source} — أعد وضع نسخة المصدر في مساحة S ثم أعد هذا المقطع وحده.`); process.exit(1); }
+}
 const MAXW = 7, GAP = 0.45, HOLD = 2.85;
+const workTmp = path.resolve(".tmp");
+const childEnv = { ...process.env, TEMP: workTmp, TMP: workTmp, TMPDIR: workTmp.replace(/\\/g, "/"), HF_HOME: "S:/AI_Tools/ComfyUI_models/huggingface",
+  PIP_CACHE_DIR: path.join(workTmp, "pip"), PYTHONPYCACHEPREFIX: path.join(workTmp, "pyc"), PYTHONIOENCODING: "utf-8",
+  NODE_OPTIONS: [process.env.NODE_OPTIONS, `--import ${new URL("../hide_windows.mjs", import.meta.url).href}`, process.env.NODE_OPTIONS_EXTRA].filter(Boolean).join(" ") };
+/* the due-picks list of one clip lives in its OWN file (.tmp/<stream>/needs_picks/<id>.json; the old single needs_picks.json was a read-modify-write shared by 3 parallel processes and lost entries); written whole, via rename */
+const writeNeeds = (id, due) => {
+  const dir = path.join(".tmp", P, "needs_picks"), file = path.join(dir, `${id}.json`);
+  fs.mkdirSync(dir, { recursive: true }); const tmp = `${file}.${process.pid}.tmp`; fs.writeFileSync(tmp, JSON.stringify(due, null, 1)); fs.renameSync(tmp, file);
+};
 const fix = (x) => +x.toFixed(2);
 const clip = (s, n) => (s.length <= n ? s : s.slice(0, n - 1).replace(/\s+\S*$/, "") + "…");
 const lines = (words, turns) => {
@@ -86,12 +99,19 @@ for (const c of todo) { try { out[c.id] = build(c); } catch (e) { errs.push(Stri
 fs.writeFileSync(path.join(".tmp", P, BF), JSON.stringify(out, null, 1));
 console.log(`بُنيت خطة ${todo.length - errs.length} مقطعاً → .tmp/${P}/${BF}`); errs.forEach((m) => console.log("✘", m));
 if (run) for (const c of todo) { if (!out[c.id]) continue;
-  const sh = (cmd) => spawnSync("bash", ["-c", `cd /s/AI_Tools/Remotion_Workspace; source tools/env.sh >/dev/null 2>&1; ${cmd}`], { encoding: "utf8", maxBuffer: 1 << 26 });
-  const b = sh(`node tools/stream/clip_build.mjs ${c.id} .tmp/${P}/${BF}`);
+  const sh = (...args) => spawnSync(process.execPath, args, { cwd: process.cwd(), env: childEnv, encoding: "utf8", maxBuffer: 1 << 26, windowsHide: true });
+  const b = sh("tools/stream/clip_build.mjs", c.id, `.tmp/${P}/${BF}`);
+  if (b.error || b.status !== 0) {
+    const why = b.error?.message || [b.stderr, b.stdout].filter(Boolean).join("\n").trim() || `exit=${b.status ?? "unknown"}`;
+    errs.push(`${c.id}: clip_build failed: ${why.split("\n").slice(-8).join(" | ").slice(0, 900)}`);
+    console.log(`✘ ${errs[errs.length - 1]}`);
+    console.log(`لن تُعتمد مواصفة ${c.id} أو تُتابع خطواتها.`);
+    continue;
+  }
   { const f = `data/specs/${c.id}.json`, sp = rd(f, null); if (sp) {   // الاسم والاشتراك يمتدان حتى العنصر التالي (بلا فراغ، حتى 6 ث)
       const key = (i) => i.at ?? i.from ?? 0, all = sp.items.filter((i) => i.t !== "cover").sort((a, b2) => key(a) - key(b2));
       for (const it of all) if (it.t === "nameTag" || it.t === "subscribe") { const nx = all.find((o) => key(o) > key(it) + 0.5); if (nx) it.dur = +Math.min(4.5, Math.max(3.1, key(nx) - 0.5 - key(it))).toFixed(2); }
-      const rq = sh(`node tools/requirements.mjs ${c.id} --check`).stdout ?? "";   // ما ذُكر بلا صورة: قرار القالب السريع (بلا صور مخصصة) يُسجَّل في المواصفة ويُذكر للمستخدم
+      const rq = sh("tools/requirements.mjs", c.id, "--check").stdout ?? "";   // ما ذُكر بلا صورة: قرار القالب السريع (بلا صور مخصصة) يُسجَّل في المواصفة ويُذكر للمستخدم
       const rows = [...rq.matchAll(/«([^»]+)» عند (\d+):(\d+)/g)].map((m) => ({ n: m[1], at: Number(m[2]) * 60 + Number(m[3]) })); /* (أمر المستخدم 2026-11-19: «من قال لك تستثني الصور؟») لا إعفاء لمذكور من صورته؛ تُضاف صوره بـtools/stream/clip_pictures.mjs من .tmp/<البث>/pictures.json */ void rows;
       // بعد كتابة writing_place الفعلية: العنصر الذي يلي قصاصة/ملاحظة يبدأ عند نهايتها الحقيقية + 0.2 (لا تداخل ولا فراغ)
       { const wr = new Set(["scraps", "torn"]), arr = sp.items.filter((i) => i.t !== "cover").sort((a, b2) => (a.at ?? a.from ?? 0) - (b2.at ?? b2.from ?? 0));
@@ -99,9 +119,14 @@ if (run) for (const c of todo) { if (!out[c.id]) continue;
           const a0 = +(end + 0.2).toFixed(2); if (nx.at != null) { nx.at = a0; for (const r of nx.rows ?? nx.lines ?? nx.msgs ?? []) if (r.at < a0 + 0.1) r.at = +(a0 + 0.1).toFixed(2); if (nx.flipAt != null && nx.flipAt < a0 + 0.1) nx.flipAt = +(a0 + 0.1).toFixed(2); if (nx.until != null && nx.until < nx.at + 1.6) nx.until = +(nx.at + 1.6).toFixed(2); } } }
       // قرارات القالب السريع المكتوبة: ما لا يملؤه القالب يُعفى بسبب مكتوب في المواصفة ويُذكر للمستخدم
       /* (2026-11-22, stream dress rehearsal; user rule «لا طلب إعفاء: كل مستحق له عنصره») NO waiver is written here any more (skipRequired / skipPicks): coverage_check refuses every entry the user did not
-         allow («إعفاءات بلا إذن المستخدم»), so the old template made every stream clip fail its check. What the template leaves unfilled is LISTED (ℹ, and .tmp/<stream>/needs_picks.json): the due picks
+         allow («إعفاءات بلا إذن المستخدم»), so the old template made every stream clip fail its check. What the template leaves unfilled is LISTED (ℹ, and .tmp/<stream>/needs_picks/<id>.json, one file per clip): the due picks
          are given their element by the agent in .tmp/<stream>/pictures.json (entries with "vals", applied by tools/stream/clip_pictures.mjs); what coverage_check still reports stays a failure for the check to name. */
-      const pt = sh(`node tools/pick_triggers.mjs ${f}`).stdout ?? ""; const due = [...pt.matchAll(/✘ ([A-Za-z]+): (.*?) عند (.*?) — لم يُستعمل/g)].map((m) => ({ el: m[1], why: m[2], at: m[3].trim() }));
-      if (due.length) { const nf = path.join(".tmp", P, "needs_picks.json"), cur = rd(nf, {}); cur[c.id] = due; fs.writeFileSync(nf, JSON.stringify(cur, null, 1)); console.log(`ℹ ${c.id}: ${due.length} عنصر مستحق بلا عنصره (يُكتب في pictures.json بـvals): ${due.map((x) => `${x.el}@${x.at}`).join("، ")}`); }      fs.writeFileSync(f, JSON.stringify(sp, null, 1)); sh(`node tools/grid_plan.mjs ${f} --o ${sp.orient === "land" || c.kind !== "reel" && c.dur > 120 ? "land" : "port"} --write`); } }
+      const pt = sh("tools/pick_triggers.mjs", f).stdout ?? ""; const due = [...pt.matchAll(/✘ ([A-Za-z]+): (.*?) عند (.*?) — لم يُستعمل/g)].map((m) => ({ el: m[1], why: m[2], at: m[3].trim() }));
+      writeNeeds(c.id, due);   // always: an empty list replaces an older list of this clip
+      if (due.length) { console.log(`ℹ ${c.id}: ${due.length} عنصر مستحق بلا عنصره (يُكتب في pictures.json بـvals): ${due.map((x) => `${x.el}@${x.at}`).join("، ")}`); }      fs.writeFileSync(f, JSON.stringify(sp, null, 1));
+      /* grid_plan --write records the face track and the slot names in the spec: its crash (exit ≥ 2, a signal, a spawn error) is a failed clip, never a silent skip; exit 1 = «overlap/off-grid findings», which the check names */
+      const gp = sh("tools/grid_plan.mjs", f, "--o", sp.orient === "land" || c.kind !== "reel" && c.dur > 120 ? "land" : "port", "--write");
+      if (gp.error || gp.status === null || gp.status >= 2) { errs.push(`${c.id}: grid_plan --write failed (${gp.error?.message ?? gp.signal ?? `exit=${gp.status}`}): ${[gp.stderr, gp.stdout].filter(Boolean).join(" ").trim().split(/ *[\r\n]+/).slice(-3).join(" | ").slice(0, 300)}`); console.log(`✘ ${errs[errs.length - 1]}`); continue; }
+      if (gp.status === 1) console.log(`ℹ ${c.id}: grid_plan وجد مشكلات شبكة (يسمّيها الفحص): ${(gp.stdout.match(/✘.*/g) ?? []).slice(0, 2).join(" | ").slice(0, 200)}`); } }
   console.log(`${c.id}: ${(b.stdout || b.stderr).trim().split("\n").slice(-2).join(" | ").slice(0, 200)}`) }
 process.exit(errs.length ? 1 : 0);

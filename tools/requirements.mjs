@@ -13,9 +13,11 @@
 //           → must be a montage note (add --at <src sec>) or waived in the spec "waiveOrders": ["<src sec>: reason"]  (Whisper wrote «مونتاج» as «مرحبا» once)
 // A row that is right to leave out is waived in the spec: "skipRequired": ["<text>@<cut sec>"] — every waiver is listed to the user with the preview link.
 import fs from "node:fs";
+import crypto from "node:crypto";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { nameDoubts, doubtLine } from "./name_doubt.mjs";
+import { withGpuModel } from "./lib/gpu_model_lock.mjs";
 
 const p = process.argv[2], CHECK = process.argv.includes("--check");
 if (!p) { console.error("usage: node tools/requirements.mjs <project> [--check]"); process.exit(2); }
@@ -26,15 +28,45 @@ const mm = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2
 const norm = (s) => String(s).replace(/[ً-ْٰـ]/g, "").replace(/[إأآٱا]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\s+/g, " ").trim();
 const bare = (w) => norm(w).replace(/^(و|ف)?(ب|ل|ك)?(ال)?/, "");
 const reqF = path.join(T, "requirements.json");
+const fingerprint = (...files) => {
+  const h = crypto.createHash("sha256"), buf = Buffer.alloc(1 << 20);
+  for (const f of files) {
+    if (!fs.existsSync(f)) return null;
+    h.update(path.basename(f)); const fd = fs.openSync(f, "r");
+    try { let n; while ((n = fs.readSync(fd, buf, 0, buf.length, null)) > 0) h.update(buf.subarray(0, n)); } finally { fs.closeSync(fd); }
+  }
+  return h.digest("hex");
+};
 
 // ───────────── build the ledger ─────────────
-function build() {
+async function build() {
   // the text is a FULL large-v3 pass over the final cut audio (drift_fresh.json), not the per-segment pass: that one wrote «لأسرة تعمل بالزراعة» as «لأسرطين تعملوا بزيارةها»
   const cutWav = path.join(T, "cut.wav"), w16 = path.join(T, "cut16k.wav"), freshF = path.join(T, "drift_fresh.json");
   if (!fs.existsSync(path.join(T, "cut_words.json"))) { console.error(`✘ ${T}/cut_words.json missing — run the cut first`); process.exit(1); }
-  if (fs.existsSync(cutWav) && (!fs.existsSync(freshF) || fs.statSync(freshF).mtimeMs < fs.statSync(cutWav).mtimeMs)) {
-    if (!fs.existsSync(w16) || fs.statSync(w16).mtimeMs < fs.statSync(cutWav).mtimeMs) spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", cutWav, "-ar", "16000", "-ac", "1", w16], { stdio: "inherit" });
-    spawnSync(PY, ["tools/words_drift.py", w16, freshF], { stdio: "inherit", env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
+  const freshMeta = `${freshF}.input.json`, w16Meta = `${w16}.source.json`;
+  if (fs.existsSync(cutWav)) {
+    /* the cache key of the full Whisper pass includes the CUT AUDIO ITSELF, compared on every run: the 16 kHz copy is rebuilt whenever it was not made from this exact cut.wav
+       (before, an old cut16k.wav whose own fingerprint matched the cache skipped this whole block and served a stale transcript after the cut was redone) */
+    const cutKey = fingerprint(cutWav);
+    if (!fs.existsSync(w16) || read(w16Meta, null)?.fingerprint !== cutKey) {
+      const fr = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", cutWav, "-ar", "16000", "-ac", "1", w16], { stdio: "inherit", windowsHide: true });
+      if (fr.status !== 0 || !fs.existsSync(w16)) throw new Error(`✘ ffmpeg لم يُنتج ${w16} لـ${p} (status=${fr.status ?? "timeout"})`);
+      fs.writeFileSync(w16Meta, JSON.stringify({ fingerprint: cutKey, at: new Date().toISOString() }, null, 1));
+    }
+    const inputKey = fingerprint(w16, "tools/words_drift.py"), meta = read(freshMeta, null), cached = read(freshF, null);
+    /* a Whisper pass over a cut with speech never has zero words: [] is a failed/empty run, not a cache hit (NER below legitimately returns [] for a text with no names) */
+    if (Array.isArray(cached) && cached.length > 0 && meta?.fingerprint === inputKey && (meta.cutFingerprint == null || meta.cutFingerprint === cutKey)) {
+      console.log(`♻ Whisper large-v3 مُعاد استعماله: بصمة الصوت لم تتغير (${p})`);
+      if (meta.cutFingerprint == null) fs.writeFileSync(freshMeta, JSON.stringify({ fingerprint: inputKey, cutFingerprint: cutKey, at: new Date().toISOString() }, null, 1));
+    } else {
+      const freshPart = `${freshF}.part`;
+      try { fs.rmSync(freshPart, { force: true }); } catch { /* stale partial */ }
+      const r = await withGpuModel(`Whisper large-v3: ${p}`, () => spawnSync(PY, ["tools/words_drift.py", w16, freshPart], { stdio: "inherit", env: { ...process.env, PYTHONIOENCODING: "utf-8" }, timeout: 4 * 60 * 60 * 1000, windowsHide: true }));
+      let valid = false; try { const a = JSON.parse(fs.readFileSync(freshPart, "utf8")); valid = Array.isArray(a) && a.length > 0; } catch { /* incomplete output */ }
+      if (r.status !== 0 || !valid) { try { fs.rmSync(freshPart, { force: true }); } catch { /* keep the source untouched */ } throw new Error(`✘ words_drift فشل لـ${p} (status=${r.status ?? "timeout"}${r.status === 0 ? "، الناتج فارغ" : ""})؛ لم يُعتمد أي تفريغ قديم أو ناقص.`); }
+      fs.renameSync(freshPart, freshF);
+      fs.writeFileSync(freshMeta, JSON.stringify({ fingerprint: inputKey, cutFingerprint: cutKey, at: new Date().toISOString() }, null, 1));
+    }
   }
   // both texts are scanned (fresh full pass + the per-segment pass): each pass mishears different words, the union misses less
   const SOURCES = [[freshF, "ner.json"], [path.join(T, "cut_words.json"), "ner_cut.json"]].filter(([f]) => fs.existsSync(f));
@@ -57,11 +89,19 @@ function build() {
     rows.push({ id: rows.length + 1, ...r });
   };
 
-  const scan = (W, cw, nerF) => {
+  const scan = async (W, cw, nerF) => {
   // 1) NER (places, people, organisations)
   if (!fs.existsSync(nerF) || fs.statSync(nerF).mtimeMs < fs.statSync(cw).mtimeMs) {
-    const r = spawnSync(PY, ["tools/ner_scan.py", cw, nerF], { stdio: "inherit", env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
-    if (r.status !== 0) { console.error("✘ ner_scan failed"); process.exit(1); }
+    const part = `${nerF}.part`;
+    try { fs.rmSync(part, { force: true }); } catch { /* stale partial */ }
+    const meta = `${nerF}.input.json`, inputKey = fingerprint(cw, "tools/ner_scan.py"), cachedKey = read(meta, null)?.fingerprint;
+    if (inputKey && inputKey === cachedKey && Array.isArray(read(nerF, null))) console.log(`♻ NER مُعاد استعماله: بصمة الكلمات لم تتغير (${path.basename(cw)})`);
+    else {
+      const r = await withGpuModel(`Arabic NER: ${path.basename(cw)}`, () => spawnSync(PY, ["tools/ner_scan.py", cw, part], { stdio: "inherit", env: { ...process.env, PYTHONIOENCODING: "utf-8" }, timeout: 2 * 60 * 60 * 1000, windowsHide: true }));
+      let valid = false; try { valid = Array.isArray(JSON.parse(fs.readFileSync(part, "utf8"))); } catch { /* incomplete output */ }
+      if (r.status !== 0 || !valid) { try { fs.rmSync(part, { force: true }); } catch { /* source untouched */ } throw new Error(`✘ ner_scan فشل لـ${path.basename(cw)} (status=${r.status ?? "timeout"})؛ لم يُعتمد ناتج قديم أو ناقص.`); }
+      fs.renameSync(part, nerF); fs.writeFileSync(meta, JSON.stringify({ fingerprint: inputKey, at: new Date().toISOString() }, null, 1));
+    }
   }
   const ner = read(nerF, []);
   // world cities with Arabic names → coordinates
@@ -173,13 +213,15 @@ function build() {
   });
 
   };
-  for (const [f, nf] of SOURCES) scan(read(f, []), f, path.join(T, nf));
+  for (const [f, nf] of SOURCES) await scan(read(f, []), f, path.join(T, nf));
   rows.sort((a, b) => (a.t ?? 1e9) - (b.t ?? 1e9)); rows.forEach((r, i) => (r.id = i + 1));
   /* DOUBTFUL NAMES (user 2026-11-21, gta6 1:34 «صور لبنان» → «ما ذكرت لبنان»): a place / person resting on ONE transcript hit is heard again first
      (tools/name_doubt.mjs: both passes, other mentions, then a re-listening of the span); a doubtful one goes to «مشكوك» (.tmp/<p>/names_doubt.json) for the
      agent to listen to — never into the required rows */
   const nameRows = rows.filter((r) => r.kind === "place" || r.kind === "person");
-  const doubts = nameDoubts(p, nameRows.map((r) => ({ text: r.text, t: r.t, kind: r.kind }))).map((d, k) => ({ ...nameRows[k], verdict: d.verdict, why: d.why, heard: d.heard })).filter((d) => d.verdict === "doubt");
+  const nameCands = nameRows.map((r) => ({ text: r.text, t: r.t, kind: r.kind }));
+  const probe = nameDoubts(p, nameCands, { noRecheck: true }), judged = probe.some((d) => d.verdict === "recheck") ? await withGpuModel(`Whisper re-listen: ${p}`, () => nameDoubts(p, nameCands)) : probe;
+  const doubts = judged.map((d, k) => ({ ...nameRows[k], verdict: d.verdict, why: d.why, heard: d.heard })).filter((d) => d.verdict === "doubt");
   for (const d of doubts) rows.splice(rows.indexOf(nameRows.find((r) => r.id === d.id)), 1);
   rows.forEach((r, i) => (r.id = i + 1));
   fs.writeFileSync(path.join(T, "names_doubt.json"), JSON.stringify(doubts, null, 1));
@@ -247,5 +289,7 @@ function check(rows) {
   process.exit(miss.length ? 1 : 0);
 }
 
-const rows = CHECK && fs.existsSync(reqF) && fs.statSync(reqF).mtimeMs > fs.statSync(path.join(T, "cut_words.json")).mtimeMs && (!fs.existsSync(path.join(T, "montage_notes.json")) || fs.statSync(reqF).mtimeMs > fs.statSync(path.join(T, "montage_notes.json")).mtimeMs) ? read(reqF, []) : build();
+let rows;
+try { rows = CHECK && fs.existsSync(reqF) && fs.statSync(reqF).mtimeMs > fs.statSync(path.join(T, "cut_words.json")).mtimeMs && (!fs.existsSync(path.join(T, "montage_notes.json")) || fs.statSync(reqF).mtimeMs > fs.statSync(path.join(T, "montage_notes.json")).mtimeMs) ? read(reqF, []) : await build(); }
+catch (e) { console.error(String(e.message ?? e)); process.exit(1); }
 if (CHECK) check(rows);

@@ -7,6 +7,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { withGpuModel } from "./lib/gpu_model_lock.mjs";   // large-v3 on CUDA: one model job at a time, like tools/requirements.mjs
 const p = process.argv[2];
 if (!p) { console.error("usage: node tools/words_drift_check.mjs <project> [--fresh]"); process.exit(2); }
 const T = path.join(".tmp", p), PY = process.env.PY ?? "S:/AI_Tools/ComfyUI_windows_portable/python_embeded/python.exe";
@@ -25,7 +26,7 @@ if (m(wordsF) < m(cutWav) - 1000) { console.log("words_drift: ⚠ cut_words.json
 if (!fs.existsSync(w16) || m(w16) < m(audioSrc)) spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", audioSrc, "-vn", "-ar", "16000", "-ac", "1", w16], { stdio: "inherit" });
 if (process.argv.includes("--fresh") || !fs.existsSync(freshF) || m(freshF) < m(w16)) {
   console.log("words_drift: fresh Whisper pass over the cut audio …");
-  const r = spawnSync(PY, ["tools/words_drift.py", w16, freshF], { stdio: "inherit", env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
+  const r = await withGpuModel(`Whisper large-v3: ${p} (words_drift_check)`, () => spawnSync(PY, ["tools/words_drift.py", w16, freshF], { stdio: "inherit", env: { ...process.env, PYTHONIOENCODING: "utf-8" } }));
   if (r.status !== 0) { console.log("words_drift: ✘ the fresh pass failed"); process.exit(1); }
 }
 const n = (s) => String(s).replace(/[ً-ْـ]/g, "").replace(/[إأآا]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/[^\p{L}\p{N}]/gu, "");

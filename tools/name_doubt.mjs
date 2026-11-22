@@ -29,7 +29,7 @@ const hitsIn = (W, T) => { const out = []; if (!W || !T.length) return out; cons
   for (let i = 0; i < W.length; i++) { if (T.every((x, k) => W[i + k] && close(W[i + k].b, x)) || (root && root.length >= 3 && [W[i].b, W[i].b.replace(/^(ب|ل|ك)/, "")].some((wb) => wb.startsWith(root) && NISBA.test(wb.slice(root.length))))) out.push({ s: W[i].s, p: W[i].p, w: W.slice(i, i + T.length).map((x) => x.w).join(" ") }); } return out; };
 const moments = (ts) => ts.sort((a, b) => a - b).filter((t, k, a) => k === 0 || t - a[k - 1] > 10).length;
 
-export function nameDoubts(p, cands, { audio } = {}) {
+export function nameDoubts(p, cands, { audio, noRecheck = false } = {}) {   // noRecheck: judge from the transcripts only (CPU) — rows needing the GPU re-listening come back «recheck» (the caller runs the full call under the GPU lock)
   const T = path.join(ROOT, ".tmp", p), A = words(path.join(T, "cut_words.json")), B = words(path.join(T, "drift_fresh.json"));
   const spec = rd(path.join(ROOT, "data", "specs", `${p}.json`), {}), heardBy = (spec?.namesHeard ?? []).map((s) => { const [n, t] = String(s).split("@"); return { k: toks(n).join(" "), t: Number(t) }; });
   const res = cands.map((c) => {
@@ -43,7 +43,7 @@ export function nameDoubts(p, cands, { audio } = {}) {
     return { ...c, verdict: "recheck", why: `تفريغ واحد سمعه مرة واحدة${other != null ? `، والتفريغ الكامل هنا: «${other}»` : ""}، ولا ذكر آخر له في الحلقة` };
   });
   const todo = res.filter((r) => r.verdict === "recheck");
-  if (!todo.length) return res;
+  if (!todo.length || noRecheck) return res;
   const audioF = audio ?? [path.join(T, "cut_audio.wav"), path.join(T, "cut16k.wav"), path.join(T, "cut.wav")].find((f) => fs.existsSync(f));
   if (!audioF) { for (const r of todo) Object.assign(r, { verdict: "doubt", why: r.why + " — لا صوت للقص لسماعه ثانيةً" }); return res; }
   const st = fs.statSync(audioF), sig = `${path.resolve(audioF)}|${st.size}|${Math.round(st.mtimeMs)}`, cacheF = path.join(T, "name_recheck.json"), cache = rd(cacheF, {});

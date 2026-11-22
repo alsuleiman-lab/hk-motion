@@ -23,6 +23,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { bashExecutable, envWithBash } from "../lib/bash_runtime.mjs";   // never the bare name `bash` (WindowsApps/WSL launcher on this machine)
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const P = "zz_stream_rehearsal", CLIPS = [`${P}_1`, `${P}_2`, `${P}_3`];
@@ -97,7 +98,8 @@ function runCmd(stage, args, { env = {}, timeoutMin = 40, watch = null } = {}) {
     fs.mkdirSync(LOGS, { recursive: true });
     const log = path.join(LOGS, `${stage}.log`), t0 = Date.now();
     fs.appendFileSync(log, `\n$ ${args.join(" ")}   [${new Date().toISOString()}]\n`);
-    const c = spawn(args[0], args.slice(1), { cwd: ROOT, windowsHide: true, env: { ...process.env, PYTHONIOENCODING: "utf-8", FAST_RUN_KEEP_CACHE: "1", ...env } });
+    let c; try { const viaBash = args[0] === "bash", cenv = { ...process.env, PYTHONIOENCODING: "utf-8", FAST_RUN_KEEP_CACHE: "1", ...env }; c = spawn(viaBash ? bashExecutable() : args[0], args.slice(1), { cwd: ROOT, windowsHide: true, env: viaBash ? envWithBash(cenv) : cenv }); }
+    catch (e) { return res({ code: -1, sec: 0, tail: String(e?.message ?? e), steps: [], timedOut: false }); }   // Git Bash missing/invalid: a clear failed step, not a crash
     lowPrio(c.pid);
     let tail = "", timedOut = false; const take = (d) => { const s = d.toString(); tail = (tail + s).slice(-8000); fs.appendFileSync(log, s); };
     c.stdout.on("data", take); c.stderr.on("data", take);

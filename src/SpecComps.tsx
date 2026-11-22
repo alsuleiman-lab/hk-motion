@@ -1,5 +1,10 @@
 import React from "react";
+import { Folder } from "remotion";
 import { Composition } from "./SafeComposition";
+import { COMPOSITION_TITLES } from "./compositionTitles";
+import compKindsData from "../data/comp_kinds.json";
+import { projectsOfKind } from "./studioFolders";
+import type { SpecEntry } from "./studioFolders";
 import { MontageFromSpec, specFrames } from "./MontageSpec";
 import type { MontageSpec } from "./MontageSpec";
 import { MontageBoth, BOTH, BOTHV } from "./MontageBoth";
@@ -42,11 +47,25 @@ const SIZE: Record<string, { width: number; height: number; suffix: string }> = 
   both: { width: BOTH.W, height: BOTH.H, suffix: "-Both" }, bothv: { width: BOTHV.W, height: BOTHV.H, suffix: "-BothV" },
 };
 
-/** the compositions of every montage spec of one kind ("full" → «مونتاج الجلسة», "reel" → «ريلز») */
-export const SpecComps: React.FC<{ kind: "full" | "reel" }> = ({ kind }) => (
-  <>
-    {entries().filter((e) => e.reel === (kind === "reel")).flatMap((e) => e.forms.filter((f) => SIZE[f]).map((f) => (
-      <Composition key={`${e.p}:${f}`} id={`${e.id}${SIZE[f].suffix}`} component={compFor(e, f)} durationInFrames={specFrames(e.spec)} fps={30} width={SIZE[f].width} height={SIZE[f].height} />
-    )))}
-  </>
-);
+/* THE STUDIO'S LEFT LIST (user order 2026-11-22: folders by kind, one sub-folder per project — src/studioFolders.ts decides which). <SpecComps kind=… /> renders the PROJECT folders of one kind
+   (src/Root.tsx puts it inside that kind's folder): "hk-full" → حلقات, "hk-reel" → ريلز, "stream" → بثوث (every clip of a stream under the stream's folder), "lesson" → دروس, "spec-demo" → عروض وتجارب.
+   A spec added later lands in its kind's folder and its project's folder by itself; the composition ids are untouched. «full»/«reel» are the old names of the first two. */
+const KIND_KEY: Record<string, string> = { full: "hk-full", reel: "hk-reel" };
+const OVER = ((compKindsData as { kinds?: Record<string, string> }).kinds ?? {});
+
+/** the project folders (with their compositions) of one kind of spec */
+export const SpecComps: React.FC<{ kind: "hk-full" | "hk-reel" | "stream" | "lesson" | "spec-demo" | "full" | "reel" }> = ({ kind }) => {
+  const all = entries(), byP = new Map(all.map((e) => [e.p, e] as [string, Entry]));
+  const specs: SpecEntry[] = all.map((e) => ({ p: e.p, id: e.id, spec: e.spec as SpecEntry["spec"] }));
+  return (
+    <>
+      {projectsOfKind(specs, KIND_KEY[kind] ?? kind, COMPOSITION_TITLES, OVER).map((pr) => (
+        <Folder key={pr.root} name={pr.label}>
+          {pr.ps.flatMap((p) => { const e = byP.get(p) as Entry; return e.forms.filter((f) => SIZE[f]).map((f) => (
+            <Composition key={`${e.p}:${f}`} id={`${e.id}${SIZE[f].suffix}`} component={compFor(e, f)} durationInFrames={specFrames(e.spec)} fps={30} width={SIZE[f].width} height={SIZE[f].height} />
+          )); })}
+        </Folder>
+      ))}
+    </>
+  );
+};

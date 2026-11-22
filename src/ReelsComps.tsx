@@ -6,9 +6,10 @@ import r1 from "../data/debate/debate-r1.json";
 import r2 from "../data/debate/debate-r2.json";
 import r3 from "../data/debate/debate-r3.json";
 
-/** Reels built from data specs; registered here (not in Root.tsx) so a clean-up of Root cannot drop them. Add a reel = import + one line. */
+/** Reels built from data specs; registered here (not in Root.tsx) so a clean-up of Root cannot drop them. Add a reel = import + one line.
+ *  (2026-11-22, user order: folders by kind, one folder per project) Root.tsx mounts this INSIDE its «ريلز» folder, so each project here is one folder of its own: a new debate/reel project = a new <Folder name="<its title>"> here. */
 export const ReelsComps: React.FC = () => (
-  <Folder name="Reels">
+  <Folder name="مناظرة نبوءات محمد ﷺ في كتب اليهود">
     <Composition id="DebateR1" component={DebateReel} width={1080} height={1920} fps={30} durationInFrames={r1.frames} defaultProps={r1} />
     <Composition id="DebateR2" component={DebateReel} width={1080} height={1920} fps={30} durationInFrames={r2.frames} defaultProps={r2} />
     <Composition id="DebateR3" component={DebateReel} width={1080} height={1920} fps={30} durationInFrames={r3.frames} defaultProps={r3} />

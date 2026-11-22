@@ -188,17 +188,19 @@ const CalendarIcon: React.FC<{ w: number; h: number; t: number; head: string; va
   );
 };
 export const DateCalendar: React.FC<{ at: number; until?: number; x: number; y: number; w: number; text: string; sub?: string; from?: number }> = ({ at, until, x, y, w, text, sub, from }) => {
-  const cal = parseCalendar(text);
+  const cal0 = parseCalendar(text);
+  /* (user 2026-11-22, Studio: «ضع اسم الشهر») a year-only calendar («٢٠١٣ م») whose `sub` is a month name carries that month in its header instead of the bare era word */
+  const monthSub = sub && (cal0.head === "ميلادي" || cal0.head === "هجري") && MONTHS.includes(plain(sub.trim())) ? sub.trim() : null;
+  const cal = monthSub ? { ...cal0, head: monthSub } : cal0;
   const f = useCurrentFrame(), { fps } = useVideoConfig(), t = f / fps;
   if (t < at || (until !== undefined && t > until + 0.3)) return null;
   const grow = easeOut((t - at) / 0.35) * (until === undefined ? 1 : 1 - easeOut((t - until) / 0.3));
-  const iw = Math.round(w * 0.72), ih = Math.round(iw * 277 / 268), size = Math.round(Math.min(w * 0.13, (w * 0.88) / ([...text].length * 0.5)));   // a long date shrinks to stay inside the card
-  // an opaque cream card in the identity (user 2026-10-31: «شفافية التقويم مزعجة… كريمي مع لون مناسب للكود اللوني»): the white frames multiply onto the card, the orange is turned to the accent hue
+  /* (2026-11-22, sabiya-syrian-president, user: «لابد من تقويم بالموشن جرافيك وليس صورة وكلام مكتوب في الإطار») the calendar is the motion graphic ALONE: its pages turn and settle on the
+     spoken number, the header carries the month / era — no cream card and no caption line under it any more (the number on the page IS the information) */
+  const iw = Math.round(w * 0.92), ih = Math.round(iw * 277 / 268);
   return (
-    <div style={{ position: "absolute", left: x, top: y, width: w, padding: "18px 0 22px", background: "#f4ecda", borderRadius: 26, borderTop: `10px solid ${BRAND.accent}`, boxShadow: "0 18px 36px rgba(0,0,0,.4)", transform: `scale(${0.2 + 0.8 * grow}) rotate(-2deg)`, transformOrigin: "50% 40%", opacity: Math.min(1, grow * 2.5), direction: "rtl", textAlign: "center" }}>
+    <div style={{ position: "absolute", left: x, top: y, width: w, filter: "drop-shadow(0 16px 26px rgba(0,0,0,.45))", transform: `scale(${0.2 + 0.8 * grow}) rotate(-2deg)`, transformOrigin: "50% 40%", opacity: Math.min(1, grow * 2.5), direction: "rtl", textAlign: "center" }}>
       <CalendarIcon w={iw} h={ih} t={t - at} head={cal.head} value={cal.value} from={from} />
-      <div style={{ fontFamily: kufiF, fontWeight: 800, fontSize: size, color: BRAND.ink, lineHeight: 1.2, marginTop: 4, whiteSpace: "nowrap", padding: "0 10px" }}>{text}</div>
-      {sub ? <div style={{ fontFamily: kufiF, fontSize: Math.round(size * 0.55), color: BRAND.gray }}>{sub}</div> : null}
     </div>
   );
 };

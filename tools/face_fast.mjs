@@ -29,13 +29,18 @@ const t0 = Date.now(), lap = {};
 fs.rmSync(outDir, { recursive: true, force: true }); fs.mkdirSync(outDir, { recursive: true });
 
 // ---- 1) face track of the cut (cached by file size + mtime)
-const cut = path.join("public", spec.cut);
-const st = fs.statSync(cut);
-const trackF = path.join((await import("./lib/projdir.mjs")).projTmp(path.basename(cut, ".mp4"), "facetrack"), `${path.basename(cut, ".mp4")}_${st.size}_${Math.round(st.mtimeMs)}.json`);
-if (!fs.existsSync(trackF)) {
-  fs.mkdirSync(path.dirname(trackF), { recursive: true });
-  const r = spawnSync(PY, ["tools/face_track.py", cut, trackF], { encoding: "utf8", windowsHide: true });
-  if (r.status !== 0) { console.error("face_track failed:", (r.stderr || "").slice(-400)); process.exit(2); }
+const LZ = await import("./lib/lazy_clip.mjs");   // a lazy stream clip has no cut video: his face is tracked on the ORIGINAL through its list
+let trackF;
+if (LZ.isLazy(spec.id)) { try { trackF = LZ.faceTrackFile(spec.id); } catch (e) { console.error(String(e.message)); process.exit(2); } }
+else {
+  const cut = path.join("public", spec.cut);
+  const st = fs.statSync(cut);
+  trackF = path.join((await import("./lib/projdir.mjs")).projTmp(path.basename(cut, ".mp4"), "facetrack"), `${path.basename(cut, ".mp4")}_${st.size}_${Math.round(st.mtimeMs)}.json`);
+  if (!fs.existsSync(trackF)) {
+    fs.mkdirSync(path.dirname(trackF), { recursive: true });
+    const r = spawnSync(PY, ["tools/face_track.py", cut, trackF], { encoding: "utf8", windowsHide: true });
+    if (r.status !== 0) { console.error("face_track failed:", (r.stderr || "").slice(-400)); process.exit(2); }
+  }
 }
 lap.track = Date.now() - t0;
 const track = JSON.parse(fs.readFileSync(trackF, "utf8"));

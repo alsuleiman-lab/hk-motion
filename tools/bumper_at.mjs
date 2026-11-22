@@ -24,7 +24,8 @@ const prevEnd = hit > 0 ? W[hit - 1].e : 0, at = hit > 0 ? (prevEnd + W[hit].s) 
    the last quiet stretch (≥ 0.08 s under −38 dB) that ends before the voice of «طيب»/the greeting starts — never inside a word */
 let at2 = at;
 if (hit > 0) {
-  const src = path.join("public", spec.cut ?? spec.src ?? spec.video ?? ""), a0 = Math.max(0, prevEnd - 0.6), len = W[hit].s + 0.5 - a0;
+  /* a lazy stream clip has no cut video (tools/stream/clip_lazy.mjs): the sound is the lossless cut audio, the very sound the cut video would carry */
+  const lazyWav = path.join(".tmp", p, "cut_audio.wav"), src = fs.existsSync(path.join(".tmp", p, "lazy_clip.json")) && fs.existsSync(lazyWav) ? lazyWav : path.join("public", spec.cut ?? spec.src ?? spec.video ?? ""), a0 =Math.max(0, prevEnd - 0.6), len = W[hit].s + 0.5 - a0;
   try {
     const { execFileSync } = await import("node:child_process");
     const buf = execFileSync("ffmpeg", ["-v", "error", "-ss", String(a0), "-t", String(len), "-i", src, "-ac", "1", "-ar", "16000", "-f", "s16le", "-"], { maxBuffer: 1 << 26 });

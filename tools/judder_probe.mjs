@@ -17,7 +17,8 @@ const avoid = opt("avoid", "").split(",").filter(Boolean).map((r) => r.split("-"
 if (!id || (!src && !animation) || !name) { console.error("usage: node tools/judder_probe.mjs <CompositionId> (--src <cut> | --animation --total-frames N) --name <project> [--audio-file <wav>]"); process.exit(2); }
 const fps = 30;
 // total frames from Root.tsx is not parseable reliably: ask the last progress line of an earlier render or the cut length (src duration + offset)
-const srcDur = animation ? 0 : Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", src], { encoding: "utf8" }).stdout);
+const lzView = !animation && src.toLowerCase().endsWith(".lazy.json");   // a lazy stream clip's source is its view over the original (.tmp/<id>/cut_view.lazy.json, tools/lib/lazy_clip.mjs)
+const srcDur = animation ? 0 : lzView ? (await import("./lib/lazy_clip.mjs")).viewDuration(src) : Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", src], { encoding: "utf8" }).stdout);
 const totalFrames = animation ? Number(opt("total-frames", "0")) : Math.round(srcDur * fps) + offset;
 if (!Number.isInteger(totalFrames) || totalFrames < len) throw new Error("Invalid total frame count");
 const bad = (s, e) => avoid.some(([a, b]) => s < b && e > a);

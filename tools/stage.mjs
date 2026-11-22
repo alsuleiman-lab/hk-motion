@@ -276,8 +276,17 @@ if (stage === "cut") {
      <p>_cut_s.mp4 (smoothed, with the audio) + <p>_cut_s_prev_<v>.mp4/.m4a, registered in data/preview_proxies.json. <p>_cut.mp4 becomes a hard link to <p>_cut_s.mp4 (tools that read it
      find the same whole file). No background smoothing, no separate proxy step. Every file is written as .part and moved into place when whole. CUT_BUILD_OLD=1, or any failure of the
      GPU path, uses the old chain below (cut, then the smoothing in the background). HK_SMOOTH=0 skips the duplicate-frame repair (the cut is then the frames of the recording exactly). */
-  let merged = false;
-  if (!process.env.CUT_BUILD_OLD) {
+  /* LAZY STREAM CUT (user 2026-11-22: a stream is handled with ZERO video encoding before the final render): the cut is the LIST (public/<p>_map.json) + its lossless audio; no cut video is built.
+     tools/stream/cut_smart.sh sets STAGE_CUT_LAZY=1 (STREAM_ENCODE=1 brings the old whole-stream encode back). Every clip is then registered as a range list over the original (tools/stream/clip_lazy.mjs). */
+  const lazyCut = process.env.STAGE_CUT_LAZY === "1" && process.env.STREAM_ENCODE !== "1";
+  let merged = lazyCut;
+  if (lazyCut) {
+    const ta = path.join(T, "cut_audio.wav"), r0 = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", wavClean, "-ar", "48000", "-c:a", "pcm_s16le", ta + ".part.wav"], { windowsHide: true });
+    if (r0.status !== 0) { say("✘ cut_audio.wav not written — the lazy cut has no sound without it"); finish(1); }
+    fs.renameSync(ta + ".part.wav", ta);
+    say(`lazy cut: no cut video encoded — the cut is the list ${mapF} + the lossless sound ${ta}`);
+  }
+  if (!process.env.CUT_BUILD_OLD && !lazyCut) {
     /* (user 2026-11-19: «ألا يمكن أن تنقل هذه إلى كرت الشاشة») the fall back to the CPU chain was one quiet «⚠» line: now its output goes to the stage log, a failure
        in the middle of the pass (busy card, out of memory…) is tried ONCE more, and the fall back is a loud «✘» on stderr and in the log with the reason */
     const gpuBuild = () => { log(`$ cut_build_gpu.py ${src} ${mapF} ${cutS}`); const r = spawnSync("C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe", ["tools/cut_build_gpu.py", src, mapF, cutS, "--audio-from", wavClean, "--proxy", ...(process.env.HK_SMOOTH === "0" ? ["--no-smooth"] : [])], { encoding: "utf8", windowsHide: true, maxBuffer: 1 << 26 }); log((r.stdout || "") + (r.stderr || "")); return r; };
@@ -323,7 +332,8 @@ if (stage === "cut") {
   fs.writeFileSync(path.join(T, "cut_words.json"), JSON.stringify(cutWords));
   fs.writeFileSync(path.join(T, "cut_transcript.txt"), toText(cutWords));
   await srcWin;
-  say(`cut ${(await dur(cut)).toFixed(1)} s · ${segments.length} segments → ${cut} ${merged ? `(smoothed in the same pass → ${cutS}, light Studio copy made with it — build on it; after the render run tools/judder_check.mjs)` : `(smoothing in the background → ${cutS} in ≈5 min, log ${path.join(T, "smooth.log")} — build on it; after the render run tools/judder_check.mjs)`}`);
+  if (lazyCut) say(`cut ${JSON.parse(fs.readFileSync(mapF, "utf8")).duration.toFixed(1)} s · ${segments.length} segments → the list ${mapF} (no cut video: the render reads the original through it; clips: node tools/stream/clip_lazy.mjs)`);
+  else say(`cut ${(await dur(cut)).toFixed(1)} s · ${segments.length} segments → ${cut} ${merged ?`(smoothed in the same pass → ${cutS}, light Studio copy made with it — build on it; after the render run tools/judder_check.mjs)` : `(smoothing in the background → ${cutS} in ≈5 min, log ${path.join(T, "smooth.log")} — build on it; after the render run tools/judder_check.mjs)`}`);
   say(`read: ${path.join(T, "cut_transcript.txt")} (cut timeline — check stumbles/«أعيد» are gone)`);
   if (process.env.STREAM_WHOLE === "1") { say("بث كامل: بلا آيات ولا بحث ولا حركات ولا متطلبات على القص كله؛ يُجرى كل منها على كل شريحة في clip_slice.mjs (ميزانية الساعتين)"); finish(0); }
   const vs = await run("node", ["tools/verse_scan.mjs", p]);   // every recited verse becomes a verse item at the second it is said (user 2026-10-28)
@@ -482,7 +492,8 @@ if (stage === "check") {
   // two-pass render of the whole video that frame_audit needs); frame_audit stays for old TSX compositions
   // judder probe at the end of every montage (user 2026-11-16): with the preview link, a random 10 s from the middle is rendered and compared with the source — detached, log <T>/probe.log
   if (!failed && fs.existsSync(specF) && !rest.includes("--no-probe")) {
-    const sp = JSON.parse(fs.readFileSync(specF, "utf8")), src = sp.cut ? path.join("public", sp.cut) : path.join("public", `${p}_cut_s.mp4`);
+    const LZ = await import("./lib/lazy_clip.mjs");   // a lazy stream clip has no cut video: the judder probe compares with the ORIGINAL through the clip's list
+    const sp = JSON.parse(fs.readFileSync(specF, "utf8")), src = LZ.isLazy(p) ? LZ.viewFile(p) : sp.cut ? path.join("public", sp.cut) : path.join("public", `${p}_cut_s.mp4`);
     if (fs.existsSync(src)) {
       const { spawn: _spawn } = await import("node:child_process");
       const log = fs.openSync(path.join(T, "probe.log"), "w");

@@ -20,7 +20,10 @@ let Z = null; for (let t = at; t <= at + 10; t += 0.5) { const q = zoneAt(t, "la
 const cam = (spec.cams ?? []).find((c) => at >= c.from && at < c.to) ?? { cx: 990 };
 
 // 10 s of the cut, 1280x720 (portrait crops it in the page), NVENC, no audio
-const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-hwaccel", "cuda", "-ss", String(at), "-t", "10", "-i", path.join("public", spec.cut), "-an", "-vf", "scale=1280:720", "-c:v", "h264_nvenc", "-preset", "p4", "-cq", "28", "-movflags", "+faststart", path.join(OUT, "clip.mp4")], { encoding: "utf8" });
+const LZ = await import("./lib/lazy_clip.mjs");   // a lazy stream clip has no cut video: its 10 s are decoded from the ORIGINAL through its list (frame-exact), then encoded here as this page's own small preview
+const lzw = LZ.isLazy(spec.id) ? LZ.windowArgs(spec.id, Math.round(at * 30), 300, "scale=1280:720") : null;
+const r = spawnSync("ffmpeg", ["-v", "error", "-y", ...(lzw ? lzw.args : ["-hwaccel", "cuda", "-ss", String(at), "-t", "10", "-i", path.join("public", spec.cut), "-an", "-vf", "scale=1280:720"]), "-c:v", "h264_nvenc", "-preset", "p4", "-cq", "28", "-movflags", "+faststart", path.join(OUT, "clip.mp4")], { encoding: "utf8" });
+if (lzw) { try { fs.rmSync(lzw.file, { force: true }); } catch { /* left */ } }
 if (r.status !== 0) { console.error(r.stderr); process.exit(1); }
 
 const data = {

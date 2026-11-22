@@ -50,7 +50,9 @@ const failed = [], jobs = Math.max(1, Number(rest.includes("--jobs") ? rest[rest
 const { spawn } = await import("node:child_process");
 const todo = table.filter((c) => !only || only.has(c.id));
 const slice1 = (c) => new Promise((resolve) => {
-  const t0 = Date.now(), ch = spawn(process.execPath, ["tools/stream/clip_slice.mjs", proj, c.id, c.ranges.map((x) => `${x.from}-${x.to}`).join(",")], { windowsHide: true });
+  /* (user 2026-11-22: zero video encoding before the final render) a clip is REGISTERED as a range list over the original (clip_lazy.mjs: map + cut audio, no video file); STREAM_ENCODE=1 = the old
+     path, one h264_nvenc slice per clip from the whole-stream cut video (clip_slice.mjs) */
+  const t0 = Date.now(), ch = spawn(process.execPath, [process.env.STREAM_ENCODE === "1" ? "tools/stream/clip_slice.mjs" : "tools/stream/clip_lazy.mjs", proj, c.id, c.ranges.map((x) => `${x.from}-${x.to}`).join(",")], { windowsHide: true });
   let out = "", err = ""; ch.stdout.on("data", (d) => (out += d)); ch.stderr.on("data", (d) => (err += d));
   ch.on("close", (code) => { const s = ((Date.now() - t0) / 1000).toFixed(0);
     if (code !== 0) { say(`✘ ${c.id} (${s}s): ${(err || out).slice(-300)}`); failed.push(c.id); } else say(`(${s}s) ` + out.trim().split(String.fromCharCode(10)).join(" | ").slice(0, 400));

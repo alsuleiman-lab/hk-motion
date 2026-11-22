@@ -5,7 +5,9 @@ if os.path.exists(torch_lib):
     os.add_dll_directory(torch_lib); os.environ["PATH"] = torch_lib + os.pathsep + os.environ.get("PATH", "")
 from faster_whisper import WhisperModel
 p = sys.argv[1]; T = f".tmp/{p}"
-subprocess.run(["ffmpeg","-v","error","-y","-i",f"public/{p}_cut.mp4","-vn","-ac","1","-ar","16000",f"{T}/cut16k.wav"],check=True)
+# a lazy stream cut (STAGE_CUT_LAZY, tools/stage.mjs) has no cut video: its sound is the lossless cut audio, the very sound the cut video would carry
+cut_in = f"{T}/cut_audio.wav" if (os.path.exists(f"{T}/cut_audio.wav") and (os.environ.get("STAGE_CUT_LAZY") == "1" or not os.path.exists(f"public/{p}_cut.mp4"))) else f"public/{p}_cut.mp4"
+subprocess.run(["ffmpeg","-v","error","-y","-i",cut_in,"-vn","-ac","1","-ar","16000",f"{T}/cut16k.wav"],check=True)
 m = WhisperModel("large-v3", device="cuda", compute_type="float16", local_files_only=True)
 segs,_ = m.transcribe(f"{T}/cut16k.wav", language="ar", word_timestamps=True, vad_filter=True, beam_size=8, best_of=5, temperature=[0.0, 0.2], condition_on_previous_text=False)
 W=[]; L=[]

@@ -343,7 +343,9 @@ export default async (api) => {
     const after = (a, b) => { const seen = new Set(); const walk = (id) => { for (const d of by[id].deps) { seen.add(d); walk(d); } }; walk(a); return seen.has(b); };   // a is after b
     const chain = [["plan", "prep"], ["resolve", "plan"], ["cut", "resolve"], ["slice", "cut"], ["hadith_scan", "slice"], ["hadith_verify", "hadith_scan"], ["build", "titles"], ["build", "slice"], ["hadith_write", "hadith_verify"], ["repair", "pictures"], ["prerender", "slots"], ["checks", "prerender"], ["queue", "checks"], ["render", "queue"], ["final_review", "render"], ["listen", "final_review"], ["approve", "listen"]];
     const wrong = chain.filter(([a, b]) => !after(a, b)).map(([a, b]) => `${a}≺${b}`);
-    const FB = { prep: 12, cut: 20, slice: 12, build: 35, checks: 15, render: 45 }, fb = Object.entries(FB).filter(([k, v]) => by[k]?.budgetMin !== v).map(([k]) => k);
+    /* (2026-11-22, the lazy stream: no video is encoded before the final render) «cut» and «slice» no longer hold the encode their fast_run budgets (cut 8 + words 12, slice 12) were measured with: their budget is a number
+       only when MEASURED on the lazy path, else null («غير مقيس») — never the old figure carried over (user: «لا تخترع أرقام ميزانية») */
+    const FB = { prep: 12, build: 35, checks: 15, render: 45 }, fb = Object.entries(FB).filter(([k, v]) => by[k]?.budgetMin !== v).map(([k]) => k).concat(["cut", "slice"].filter((k) => !(by[k]?.budgetMin === null || typeof by[k]?.budgetMin === "number")));
     const per = (def.perClip ?? []).map((t) => t.id).sort().join(","), gates = JSON.stringify(by.queue.gate) + JSON.stringify(by.checks.gate) + JSON.stringify(by.cut.gate);
     return expect(!wrong.length && !fb.length && per === "hadith_scan,name_doubt,recitation_check,verse_scan" && /queue_jobs/.test(gates) && /perclip_artifacts/.test(gates) && /cover_ok/.test(gates) && /bleep/.test(gates) && /clip_people_gate/.test(gates) && by.queue.gate.some((g) => g.type === "prerender_fresh"),
       `ترتيب خاطئ: ${wrong.join("،")} | ميزانية خاطئة: ${fb.join("،")} | أدوات المقطع: ${per}`);

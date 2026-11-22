@@ -12,6 +12,7 @@
   { "tool": "tools/stream/fast_run.mjs", "subs": ["start", "slice", "checks", "queue"] },
   { "tool": "tools/stream/clip_cut_all.mjs" },
   { "tool": "tools/stream/clip_slice.mjs" },
+  { "tool": "tools/stream/clip_lazy.mjs", "notSubs": ["view", "status"] },
   { "tool": "tools/stream/cut_smart.sh" },
   { "tool": "tools/stream/cut_loop.sh" },
   { "tool": "tools/stream/post_cut.sh" },
@@ -92,12 +93,12 @@
    "gate": [{ "type": "files", "paths": [".tmp/{p}/clip_table.json"] }]
   },
   {
-   "id": "cut", "requires": [{"file":".claude/skills/video-cutting/SKILL.md"}], "ar": "القص الواحد للبث كله (قص السكتات + الصافرة + التنقية + كلمات النموذج الكبير)", "type": "auto", "bg": true, "exclusive": true, "skill": "lessons-and-streams · البند 14(ج) و15 · video-cutting §4 · sensitive-words (داخل stage cut) · «قص 8 + كلمات 12 د» (fast_run BUDGET)",
-   "deps": ["orders", "resolve"], "budgetMin": 20, "budgetNote": "قص 8 + كلمات النموذج الكبير 12؛ التنعيم 15 د بالتوازي معها", "fastMark": "cut",
+   "id": "cut", "requires": [{"file":".claude/skills/video-cutting/SKILL.md"}], "ar": "القص الواحد للبث كله: قائمة النطاقات فوق الأصل وصوتها اللاضائع، بلا ترميز فيديو (قص السكتات + الصافرة + التنقية + كلمات النموذج الكبير)", "type": "auto", "bg": true, "exclusive": true, "skill": "lessons-and-streams · البند 14(ج) و15 · video-cutting §4 · sensitive-words (داخل stage cut) · القص كسول (أمر المستخدم 2026-11-22: لا ترميز قبل الرندر الأخير؛ STREAM_ENCODE=1 يعيد المسار القديم)",
+   "deps": ["orders", "resolve"], "budgetMin": null, "budgetNote": "كان 20 د (قص 8 + كلمات النموذج الكبير 12) وفيه ترميز القص الكامل والتنعيم؛ بلا الترميز غير مقيس على بث كامل (الكلمات والصوت لم يتغيرا)", "fastMark": "cut",
    "cmd": ["bash", "tools/stream/cut_smart.sh", "{p}", "{file:.tmp/{p}/drops.txt}"],
    "env": { "KS": "{file:.tmp/{p}/ks.txt}" },
    "gate": [
-    { "type": "files", "paths": ["public/{p}_cut.mp4", "public/{p}_map.json", ".tmp/{p}/cut_words.json"], "newer": ".tmp/{p}/clip_table.json" },
+    { "type": "files", "paths": ["public/{p}_map.json", ".tmp/{p}/cut_audio.wav", ".tmp/{p}/cut_words.json"], "newer": ".tmp/{p}/clip_table.json" },
     { "type": "log_has", "file": ".tmp/{p}/stage_cut.log", "text": "bleep ✔", "why": "الصافرة على الكلمات الحساسة (sensitive-words) لم تعمل داخل القص" }
    ]
   },
@@ -113,11 +114,11 @@
    "gate": [{ "type": "json_covers_clips", "path": ".tmp/{p}/titles.json", "fields": ["title", "main"] }]
   },
   {
-   "id": "slice", "requires": [{"file":".claude/skills/extraction/SKILL.md"}], "ar": "تقسيم المقاطع شرائح من القص الواحد (أربعة معاً) ومعها الآيات والسجل وبوابة الصوت", "type": "auto", "bg": true, "skill": "lessons-and-streams · البند 14(د) و15 · «تقسيم 12 د» · extraction (الآيات)",
-   "deps": ["cut", "lost_check"], "budgetMin": 12,
+   "id": "slice", "requires": [{"file":".claude/skills/extraction/SKILL.md"}], "ar": "تسجيل المقاطع نطاقات فوق الأصل (أربعة معاً، بلا ملف فيديو) ومعها الآيات والسجل وبوابة الصوت", "type": "auto", "bg": true, "skill": "lessons-and-streams · البند 14(د) و15 · «تقسيم 12 د» · extraction (الآيات) · المقطع قائمة نطاقات وصوت لاضائع (clip_lazy.mjs)؛ STREAM_ENCODE=1 = شريحة فيديو لكل مقطع (clip_slice.mjs)",
+   "deps": ["cut", "lost_check"], "budgetMin": 12, "budgetNote": "الرقم من قبل الكسل (فيه ترميز كل شريحة)؛ المقيس على العيّنة بعد الكسل: تسجيل 3 مقاطع (5:37 د) 4 ث بلا requirements (تفريغ large-v3 على الكرت، ≈107 ث لمقطع 92 ث)؛ البث الكامل غير مقيس",
    "cmd": ["node", "tools/stream/fast_run.mjs", "slice", "{p}", "--jobs", "4"],
-   "also": ["tools/verse_scan.mjs", "tools/requirements.mjs", "tools/name_doubt.mjs", "tools/audio_gate.mjs", "tools/moves_plan.mjs"],
-   "gate": [{ "type": "files", "paths": ["public/{c}_cut.mp4", ".tmp/{c}/cut_words.json", ".tmp/{c}/verses.json", ".tmp/{c}/requirements.json", ".tmp/gates/{c}.audio.ok"] }]
+   "also": ["tools/stream/clip_lazy.mjs", "tools/verse_scan.mjs", "tools/requirements.mjs", "tools/name_doubt.mjs", "tools/audio_gate.mjs", "tools/moves_plan.mjs"],
+   "gate": [{ "type": "files", "paths": ["public/{c}_map.json", ".tmp/{c}/lazy_clip.json", ".tmp/{c}/cut_audio.wav", ".tmp/{c}/cut_words.json", ".tmp/{c}/verses.json", ".tmp/{c}/requirements.json", ".tmp/gates/{c}.audio.ok"] }]
   },
   {
    "id": "hadith_scan", "requires": [{"file":".claude/skills/extraction/SKILL.md"}], "ar": "كشف الأحاديث المروية في كل مقطع (hadith_scan)", "type": "auto", "bg": true, "foreach": "clips", "jobs": 3, "skill": "extraction (الأحاديث) · البند 5 من الشجرة",

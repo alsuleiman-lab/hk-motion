@@ -99,6 +99,8 @@ export function comparePlans(a, b) {
 /** size|mtime of every source of the plan */
 export const inputStamp = (plan, root) => Object.fromEntries([...new Set(plan.map((x) => x.src))].sort().map((s) => { try { const st = fs.statSync(path.resolve(root, s)); return [s, `${st.size}:${Math.floor(st.mtimeMs)}`]; } catch { return [s, "missing"]; } }));
 
+/** REMOTION_GL=swangle: the audio records are collected with a software GL (no card) — a check on a machine whose card is busy with another render (default angle, as before) */
+const GL = process.env.REMOTION_GL ?? "angle";
 /** the composition's audio records for frames start..end with NO picture (Remotion renderFrames, imageFormat "none"): the same React tree the GPU render
     draws (same input props), so the same <Audio> records. A tiny server answers the geometry posts a VSlot makes in the "top" layer. */
 export async function collectAudioFrames({ compId, inputProps, start = 0, end = null, concurrency = 4, serveUrl = null, log = () => {} }) {
@@ -109,14 +111,14 @@ export async function collectAudioFrames({ compId, inputProps, start = 0, end = 
   let url = serveUrl;
   if (!url) url = (await (await import("./cached_bundle.mjs")).cachedServeUrl(compId, { tag: "prerender" })).serveUrl;
   log(`audio records: bundle ready (${compId})`);
-  const browser = await openBrowser("chrome", { chromiumOptions: { gl: "angle" } });
+  const browser = await openBrowser("chrome", { chromiumOptions: { gl: GL } });
   try {
-    const composition = await selectComposition({ serveUrl: url, id: compId, inputProps: props, puppeteerInstance: browser, chromiumOptions: { gl: "angle" } });
+    const composition = await selectComposition({ serveUrl: url, id: compId, inputProps: props, puppeteerInstance: browser, chromiumOptions: { gl: GL } });
     const last = end === null ? composition.durationInFrames - 1 : Math.min(end, composition.durationInFrames - 1);
     const t0 = Date.now();
     const r = await renderFrames({
       composition, serveUrl: url, inputProps: props, imageFormat: "none", outputDir: null, frameRange: [start, last], concurrency, puppeteerInstance: browser,
-      chromiumOptions: { gl: "angle" }, timeoutInMilliseconds: 120000, logLevel: "error", onStart: () => {}, onFrameUpdate: (n) => { if (n % 900 === 0) log(`audio records: ${n}/${last - start + 1} frames (${((Date.now() - t0) / 1000).toFixed(0)} s)`); },
+      chromiumOptions: { gl: GL }, timeoutInMilliseconds: 120000, logLevel: "error", onStart: () => {}, onFrameUpdate: (n) => { if (n % 900 === 0) log(`audio records: ${n}/${last - start + 1} frames (${((Date.now() - t0) / 1000).toFixed(0)} s)`); },
     });
     return { frames: r.assetsInfo.assets.map((f) => ({ frame: f.frame, audioAndVideoAssets: f.audioAndVideoAssets })), composition, start, end: last };
   } finally { try { await browser.close({ silent: true }); } catch { /* gone */ } geom.close(); }

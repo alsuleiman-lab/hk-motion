@@ -31,6 +31,14 @@ if (rest.includes("--animation")) {
 }
 if (!out || !src || !name) { console.error("usage: node tools/judder_check.mjs <out.mp4> --src <source.mp4> --offset <frames> --name <project> [--windows 8] [--len 90] [--crop x,y,w,h] [--src-crop x,y,w,h] [--avoid a-b,…]"); process.exit(2); }
 const fps = 30, W = 110, H = 80, SZ = W * H;
+/* A LAZY stream clip has no cut video (tools/stream/clip_lazy.mjs): its source here is its VIEW (.tmp/<id>/cut_view.lazy.json, tools/lib/lazy_clip.mjs), decoded from the ORIGINAL through the clip's list frame for frame as the
+   render reads it. The render also applies the duplicate-frame repair of the heavy cut (tools/gpu/edl_stream.py), so the list's frames get the same repair before their steps are compared: a frame equal to its predecessor
+   (mean difference < 0.35 on the 0–255 scale) while the next one differs becomes the rounded average of its two neighbours — otherwise every repaired duplicate would read as a step the render «made up». */
+const LZ = await import("./lib/lazy_clip.mjs"), isList = (f) => LZ.isView(f);
+const repairDups = (buf, sz, thr = 0.35) => { const k = Math.floor(buf.length / sz), md = (a, b) => { let t = 0; for (let p = 0; p < sz; p++) t += Math.abs(buf[a * sz + p] - buf[b * sz + p]); return t / sz; };
+  const d = Array.from({ length: k }, (_, i) => (i ? md(i, i - 1) : 9)), out = Buffer.from(buf);
+  for (let i = 1; i < k - 1; i++) if (d[i] < thr && !(d[i + 1] < thr)) for (let p = 0; p < sz; p++) out[i * sz + p] = (buf[(i - 1) * sz + p] + buf[(i + 1) * sz + p] + 1) >> 1;
+  return out; };
 // --full: decode the WHOLE output and source once (no seeking, so frame n is frame n in both — seeking by -ss landed one frame apart because the source stream starts at 0.0213 s)
 // and compare the series of frame-to-frame differences over every frame. Same pass rule (--min, default 0.96) and the same gate file.
 if (rest.includes("--full")) {
@@ -39,6 +47,7 @@ if (rest.includes("--full")) {
      only the small crop is shrunk on the CPU, with the same filter, so the numbers are the same. Falls back to the CPU decode if NVDEC refuses the file. */
   const dec = (file, [cx, cy, cw, ch], skip) => { const tmp = `.tmp/${name}_full_${skip}.raw`; fs.mkdirSync(".tmp", { recursive: true });
     const vf = `crop=${cw}:${ch}:${cx}:${cy},scale=${FW}:${FH},format=gray`;
+    if (isList(file)) { const b = LZ.rawWindow(file, 0, Math.round(LZ.viewDuration(file) * fps), vf, { maxBuffer: 1 << 30 }); if (!b?.length) { console.error("decode failed (lazy clip)"); process.exit(1); } return repairDups(b, FSZ); }   // a lazy clip: decoded on the processor from the original, then the heavy cut's duplicate repair (see above)
     let r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-hwaccel", "cuda", "-hwaccel_output_format", "cuda", "-i", file, "-an", "-vf", `hwdownload,format=nv12,${vf}`, "-f", "rawvideo", tmp], { stdio: "inherit" });
     if (r.status !== 0) r = spawnSync("ffmpeg", ["-v", "error", "-y", "-threads", "4", "-i", file, "-an", "-vf", vf, "-f", "rawvideo", tmp], { stdio: "inherit" });
     if (r.status !== 0) { console.error("decode failed"); process.exit(1); } const b = fs.readFileSync(tmp); fs.rmSync(tmp); return b; };
@@ -74,7 +83,7 @@ if (!process.argv.includes("--no-auto-avoid") && !process.argv.includes("--at") 
    «0/0 steps agree … FAILED (stale/skipped frames)» blamed the render for frames that never existed. No file / no comparable step is its own verdict. */
 if (!fs.existsSync(out)) { console.log(`judder: ✘ لا ملف للقياس (${out}) — الرندر لم يُخرج ملفاً، فلا حكم على الارتجاف (NO FILE)`); process.exit(3); }
 const dur = Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", out], { encoding: "utf8" }).stdout);
-const raw = (file, startSec, n, [cx, cy, cw, ch]) => spawnSync("ffmpeg", ["-v", "error", "-ss", String(startSec), "-i", file, "-frames:v", String(n), "-vf", `crop=${cw}:${ch}:${cx}:${cy},scale=${W}:${H},format=gray`, "-f", "rawvideo", "-"], { maxBuffer: 1 << 28 }).stdout;
+const raw = (file, startSec, n, [cx, cy, cw, ch]) => { const vf = `crop=${cw}:${ch}:${cx}:${cy},scale=${W}:${H},format=gray`; if (isList(file)) return repairDups(LZ.rawWindow(file, startSec, n, vf) ?? Buffer.alloc(0), SZ); return spawnSync("ffmpeg", ["-v", "error", "-ss", String(startSec), "-i", file, "-frames:v", String(n), "-vf", vf, "-f", "rawvideo", "-"], { maxBuffer: 1 << 28 }).stdout; };
 const steps = (buf) => { const k = Math.floor(buf.length / SZ), r = []; for (let i = 1; i < k; i++) { let t = 0; for (let p = 0; p < SZ; p++) t += Math.abs(buf[i * SZ + p] - buf[(i - 1) * SZ + p]); r.push(t / SZ); } return r; };
 const bad = (s, e) => avoid.some(([a, b]) => s < b && e > a);
 const pick = [];

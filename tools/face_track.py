@@ -4,19 +4,27 @@ Usage: python tools/face_track.py <video> <out.json> [--fps 2]
  - Haar frontal (default, then alt2) on each small frame, profile as fallback; HIS face is followed by continuity (not the biggest box)
  - prints/writes {"fps":F, "W":1920, "H":1080, "boxes":[[t, x, y, w, h] | [t, null], ...]} in SOURCE pixels (1920x1080 basis)
 The camera is fixed, so missing detections are filled later from the nearest ones (face_fast.mjs)."""
-import sys, json, subprocess, numpy as np, cv2
+import sys, os, json, subprocess, numpy as np, cv2
 
 video, out = sys.argv[1], sys.argv[2]
 fps = float(sys.argv[sys.argv.index("--fps") + 1]) if "--fps" in sys.argv else 2.0
 SW, SH = 480, 270
+# A LAZY stream clip (tools/lib/lazy_clip.mjs) has no cut video: <video> is the ORIGINAL and --lazy-args '<json>' = the ffmpeg input arguments that decode the clip's list from it, frame for frame as the render reads it
+# (windowArgs: -ss … -copyts -i <original> -/filter_complex <list> -map [o], the chain ending fps=2,scale=480:270,format=gray). Decoded on the processor, never encoded. FACE_TRACK_CPU=1 also decodes an ordinary video on the processor (no card).
+LAZY = json.loads(sys.argv[sys.argv.index("--lazy-args") + 1]) if "--lazy-args" in sys.argv else None
+CPU = os.environ.get("FACE_TRACK_CPU") == "1"
 probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", video], capture_output=True, text=True).stdout.strip().split(",")
 VW, VH = int(probe[0]), int(probe[1])
 # cuts built by cut_edl have a keyframe every 0.5 s: decoding keyframes only gives the same 2 fps without decoding the rest (≈5x faster)
-kf = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v", "-skip_frame", "nokey", "-show_entries", "frame=pts_time", "-of", "csv=p=0",
+kf = [] if LAZY else subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v", "-skip_frame", "nokey", "-show_entries", "frame=pts_time", "-of", "csv=p=0",
                      "-read_intervals", "%+12", video], capture_output=True, text=True).stdout.split()
 kf = [float(v) for v in kf if v.replace(".", "", 1).isdigit()]
 gaps = {round(b - a, 2) for a, b in zip(kf, kf[1:])}
-if len(kf) > 4 and len(gaps) == 1 and 0 < next(iter(gaps)) <= 1.0:
+if LAZY:
+    cmd = ["ffmpeg", "-hide_banner", "-v", "error", *LAZY, "-f", "rawvideo", "-"]
+elif CPU:
+    cmd = ["ffmpeg", "-hide_banner", "-v", "error", "-i", video, "-vf", f"fps={fps},scale={SW}:{SH},format=gray", "-f", "rawvideo", "-"]
+elif len(kf) > 4 and len(gaps) == 1 and 0 < next(iter(gaps)) <= 1.0:
     fps = 1 / next(iter(gaps))
     cmd = ["ffmpeg", "-hide_banner", "-v", "error", "-skip_frame", "nokey", "-hwaccel", "cuda", "-hwaccel_output_format", "cuda", "-i", video,
            "-vf", f"scale_cuda={SW}:{SH},hwdownload,format=nv12,format=gray", "-fps_mode", "passthrough", "-f", "rawvideo", "-"]

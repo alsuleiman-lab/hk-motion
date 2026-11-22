@@ -29,7 +29,8 @@ for (let i = 0; i < words.length; i++) {
 if (cur.length) sents.push(cur);
 
 // his loudness per sentence (RMS of the cut audio, mono 4 kHz) as a z-score against the whole video
-const cutMp4 = path.join("public", `${p}_cut.mp4`);
+/* a lazy stream clip has no cut video (tools/stream/clip_lazy.mjs): its loudness is read from the lossless cut audio, the very sound the cut video would carry */
+const cutMp4 = fs.existsSync(path.join(T, "lazy_clip.json")) && fs.existsSync(path.join(T, "cut_audio.wav")) ? path.join(T, "cut_audio.wav") : path.join("public", `${p}_cut.mp4`);
 let rmsOf = () => 0;
 if (fs.existsSync(cutMp4)) {
   const SR = 4000;

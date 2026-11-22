@@ -2,18 +2,23 @@
 // Same geometry as tools/face_fast.mjs (src/MontageSpec.tsx + PortraitKit.SheikhLayers; keep in sync), plus the portrait split (`psplits`: scale s about 50% 0%).
 //   const zoneAt = faceZoner(spec);  zoneAt(t, "land" | "port") → [x0, y0, x1, y1]
 import fs from "node:fs"; import path from "node:path"; import { spawnSync } from "node:child_process";
+import { isLazy, faceTrackFile } from "./lazy_clip.mjs";   // a lazy stream clip has no cut video: his face is tracked on the ORIGINAL through its list
 
-const PY = "C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe";
+const PY ="C:/Users/mshms/AppData/Local/Programs/Python/Python310/python.exe";
 const clamp = (v) => Math.max(0, Math.min(1, v));
 
 export function faceZoner(spec) {
-  const cut = path.join("public", spec.cut);
-  const st = fs.statSync(cut);
-  const trackF = path.join(".tmp", "facetrack", `${path.basename(cut, ".mp4")}_${st.size}_${Math.round(st.mtimeMs)}.json`);
-  if (!fs.existsSync(trackF)) {
-    fs.mkdirSync(path.dirname(trackF), { recursive: true });
-    const r = spawnSync(PY, ["tools/face_track.py", cut, trackF], { encoding: "utf8", windowsHide: true });
-    if (r.status !== 0) throw new Error("face_track failed: " + (r.stderr || "").slice(-300));
+  let trackF;
+  if (spec.id && isLazy(spec.id)) trackF = faceTrackFile(spec.id);
+  else {
+    const cut = path.join("public", spec.cut);
+    const st = fs.statSync(cut);
+    trackF = path.join(".tmp", "facetrack", `${path.basename(cut, ".mp4")}_${st.size}_${Math.round(st.mtimeMs)}.json`);
+    if (!fs.existsSync(trackF)) {
+      fs.mkdirSync(path.dirname(trackF), { recursive: true });
+      const r = spawnSync(PY, ["tools/face_track.py", cut, trackF], { encoding: "utf8", windowsHide: true });
+      if (r.status !== 0) throw new Error("face_track failed: " + (r.stderr || "").slice(-300));
+    }
   }
   const track = JSON.parse(fs.readFileSync(trackF, "utf8"));
   const found = track.boxes.filter((b) => b[1] != null);

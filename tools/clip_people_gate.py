@@ -9,6 +9,17 @@ import sys, json, cv2, numpy as np, os
 sys.stdout.reconfigure(encoding="utf-8")
 spec = json.load(open(sys.argv[1], encoding="utf-8"))
 cut = os.path.join("public", spec["cut"])
+# A LAZY stream clip (tools/stream/clip_lazy.mjs) has no cut video: the frames are read from the ORIGINAL at the second the clip's list maps each clip second to (nothing is encoded)
+LAZY = os.path.exists(os.path.join(".tmp", spec.get("id", ""), "lazy_clip.json"))
+if LAZY:
+    _segs = json.load(open(os.path.join("public", spec["id"] + "_map.json"), encoding="utf-8"))["segments"]
+    cut = os.path.abspath(json.load(open(os.path.join(".tmp", spec["id"], "prep_config.json"), encoding="utf-8"))["source"])
+    def to_src(t):
+        for g in _segs:
+            if g["n"] - 1e-6 <= t <= g["n"] + (g["b"] - g["a"]) + 1e-6: return g["a"] + (t - g["n"])
+        return None
+else:
+    def to_src(t): return t
 model = ".tmp/models/yunet.onnx"
 cap = cv2.VideoCapture(cut); fps = cap.get(5); W = int(cap.get(3)); H = int(cap.get(4)); n = int(cap.get(7))
 det = cv2.FaceDetectorYN.create(model, "", (W, H), 0.7, 0.3, 5000)
@@ -20,7 +31,9 @@ bad = []
 for t0, t1, x, y, w, h, what in rects:
     t = t0
     while t < t1:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, int(t * fps)); ok, f = cap.read()
+        ts = to_src(t)
+        if ts is None: t += 1.0; continue
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(ts * fps)); ok, f = cap.read()
         if ok:
             _, faces = det.detect(f)
             for fc in (faces if faces is not None else []):

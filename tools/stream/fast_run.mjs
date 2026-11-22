@@ -3,7 +3,7 @@
 //   node tools/stream/fast_run.mjs start  <بث>              يكتب بداية الساعتين (.tmp/<p>/fast_run.json) ويعرض الميزانية
 //   node tools/stream/fast_run.mjs status <بث>              الزمن المنقضي والمتبقي وزمن كل مرحلة مقيسة مقابل ميزانيتها
 //   node tools/stream/fast_run.mjs mark   <بث> <مرحلة> start|end
-//   node tools/stream/fast_run.mjs slice  <بث> [--jobs 4]   يقتطع كل المقاطع شرائح من القص الواحد، أربعة معاً، وبوابة الصوت لكل شريحة
+//   node tools/stream/fast_run.mjs slice  <بث> [--jobs 4]   يسجّل كل المقاطع نطاقات فوق الأصل (clip_lazy.mjs، بلا ملف فيديو)، أربعة معاً، وبوابة الصوت لكل مقطع؛ STREAM_ENCODE=1 = شريحة فيديو لكل مقطع كما كان
 //   node tools/stream/fast_run.mjs checks <بث> [--jobs 3] [--only a,b]   فحص كل مقطع بُنيت مواصفته، ثلاثة معاً، ويكتب الجدول .tmp/<p>/fast_checks.json (الناجح لا يُعاد)
 //   node tools/stream/fast_run.mjs queue  <بث> [--dest <مجلد>]  يضع كل مقطع نجح فحصه في طابور الرندر (--bumper end) ثم يشغّل العامل
 // ميزانية الساعتين (دقائق): قص 8 · كلمات النموذج الكبير 12 · تنعيم 15 (بالتوازي مع الكلمات) · تقسيم 12 · بناء الخطط والمواصفات 35 · فحوص 15 (متداخلة مع البناء) · رندر 45 (يبدأ عند أول مقطع ناجح).

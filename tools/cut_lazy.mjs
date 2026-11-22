@@ -41,8 +41,11 @@ export const notePixelEdits = (p) => { const i = info(p), st = rd(i.stateF, null
 /** `edits`: the heavy file just written still carries edits of its own (a remux that copied the picture, an eager splice of a blurred file) */
 export const markFresh = (p, { edits = false } = {}) => { const i = info(p); fs.mkdirSync(i.T, { recursive: true }); fs.writeFileSync(i.stateF, JSON.stringify({ ...stamp(p), at: Date.now(), ...(edits ? { pixelEdits: true } : {}) })); };
 
-/** "fresh" | "audio" (only the sound differs) | "video" (the list differs or the file is gone) | "legacy" (never tracked) */
+/** a STREAM CLIP kept as a range list over the original (tools/stream/clip_lazy.mjs, marker .tmp/<p>/lazy_clip.json): it has NO cut video at all, by design (user 2026-11-22: zero video encoding before the final render) */
+export const isLazyClip = (p) => fs.existsSync(R(".tmp", p, "lazy_clip.json"));
+/** "fresh" | "audio" (only the sound differs) | "video" (the list differs or the file is gone) | "legacy" (never tracked) | "lazy" (a stream clip: the list IS the cut, no heavy file) */
 export const status = (p) => {
+  if (isLazyClip(p)) return "lazy";
   const i = info(p); if (!i.spec?.cut) return "legacy";
   const st = rd(i.stateF, null); if (!st) return "legacy";
   if (!fs.existsSync(i.heavy)) return "video";
@@ -73,8 +76,15 @@ export const channels = (f) => Number(spawnSync("ffprobe", ["-v", "error", "-sel
 const replaceFile = (part, target) => { try { fs.renameSync(part, target); } catch (e) { throw new Error(`cannot replace ${path.basename(target)} (${e.code ?? e.message}) — is it open in a render?`); } };
 
 /** make the heavy cut file match the list and the audio. Returns what was done. */
-export const ensureCut = (p, { quiet = false } = {}) => {
-  const i = info(p), st = status(p);
+export const ensureCut = (p, { quiet = false, build = false } = {}) => {
+  const i = info(p); let st = status(p);
+  if (st === "lazy") {
+    /* a stream clip: nothing to make. The pixels come from the original through the list (the render: edlSetup; checks: tools/lib/lazy_clip.mjs). The heavy cut video is built only when it is asked for
+       on purpose: STREAM_ENCODE=1, `build` (the render cannot read the original: HK_EDL=0 or a codec the card reads differently), or `node tools/cut_lazy.mjs ensure <p>` with STREAM_ENCODE=1. */
+    if (!(build || process.env.STREAM_ENCODE === "1")) { if (!quiet) log(`${p} is a lazy stream clip: no cut video is built (the picture is read from the original through its list)`); return "lazy"; }
+    if (!i.heavy) throw new Error(`${p}: no spec.cut yet — the cut video of a lazy clip cannot be named before its spec exists`);
+    st = "video";
+  }
   if (st === "fresh" || st === "legacy") { if (st === "fresh") notePixelEdits(p); return st; }
   const say = quiet ? () => {} : log, pe0 = notePixelEdits(p);
   const t0 = Date.now(), part = i.heavy.replace(/\.mp4$/i, ".part.mp4");
@@ -127,7 +137,7 @@ export const edlSetup = (comp) => {
   const pe = st !== "legacy" && notePixelEdits(p); if (pe) console.log(`cut_lazy: ${p} — the cut video carries its own edits (blur): rendered from the cut video, not from the original`);
   const ok = !pe && process.env.HK_EDL !== "0" && st !== "legacy" && fs.existsSync(i.src) && fs.existsSync(i.mapF) && fs.existsSync(i.audio);
   const codec = ok ? spawnSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name", "-of", "csv=p=0", i.src], { encoding: "utf8", windowsHide: true }).stdout.trim() : "";
-  if (!ok || !["h264", "hevc", "av1"].includes(codec)) { ensureCut(p); return null; }
+  if (!ok || !["h264", "hevc", "av1"].includes(codec)) { ensureCut(p, { build: true }); return null; }   /* a lazy clip that cannot be read from the original (HK_EDL=0 / a codec the card reads differently) gets its cut video built here, on purpose */
   const file = path.join(i.T, "edl_map.json");
   fs.writeFileSync(file, JSON.stringify({ [i.heavy]: { src: i.src, map: i.mapF, smooth: process.env.HK_SMOOTH !== "0" } }));
   const frames = Math.round(i.spec?.frames ?? 0), segs = rd(i.mapF, { segments: [] }).segments, tot = segs.reduce((s, x) => s + x.b - x.a, 0) * 30;
@@ -136,12 +146,20 @@ export const edlSetup = (comp) => {
   return { p, file, heavy: i.heavy, audio: i.audio };
 };
 
+/** the composition id tools/spec_register.mjs derives from a spec id (lower case, «-L/-Both» not included): «zz_stream_rehearsal_1» → «zz-stream-rehearsal1» */
+export const specCompBase = (id) => String(id).split(/[-_ ]+/).filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join("").replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+
 /** a composition id (Studio/render name like `Jordan-Arrests-Both`) → the project whose spec exists, or null */
 export const projectOf = (comp) => {
   const base = String(comp ?? "").replace(/-(Both|BothV|L)$/i, "").toLowerCase();
   for (const c of [base, base.replace(/-/g, "_")]) if (fs.existsSync(R("data", "specs", `${c}.json`))) return c;
   /* a spec with its own composition id (spec.compId, src/SpecComps.tsx) */
   try { for (const f of fs.readdirSync(R("data", "specs"))) if (f.endsWith(".json") && String(rd(R("data", "specs", f), {})?.compId ?? "").toLowerCase() === base) return f.slice(0, -5); } catch { /* no specs */ }
+  /* a stream clip's composition is named by tools/spec_register.mjs from its id with the digit glued on («zz_stream_rehearsal_1» → «Zz-Stream-Rehearsal1», «…_lazy_1» → «…-Lazy1»), so neither name rule above finds
+     its spec — and the render then read a cut video that a lazy clip does not have (found by the lazy stream rehearsal 2026-11-22). The comp id the registrar derives from each spec id is compared too. */
+  try {
+    for (const f of fs.readdirSync(R("data", "specs"))) if (f.endsWith(".json") && specCompBase(f.slice(0, -5)) === base) return f.slice(0, -5);
+  } catch { /* no specs */ }
   return null;
 };
 export const ensureCutForComp = (comp) => { const p = projectOf(comp); if (p) ensureCut(p); return p; };

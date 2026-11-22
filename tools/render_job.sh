@@ -34,6 +34,8 @@ if [ "$bpos" = start ]; then [ -n "$bat" ] || bat=$(node tools/bumper_at.mjs $p)
 export BUMPER_POSITION=$bpos BUMPER_AT=$bat BUMPER_ID=$bid
 spec=data/specs/$p.json
 cutsrc="public/$(node -e 'console.log(JSON.parse(require("fs").readFileSync("'$spec'","utf8")).cut)')"
+# (user 2026-11-22) a lazy stream clip has no cut video: the judder gate compares the render with the ORIGINAL through the clip's list (an ffmpeg concat list, decode only; tools/stream/clip_lazy.mjs view)
+[ -f ".tmp/$p/lazy_clip.json" ] && cutsrc=$(node tools/stream/clip_lazy.mjs view $p)
 # cx = the camera that covers MOST of the video, not cams[0] (the opening split framed him at 1326 → 0 % judder on a clean portrait, 2026-11-12)
 # avoid: zooms, shakes, full-screen verses (he is hidden, 2026-11-12) AND isolation windows shifted aside (dx) — the face crop sees the shifted figure there (false judder, 2026-11-12)
 read -r cx avoid <<<"$(node -e '

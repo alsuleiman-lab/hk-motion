@@ -191,8 +191,9 @@ const projT = (p, ...a) => path.join(ROOT, ".tmp", p, "prerender", ...a);
 async function probeTwin(c) {
   const g = rd(path.join(ROOT, ".tmp/gates", `${c.p}.probe.ok`)), specM = fs.statSync(path.join(ROOT, "data/specs", `${c.p}.json`)).mtimeMs;
   if (g && g.id === c.comp && g.at > specM) return R(true, `عيّنة الارتجاف نجحت لـ${c.comp} بعد آخر تعديل للمواصفة (الإطارات ${g.frames?.join("–")})`);
-  const src = path.join("public", c.spec.cut ?? `${c.p}_cut_s.mp4`);
-  const cm = (c.spec.cams || []).map((x) => ({ cx: x.cx, d: Math.min(x.to, c.spec.frames / FPS) - x.from })).sort((a, b) => b.d - a.d)[0];
+  /* a lazy stream clip (tools/stream/clip_lazy.mjs) has no cut video: the probe compares the render with the ORIGINAL through the clip's list (decode only) */
+  const LZ = await import("./lib/lazy_clip.mjs"), src = LZ.isLazy(c.p) ? LZ.viewFile(c.p) : path.join("public", c.spec.cut ?? `${c.p}_cut_s.mp4`);
+  const cm =(c.spec.cams || []).map((x) => ({ cx: x.cx, d: Math.min(x.to, c.spec.frames / FPS) - x.from })).sort((a, b) => b.d - a.d)[0];
   const crop = c.o === "R" ? ["--crop", "250,300,580,700", "--src-crop", `${Math.round((cm?.cx ?? 940) - 163)},169,326,394`] : [];
   const G = await GPU(), w = await G.waitForGpu({ needG: 2, log: gpuLog, label: "عيّنة الارتجاف" });
   if (!w.ok) return R(false, w.why);
@@ -237,7 +238,8 @@ async function buildAudio(p, spec, comp, o, log) {
   const bump = !!(b && b.position !== "none" && man.bumpers?.find((x) => x.id === b.id) && (b.end || b.position === "end" || typeof b.at === "number"));   // gpu_render's BUMP rule
   const inputProps = { hybrid: "top", hybridLayers: true, ...(bump ? { withBumper: true } : {}) };   // gpu_render's full-render props (render_job passes no --props)
   const t0 = Date.now();
-  const { frames, composition } = await AP.collectAudioFrames({ compId: comp, inputProps, start: 0, end: null, concurrency: Number(process.env.PRERENDER_CONC || 4), log });
+  /* a lazy stream clip has no cut video; Remotion downloads the src of every <Audio> while collecting the records, so a zero-byte placeholder stands under spec.cut for that moment only (tools/lib/lazy_clip.mjs) */
+  const { frames, composition } = await (await import("./lib/lazy_clip.mjs")).withPlaceholder(p, spec, () => AP.collectAudioFrames({ compId: comp, inputProps, start: 0, end: null, concurrency: Number(process.env.PRERENDER_CONC || 4), log }));
   const NF = composition.durationInFrames, segs = AP.segmentsFromFrames(frames, 0);
   const have = new Set(frames.map((f) => f.frame)); let miss = 0; for (let f = 0; f < NF; f++) if (!have.has(f)) miss++;
   if (miss) throw new Error(`سجلات الصوت ناقصة لـ${miss} إطاراً`);

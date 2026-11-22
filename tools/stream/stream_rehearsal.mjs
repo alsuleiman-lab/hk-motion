@@ -204,8 +204,8 @@ async function run({ purgeOn, from = null, to = null }) {
       const r = await runCmd("cut", ["bash", "tools/stream/cut_smart.sh", P, ...(drops ? [drops] : [])], { timeoutMin: 30, env: { STREAM_WHOLE: "1" } });
       /* the two halves of cut_smart.sh (stage cut rounds / post_cut: onset check, a second large-v3 pass over the CUT audio, merge), told apart by the files they write */
       { const mt = (f) => { try { return fs.statSync(R(".tmp", P, f)).mtimeMs; } catch { return 0; } }, loops = (fs.existsSync(DIR) ? fs.readdirSync(DIR) : []).filter((f) => /^loop_cut_\d+\.log$/.test(f)).map(mt).filter((x) => x >= tc);
-        if (loops.length) { const mid = Math.max(...loops); rec.steps.cut = [{ step: "cut_loop (stage cut: plan, audio cut, GPU build)", sec: +((mid - tc) / 1000).toFixed(1) }, { step: "post_cut (onset, large-v3 words over the cut, merge)", sec: +((Date.now() - mid) / 1000).toFixed(1) }]; } }
-      if (r.code !== 0 || /cut FAILED/.test(r.tail) || !has(`public/${P}_map.json`) || !has(`public/${P}_cut.mp4`)) return { ok: false, why: lastLines(r.tail, 4) };
+        if (loops.length) { const mid = Math.max(...loops); rec.steps.cut = [{ step: "cut_loop (stage cut: plan, audio cut; no cut video since the lazy stream 2026-11-22)", sec: +((mid - tc) / 1000).toFixed(1) }, { step: "post_cut (onset, large-v3 words over the cut, merge)", sec: +((Date.now() - mid) / 1000).toFixed(1) }]; } }
+      if (r.code !== 0 || /cut FAILED/.test(r.tail) || !has(`public/${P}_map.json`) || !has(process.env.STREAM_ENCODE === "1" ? `public/${P}_cut.mp4` : `.tmp/${P}/cut_audio.wav`)) return { ok: false, why: lastLines(r.tail, 4) };
       rec.cutS = Math.round(mapDur(P));
       const l = await runCmd("cut", [NODE, "tools/stream/lost_speech_check.mjs", P], { timeoutMin: 5 }); return { ok: l.code === 0, why: lastLines(l.tail, 3) };
     },

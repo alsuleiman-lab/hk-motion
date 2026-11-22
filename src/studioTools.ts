@@ -703,7 +703,9 @@ const installHK = () => {
   let toastT = 0;
   new MutationObserver(() => { const t = (info.textContent ?? "").trim(); info.style.display = t ? "block" : "none"; window.clearTimeout(toastT); if (t && !t.startsWith("⏳")) toastT = window.setTimeout(() => { info.textContent = ""; }, 9000); }).observe(info, { childList: true, characterData: true, subtree: true });
   const strip = document.createElement("div"); strip.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:6px";
-  strip.append(bRen, bMsg, sep(), bA, bB, bDel, sep(), bCol);
+  /* (user 2026-11-21: «ليش أسود وليس رمادي ولا بيجي؟») the look switch (night graphite ↔ day beige, src/hkTheme.ts) comes back as one icon: it had left with the other tools */
+  ico(bTheme, "🌗", "المظهر: ليلي ↔ نهاري (بيج)");
+  strip.append(bRen, bMsg, sep(), bA, bB, bDel, sep(), bCol, bTheme);
   // the hide/show tab: on a phone the strip folds to this one small tab
   const tog = document.createElement("button"); tog.type = "button"; tog.style.cssText = "width:34px;height:20px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--hk-dim);font:700 13px Arial,sans-serif;cursor:pointer";
   const HIDE = "__hk_strip_hidden"; let hidden = false; try { hidden = localStorage.getItem(HIDE) === "1"; } catch { /* default shown */ }
@@ -726,7 +728,7 @@ const installHK = () => {
   bCol.addEventListener("click", () => { try { if (kindInfo && !kindInfo.grade.ok && comp() === kindFor) { paint(`لا ألوان لهذا التركيب: ${kindInfo.grade.why}`, "#ffd479"); return; } openColorPanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // the colour sheet (src/hkColorPanel.ts), the colour tool for every montage
   bTheme.title = "بدّل بين المظهر الليلي (فضي دخاني) والنهاري (بيج وسكري وبني خفيف)";
   bTheme.addEventListener("click", () => { toggleTheme(); });
-  window.addEventListener("hk-theme", () => { bTheme.textContent = currentTheme() === "night" ? "نهاري" : "ليلي"; });
+  window.addEventListener("hk-theme", () => { bTheme.title = currentTheme() === "night" ? "المظهر الليلي (فضي دخاني) — اضغط للنهاري (بيج)" : "المظهر النهاري (بيج) — اضغط لليلي"; });
   bGal.addEventListener("click", () => { try { openGalleryPanel({ comp, frameNow, api }); } catch { /* never break the Studio */ } });   // the gallery sheet (src/hkGalleryPanel.ts)
   const paint = (msg?: string, color?: string) => {
     const r = loadR(comp());

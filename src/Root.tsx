@@ -19,7 +19,7 @@ import { KineticType, KINETIC_TYPE_FRAMES, KineticOver, KineticSplit, KINETIC_SP
 import { ActiveSpeaker, ACTIVE_FRAMES } from "./ext/ActiveSpeaker";
 import { CineSpeaker, CINE_SPEAKER_FRAMES } from "./ext/CineKit";
 import { StepsTemplate, STEPS_FRAMES } from "./ext/StepsKit";
-import { SheikhCast, SHEIKH_CAST_FRAMES, SheikhRudood, SHEIKH_RUDOOD_FRAMES, RudoodSaladin, RUDOOD_SALADIN_FRAMES, RudoodUkhuwwa, RUDOOD_UKHUWWA_FRAMES, RudoodJinn, RUDOOD_JINN_FRAMES, RudoodShabbiha, RUDOOD_SHABBIHA_FRAMES, RudoodSultan, RUDOOD_SULTAN_FRAMES, RudoodMakan, RUDOOD_MAKAN_FRAMES, RudoodRazi, RUDOOD_RAZI_FRAMES, RudoodBurj, RUDOOD_BURJ_FRAMES } from "./ext/SheikhCast";
+import { SheikhCast, SHEIKH_CAST_FRAMES, SheikhRudood, SHEIKH_RUDOOD_FRAMES, RudoodSaladin, RUDOOD_SALADIN_FRAMES, RudoodUkhuwwa, RUDOOD_UKHUWWA_FRAMES, RudoodJinn, RUDOOD_JINN_FRAMES, RudoodShabbiha, RUDOOD_SHABBIHA_FRAMES, RudoodSultan, RUDOOD_SULTAN_FRAMES, RudoodMakan, RUDOOD_MAKAN_FRAMES, RudoodRazi, RUDOOD_RAZI_FRAMES, RudoodBurj, RUDOOD_BURJ_FRAMES, SheikhRudoodScenes, SHEIKH_RUDOOD_SCENES_FRAMES } from "./ext/SheikhCast";
 import { BoardTemplate, BOARD_FRAMES } from "./ext/BoardKit";
 import { CineWords, CINE_WORDS_FRAMES } from "./ext/CineWords";
 import { AnimeScene, ANIME_FRAMES, ANIME_FPS } from "./ext/AnimeScene";
@@ -118,6 +118,7 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Rudood-Shabbiha" component={RudoodShabbiha} durationInFrames={RUDOOD_SHABBIHA_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Rudood-Ukhuwwa" component={RudoodUkhuwwa} durationInFrames={RUDOOD_UKHUWWA_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Rudood-Saladin" component={RudoodSaladin} durationInFrames={RUDOOD_SALADIN_FRAMES} fps={30} width={1080} height={1920} />
+        <Composition id="Ref-SheikhRudoodScenes" component={SheikhRudoodScenes} durationInFrames={SHEIKH_RUDOOD_SCENES_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-SheikhRudood" component={SheikhRudood} durationInFrames={SHEIKH_RUDOOD_FRAMES} fps={30} width={1080} height={1920} />
         <Composition id="Ref-SheikhCast" component={SheikhCast} durationInFrames={SHEIKH_CAST_FRAMES} fps={30} width={1080} height={1080} />
         <Composition id="Ref-StepsTemplate" component={StepsTemplate} durationInFrames={STEPS_FRAMES} fps={30} width={1080} height={1920} />

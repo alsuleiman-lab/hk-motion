@@ -1,8 +1,8 @@
 {
- "stamped": "2026-11-22T02:00:09.017Z",
+ "stamped": "2026-11-22T02:24:12.069Z",
  "files": {
   "القواعد_العامة.md": "4c74ae93203a99773be61b8cf91fcd601366bf90",
-  "شجرة_العمليات.md": "7a1a1214f6189db62b5a2cd70be1c47edbe71a82",
+  "شجرة_العمليات.md": "9d23fd430f2e6da572aa21fe66833c9900b73bd1",
   ".claude/skills/advertising-video/SKILL.md": "69410013a807647ef77b95bd1a9ead4838af82df",
   ".claude/skills/approval/SKILL.md": "9a241aea046b5ad3f771154679c79b8da62c3aea",
   ".claude/skills/cartoon-animation/SKILL.md": "b9775e9f38b97c6e756339a768abe01f4fdd2be1",
@@ -24,10 +24,11 @@
   ".claude/skills/publishing/SKILL.md": "7f46aad1fe955c03deaac82ca97548f728ed6651",
   ".claude/skills/reel-from-episode/SKILL.md": "9044413e4e22d879514b7c11e344b710c5038f42",
   ".claude/skills/remotion-render/SKILL.md": "f4c2c1f78946e337e52f82422d8df855914b448a",
-  ".claude/skills/router/SKILL.md": "cc43b282cac7b49128c044b8c8d0fd3c46c1ba37",
+  ".claude/skills/router/SKILL.md": "16fc583827788be406bfe7943a32f1877f7eb579",
   ".claude/skills/scholars-motion/SKILL.md": "c548b5688c4ebbac7ec1455437e96b6271f7146c",
   ".claude/skills/segment-cut/SKILL.md": "1944b8cd58c12b43bd54cd5177dc657d8362f93a",
   ".claude/skills/sensitive-words/SKILL.md": "fbcb75e1c40be2e9d7decc91220c7aaea17057d7",
+  ".claude/skills/sheikh-rudood/SKILL.md": "d37795bedb1dabb7a3b377d154e602e3efe3f15e",
   ".claude/skills/silent-reaction/SKILL.md": "0e02944573c084c5fdb0e35ce5b01549ce98526d",
   ".claude/skills/source-display/SKILL.md": "ba6c9789df78bbf36acf35df176ae6b864c6b70b",
   ".claude/skills/thumbnail-design/SKILL.md": "6b85e1932edda952096753561f69c1db5fdee4e2",

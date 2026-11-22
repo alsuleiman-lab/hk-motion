@@ -85,4 +85,11 @@ export const COMPOSITION_TITLES: Record<string, string> = {
   "Rudood-Makan": "شيخ الردود يرد: الله موجود بلا مكان",
   "Rudood-Razi": "شيخ الردود: الرازي والعجوز",
   "Rudood-Burj": "شيخ الردود: برج خليفة وقرب المكان",
+  "Ref-SheikhRudoodScenes": "شيخ الردود: معرض المشاهد (جلسة ومشروب وطاولة)",
+  "Zz-Stream-Rehearsal1": "متصل يسأل: هل أخرجت العمل من الإسلام؟ (طولي)",
+  "Zz-Stream-Rehearsal3": "من لا عمل عنده ليس بمسلم: الجواب (طولي)",
+  "Zz-Stream-Rehearsal2": "ما معنى قول أهل العلم: الإيمان قول وعمل؟ (طولي)",
+  "Zz-Stream-Rehearsal2-L": "ما معنى قول أهل العلم: الإيمان قول وعمل؟ (عرضي)",
+  "Zz-Stream-Rehearsal2-Both": "ما معنى قول أهل العلم: الإيمان قول وعمل؟ (طولي وعرضي معاً)",
+  "Zz-Stream-Rehearsal2-BothV": "ما معنى قول أهل العلم: الإيمان قول وعمل؟ (طولي وعرضي معاً للجوال)",
 };

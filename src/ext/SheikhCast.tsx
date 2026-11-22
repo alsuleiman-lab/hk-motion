@@ -178,13 +178,16 @@ const Beard: React.FC<{ d: Design; hx: number; hy: number; mouth?: number }> = (
         <Line key={i} d={`M${hx + k * W * 0.8},${hy + 50 + (i % 3) * 14} C${hx + k * W * 1.05},${hy + L * 0.35} ${hx + k * W * 0.75},${hy + L * 0.6} ${hx + k * W * 0.6},${hy + L * 0.86}`} c={i % 2 ? dk : lt} w={i % 2 ? 3.5 : 3} o={0.8} />
       ))}
       {[-0.5, 0.05, 0.45].map((k, i) => <Line key={"h" + i} d={`M${hx + k * W},${hy + 70} q${8 - i * 6},40 ${2},80`} c={lt} w={5} o={0.45} />)}
-      {/* الفم: يظهر بين الشارب واللحية وينفتح بمستوى الصوت */}
+      {/* فتحة الفم بين الشارب واللحية (تنبيه المستخدم 2026-11-22): رقعة شفاه بلون البشرة تفصل الشارب عن اللحية، والفم داخلها يُغلق ويُفتح بالصوت */}
+      <path d={`M${hx - 8},${hy + 50} Q${hx + 16},${hy + 44} ${hx + 40},${hy + 50} Q${hx + 46},${hy + 76} ${hx + 16},${hy + 86} Q${hx - 14},${hy + 76} ${hx - 8},${hy + 50} Z`} fill={shade(d.skin, -0.1)} stroke={INK} strokeWidth={2.5} strokeLinejoin="round" />
+      <path d={`M${hx - 2},${hy + 78} Q${hx + 16},${hy + 86} ${hx + 34},${hy + 78}`} fill="none" stroke={shade(d.skin, -0.28)} strokeWidth={3} strokeLinecap="round" opacity={0.55} />
       {mouth > 0.06 ? (
         <g>
-          <ellipse cx={hx + 12} cy={hy + 66} rx={13 + 5 * mouth} ry={2 + 11 * mouth} fill="#3a1410" stroke={INK} strokeWidth={2.5} />
-          {mouth > 0.4 && <ellipse cx={hx + 12} cy={hy + 70 + 4 * mouth} rx={8} ry={3 + 2 * mouth} fill="#b8524a" />}
+          <ellipse cx={hx + 16} cy={hy + 66 + 3 * mouth} rx={11 + 5 * mouth} ry={2 + 10 * mouth} fill="#3a1410" stroke={INK} strokeWidth={2} />
+          {mouth > 0.35 && <ellipse cx={hx + 16} cy={hy + 66 + 3 * mouth - (2 + 10 * mouth) * 0.5} rx={(11 + 5 * mouth) * 0.7} ry={(2 + 10 * mouth) * 0.26} fill="#f4efe6" />}
+          {mouth > 0.45 && <ellipse cx={hx + 16} cy={hy + 66 + 3 * mouth + (2 + 10 * mouth) * 0.5} rx={8} ry={2 + 3 * mouth} fill="#b8524a" />}
         </g>
-      ) : <Line d={`M${hx},${hy + 66} Q${hx + 12},${hy + 70} ${hx + 26},${hy + 66}`} c="#3a1410" w={3.5} />}
+      ) : <Line d={`M${hx + 2},${hy + 66} Q${hx + 16},${hy + 71} ${hx + 30},${hy + 66}`} c="#3a1410" w={3.5} />}
       {/* الشارب تحت الأنف */}
       {d.lightMustache ? <path d={`M${hx + 14},${hy + 44} Q${hx - 4},${hy + 38} ${hx - 22},${hy + 52} Q${hx - 4},${hy + 50} ${hx + 14},${hy + 53} Q${hx + 34},${hy + 50} ${hx + 50},${hy + 52} Q${hx + 32},${hy + 38} ${hx + 14},${hy + 44} Z`} fill={shade(d.beard, 0.3)} stroke={INK} strokeWidth={2.5} strokeLinejoin="round" /> : <path d={`M${hx + 14},${hy + 38} Q${hx - 14},${hy + 28} ${hx - 40},${hy + 54} Q${hx - 14},${hy + 52} ${hx + 14},${hy + 56} Q${hx + 42},${hy + 52} ${hx + 66},${hy + 54} Q${hx + 42},${hy + 28} ${hx + 14},${hy + 38} Z`} fill={shade(d.beard, 0.3)} stroke={INK} strokeWidth={3} strokeLinejoin="round" />}
     </g>
@@ -320,15 +323,160 @@ const Screen: React.FC<{ x: number; y: number; w: number; h: number; id: string 
 );
 
 const mix = (a: P, b: P, k: number): P => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
-/* listen: يده على لحيته يمسحها، attend: إنصات عام (ميل الرأس وإيماءات بطيئة)، lean: يميل إلى الأمام نحو الشاشة،
-   shake: يهز رأسه رفضاً، talk: يده تخرج من لحيته وتتحرك مع كلامه، t بالثواني. الكرسي والجسم ثابتان لا يهتزان. */
-const Figure: React.FC<{ d: Design; i: number; mouth?: number; listen?: number; attend?: number; lean?: number; shake?: number; talk?: number; t?: number }> = ({ d, i, mouth = 0, listen = 0, attend = 0, lean = 0, shake = 0, talk = 0, t = 0 }) => {
-  const cx = 430, hx = cx + 8, hy = 318, sk = d.skin, sleeve = d.top === "puffer" ? d.c2 : d.c1;
+/* مرفق ذراع بمفصلين: الكتف S واليد H وطول العضد U والساعد F؛ المرفق يُختار الأسفل */
+const ikElbow = (S: P, H: P, U: number, F: number): P => {
+  const dx = H[0] - S[0], dy = H[1] - S[1], real = Math.hypot(dx, dy) || 1;
+  const dd = Math.max(Math.abs(U - F) + 1, Math.min(U + F - 1, real));
+  const a = (U * U - F * F + dd * dd) / (2 * dd), h = Math.sqrt(Math.max(0, U * U - a * a));
+  const ux = dx / real, uy = dy / real;
+  const e1: P = [S[0] + a * ux - h * uy, S[1] + a * uy + h * ux], e2: P = [S[0] + a * ux + h * uy, S[1] + a * uy - h * ux];
+  return e1[1] > e2[1] ? e1 : e2;
+};
+
+/* ===== مشاهد «شيخ الردود» (أمر المستخدم 2026-11-22: «مرة جلسة عادية، مرة رجل على رجل، مرة يشرب عصير، مرة قهوة، مرة أمامه طاولة صغيرة»، لإزالة الملل) ===== */
+export type Sit = "cross" | "crossR" | "normal";
+export type Drink = "none" | "juice" | "coffee" | "tea";
+export type Scene = { sit: Sit; drink: Drink; table: boolean };
+const CUP_H: Record<Exclude<Drink, "none">, number> = { juice: 96, coffee: 44, tea: 70 };
+
+/* الكأس: أصلها (0,0) قاعدتها وتمتد إلى الأعلى */
+const Cup: React.FC<{ kind: Exclude<Drink, "none">; t?: number }> = ({ kind, t = 0 }) => {
+  const steam = kind === "juice" ? null : (
+    <g opacity={0.8}>{[-9, 0, 9].map((x, k) => <Line key={k} d={`M${x},${-CUP_H[kind] - 8} q${7 * Math.sin(t * 2 + k)},-10 0,-20 q${-7 * Math.sin(t * 2 + k)},-10 0,-20`} c="#cfc7b6" w={3.5} />)}</g>
+  );
+  if (kind === "juice") return (
+    <g>
+      <Ink d="M-22,0 L-27,-92 L27,-92 L22,0 Z" fill="rgba(238,246,245,0.6)" sw={3.5} />
+      <path d="M-23.5,-5 L-26,-78 L26,-78 L23.5,-5 Z" fill="#f0a02f" />
+      <path d="M-14,-84 L-15,-14" stroke="#ffffff" strokeWidth={4} opacity={0.5} strokeLinecap="round" />
+      <ellipse cx={0} cy={-92} rx={27} ry={6} fill="#fbe0a0" stroke={INK} strokeWidth={3} />
+      <circle cx={26} cy={-90} r={11} fill="#f08a1c" stroke={INK} strokeWidth={2.5} />
+      <Line d="M26,-100 V-80 M16,-90 H36" c="#fbd58a" w={2} />
+    </g>
+  );
+  if (kind === "coffee") return (
+    <g>
+      <Ink d="M-17,0 L-26,-40 Q-26,-44 -22,-44 L22,-44 Q26,-44 26,-40 L17,0 Z" fill="#f4efe4" sw={3.5} />
+      <Line d="M-25,-34 L25,-34" c="#c9a34f" w={4} />
+      <ellipse cx={0} cy={-44} rx={26} ry={5} fill="#4a2a14" stroke={INK} strokeWidth={3} />
+      {steam}
+    </g>
+  );
+  return (
+    <g>
+      <Ink d="M-20,0 L-22,-24 Q-14,-34 -22,-44 L-27,-70 L27,-70 L22,-44 Q14,-34 22,-24 L20,0 Z" fill="rgba(240,225,200,0.6)" sw={3.5} />
+      <path d="M-18,-4 L-20,-22 Q-12,-33 -20,-46 L-23,-62 L23,-62 L20,-46 Q12,-33 20,-22 L18,-4 Z" fill="#b5551f" opacity={0.92} />
+      <Line d="M-26,-66 L26,-66" c="#c9a34f" w={4} />
+      <ellipse cx={0} cy={-70} rx={27} ry={5} fill="#d98438" stroke={INK} strokeWidth={3} />
+      {steam}
+    </g>
+  );
+};
+
+/* جهاز التحكم صغيراً (يُوضع على الطاولة أو على مسند الكرسي حين تشغل يده كأس) */
+const RemoteProp: React.FC<{ x: number; y: number; rot?: number }> = ({ x, y, rot = 0 }) => (
+  <g transform={`translate(${x},${y}) rotate(${rot})`}>
+    <Ink d="M-30,-8 h60 a6,6 0 0 1 6,6 v4 a6,6 0 0 1 -6,6 h-60 a6,6 0 0 1 -6,-6 v-4 a6,6 0 0 1 6,-6 Z" fill="#3a3430" sw={3} />
+    <circle cx={-16} cy={0} r={3.5} fill="#e2423a" /><circle cx={-4} cy={0} r={3} fill="#9aa0a3" /><circle cx={7} cy={0} r={3} fill="#9aa0a3" />
+  </g>
+);
+
+/* الطاولة الصغيرة أمامه، وعليها ما يناسب مشروبه (دلة وتمر للقهوة، إبريق للعصير، براد للشاي، كتب إن لم يكن مشروب) */
+const SmallTable: React.FC<{ cx: number; drink: Drink; remote: boolean }> = ({ cx, drink, remote }) => {
+  const TY = 1012, RX = 200, RY = 34, wood = "#8a5a35", dk = shade(wood, -0.3), y = TY + 4;
+  const dallah = (x: number) => (
+    <g>
+      <Line d={`M${x - 26},${y - 30} Q${x - 72},${y - 46} ${x - 64},${y - 94}`} c={INK} w={16} />
+      <Line d={`M${x - 26},${y - 30} Q${x - 72},${y - 46} ${x - 64},${y - 94}`} c="#c9993b" w={9} />
+      <Line d={`M${x + 28},${y - 52} Q${x + 70},${y - 52} ${x + 58},${y - 14}`} c={INK} w={14} />
+      <Line d={`M${x + 28},${y - 52} Q${x + 70},${y - 52} ${x + 58},${y - 14}`} c="#a97a2a" w={7} />
+      <Ink d={`M${x - 30},${y} Q${x - 38},${y - 40} ${x - 14},${y - 60} L${x + 14},${y - 60} Q${x + 38},${y - 40} ${x + 30},${y} Z`} fill="#c9993b" />
+      <Line d={`M${x - 34},${y - 24} Q${x},${y - 18} ${x + 34},${y - 24}`} c="#8a6420" w={3} />
+      <Ink d={`M${x - 13},${y - 60} L${x - 8},${y - 78} L${x + 8},${y - 78} L${x + 13},${y - 60} Z`} fill="#a97a2a" sw={3} />
+      <circle cx={x} cy={y - 84} r={6} fill="#c9993b" stroke={INK} strokeWidth={2.5} />
+    </g>
+  );
+  const dates = (x: number) => (
+    <g>
+      <ellipse cx={x} cy={y} rx={46} ry={12} fill="#e9e1d1" stroke={INK} strokeWidth={3} />
+      {[-26, -12, 2, 16, 28, -18, -2, 14].map((dx, k) => <ellipse key={k} cx={x + dx} cy={y - 3 - (k > 4 ? 7 : 0)} rx={10} ry={6.5} fill="#5a2f18" stroke={INK} strokeWidth={2} />)}
+    </g>
+  );
+  const jug = (x: number) => (
+    <g>
+      <Line d={`M${x + 24},${y - 66} Q${x + 58},${y - 62} ${x + 42},${y - 20}`} c={INK} w={13} /><Line d={`M${x + 24},${y - 66} Q${x + 58},${y - 62} ${x + 42},${y - 20}`} c="rgba(238,246,245,0.9)" w={6} />
+      <Ink d={`M${x - 28},${y - 96} L${x - 34},${y} L${x + 30},${y} L${x + 26},${y - 96} Z`} fill="rgba(238,246,245,0.6)" sw={3.5} />
+      <path d={`M${x - 30},${y - 74} L${x - 32},${y - 4} L${x + 28},${y - 4} L${x + 25},${y - 74} Z`} fill="#f0a02f" />
+      <ellipse cx={x} cy={y - 96} rx={27} ry={6} fill="#fbe0a0" stroke={INK} strokeWidth={3} />
+      <Line d={`M${x - 16},${y - 86} L${x - 19},${y - 14}`} c="#ffffff" w={4} o={0.5} />
+    </g>
+  );
+  const teapot = (x: number) => (
+    <g>
+      <Line d={`M${x - 30},${y - 36} Q${x - 70},${y - 50} ${x - 64},${y - 78}`} c={INK} w={14} /><Line d={`M${x - 30},${y - 36} Q${x - 70},${y - 50} ${x - 64},${y - 78}`} c="#d9d2c3" w={7} />
+      <Line d={`M${x + 32},${y - 56} Q${x + 72},${y - 54} ${x + 56},${y - 14}`} c={INK} w={13} /><Line d={`M${x + 32},${y - 56} Q${x + 72},${y - 54} ${x + 56},${y - 14}`} c="#d9d2c3" w={6} />
+      <Ink d={`M${x - 34},${y} Q${x - 44},${y - 52} ${x - 18},${y - 66} L${x + 18},${y - 66} Q${x + 44},${y - 52} ${x + 34},${y} Z`} fill="#e9e3d6" />
+      <Line d={`M${x - 36},${y - 30} Q${x},${y - 22} ${x + 36},${y - 30}`} c="#3f6b5a" w={4} />
+      <Ink d={`M${x - 16},${y - 66} Q${x},${y - 82} ${x + 16},${y - 66} Z`} fill="#d9d2c3" sw={3} />
+      <circle cx={x} cy={y - 84} r={5} fill="#3f6b5a" stroke={INK} strokeWidth={2} />
+    </g>
+  );
+  const books = (x: number) => (
+    <g>
+      <Ink d={`M${x - 56},${y} h112 v-16 h-112 Z`} fill="#2f5a46" sw={3} /><Line d={`M${x - 50},${y - 8} h100`} c="#c9a34f" w={3} />
+      <Ink d={`M${x - 44},${y - 16} h88 v-14 h-88 Z`} fill="#7a2f2b" sw={3} /><Line d={`M${x - 38},${y - 23} h76`} c="#e0c98a" w={3} />
+    </g>
+  );
+  return (
+    <g>
+      <ellipse cx={cx} cy={TY + 100} rx={RX * 0.9} ry={20} fill="#000" opacity={0.16} />
+      {[-138, 138].map((x) => <Ink key={x} d={`M${cx + x - 8},${TY + 24} L${cx + x + 8},${TY + 24} L${cx + x + Math.sign(x) * 12 + 5},${TY + 100} L${cx + x + Math.sign(x) * 12 - 5},${TY + 100} Z`} fill={dk} sw={3} />)}
+      <path d={`M${cx - RX},${TY} v16 a${RX},${RY} 0 0 0 ${2 * RX},0 v-16 Z`} fill={dk} stroke={INK} strokeWidth={4} strokeLinejoin="round" />
+      <ellipse cx={cx} cy={TY} rx={RX} ry={RY} fill={wood} stroke={INK} strokeWidth={4} />
+      <ellipse cx={cx} cy={TY} rx={RX - 26} ry={RY - 8} fill="none" stroke={shade(wood, 0.22)} strokeWidth={3} opacity={0.6} />
+      {drink === "coffee" && <>{dallah(cx - 108)}{dates(cx + 112)}</>}
+      {drink === "juice" && <>{jug(cx - 92)}</>}
+      {drink === "tea" && <>{teapot(cx - 108)}{dates(cx + 112)}</>}
+      {drink === "none" && books(cx - 86)}
+      {remote && <RemoteProp x={cx + 6} y={y + 12} rot={-8} />}
+    </g>
+  );
+};
+
+/* الرجلان: تُرسم أولاً تحت الجسد (تنبيه المستخدم 2026-11-22: «الرجل فوق الجسد»: الطبقات من أسفل: رجلان ثم جسد ثم يدان ثم لحية مع وجه) */
+const Legs: React.FC<{ d: Design; cx: number; sit: Sit }> = ({ d, cx, sit }) => {
   const pantsDk = shade(d.pants, -0.22);
+  const planted = (hip: P, knee: P, ank: P, rot: number) => (
+    <g>
+      <Limb pts={[hip, knee, ank]} w={84} fill={d.pants} />
+      <Line d={`M${knee[0] + 18},${knee[1] + 30} Q${knee[0] + 26},${knee[1] + 90} ${ank[0] + 14},${ank[1] - 20}`} c={pantsDk} w={5} o={0.6} />
+      <Shoe p={[ank[0] + 16, ank[1] + 14]} d={d} rot={rot} />
+    </g>
+  );
+  const flip = (n: React.ReactNode) => <g transform={`translate(${2 * cx},0) scale(-1,1)`}>{n}</g>;
+  if (sit === "normal") return <g>{planted([cx + 62, 690], [cx + 112, 800], [cx + 120, 960], 5)}{flip(planted([cx + 62, 690], [cx + 112, 800], [cx + 120, 960], 5))}</g>;
+  const hipR: P = [cx - 62, 690], kneeR: P = [cx - 130, 748], ankR: P = [cx + 92, 770];
+  const g = (
+    <g>
+      {planted([cx + 62, 690], [cx + 104, 800], [cx + 112, 960], 6)}
+      <Limb pts={[hipR, kneeR, ankR]} w={86} fill={d.pants} />
+      <Line d={`M${kneeR[0] + 20},${kneeR[1] + 26} Q${(kneeR[0] + ankR[0]) / 2},${kneeR[1] + 40} ${ankR[0] - 20},${ankR[1] + 20}`} c={pantsDk} w={5} o={0.6} />
+      <Shoe p={[ankR[0] + 44, ankR[1] - 2]} d={d} rot={-8} sole />
+    </g>
+  );
+  return sit === "crossR" ? flip(g) : g;
+};
+
+/* listen: يده على لحيته يمسحها، attend: إنصات عام (ميل الرأس وإيماءات بطيئة)، lean: يميل إلى الأمام نحو الشاشة،
+   shake: يهز رأسه رفضاً، talk: يده تخرج من لحيته وتتحرك مع كلامه، sip: يرفع كأسه إلى فمه، t بالثواني. الكرسي والجسم ثابتان لا يهتزان.
+   ترتيب الطبقات من أسفل (تنبيه المستخدم 2026-11-22): كرسي ← رجلان ← جسد ← يدان ← لحية مع وجه ← (طاولة) ← يد الكأس عند الشرب فقط. */
+const Figure: React.FC<{ d: Design; i: number; mouth?: number; listen?: number; attend?: number; lean?: number; shake?: number; talk?: number; t?: number; sit?: Sit; drink?: Drink; table?: boolean; sip?: number }> = ({ d, i, mouth = 0, listen = 0, attend = 0, lean = 0, shake = 0, talk = 0, t = 0, sit = "cross", drink = "none", table = false, sip = 0 }) => {
+  const cx = 430, hx = cx + 8, hy = 318, sk = d.skin, sleeve = d.top === "puffer" ? d.c2 : d.c1;
   /* المفاصل */
   const shR: P = [cx - 132, 486], shL: P = [cx + 132, 486];
   const restE: P = d.arm === "beard" ? [cx - 196, 626] : [cx - 205, 600], restH: P = d.arm === "beard" ? [cx - 72, 528] : [cx - 214, 690];
-  let elR = mix(restE, [cx - 196, 626], listen), haR = mix(restH, [cx - 76, 536], listen);
+  /* يده اليمنى تمسح لحيته من طرفها: تبقى نصفها خلف اللحية لأن اللحية فوق اليدين */
+  let elR = mix(restE, [cx - 196, 626], listen), haR = mix(restH, [cx - 104, 548], listen);
   elR = mix(elR, [cx - 246, 590], talk); haR = mix(haR, [cx - 272, 468], talk);
   const tap = attend * (1 - listen) * (1 - talk) * 3 * Math.max(0, Math.sin(t * 7));
   haR = [haR[0] + talk * 24 * Math.sin(t * 2.7) + listen * 4 * Math.sin(t * 2.4), haR[1] + talk * 30 * Math.sin(t * 3.9 + 1) + listen * 10 * Math.sin(t * 2.4) - tap];
@@ -337,11 +485,35 @@ const Figure: React.FC<{ d: Design; i: number; mouth?: number; listen?: number; 
   const headA = attend * (2.2 + 2.0 * Math.sin(t * 0.8)) + shake * 7 * Math.sin(t * 9) + talk * (2.2 * Math.sin(t * 2.3) + mouth * 1.2);
   const holds = d.device === "tablet" || d.device === "phone";
   const remote = d.device === "tv" || d.device === "screen" || d.device === "wall";
-  const elL: P = holds ? [cx + 186, 612] : remote ? [cx + 196, 600] : [cx + 205, 600];
-  const haL: P = holds ? [cx + 262, 560] : remote ? [cx + 268, 548] : [cx + 214, 690];
-  /* الرجلان: اليسرى مغروسة، واليمنى فوقها على الركبة */
-  const hipL: P = [cx + 62, 706], kneeL: P = [cx + 104, 800], ankL: P = [cx + 112, 960];
-  const hipR: P = [cx - 62, 706], kneeR: P = [cx - 130, 748], ankR: P = [cx + 92, 770];
+  const cupped = drink !== "none";
+  const elL0: P = holds ? [cx + 186, 612] : remote ? [cx + 196, 600] : [cx + 205, 600];
+  const haL0: P = holds ? [cx + 262, 560] : remote ? [cx + 268, 548] : [cx + 214, 690];
+  /* الشرب: الكأس تصعد من يده الجالسة إلى فمه ثم تعود؛ المرفق بالمفصلين (ساعد أطول قليلاً وقت الشرب) */
+  const ks = sip * sip * (3 - 2 * sip), ANG = -34, a = (ANG * Math.PI) / 180, ch = cupped ? CUP_H[drink as Exclude<Drink, "none">] : 0, vy = 14 - ch;
+  const handS: P = [cx + 34 + vy * Math.sin(a), 404 - vy * Math.cos(a)];
+  const elL = cupped ? mix(elL0, ikElbow(shL, handS, 131, 150), ks) : elL0, haL = cupped ? mix(haL0, handS, ks) : haL0;
+  const leftArm = (
+    <g>
+      <Limb pts={[shL, elL]} w={60} fill={sleeve} />
+      {holds && d.device === "tablet" && (
+        <g transform={`rotate(-7 ${haL[0] + 110} ${haL[1] - 90})`}>
+          <Ink d={`M${haL[0] - 20},${haL[1] - 200} h266 v196 h-266 Z`} fill="#2b2724" />
+          <Screen x={haL[0] - 8} y={haL[1] - 188} w={242} h={172} id={"sc" + i} />
+        </g>
+      )}
+      {holds && d.device === "phone" && (
+        <g transform={`rotate(-10 ${haL[0] + 80} ${haL[1] - 60})`}>
+          <Ink d={`M${haL[0] - 16},${haL[1] - 130} h200 v108 h-200 Z`} fill="#2b2724" />
+          <Screen x={haL[0] - 6} y={haL[1] - 122} w={180} h={92} id={"sc" + i} />
+        </g>
+      )}
+      <Limb pts={[[elL[0] - (elL[0] - shL[0]) * 0.15, elL[1] - (elL[1] - shL[1]) * 0.15], elL, haL]} w={58} fill={sleeve} />
+      {cupped && <g transform={`translate(${haL[0]},${haL[1]}) rotate(${-6 + (ANG + 6) * ks})`}><g transform="translate(0,14)"><Cup kind={drink as Exclude<Drink, "none">} t={t} /></g></g>}
+      {remote && !cupped && <Ink d={`M${haL[0] + 10},${haL[1] - 30} l46,-26 l10,14 l-46,26 Z`} fill="#3a3430" sw={3} />}
+      <Hand p={haL} skin={sk} rot={holds ? -20 : remote ? -35 - 20 * ks : 0} fist={remote} />
+    </g>
+  );
+  const sipping = cupped && sip > 0.02;
   return (
     <g>
       {/* الجهاز خلف الشخص (تلفاز/شاشة/حاسوب) */}
@@ -361,23 +533,10 @@ const Figure: React.FC<{ d: Design; i: number; mouth?: number; listen?: number; 
         </g>
       )}
       <ChairBack d={d} cx={cx} />
-      {/* الذراع البعيدة خلف الجذع لا يلزم؛ الكتفان على الجذع */}
-      <Torso d={d} cx={cx} />
-      <rect x={hx - 26} y={hy + 50} width={52} height={70} fill={sk} stroke={INK} strokeWidth={SW} />
-      <g transform={`translate(0,${8 * lean + 5 * nod}) rotate(${headA} ${hx} ${hy + 90}) translate(${hx},${hy}) scale(${1.16 * (1 + 0.05 * lean)}) translate(${-hx},${-hy})`}>
-        <Head d={d} hx={hx} hy={hy} />
-        <Beard d={d} hx={hx} hy={hy} mouth={mouth} />
-      </g>
       <ChairFront d={d} cx={cx} />
-      {/* الرِّجل المغروسة */}
-      <Limb pts={[hipL, kneeL, ankL]} w={84} fill={d.pants} />
-      <Line d={`M${kneeL[0] + 18},${kneeL[1] + 30} Q${kneeL[0] + 26},${kneeL[1] + 90} ${ankL[0] + 14},${ankL[1] - 20}`} c={pantsDk} w={5} o={0.6} />
-      <Shoe p={[ankL[0] + 16, ankL[1] + 14]} d={d} rot={6} />
-      {/* الرِّجل المرفوعة رِجلاً على رِجل */}
-      <Limb pts={[hipR, kneeR, ankR]} w={86} fill={d.pants} />
-      <Line d={`M${kneeR[0] + 20},${kneeR[1] + 26} Q${(kneeR[0] + ankR[0]) / 2},${kneeR[1] + 40} ${ankR[0] - 20},${ankR[1] + 20}`} c={pantsDk} w={5} o={0.6} />
-      <rect x={ankR[0] + 6} y={ankR[1] - 24} width={22} height={40} fill={shade(d.pants, 0.4)} opacity={0} />
-      <Shoe p={[ankR[0] + 44, ankR[1] - 2]} d={d} rot={-8} sole />
+      {cupped && !table && <RemoteProp x={cx + 212} y={578} rot={-14} />}
+      {/* ١) الرجلان */}
+      <Legs d={d} cx={cx} sit={sit} />
       {/* الحاسوب على طاولة جانبية */}
       {d.device === "laptop" && (
         <g>
@@ -388,26 +547,22 @@ const Figure: React.FC<{ d: Design; i: number; mouth?: number; listen?: number; 
           <Ink d="M700,698 L930,690 L950,712 L690,716 Z" fill="#b9b4ab" sw={3} />
         </g>
       )}
-      {/* الذراع البعيدة عنّا (يمينه): إلى اللحية أو مسندة */}
+      {/* ٢) الجسد */}
+      <Torso d={d} cx={cx} />
+      <rect x={hx - 26} y={hy + 50} width={52} height={70} fill={sk} stroke={INK} strokeWidth={SW} />
+      {/* ٣) اليدان: اليمنى (البعيدة عنّا) ثم الحاملة */}
       <Limb pts={[shR, elR, haR]} w={60} fill={sleeve} />
       <Hand p={haR} skin={sk} rot={(d.arm === "beard" ? -40 : 10) * (1 - Math.max(listen, talk)) - 40 * listen - 25 * talk + talk * 10 * Math.sin(t * 3.1)} />
-      {/* الذراع الحاملة */}
-      <Limb pts={[shL, elL]} w={60} fill={sleeve} />
-      {holds && d.device === "tablet" && (
-        <g transform={`rotate(-7 ${haL[0] + 110} ${haL[1] - 90})`}>
-          <Ink d={`M${haL[0] - 20},${haL[1] - 200} h266 v196 h-266 Z`} fill="#2b2724" />
-          <Screen x={haL[0] - 8} y={haL[1] - 188} w={242} h={172} id={"sc" + i} />
-        </g>
-      )}
-      {holds && d.device === "phone" && (
-        <g transform={`rotate(-10 ${haL[0] + 80} ${haL[1] - 60})`}>
-          <Ink d={`M${haL[0] - 16},${haL[1] - 130} h200 v108 h-200 Z`} fill="#2b2724" />
-          <Screen x={haL[0] - 6} y={haL[1] - 122} w={180} h={92} id={"sc" + i} />
-        </g>
-      )}
-      <Limb pts={[[elL[0] - (elL[0] - shL[0]) * 0.15, elL[1] - (elL[1] - shL[1]) * 0.15], elL, haL]} w={58} fill={sleeve} />
-      {remote && <Ink d={`M${haL[0] + 10},${haL[1] - 30} l46,-26 l10,14 l-46,26 Z`} fill="#3a3430" sw={3} />}
-      <Hand p={haL} skin={sk} rot={holds ? -20 : remote ? -35 : 0} fist={remote} />
+      {!sipping && leftArm}
+      {/* ٤) اللحية مع الوجه فوق اليدين */}
+      <g transform={`translate(0,${8 * lean + 5 * nod}) rotate(${headA} ${hx} ${hy + 90}) translate(${hx},${hy}) scale(${1.16 * (1 + 0.05 * lean)}) translate(${-hx},${-hy})`}>
+        <Head d={d} hx={hx} hy={hy} />
+        <Beard d={d} hx={hx} hy={hy} mouth={mouth} />
+      </g>
+      {/* الطاولة أمامه (فوق الرجلين) */}
+      {table && <SmallTable cx={cx} drink={drink} remote={cupped} />}
+      {/* وقت الشرب فقط: اليد والكأس أمام اللحية */}
+      {sipping && leftArm}
     </g>
   );
 };
@@ -515,22 +670,85 @@ export const RUDOOD_OUTFITS: Partial<Design>[] = [
   { hairStyle: "kufi", top: "leather", c1: "#3a3330", c2: "#e9e3d6", pants: "#2c3a4c", shoe: "#f2efe8", shoeAcc: "#3a3330" },
   { hairStyle: "kufi", top: "bomber", c1: "#5b4a36", c2: "#efe9dc", pants: "#3b3e43", shoe: "#ede8dd", shoeAcc: "#5b4a36" },
 ];
-export const rudoodLook = (n: number): Design => ({ ...DESIGNS[3], chair: DESIGNS[0].chair, chairStyle: DESIGNS[0].chairStyle, wall: DESIGNS[0].wall, wall2: DESIGNS[0].wall2, floor: DESIGNS[0].floor, decor: DESIGNS[0].decor, device: "wall", arm: "rest", glasses: true, lightMustache: true, ...RUDOOD_OUTFITS[n % RUDOOD_OUTFITS.length] });
+/* تدوير اللون: بعد الدورة الأولى من الألبسة العشرة يعود كل لباس بلون مختلف قليلاً، فلا يتكرر لباس بعينه */
+const hueShift = (hex: string, deg: number) => {
+  const n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, dl = mx - mn;
+  const s = dl === 0 ? 0 : dl / (1 - Math.abs(2 * l - 1));
+  let h = dl === 0 ? 0 : mx === r ? ((g - b) / dl) % 6 : mx === g ? (b - r) / dl + 2 : (r - g) / dl + 4;
+  h = (((h * 60 + deg) % 360) + 360) % 360;
+  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = l - c / 2;
+  const [rr, gg, bb] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return "#" + [rr, gg, bb].map((v) => Math.round((v + m) * 255).toString(16).padStart(2, "0")).join("");
+};
+export const rudoodLook = (n: number): Design => {
+  const base = RUDOOD_OUTFITS[n % RUDOOD_OUTFITS.length], cyc = Math.floor(n / RUDOOD_OUTFITS.length);
+  const o: Partial<Design> = cyc === 0 ? base : { ...base, c1: hueShift(base.c1 as string, 47 * cyc), shoeAcc: hueShift(base.shoeAcc as string, 47 * cyc), pants: hueShift(base.pants as string, -31 * cyc) };
+  return { ...DESIGNS[3], chair: DESIGNS[0].chair, chairStyle: DESIGNS[0].chairStyle, wall: DESIGNS[0].wall, wall2: DESIGNS[0].wall2, floor: DESIGNS[0].floor, decor: DESIGNS[0].decor, device: "wall", arm: "rest", glasses: true, lightMustache: true, ...o };
+};
+/* مشهد كل فيديو (جلسة ومشروب وطاولة): الفيديوهات حتى رقم ٨ بالجلسة الأولى كما سُلّمت؛ ومن ٩ فصاعداً يدور الجدول فلا يتجاور مشهدان متشابهان */
+const SCENES: Scene[] = [
+  { sit: "normal", drink: "coffee", table: true },
+  { sit: "crossR", drink: "juice", table: false },
+  { sit: "normal", drink: "none", table: true },
+  { sit: "cross", drink: "tea", table: true },
+  { sit: "normal", drink: "juice", table: false },
+  { sit: "crossR", drink: "coffee", table: true },
+  { sit: "cross", drink: "none", table: true },
+  { sit: "normal", drink: "tea", table: false },
+];
+const CLASSIC: Scene = { sit: "cross", drink: "none", table: false };
+export const rudoodScene = (n: number): Scene => (n <= 8 ? CLASSIC : SCENES[(n - 9) % SCENES.length]);
+/* غرفة «شيخ الردود»: جدار وأرضية وبساط والتلفاز المعلّق ورف الكتب والمصباح (مشتركة بين القالب ومعرض المشاهد) */
+const RudoodRoom: React.FC<{ d: Design; on: boolean }> = ({ d, on }) => {
+  const FL = 884 + 760;
+  return (
+    <g>
+            <rect x={0} y={0} width={1080} height={FL} fill={d.wall} />
+            {Array.from({ length: 9 }).map((_, i) => <rect key={i} x={i * 130 - 20} y={0} width={64} height={FL} fill={d.wall2} opacity={0.35} />)}
+            <rect x={0} y={FL - 26} width={1080} height={26} fill={shade(d.wall, -0.18)} />
+            <rect x={0} y={FL} width={1080} height={1920 - FL} fill={d.floor} />
+            {Array.from({ length: 10 }).map((_, i) => <Line key={i} d={`M0,${FL + 16 + i * 28} L1080,${FL + 16 + i * 28}`} c={shade(d.floor, -0.15)} w={2} />)}
+            <ellipse cx={540} cy={FL + 110} rx={420} ry={64} fill={shade(d.floor, 0.25)} stroke={INK} strokeWidth={3} />
+            <ellipse cx={540} cy={FL + 110} rx={376} ry={48} fill="none" stroke={shade(d.floor, -0.1)} strokeWidth={6} strokeDasharray="14 10" />
+            <WallTV on={on} x={SX} y={SY} w={SWD} h={SHT} />
+            <g transform="translate(24,910) scale(0.95)">
+              <Ink d="M0,0 h170 v560 h-170 Z" fill="#7a4b2c" />
+              {[0, 1, 2, 3].map((rr) => (
+                <g key={rr}>
+                  <rect x={10} y={20 + rr * 135} width={150} height={110} fill="#5d3820" />
+                  {Array.from({ length: 7 }).map((_, k) => { const h = 70 + ((k * 37 + rr * 11) % 35), cols = ["#a8442f", "#3f6b5a", "#c9a34f", "#3d4f6e", "#8a5a3b", "#6e2f3f", "#d9c9a2"];
+                    return <rect key={k} x={16 + k * 20} y={128 + rr * 135 - h} width={17} height={h} fill={cols[(k + rr * 3) % 7]} stroke={INK} strokeWidth={2} />; })}
+                  <rect x={0} y={128 + rr * 135} width={170} height={10} fill="#8f5a35" stroke={INK} strokeWidth={2} />
+                </g>
+              ))}
+            </g>
+            <g transform="translate(990,1060)">
+              <Ink d="M-56,0 L56,0 L74,104 L-74,104 Z" fill="#f2d79a" />
+              <ellipse cx={0} cy={104} rx={74} ry={13} fill="#f7e6b8" stroke={INK} strokeWidth={3} />
+              <Line d={`M0,104 V${FL - 1060 + 2}`} w={7} />
+              <ellipse cx={0} cy={FL - 1056} rx={44} ry={9} fill="#3b2a20" />
+              <ellipse cx={0} cy={150} rx={150} ry={76} fill="#fff3cc" opacity={0.18} />
+            </g>
+    </g>
+  );
+};
+
 /* قالب «شيخ الردود» لكل فيديو: يكفيه المقطع المعالَج وصوته ورقم اللباس والرد وحركة الفم؛ مراحل الإنصات نسبية إلى طول المقطع */
 /* pics: صور تُعرض على التلفاز أثناء الرد (a وb بالثواني من بداية الرد)، مثل «تنبيه للمونتاج: جيب صور ناس جوعانين واعرضها على التلفزيون» */
-type RudoodProps = { intro?: { src: string; mouth: number[] }; introFirst?: boolean; look: number; clip: string; clipAudio: string; clipFrames: number; objPos: string; reply: string; mouthData: number[]; pics?: { src: string; a: number; b: number }[] };
+type RudoodProps = { scene?: Partial<Scene>; intro?: { src: string; mouth: number[] }; introFirst?: boolean; look: number; clip: string; clipAudio: string; clipFrames: number; objPos: string; reply: string; mouthData: number[]; pics?: { src: string; a: number; b: number }[] };
 const ON = 15;
 export const rudoodFrames = (clipFrames: number, mouthLen: number) => ON + clipFrames + 12 + mouthLen + 36;
 export const rudoodFullFrames = (introLen: number, clipFrames: number, mouthLen: number) => 10 + introLen + 12 + clipFrames + 12 + mouthLen + 36;
 export const rudoodIntroFrames = (clipFrames: number, mouthLen: number) => 10 + mouthLen + 12 + clipFrames + 40;
 const SX = 74, SY = 168, SWD = 932, SHT = 532;
-export const RudoodReply: React.FC<RudoodProps> = ({ look, clip, clipAudio, clipFrames: CLIP, objPos, reply, mouthData, pics = [], introFirst = false, intro }) => {
+export const RudoodReply: React.FC<RudoodProps> = ({ scene, look, clip, clipAudio, clipFrames: CLIP, objPos, reply, mouthData, pics = [], introFirst = false, intro }) => {
   /* introFirst: يعلّق أولاً («بص الأشعري ده…») ثم يشغّل المقطع؛ وإلا يشغّل المقطع ثم يرد */
   const REPLY = mouthData.length, I = intro ? intro.mouth.length : 0;
   const CON = introFirst ? 10 + REPLY + 12 : intro ? 10 + I + 12 : ON, REPLY_AT = introFirst ? 10 : CON + CLIP + 12;
   /* كلام الشيخ في الفيديو: تعليق أول (إن وُجد) ثم الرد */
   const speeches = intro && !introFirst ? [{ at: 10, data: intro.mouth }, { at: REPLY_AT, data: mouthData }] : [{ at: REPLY_AT, data: mouthData }];
-  const f = useCurrentFrame(), d = rudoodLook(look), FL = 884 + 760;
+  const f = useCurrentFrame(), d = rudoodLook(look), FL = 884 + 760, sc: Scene = { ...rudoodScene(look), ...scene };
   const sp = speeches.find((q) => f >= q.at - 6 && f < q.at + q.data.length + 20) || speeches[speeches.length - 1];
   const r = f - sp.at, SPL = sp.data.length, mouth = r >= 0 && r < SPL ? sp.data[r] : 0;
   /* الكاميرا: تقترب قليلاً من الشاشة أثناء مقطعها، ثم تنزل إليه حين يرد */
@@ -550,37 +768,18 @@ export const RudoodReply: React.FC<RudoodProps> = ({ look, clip, clipAudio, clip
   const talk = Math.min(1, act * 1.8) * interpolate(r, [-6, 10, SPL, SPL + 20], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const flash = interpolate(f, [CON - 2, CON + 2, CON + 8], [0, 0.85, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const paused = f >= CON + CLIP;
+  /* الشرب: أول رشفة بعد ٥٥ إطاراً من بدء المقطع ثم كل ٣٠٠ إطار (رفع ١٨ + إمساك ٣٠ + إنزال ١٨)، ولا رشفة وقت هزّ الرأس ولا قبل الرد */
+  let sip = 0;
+  if (sc.drink !== "none") for (let s0 = CON + 55; s0 + 66 < CON + CLIP - 40; s0 += 300) {
+    if (s0 + 66 > CON + 0.68 * CLIP && s0 < CON + 0.95 * CLIP) continue;
+    sip = Math.max(sip, interpolate(f, [s0, s0 + 18, s0 + 48, s0 + 66], [0, 1, 1, 0], cl));
+  }
   return (
     <AbsoluteFill style={{ background: d.wall, overflow: "hidden" }}>
       <AbsoluteFill style={{ transform: `scale(${z})`, transformOrigin: `540px ${oy}px` }}>
         <svg viewBox="0 0 1080 1920" width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
-          <rect x={0} y={0} width={1080} height={FL} fill={d.wall} />
-          {Array.from({ length: 9 }).map((_, i) => <rect key={i} x={i * 130 - 20} y={0} width={64} height={FL} fill={d.wall2} opacity={0.35} />)}
-          <rect x={0} y={FL - 26} width={1080} height={26} fill={shade(d.wall, -0.18)} />
-          <rect x={0} y={FL} width={1080} height={1920 - FL} fill={d.floor} />
-          {Array.from({ length: 10 }).map((_, i) => <Line key={i} d={`M0,${FL + 16 + i * 28} L1080,${FL + 16 + i * 28}`} c={shade(d.floor, -0.15)} w={2} />)}
-          <ellipse cx={540} cy={FL + 110} rx={420} ry={64} fill={shade(d.floor, 0.25)} stroke={INK} strokeWidth={3} />
-          <ellipse cx={540} cy={FL + 110} rx={376} ry={48} fill="none" stroke={shade(d.floor, -0.1)} strokeWidth={6} strokeDasharray="14 10" />
-          <WallTV on={f >= CON} x={SX} y={SY} w={SWD} h={SHT} />
-          <g transform="translate(24,910) scale(0.95)">
-            <Ink d="M0,0 h170 v560 h-170 Z" fill="#7a4b2c" />
-            {[0, 1, 2, 3].map((rr) => (
-              <g key={rr}>
-                <rect x={10} y={20 + rr * 135} width={150} height={110} fill="#5d3820" />
-                {Array.from({ length: 7 }).map((_, k) => { const h = 70 + ((k * 37 + rr * 11) % 35), cols = ["#a8442f", "#3f6b5a", "#c9a34f", "#3d4f6e", "#8a5a3b", "#6e2f3f", "#d9c9a2"];
-                  return <rect key={k} x={16 + k * 20} y={128 + rr * 135 - h} width={17} height={h} fill={cols[(k + rr * 3) % 7]} stroke={INK} strokeWidth={2} />; })}
-                <rect x={0} y={128 + rr * 135} width={170} height={10} fill="#8f5a35" stroke={INK} strokeWidth={2} />
-              </g>
-            ))}
-          </g>
-          <g transform="translate(990,1060)">
-            <Ink d="M-56,0 L56,0 L74,104 L-74,104 Z" fill="#f2d79a" />
-            <ellipse cx={0} cy={104} rx={74} ry={13} fill="#f7e6b8" stroke={INK} strokeWidth={3} />
-            <Line d={`M0,104 V${FL - 1060 + 2}`} w={7} />
-            <ellipse cx={0} cy={FL - 1056} rx={44} ry={9} fill="#3b2a20" />
-            <ellipse cx={0} cy={150} rx={150} ry={76} fill="#fff3cc" opacity={0.18} />
-          </g>
-          <g transform={`translate(${540 - 430 * 1.15},${FL + 20 - 905 * 1.15}) scale(1.15)`}><Figure d={d} i={98} mouth={mouth} listen={listen} attend={attend} lean={lean} shake={shake} talk={talk} t={t} /></g>
+          <RudoodRoom d={d} on={f >= CON} />
+          <g transform={`translate(${540 - 430 * 1.15},${FL + 20 - 905 * 1.15}) scale(1.15)`}><Figure d={d} i={98} mouth={mouth} listen={listen} attend={attend} lean={lean} shake={shake} talk={talk} t={t} sit={sc.sit} drink={sc.drink} table={sc.table} sip={sip} /></g>
         </svg>
         {/* الشاشة: مقطعها يعمل ثم يتوقف عند آخر إطار */}
         <div style={{ position: "absolute", left: SX, top: SY, width: SWD, height: SHT, overflow: "hidden", background: "#141210" }}>
@@ -618,6 +817,28 @@ export const RudoodReply: React.FC<RudoodProps> = ({ look, clip, clipAudio, clip
       <Sequence from={CON} durationInFrames={CLIP}><Audio src={staticFile(clipAudio)} /></Sequence>
       <Sequence from={REPLY_AT} durationInFrames={REPLY + 30}><Audio src={staticFile(reply)} /></Sequence>
       {intro && !introFirst && <Sequence from={10} durationInFrames={I + 30}><Audio src={staticFile(intro.src)} /></Sequence>}
+    </AbsoluteFill>
+  );
+};
+
+/* معرض مشاهد «شيخ الردود» للمراجعة: إطار لكل مشهد (جلسة، مشروب، طاولة) وإطارات لحالات الفم واليدين والرشفة؛ ليس فيديو للتسليم */
+type SceneItem = { scene: Scene; mouth?: number; listen?: number; talk?: number; sip?: number };
+const SCENE_ITEMS: SceneItem[] = [
+  { scene: CLASSIC }, { scene: CLASSIC, mouth: 0.85 }, { scene: CLASSIC, listen: 1 }, { scene: CLASSIC, talk: 1, mouth: 0.5 },
+  ...SCENES.map((scene) => ({ scene })),
+  ...SCENES.filter((q) => q.drink !== "none").map((scene) => ({ scene, sip: 1 })),
+];
+export const SHEIKH_RUDOOD_SCENES_FRAMES = SCENE_ITEMS.length;
+export const SheikhRudoodScenes: React.FC = () => {
+  const f = useCurrentFrame(), it = SCENE_ITEMS[Math.min(f, SCENE_ITEMS.length - 1)], d = rudoodLook(f + 9), FL = 884 + 760;
+  return (
+    <AbsoluteFill style={{ background: d.wall, overflow: "hidden" }}>
+      <svg viewBox="0 0 1080 1920" width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
+        <RudoodRoom d={d} on />
+        <g transform={`translate(${540 - 430 * 1.15},${FL + 20 - 905 * 1.15}) scale(1.15)`}>
+          <Figure d={d} i={97} mouth={it.mouth || 0} listen={it.listen || 0} talk={it.talk || 0} attend={it.listen ? 1 : 0} t={f * 0.4} sit={it.scene.sit} drink={it.scene.drink} table={it.scene.table} sip={it.sip || 0} />
+        </g>
+      </svg>
     </AbsoluteFill>
   );
 };

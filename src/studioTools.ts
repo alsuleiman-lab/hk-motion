@@ -136,13 +136,16 @@ const install = () => {
       let minLeft = 8;
       for (const b2 of Array.from(document.querySelectorAll("button"))) {
         if (b2 === badge) continue; // never measure ourselves (that caused the jumping)
+        if (/^(Loop|Mute video|Unmute video|In point|Out point)$/.test(b2.getAttribute("aria-label") ?? "")) continue;   // the transport's own left group: the badge sits left of it (see loopB below)
         const r = b2.getBoundingClientRect();
         if (r.width > 0 && Math.abs(r.top - pr.top) < 8 && r.left + r.width / 2 < pc - 200 && r.left + r.width / 2 < pc - 40) minLeft = Math.max(minLeft, r.right + 12);
       }
       // phone layout (user 2026-11-12): the badge sits at the far left, ends before the «go to start» button, and never overlaps the other transport buttons
       const nat = document.querySelector<HTMLElement>('button[aria-label="Go to beginning"]');
       const mob = window.matchMedia(MOBILE_MQ).matches && !(nat && nat.getBoundingClientRect().width > 0);
-      const l = mob ? 6 : Math.round(Math.max(minLeft, pc - OFFSET)), tp = Math.round(pr.top + (pr.height - 24) / 2);
+      /* (user 2026-11-22) the ±10 s room widens the transport row, so the badge follows the row's left edge (the Loop button) instead of a fixed distance from Play: same 24 px gap as before */
+      const loopB = document.querySelector<HTMLElement>('button[aria-label="Loop"]'), loopR = loopB?.getBoundingClientRect();
+      const l = mob ? 6 : Math.round(Math.max(minLeft, loopR && loopR.width > 0 ? loopR.left - 24 - 118 : pc - OFFSET)), tp = Math.round(pr.top + (pr.height - 24) / 2);
       const bw = mob ? `${Math.max(60, Math.round(pc - 94 - 6))}px` : "118px", bf = mob ? "12px" : "13px", bp = mob ? "0 3px" : "0 6px";
       if (badge.style.width !== bw) badge.style.width = bw;
       if (badge.style.fontSize !== bf) badge.style.fontSize = bf;
@@ -251,6 +254,13 @@ const installMobile = () => {
     + `[data-mt="ruler"],[data-mt="ruler"] *,[data-timeline-scrubber],[data-timeline-scrubber] *{touch-action:none !important}`
     + `[data-mt="lside"]{position:absolute !important;right:4px !important;left:auto !important;top:5px !important;width:auto !important}`
     + `[data-mt="lside"]>div:first-child{display:none !important}`
+    + `}`
+    /* (user 2026-11-22) on the computer the same ±10 s and speed buttons as the phone's: room is made beside Studio's own go-to-start / next-frame buttons
+       (the ±10 s pair and the speed button sit in that room), and Studio's own multi-speed «Playback rate» is hidden (the one speed button replaces it) */
+    + `@media (min-width: 901px){`
+    + `button[aria-label="Go to beginning"]{margin-left:44px !important}`
+    + `button[aria-label="Go forward 1 frame"]{margin-right:96px !important}`
+    + `button[aria-label="Playback rate"]{display:none !important}`
     + `}`;
   document.head.appendChild(css);
 
@@ -276,17 +286,20 @@ const installMobile = () => {
   };
   // playback speed (replaces the Render rocket): tap cycles 0.5 → 1 → 1.5 → 2 → 4. Studio keeps the rate in a React state whose setter is passed as a prop to its «More actions» button,
   // so we read that prop from the React fiber of that button; the current value is read back from Studio's own persisted key.
-  const RATES = [0.5, 1, 1.5, 2, 4];
+  /* (user 2026-11-22) the speed button gives ONLY 1 → 1.5 → 2 → 1…, on the phone and on the computer */
+  const RATES = [1, 1.5, 2];
   const rateNow = (): number => { try { const n = Number(localStorage.getItem("remotion.playbackrate")); return Number.isFinite(n) && n !== 0 ? n : 1; } catch { return 1; } };
   const rateSetter = (): ((v: number) => void) | null => {
     try {
-      const btn = document.querySelector<HTMLElement>('button[aria-label="More actions"]');
-      if (!btn) return null;
-      const key = Object.keys(btn).find((k) => k.startsWith("__reactFiber$"));
-      let f = key ? (btn as unknown as Record<string, unknown>)[key] as { memoizedProps?: Record<string, unknown>; return?: unknown } | null : null;
-      for (let i = 0; f && i < 40; i++, f = f.return as typeof f) {
-        const p = f.memoizedProps;
-        if (p && typeof p.setPlaybackRate === "function") return p.setPlaybackRate as (v: number) => void;
+      /* on the computer the setter hangs off Studio's own «Playback rate» button (8 fibers up); on the phone off the transport's «More actions» one */
+      const btns = Array.from(document.querySelectorAll<HTMLElement>('button[aria-label="Playback rate"], button[aria-label="More actions"]'));
+      for (const btn of btns) {
+        const key = Object.keys(btn).find((k) => k.startsWith("__reactFiber$"));
+        let f = key ? (btn as unknown as Record<string, unknown>)[key] as { memoizedProps?: Record<string, unknown>; return?: unknown } | null : null;
+        for (let i = 0; f && i < 60; i++, f = f.return as typeof f) {
+          const p = f.memoizedProps;
+          if (p && typeof p.setPlaybackRate === "function") return p.setPlaybackRate as (v: number) => void;
+        }
       }
     } catch { /* ignore */ }
     return null;
@@ -294,8 +307,10 @@ const installMobile = () => {
   const cycleRate = () => {
     const set = rateSetter(); if (!set) return;
     const cur = rateNow(), i = RATES.indexOf(cur);
-    set(RATES[i < 0 ? 1 : (i + 1) % RATES.length]);
+    set(RATES[i < 0 ? 0 : (i + 1) % RATES.length]);
   };
+  let rateNormalised = false;   // a speed saved by Studio earlier (0.5, 4…) is brought back to 1 once
+  const normaliseRate = () => { if (rateNormalised) return; const set = rateSetter(); if (!set) return; rateNormalised = true; if (!RATES.includes(rateNow())) set(1); };
   const arrow = (dir: 1 | -1) => `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="transform:${dir === 1 ? "scaleX(-1)" : "none"}"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.2h4.2"/><text x="12" y="15.6" text-anchor="middle" font-size="8.5" font-weight="700" fill="currentColor" stroke="none" font-family="Arial,sans-serif">10</text></svg>`;
   const startSvg = `<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="5" width="2.6" height="14" rx="1"/><path d="M19 5.5v13a1 1 0 0 1-1.6.8l-9-6.5a1 1 0 0 1 0-1.6l9-6.5A1 1 0 0 1 19 5.5z"/></svg>`;
   const bStart = mk("__mt_start", "رجوع للبداية", startSvg, () => seekTo(0));
@@ -353,13 +368,19 @@ const installMobile = () => {
       const nat = document.querySelector<HTMLElement>('button[aria-label="Go to beginning"]');
       /* (user 2026-11-20: «غير موجود على الكمبيوتر») on a wide screen Studio shows its own navigation buttons: the ±10 s pair sits just outside them,
          in their colour; start and speed stay the phone's only */
-      const natEnd = document.querySelector<HTMLElement>('button[aria-label="Go to end"]');
-      if (play && nat && natEnd && nat.getBoundingClientRect().width > 0) {
-        const a = nat.getBoundingClientRect(), z = natEnd.getBoundingClientRect(), col = getComputedStyle(nat).color, tp = Math.round(a.top + (a.height - BW) / 2);
-        for (const b of [bStart, bSpeed]) if (b.style.display !== "none") b.style.display = "none";
+      /* (user 2026-11-22: «بنفس المكان بنفس الشكل») this Studio has no «Go to end» button, so the old pair-around-the-nav code never ran on the computer: now the
+         same ±10 s pair and the speed button as the phone's sit around Studio's own go-to-start … next-frame buttons (room made by the CSS above) */
+      const natFwd = document.querySelector<HTMLElement>('button[aria-label="Go forward 1 frame"]');
+      if (!window.matchMedia(MQ).matches && play && nat && natFwd && nat.getBoundingClientRect().width > 0 && natFwd.getBoundingClientRect().width > 0) {
+        const a = nat.getBoundingClientRect(), z = natFwd.getBoundingClientRect(), col = getComputedStyle(nat).color, tp = Math.round(a.top + (a.height - BW) / 2);
+        if (bStart.style.display !== "none") bStart.style.display = "none";
         for (const b of [bBack, bFwd]) b.style.color = col;
-        show(bBack, Math.round(a.left - BW - 6), tp);
-        show(bFwd, Math.round(z.right + 6), tp);
+        show(bBack, Math.round(a.left - BW - 4), tp);
+        show(bFwd, Math.round(z.right + 4), tp);
+        show(bSpeed, Math.round(z.right + 4 + BW + 4), Math.round(a.top + (a.height - 28) / 2));
+        normaliseRate();
+        const lab = `${rateNow()}x`;
+        if (bSpeed.textContent !== lab) bSpeed.textContent = lab;
         return;
       }
       for (const b of [bBack, bFwd]) if (b.style.color !== "rgb(255, 255, 255)") b.style.color = "#fff";
@@ -371,6 +392,7 @@ const installMobile = () => {
       show(bStart, Math.round(pc - 90), top);
       show(bFwd, Math.round(pc + 16), top);
       show(bSpeed, Math.round(pc + 56), Math.round(pr.top + (pr.height - 28) / 2));
+      normaliseRate();
       const label = `${rateNow()}x`;
       if (bSpeed.textContent !== label) bSpeed.textContent = label;
     } catch { /* never break the Studio */ }

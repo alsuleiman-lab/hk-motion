@@ -1,7 +1,8 @@
 import React from "react";
 import { useVideoConfig } from "remotion";
 import { kufiF, naskhF, useT } from "./MG";
-import { BRAND } from "./brand";
+import { BRAND, alpha } from "./brand";
+import { hadithDiff } from "./hadithDiff";
 import { Pic } from "./EuKit";
 import { PICK_KIT, PICK_FULL_FRAME, arDigits, fitGroup, FitLabel } from "./PickKit";
 
@@ -314,10 +315,53 @@ export const GlowCounter: React.FC<Base & { value: number; valueAt: number; labe
   );
 };
 
-export const PICK_KIT2 = { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, FillGlasses, SectionsRail, PrisonBars, ChainLinks, GlowCounter } as const;
+/** 38 · مقارنة حديثين (user 2026-11-22: «مقارنة ألفاظ حديثين… مختلف عن الكود تبع الحديث الموجود حالياً») — two narrations of one hadith, one card over the other:
+ *  each card has its label (the book / the narrator), its wording written word by word AT THE SECOND HE SAYS IT (`times` = the start second of every word, from the aligned
+ *  words; without it the words are spread over at..end), and its source. When the second wording is complete (`diffAt`, default 0.6 s after its last word) every word that
+ *  differs between the two lights up in BOTH cards (a marker sweeping in from the right) and a pill between the cards says how many words differ. The difference is COMPUTED
+ *  from the two texts (longest common sequence of the words, compared without tashkeel / tatweel / punctuation, hamza-yaa-taa marbuta unified), never typed by hand.
+ *  Try-only until the user approves it in the gallery. Props: a, b = { label, text, at, end?, times?, src? }, w, h, size, diffAt. */
+export type HadithSide = { label: string; text: string; at: number; end?: number; times?: number[]; src?: string };
+export const HadithCompare: React.FC<Base & { w?: number; h?: number; a: HadithSide; b: HadithSide; diffAt?: number; size?: number }> = ({ at, until, x, y, w = 900, h = 700, a, b, diffAt, size }) => {
+  const { t, k } = useK();
+  const [da, db] = React.useMemo(() => hadithDiff(a.text, b.text), [a.text, b.text]);
+  const nDiff = Math.max(da.filter(Boolean).length, db.filter(Boolean).length);
+  const gap = 64, cardH = Math.round((h - gap) / 2), chars = Math.max([...a.text].length, [...b.text].length);
+  const fs = size ?? Math.round(Math.max(24, Math.min(40, Math.sqrt(((w - 64) * (cardH - 130)) / (0.5 * 1.7 * Math.max(1, chars))))));
+  const times = (s: HadithSide, n: number) => { const e = s.end ?? s.at + n * 0.42; return Array.from({ length: n }, (_, i) => s.times?.[i] ?? s.at + (i / Math.max(1, n)) * (e - s.at)); };
+  const wa = a.text.trim().split(/\s+/).filter(Boolean), wb = b.text.trim().split(/\s+/).filter(Boolean), ta = times(a, wa.length), tb = times(b, wb.length);
+  const dAt = diffAt ?? ((tb[tb.length - 1] ?? b.at) + 0.6), hk = ease((t - dAt) / 0.5);
+  const card = (s: HadithSide, words: string[], tw: number[], d: boolean[], top: number, kk: number) => (
+    <div style={abs({ left: 0, top, width: w, height: cardH, ...pop(kk, 0.6) })}>
+      <div style={{ position: "absolute", inset: 0, background: BRAND.card, borderRadius: 22, boxShadow: "0 22px 44px rgba(0,0,0,.35)", boxSizing: "border-box", padding: "20px 32px 16px", direction: "rtl", display: "flex", flexDirection: "column" }}>
+        <div style={{ alignSelf: "flex-start", background: BRAND.navy, color: BRAND.card, fontFamily: kufiF, fontSize: 28, lineHeight: 1, padding: "9px 20px", borderRadius: 999 }}>{s.label}</div>
+        <div style={{ flex: 1, display: "flex", flexWrap: "wrap", alignContent: "center", justifyContent: "center", columnGap: fs * 0.3, direction: "rtl", margin: "6px 0" }}>
+          {words.map((wd, i) => (
+            <span key={i} style={{ position: "relative", display: "inline-block", fontFamily: naskhF, fontSize: fs, lineHeight: 1.7, ...wipe(ease((t - tw[i]) / 0.22)) }}>
+              {d[i] ? <span style={abs({ left: -fs * 0.1, right: -fs * 0.1, top: fs * 0.2, bottom: fs * 0.18, borderRadius: 9, background: alpha(BRAND.accent, 0.3), transformOrigin: "100% 50%", transform: `scaleX(${hk})` })} /> : null}
+              <span style={{ position: "relative", color: d[i] && hk > 0.5 ? BRAND.accentDeep : BRAND.ink, fontWeight: d[i] && hk > 0.5 ? 800 : 700 }}>{wd}</span>
+            </span>
+          ))}
+        </div>
+        {s.src ? <div style={{ borderTop: `2px solid ${alpha(BRAND.accent, 0.5)}`, paddingTop: 8, fontFamily: kufiF, fontSize: 24, lineHeight: 1.2, color: BRAND.accentDeep, textAlign: "center" }}>{s.src}</div> : null}
+      </div>
+    </div>
+  );
+  return (
+    <div style={abs({ left: x, top: y, width: w, height: h })}>
+      {card(a, wa, ta, da, 0, k(at, 0.45, until))}
+      {card(b, wb, tb, db, cardH + gap, k(Math.max(at, b.at - 0.35), 0.45, until))}
+      <div style={abs({ left: w / 2 - 150, top: cardH + gap / 2 - 20, width: 300, height: 40, display: "grid", placeItems: "center", borderRadius: 999, background: BRAND.accent, color: BRAND.onAccent, fontFamily: kufiF, fontSize: 25, lineHeight: 1, ...pop(Math.min(hk, clamp((until - t) / 0.35)), 0.5) })}>
+        {nDiff === 0 ? "اللفظان متطابقان" : `اختلاف في ${arDigits(String(nDiff))} ${nDiff <= 10 && nDiff > 2 ? "كلمات" : "كلمة"}`}
+      </div>
+    </div>
+  );
+};
+
+export const PICK_KIT2 = { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, FillGlasses, SectionsRail, PrisonBars, ChainLinks, GlowCounter, HadithCompare } as const;
 /** every picked element (PickKit + PickKit2) by spec name */
 /** the gallery's own x,y of every picked element (src/ElementsLab.tsx): used when a spec item gives none, so a spec never invents a place (user 2026-11-14: «لابد أن تنتبه إلى أماكن العناصر»). StickyNotes carry their own per-note x,y. */
-export const PICK_XY: Record<string, [number, number]> = { ChainLinks: [60, 200], PrisonBars: [60, 120], MinuteTeaser: [150, 150], NoProof: [100, 200], FlapBoard: [80, 260], BigQuestion: [90, 150], NeverMeet: [110, 260], ThoughtBubble: [90, 170], RootsTree: [110, 120], Iceberg: [110, 130], Crossroads: [110, 150], MythFact: [90, 300], InkQuote: [90, 380], ChatThread: [110, 250], MindMap: [560, 560], RingStat: [560, 470], GlowCounter: [560, 470], QACard: [160, 300], ViciousCycle: [560, 520], FillGlasses: [110, 220], DecisionFlow: [80, 150], Footnote: [90, 230], ClaimWall: [110, 300], CopiedMessages: [110, 150], WordCloud: [560, 480], CommentsFlood: [110, 150] };
+export const PICK_XY: Record<string, [number, number]> = { ChainLinks: [60, 200], PrisonBars: [60, 120], MinuteTeaser: [150, 150], NoProof: [100, 200], FlapBoard: [80, 260], BigQuestion: [90, 150], NeverMeet: [110, 260], ThoughtBubble: [90, 170], RootsTree: [110, 120], Iceberg: [110, 130], Crossroads: [110, 150], MythFact: [90, 300], InkQuote: [90, 380], ChatThread: [110, 250], MindMap: [560, 560], RingStat: [560, 470], GlowCounter: [560, 470], QACard: [160, 300], ViciousCycle: [560, 520], FillGlasses: [110, 220], DecisionFlow: [80, 150], Footnote: [90, 230], ClaimWall: [110, 300], CopiedMessages: [110, 150], WordCloud: [560, 480], CommentsFlood: [110, 150], HadithCompare: [140, 150] };
 /** PORTRAIT place of a picked element (user 2026-11-16, marked screenshot: the elements in the band 1400–1880 under the caption, never on his beard):
  *  the element is drawn in its landscape 1920×1080 board; PICK_PORT_BOX = the part of that board it really uses [top, height] (estimated from its layout),
  *  and the board is scaled (≤ 0.95) and placed so that part fills the band, centred (the board's content column is centred on x ≈ 590). */
@@ -326,7 +370,7 @@ export const PICK_PORT_BOX: Record<string, [number, number]> = {
   BigQuestion: [170, 650], NeverMeet: [250, 550], RingStat: [220, 630], ClaimWall: [300, 700], Crossroads: [150, 800], MythFact: [270, 440], DecisionFlow: [150, 780],
   MindMap: [180, 670], ViciousCycle: [180, 680], WordCloud: [200, 560], InkQuote: [380, 400], MinuteTeaser: [150, 600], NoProof: [200, 600],
   FlapBoard: [260, 420], ThoughtBubble: [170, 600], RootsTree: [120, 800], Iceberg: [130, 800], ChatThread: [250, 560], QACard: [300, 480], FillGlasses: [220, 620],
-  Footnote: [230, 520], CopiedMessages: [150, 720], CommentsFlood: [150, 760], GlowCounter: [340, 420],
+  Footnote: [230, 520], CopiedMessages: [150, 720], CommentsFlood: [150, 760], GlowCounter: [340, 420], HadithCompare: [150, 700],
 };
 export const pickPortBoard = (el: string): React.CSSProperties => {
   const [bt, bh] = PICK_PORT_BOX[el] ?? [(PICK_XY[el]?.[1] ?? 150), 700], s = Math.min(0.95, 610 / bh, 1000 / 1000);   /* (user 2026-11-16) the ELEMENTS zone: y 1100–1760, under the caption, his video in the upper half */
@@ -334,7 +378,7 @@ export const pickPortBoard = (el: string): React.CSSProperties => {
   return { position: "absolute", left, top, width: 1920, height: 1080, transform: `scale(${s})`, transformOrigin: "0 0" };
 };
 /** NOT a split screen (user 2026-11-14, frames 8341/10458/11903/13009/14105): he stays centred, the element sits small in the left third over a dark gradient (LeftShade); these are its LANDSCAPE props. The engine and the gallery both read this table. */
-export const PICK_NOSPLIT: Record<string, Record<string, number>> = { RingStat: { x: 330, y: 470 }, GlowCounter: { x: 330, y: 470 }, MythFact: { x: 40, y: 300, w: 760, size: 40 }, ChatThread: { x: 40, y: 250, w: 580 }, FlapBoard: { x: 40, y: 260, w: 600, size: 44 }, BigQuestion: { x: 40, y: 250, w: 600, size: 330 }, GradeLadder: { x: 40, y: 190 }, DecisionFlow: { x: 30, y: 180, s: 0.72, bare: 1 } };   /* GradeLadder, DecisionFlow: the dark gradient, no split (gallery notes 2026-11-17) */   /* BigQuestion beside him with no split (user 2026-11-16) */   /* the user's red box, lower left (2026-11-15) */
+export const PICK_NOSPLIT: Record<string, Record<string, number>> = { RingStat: { x: 330, y: 470 }, GlowCounter: { x: 330, y: 470 }, HadithCompare: { x: 40, y: 150, w: 600, h: 830 }, MythFact: { x: 40, y: 300, w: 760, size: 40 }, ChatThread: { x: 40, y: 250, w: 580 }, FlapBoard: { x: 40, y: 260, w: 600, size: 44 }, BigQuestion: { x: 40, y: 250, w: 600, size: 330 }, GradeLadder: { x: 40, y: 190 }, DecisionFlow: { x: 30, y: 180, s: 0.72, bare: 1 } };   /* GradeLadder, DecisionFlow: the dark gradient, no split (gallery notes 2026-11-17) */   /* BigQuestion beside him with no split (user 2026-11-16) */   /* the user's red box, lower left (2026-11-15) */
 export const PICK_ALL = { ...PICK_KIT, ...PICK_KIT2 } as const;
 export type PickAllName = keyof typeof PICK_ALL;
 export const PICK_ALL_FULL_FRAME = new Set<string>([...PICK_FULL_FRAME, "BrushWipe", "SectionsRail"]);

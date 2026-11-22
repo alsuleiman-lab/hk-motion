@@ -28,7 +28,7 @@ import { TRANSITIONS, TransitionScene } from "./TransitionsLab";
 import { Keycaps, Burst } from "./KhaamKit";
 import { InkQuote, BigQuestion, ChatThread, StickyNotes, FlapBoard, SearchBar, MythFact, RingStat, LineGrowth, DecisionFlow, MindMap, ViciousCycle, Footnote, ClaimWall, NoProof, BrokenIsnad, GradeLadder, YearsGap, Lifespans, Crossroads, AlertFrame, NeverMeet, RisingTimeline, MinuteTeaser, PipSource, PIP, pipK } from "./PickKit";
 import { VerseNoor, VerseBigWord, HalfScene, BlendPanel, halfK } from "./VerseKit";
-import { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, FillGlasses, SectionsRail, PrisonBars, ChainLinks, railPortDrop, LeftShade, BottomShade, PICK_NOSPLIT, pickPortBoard } from "./PickKit2";
+import { QACard, ThoughtBubble, WordCloud, CopiedMessages, Iceberg, CommentsFlood, BrushWipe, RootsTree, FillGlasses, SectionsRail, PrisonBars, ChainLinks, HadithCompare, railPortDrop, LeftShade, BottomShade, PICK_NOSPLIT, pickPortBoard } from "./PickKit2";
 import { HadithQuote, HadithBooks, HadithIsnad } from "./HadithKit";
 
 import { BRAND, applyBrand } from "./brand";
@@ -217,6 +217,7 @@ const VERSE_SCENES: Record<string, (o: Orient) => React.ReactNode> = {
   StickyNotes: (o) => <PickScene o={o} el="StickyNotes"><StickyNotes until={2.95} size={300} notes={[{ text: "تفاهة", at: 0.3, x: 140, y: 200 }, { text: "إثارة", at: 0.9, x: 540, y: 280, tint: "paper" }, { text: "ربحٌ سريع", at: 1.5, x: 300, y: 600, tint: "accent" }]} /></PickScene>,
   FlapBoard: (o) => <PickSceneStill o={o} el="FlapBoard"><FlapBoard at={0.1} until={2.95} x={80} y={260} w={980} {...(o === "land" ? PICK_NOSPLIT.FlapBoard : {})} rows={[{ text: "الوجهة: الوعي", at: 0.9 }, { text: "الرحلة: التثبّت", at: 1.4 }, { text: "الحالة: في الموعد", at: 1.9 }]} /></PickSceneStill>,
   SearchBar: (o) => <PickScene o={o} el="SearchBar"><SearchBar at={0.1} until={2.95} x={110} y={120} w={900} img="episodes/1Gn_-DLPTjI.jpg" imgAt={0.1} imgH={420} imgCaption="حلقة سابقة" query="محمد بن شمس الدين المحتوى الهابط" typeAt={0.8} cps={20} /></PickScene>,
+  HadithCompare: (o) => <PickSceneStill o={o} el="HadithCompare"><HadithCompare at={0.1} until={2.95} x={140} y={150} {...(o === "land" ? PICK_NOSPLIT.HadithCompare : {})} a={{ label: "الرواية الأولى (مثال)", text: "إنما الأعمال بالنيات وإنما لكل امرئ ما نوى", at: 0.25, end: 0.95, src: "صحيح البخاري (١)" }} b={{ label: "الرواية الثانية (مثال)", text: "إنما الأعمال بالنية وإنما لامرئ ما نوى", at: 1.05, end: 1.65, src: "صحيح مسلم (١٩٠٧)" }} diffAt={1.85} /></PickSceneStill>,
   MythFact: (o) => <PickSceneStill o={o} el="MythFact"><MythFact until={2.95} x={90} y={300} {...(o === "land" ? PICK_NOSPLIT.MythFact : {})} myth="المنع وحده يكفي" mythAt={0.2} fact="البديل النافع يسدّ الفراغ" factAt={1.6} /></PickSceneStill>,
   RingStat: (o) => <PickSceneStill o={o} el="RingStat"><RingStat at={0.1} until={2.95} x={560} y={470} r={200} {...(o === "land" ? PICK_NOSPLIT.RingStat : {})} value={73} label="من المراهقين يشاهدونه يومياً (مثال)" labelAt={1.9} /></PickSceneStill>,
   LineGrowth: (o) => <PickScene o={o} el="LineGrowth"><LineGrowth at={0.1} until={2.95} x={90} y={200} values={[10, 14, 20, 32, 40]} fromLabel="٢٠٢٠" toLabel="٢٠٢٥" tag="+٣٠٠٪" tagAt={2.0} /></PickScene>,

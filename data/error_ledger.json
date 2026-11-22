@@ -1367,6 +1367,158 @@
    "evidence": "أمر المستخدم 2026-11-22 (نصه في القواعد_العامة.md ومهارة الدروس والبثوث)؛ جُرِّب كله على مشاريع وهمية zz_conduct_* وفي جذور مؤقتة فقط"
   },
   {
+   "id": "cut-speech-past-media-end",
+   "date": "2026-11-22",
+   "what": "قص البث وقف: «قطع داخل كلمة: 5.36ث في [غير مفرَّغ]» عند آخر الملف، ولم يُبنَ شيء.",
+   "cause": "الكشف الصوتي والتفريغ والمحاذاة تُقاس على ملف الصوت 16 كيلوهرتز وهو أطول من حاوية الفيديو بـ0.1–0.3ث، فانتهى كلام (أو آخر كلمة) بعد نهاية الفيديو؛ وتسجيل ينتهي أثناء كلام الشيخ يحدث في البث الحقيقي.",
+   "guard": {
+    "file": "tools/cut_model.mjs",
+    "how": "mediaDur(p) = مدة حاوية المصدر؛ loadTable تقصّ الكلمات عندها، وuntranscribed تقصّ الكلمات الصورية عندها، فلا حافة تقطع كلمة لا يمكن إبقاؤها."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "sr.media_end_clamp_words",
+     "sr.media_end_clamp_untranscribed",
+     "sr.media_end_verify_passes"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته تجربة البث الشاملة 2026-11-22 (tools/stream/stream_rehearsal.mjs على عيّنة 10 دقائق من بث الحوار مع المخالفين، data/rehearsal/stream_times.jsonl) قبل أي بث حقيقي؛ أُصلح وجُرّب فيها"
+  },
+  {
+   "id": "lost-speech-ordered-rem",
+   "date": "2026-11-22",
+   "what": "lost_speech_check أخفق «مقصوصة بالقص» على كل إعادة حُذفت بقرار مكتوب (--rem من redo.txt) فوقف القص الناجح.",
+   "cause": "الفحص يقارن كلمات ما قبل القص وبعده ولا يعرف ما أُمر بحذفه عمداً.",
+   "guard": {
+    "file": "tools/stream/lost_speech_check.mjs",
+    "how": "يقرأ explicit_rem.json (ما حذفه stage cut بأمر) ويعدّ الكلام المحذوف داخله قراراً مكتوباً (◌) لا ضياعاً؛ وما حُذف بلا أمر يبقى ✘."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "sr.lost_speech_ordered_rem_ok",
+     "sr.lost_speech_unordered_still_fails"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته تجربة البث الشاملة 2026-11-22 (tools/stream/stream_rehearsal.mjs على عيّنة 10 دقائق من بث الحوار مع المخالفين، data/rehearsal/stream_times.jsonl) قبل أي بث حقيقي؛ أُصلح وجُرّب فيها"
+  },
+  {
+   "id": "stream-clip-no-bumper",
+   "date": "2026-11-22",
+   "what": "كل مقطع بث عرضي رُفض «لا فاصل في الخطة»، وكل مقطع رُفض في فحص ما قبل الرندر «المونتاج بلا فاصل».",
+   "cause": "الفاصل يضعه المونتاج لا الرندر (أمر 2026-11-20) ولم يكن باني مقاطع البث يضعه؛ وbumper_at لا يضعه في الخاتمة إلا لمعرّفات تبدأ بـstream_.",
+   "guard": {
+    "file": "tools/stream/clip_build.mjs + tools/bumper_at.mjs",
+    "how": "clip_build يستدعي bumper_at --write --end قبل التطبيع، والخيار --end يفرض الخاتمة مهما كان اسم المقطع ونوعه."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "sr.bumper_end_flag_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته تجربة البث الشاملة 2026-11-22 (tools/stream/stream_rehearsal.mjs على عيّنة 10 دقائق من بث الحوار مع المخالفين، data/rehearsal/stream_times.jsonl) قبل أي بث حقيقي؛ أُصلح وجُرّب فيها"
+  },
+  {
+   "id": "slice-gate-failed-passed",
+   "date": "2026-11-22",
+   "what": "الاقتطاع طبع «✘ audio_gate» وخرج 0 فمرّت مرحلة الاقتطاع ببوابة فاشلة؛ ثم فشلت البوابة وفحص ما قبل الرندر على كل شريحة فيها وصلة («قطع داخل كلمة 0.04ث» لم تقطعها خطة الأب).",
+   "cause": "المقطع لا جدول كلمات له فيعود نموذج القص إلى كلماته هو (cut_words بعد التفريغ الكبير الثاني، تبعد عن المحاذاة حتى 0.1ث)؛ وclip_slice لا ينهي بـ1 عند فشل البوابة.",
+   "guard": {
+    "file": "tools/stream/clip_slice.mjs",
+    "how": "يكتب words_table.json للمقطع من جدول الأب المحاذى بخريطة القص والشريحة (كما يفعل reel_from_episode)، ويخرج بـ1 مع أمر إعادة البوابة وحدها عند فشلها."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "sr.slice_table_and_exit_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته تجربة البث الشاملة 2026-11-22 (tools/stream/stream_rehearsal.mjs على عيّنة 10 دقائق من بث الحوار مع المخالفين، data/rehearsal/stream_times.jsonl) قبل أي بث حقيقي؛ أُصلح وجُرّب فيها"
+  },
+  {
+   "id": "stream-slice-needs-sections",
+   "date": "2026-11-22",
+   "what": "مقطع بث عرضي فشل «لا أقسام» (sections.json) وهو مقطع بث لا حلقة.",
+   "cause": "appliesToEpisode يعرف مقاطع البث بأن معرّفها يبدأ بـstream_/lesson_ وحدها، ومعرّف المقطع يتبع اسم بثه.",
+   "guard": {
+    "file": "tools/prepublish_gates.mjs",
+    "how": "كل مشروع prep_config.json فيه slicedFrom (يكتبه clip_slice) لا تُطلب له أقسام."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "sr.sections_not_for_slices"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته تجربة البث الشاملة 2026-11-22 (tools/stream/stream_rehearsal.mjs على عيّنة 10 دقائق من بث الحوار مع المخالفين، data/rehearsal/stream_times.jsonl) قبل أي بث حقيقي؛ أُصلح وجُرّب فيها"
+  },
+  {
+   "id": "stream-template-waivers",
+   "date": "2026-11-22",
+   "what": "كل مقطع بث فشل فحصه «إعفاءات بلا إذن المستخدم» (Iceberg، FillGlasses، Footnote)؛ ثم رُفض كل عنصر يُضاف (صورة أو مستحق) «يضيف مخالفة لم تكن» لأن لوحات القالب تملأ كل موضع.",
+   "cause": "قالب البث ما زال يكتب skipPicks/skipRequired وcoverage_check يرفض كل إعفاء لم يأذن به المستخدم؛ وclip_pictures يضيف قبل أن يفسح الطريق وel.mjs صار يرفض ما يجلب مخالفة.",
+   "guard": {
+    "file": "tools/stream/clip_autobuild.mjs + tools/stream/clip_pictures.mjs",
+    "how": "القالب لا يكتب إعفاءً بل يسرد المستحق (needs_picks.json)؛ وclip_pictures يقبل vals لعنصر مستحق، ويفسح الطريق قبل الإضافة (يقصّر الكتابة تحتها أو يحذفها وينقل بطاقة الاسم والاشتراك) ثم يضيف."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "sr.autobuild_no_waiver_src",
+     "sr.pictures_clear_before_add_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته تجربة البث الشاملة 2026-11-22 (tools/stream/stream_rehearsal.mjs على عيّنة 10 دقائق من بث الحوار مع المخالفين، data/rehearsal/stream_times.jsonl) قبل أي بث حقيقي؛ أُصلح وجُرّب فيها"
+  },
+  {
+   "id": "gate-inaudible-join-click",
+   "date": "2026-11-22",
+   "what": "فشل الاقتطاع على «نقرة عند وصلة» قفزتها −54 dBFS في ضجيج الغرفة (−60 dB) لا تُسمع.",
+   "cause": "ماسح join_click_scan طاقي بلا حدّ سمع، وفي المحرك قياسان للوصلة (هو وjoin_seam_check).",
+   "guard": {
+    "file": "tools/audio_gate.mjs",
+    "how": "في خطة النموذج تُعاد كل وصلة علّمها الماسح بقياس الوصلة الواحد (join_seam_check)؛ لا تُرفض إلا إن اتفق القياسان، وما لا يُسمع يُطبع."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "sr.seam_blip_inaudible_click_audible",
+     "sr.gate_click_uses_seam_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته تجربة البث الشاملة 2026-11-22 (tools/stream/stream_rehearsal.mjs على عيّنة 10 دقائق من بث الحوار مع المخالفين، data/rehearsal/stream_times.jsonl) قبل أي بث حقيقي؛ أُصلح وجُرّب فيها"
+  },
+  {
+   "id": "stream-rehearsal-scoped",
+   "date": "2026-11-22",
+   "what": "لا تجربة تُظهر أخطاء محرك البث قبل البث الحقيقي (المستخدم: «لازم ما أشوف أخطاء»).",
+   "cause": "التجربة الشاملة الأولى للحلقات (tools/rehearsal.mjs) لا تغطي مسار البث (قص واحد ثم شرائح، قالب آلي، طابور).",
+   "guard": {
+    "file": "tools/stream/stream_rehearsal.mjs",
+    "how": "تجربة البث: عيّنة 10 دقائق من البث الحقيقي بثلاثة مسارات صوت، المشروع zz_stream_rehearsal، كل مرحلة بساعتها، رندر حقيقي إلى مجلد التجربة لا «جاهز»، تنظيف بأسماء التجربة وحدها ولا حذف إلا بـ--purge."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "sr.own_name_scoped",
+     "sr.purge_dry_scoped",
+     "sr.plan_order_and_scaling",
+     "sr.safe_by_source"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته تجربة البث الشاملة 2026-11-22 (tools/stream/stream_rehearsal.mjs على عيّنة 10 دقائق من بث الحوار مع المخالفين، data/rehearsal/stream_times.jsonl) قبل أي بث حقيقي؛ أُصلح وجُرّب فيها"
+  },
+  {
    "id": "transcribe-speed-identity",
    "date": "2026-11-22",
    "what": "أمر المستخدم: «تفريغ البث (3 ساعات و47 دقيقة) لازم أسرع بكثير بلا أي نقص في الدقة»، بنفس الطريقة (كل مقطع كلام وحده) وبأقوى نموذج. المسار الطبيعي للتسريع هو فك عدة مقاطع معاً على الكرت، وكاد يُجعل افتراضياً.",
@@ -1385,6 +1537,60 @@
     ]
    },
    "evidence": "قياس 2026-11-22 على بث «للحوار مع المخالفين»: متسلسل 10 دقائق 93-129 ث و30 دقيقة 331 ث (الكرت مشترك مع جلسات أخرى فالأرقام متذبذبة)، دفعة 4 و8 نحو 1.7 مرة أسرع لكنها غير مطابقة"
+  },
+  {
+   "id": "sfx-onset-flagged-click",
+   "date": "2026-11-22",
+   "what": "فحص ما قبل الرندر رفض كل مقطع بث: «نقرة عند حافة 0:00.10 (قفزة ×59)».",
+   "cause": "حواف المزيج تعدّ بداية كل مؤثر صوتي، ومؤثر el_tick يبدأ بموجته الخاصة (أول عينة −0.32) في أول المقطع الهادئ.",
+   "guard": {
+    "file": "tools/prerender_check.mjs",
+    "how": "بداية المؤثر الصوتي (public/sfx) ليست حافة؛ نهايته وبقية السجلات تبقى حوافاً."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "sr.mix_edges_sfx_onset_not_edge"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته تجربة البث الشاملة 2026-11-22 قبل أي بث حقيقي"
+  },
+  {
+   "id": "asr-audit-local-loader",
+   "date": "2026-11-22",
+   "what": "فحص كل مقطع بث فشل «asr_audit: load_model() — ليس large-v3» (والتفريغ فعلاً large-v3).",
+   "cause": "التدقيق يقرأ كل استدعاء load_model على أنه نموذج مجهول، ونص التفريغ صار يعرّف دالة load_model واحدة على large-v3 ويستدعيها.",
+   "guard": {
+    "file": "tools/asr_audit.mjs",
+    "how": "الملف الذي يعرّف load_model يُحكم عليه عند سطر WhisperModel الذي يفحصه التدقيق؛ واستدعاؤها (مباشرة أو عبر وحدة tvs.load_model) لا يُخطَّأ؛ ونموذج أضعف ما زال يُرفض."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "sr.asr_audit_local_loader"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته تجربة البث الشاملة 2026-11-22 قبل أي بث حقيقي"
+  },
+  {
+   "id": "repair-panel-overlap",
+   "date": "2026-11-22",
+   "what": "فحص ما قبل الرندر رفض مقطع بث: «تراكب: pick (24.86–32) مع pick (23.38–25.78)».",
+   "cause": "clip_repair يبني لوحة سدّ الفراغ بأسطر حتى نهاية الفراغ، والمحرك يمسك اللوحة بعد آخر سطر (+ زمن كتابته + 2.3ث) فتدخل في العنصر التالي.",
+   "guard": {
+    "file": "tools/stream/clip_repair.mjs",
+    "how": "تُبقي اللوحة الجديدة الأسطر التي ينتهي إمساكها قبل نهاية الفراغ وحدها (نفس حساب pickUntil)."
+   },
+   "status": "محروس ومختبَر",
+   "selftest": {
+    "cases": [
+     "sr.repair_panel_held_src"
+    ],
+    "manual": []
+   },
+   "evidence": "وجدته تجربة البث الشاملة 2026-11-22 قبل أي بث حقيقي"
   }
  ]
 }

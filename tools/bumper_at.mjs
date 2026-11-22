@@ -38,7 +38,7 @@ if (hit > 0) {
 }
 /* (user 2026-11-16, «يممممنع وضع الفاصل في أول الفيديو يا غبي») NEVER at second 0: with no opening greeting after the video's start the bumper goes at the END (end:true → BUMPER_POSITION=end) */
 /* (user 2026-11-17) a reel, a silent reaction, a lesson or a stream clip: the bumper is ALWAYS at the end */
-const END_AT = at2 < 1 || ["reel", "silent", "lesson", "stream"].includes(spec.kind) || /^(silent|stream|lesson)_/i.test(p), AT = END_AT ? +(spec.frames / 30).toFixed(2) : +at2.toFixed(2);
+const END_AT = process.argv.includes("--end") /* a stream/lesson clip builder (tools/stream/clip_build.mjs) asks for the end whatever the clip is called or kinded: a landscape clip (kind full) of a stream was placed by its greeting, and its id need not start with stream_ (found by the stream dress rehearsal 2026-11-22) */ || at2 < 1 || ["reel", "silent", "lesson", "stream"].includes(spec.kind) || /^(silent|stream|lesson)_/i.test(p), AT = END_AT ? +(spec.frames / 30).toFixed(2) : +at2.toFixed(2);
 /* --write: spec.bumper = { id (random among public/fawasel, kept once chosen), at } — Studio shows it there and the render inserts the SAME one (2026-11-12) */
 if (process.argv.includes("--write") || process.argv.includes("--id")) {
   const f = `data/specs/${p}.json`, sp2 = JSON.parse(fs.readFileSync(f, "utf8")), ids = Object.keys(JSON.parse(fs.readFileSync("public/fawasel/manifest.json", "utf8")).items ?? {}).length ? Object.keys(JSON.parse(fs.readFileSync("public/fawasel/manifest.json", "utf8")).items) : ["press", "shelf", "wall", "notebook", "tear"];

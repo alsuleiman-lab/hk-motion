@@ -1,0 +1,4 @@
+{
+ "_note": "the agent's decisions on the sounds the per-slice audio gate leaves «للمراجعة» in the 3 clips (a tool cannot decide it without listening): each kept sound was heard a second time (tools/span_recheck.py, large-v3, no prompt) before its line was written. Seeded into .tmp/<clip>/noise_ok.json before the slice (key = the source start the gate prints).",
+ "zz_stream_rehearsal_2": { "156.49": "keep: كلمة «تفضل» قالها الشيخ ولم يفرّغها التفريغ الأول؛ سمعتُها بالتفريغ الثاني للمقطع (span_recheck، ثقة 0.78) فهي كلام لا ضجيج" }
+}

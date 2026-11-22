@@ -37,6 +37,8 @@ sh(`bash tools/stream/b2_fix.sh ${id} ${O}`);
 sh(`node tools/stream/b2_land_extra.mjs ${id} '${JSON.stringify(P.extra ?? { name: [Math.min(12, d / 4)], sub: [Math.max(5, Math.min(40, d - 6))] })}'`);
 console.log(t(sh(`node tools/scraps_times.mjs ${f}; node tools/writing_sync.mjs ${f} --fix; node tools/writing_place.mjs ${id} --hold; node tools/sfx_bind.mjs ${f}`)));
 console.log(t(sh(`node tools/gallery_geometry.mjs ${f} --write`)));
+/* (2026-11-22, stream dress rehearsal) the montage places the bumper (user 2026-11-20: the render adds none) and a stream/lesson clip's is ALWAYS at the end: coverage_check refused every landscape clip (and the normaliser's own report listed it as «باقية» when the bumper came after it) «لا فاصل في الخطة», and prerender_check every clip */
+console.log(t(sh(`node tools/bumper_at.mjs ${id} --write --end`)));
 fs.copyFileSync(f, `.tmp/${id}/pre_norm.json`);
 console.log(t(sh(`node tools/spec_normalize.mjs ${f} --o ${O}`)));
 const s = rd();

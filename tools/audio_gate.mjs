@@ -43,8 +43,20 @@ rep(ns.status === 0 && nsj.cut.length === 0, `أصوات غير كلامية ل�
   rep(open.length === 0, `أصوات للمراجعة لم تُحسم: ${open.length} ${open.map((r) => `[${r[0]}-${r[1]} «${r[2]}»]`).join(" ")} — احذفها (--rem) أو اكتب سبب الإبقاء في .tmp/${name}/noise_ok.json`);
 }
 const jc = run(["tools/join_click_scan.py", audio, map, "--ratio", "5"]);
-const bad = (jc.stdout.match(/flagged clicks: (\d+)/) ?? [])[1];
-rep(jc.status === 0 && Number(bad) === 0, `نقرات عند وصلات القص: ${bad ?? "?"} ${jc.stdout.split("\n")[1] ?? ""}`);
+let bad = (jc.stdout.match(/flagged clicks: (\d+)/) ?? [])[1], badNote = "";
+/* (2026-11-22, stream dress rehearsal) the energy scan above has no audibility floor: it flagged a blip at −54 dBFS in the room noise (−60 dB) at one join of a stream clip, and the slice failed
+   on a click nobody can hear. For a cut-model plan every flagged join is judged again by the engine's ONE measure of a join (tools/join_seam_check.mjs: a sample jump or a peak that is real
+   against the room's floor, the measure prerender_check and final_review use); the join fails only when both agree, and the inaudible ones are printed, never hidden. */
+if (jc.status === 0 && Number(bad) > 0 && planMap?.model === "cut_model") {
+  try {
+    const SJ = await import("./join_seam_check.mjs"), times = [...(jc.stdout.split("\n")[1] ?? "").matchAll(/\(([\d.]+),/g)].map((m) => Number(m[1]));
+    const res = SJ.checkFile(audio, SJ.mapJoins(planMap.segments).filter((j) => times.some((t) => Math.abs(t - j.t) < 0.05)), null);
+    const real = res.filter((x) => x.issues.some((i) => /^نقرة/.test(i)));
+    if (real.length < Number(bad)) badNote = ` (${Number(bad) - real.length} من الماسح الطاقي لا تُسمع: قفزة العينة دون حدّ قياس الوصلة الواحد)`;
+    bad = String(real.length);
+  } catch (e) { badNote = ` (تعذّر قياس الوصلة الواحد: ${String(e?.message ?? e).slice(0, 80)})`; }
+}
+rep(jc.status === 0 && Number(bad) === 0, `نقرات عند وصلات القص: ${bad ?? "?"} ${Number(bad) > 0 ? jc.stdout.split("\n")[1] ?? "" : ""}${badNote}`);
 /* (2026-11-16) with a cut-model plan the word table already guarantees no cut inside a word (verifyCut below): the two energy scans are a second
    measure of the same thing and are skipped; they stay for old VAD-built maps. (2026-11-12) a join must sit in a pause: voiced sound on both sides = a word cut mid-way («بنا… بنارس») */
 if (planMap?.model !== "cut_model") { const jw = run(["-I", "tools/join_word_scan.py", audio, map]); rep(jw.status === 0, (jw.stdout || "").trim().split("\n").slice(0, 4).join(" | ") || "join_word_scan لم يعمل"); }

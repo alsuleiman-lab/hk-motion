@@ -55,6 +55,8 @@ export function mixGraph(segs, { NF, fps = 30, root, edl = null, log = () => {} 
   const splits = [...uniq.values()].map((u) => `[${u.idx}:a]aresample=48000,${u.n > 1 ? `asplit=${u.n}${Array.from({ length: u.n }, (_, j) => `[u${u.idx}_${j}]`).join("")}` : `anull[u${u.idx}_0]`}`);
   parts.unshift(...splits);
   /* (2026-11-20) padded with silence to the picture: a bumper whose own sound is shorter (shelf: 3.84 s) left the file's audio 1.1 s short */
+  /* OPEN BUG (stream dress rehearsal 2026-11-22, not fixed): the apad below did NOT pad when the last record was a delayed bumper (adelay 42733 ms, sound 3.84 s of 5): a stream clip's mix stayed
+     1.16 s short of its picture (46.573 s vs 47.733 s) whatever the pad option (whole_dur, whole_len, pad_dur). Proposed fix, untested: a silent anullsrc of the picture's length as one more amix input. */
   const fc = parts.join(";\n") + ";\n" + mixIn.join("") + `amix=inputs=${mixIn.length}:duration=longest:normalize=0:dropout_transition=0,aresample=48000,apad=whole_dur=${(NF / fps).toFixed(4)},atrim=duration=${(NF / fps).toFixed(4)}[a]`;
   return { inputs, fc };
 }

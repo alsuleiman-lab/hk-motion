@@ -104,9 +104,20 @@ try {
   fs.writeFileSync(path.join(T, "speakers.json"), JSON.stringify({ speakers: sp.speakers, turns }));
   fs.writeFileSync(path.join(T, "speakers.txt"), turns.map((t) => `[${t.s.toFixed(1)}–${t.e.toFixed(1)}] ${t.name}: ${t.text}`).join("\n") + "\n");
 } catch { /* لا تمييز للمتكلمين في البث */ }
+// 5b) جدول الكلمات للمقطع = جدول الأب المحاذى مُمرَّراً بخريطة القص ثم الشريحة (كما يفعل tools/reel_from_episode.mjs): تُقاس الخطة بالكلمات التي بُنيت منها.
+//     كان المقطع بلا جدول فيرجع نموذج القص إلى كلماته هو (cut_words بعد تفريغ النموذج الكبير الثاني، تبعد عن المحاذاة حتى 0.1 ث) فيُخطّئ «قطع داخل كلمة» 0.04 ث لم تقطعها خطة الأب
+//     (التجربة الشاملة للبث 2026-11-22: فشلت بوابة الصوت وفحص ما قبل الرندر لكل شريحة فيها وصلة)
+try {
+  const pt = rd(path.join(TP, "words_table.json")), tw = [];
+  for (const w of pt.words ?? []) { const s0 = +(w.s ?? w.start), e0 = +(w.e ?? w.end ?? s0); const a = srcToCut(s0), b = srcToCut(e0); const ca = a === null ? null : toChild(a), cb = b === null ? null : toChild(b);
+    if (ca !== null && cb !== null && cb >= ca) tw.push({ ...w, s: +ca.toFixed(3), e: +cb.toFixed(3), i: tw.length }); }
+  tw.sort((x, y) => x.s - y.s);
+  if (tw.length) fs.writeFileSync(path.join(T, "words_table.json"), JSON.stringify({ model: `remapped from ${P} (words_table.json) by clip_slice`, from: P, words: tw }));
+} catch { /* the parent has no word table (an old project): the child falls back to its cut words, as before */ }
 // 6) ما كان يكتبه قص المقطع: آيات، حركات، متطلبات، ثم بوابة الصوت على الشريحة
 const node = (a) => sh(process.execPath, a);
 const out = [];
 for (const [n, a] of [["verse_scan", ["tools/verse_scan.mjs", id]], ["moves_plan", ["tools/moves_plan.mjs", id]], ["requirements", ["tools/requirements.mjs", id]]]) { try { out.push(`${n}: ${node(a).trim().split("\n").pop().slice(0, 90)}`); } catch (e) { out.push(`⚠ ${n}: ${String(e.message).slice(0, 160)}`); } }
 try { out.push(`audio_gate: ${node(["tools/audio_gate.mjs", id, "--cut", path.join(T, "cut.wav"), "--map", path.join("public", `${id}_map.json`), "--tr", path.join(T, "tr_vad.json"), "--src16k", path.join(T, "a16k.wav"), "--audio", path.join(T, "cut.wav")]).trim().split("\n").slice(-2).join(" | ").slice(0, 160)}`); } catch (e) { out.push(`✘ audio_gate: ${String(e.message).slice(0, 240)}`); }
 console.log(`✔ ${id}: ${D}ث من ${pieces.length} قطعة؛ ${cw.length} كلمة\n  ` + out.join("\n  "));
+if (out.some((l) => l.startsWith("✘"))) { console.error(`✘ ${id}: بوابة الصوت على الشريحة لم تنجح — لا يُسلَّم مقطع قبل نجاحها`); console.error(`  بعد قرارك في الأصوات (noise_ok.json) أعد البوابة وحدها بلا إعادة اقتطاع: node tools/audio_gate.mjs ${id} --cut ${path.join(T, "cut.wav")} --map ${path.join("public", `${id}_map.json`)} --tr ${path.join(T, "tr_vad.json")} --src16k ${path.join(T, "a16k.wav")} --audio ${path.join(T, "cut.wav")}`); process.exit(1); }   /* it printed «✘ audio_gate» and exited 0: the slice stage passed with a failed gate (stream rehearsal 2026-11-22) */

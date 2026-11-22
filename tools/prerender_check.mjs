@@ -42,7 +42,10 @@ export function silences(file, bumper, { db = -38, maxGap = 0.4, dur = duration(
 }
 /** every edge of the mix (a piece of sound starts or stops while the file goes on): the bumper, each sfx, the tail, the voice split — no sample jump there */
 export function mixEdges(plan, NF, fps = FPS) {
-  const t = new Set(); for (const x of plan ?? []) { if (x.at > 0) t.add(x.at); if (x.at + x.frames < NF) t.add(x.at + x.frames); }
+  /* (2026-11-22, stream dress rehearsal) the ONSET of a sound effect is not an edge: public/sfx/el_tick.wav begins with its own attack (first sample −0.32), so every tick at the quiet start of a stream clip was
+     «نقرة قفزة ×59» and no clip could pass. The onset is the effect itself (its level is capped at 0.06 of the speech); its END and every other record's start and end stay edges. */
+  const isSfx = (x) => /(^|\/)sfx\//.test(String(x.src ?? "").replace(/\\/g, "/"));
+  const t = new Set(); for (const x of plan ?? []) { if (x.at > 0 && !isSfx(x)) t.add(x.at); if (x.at + x.frames < NF) t.add(x.at + x.frames); }
   return [...t].sort((a, b) => a - b).map((f) => +(f / fps).toFixed(4));
 }
 

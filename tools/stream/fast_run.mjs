@@ -30,7 +30,7 @@ const mark = (stage, what) => { const s = st(); s.marks[stage] ??= {}; if (what 
 if (cmd === "start") {
   // المساحة أولاً (2026-11-16: القرص امتلأ إلى 14 جيغابايت أثناء دمج القص فأبطأ الدمج ثماني دقائق): ذاكرة مجموعات القص (.tmp/cache/*/cutgroups) تتراكم 1–7 جيغابايت لكل قص ولا تُستعمل بعد تغيّر القص، فأحذف ما لم يُلمس منها منذ 12 ساعة، وأشترط 40 جيغابايت حرّة.
   { const cr = path.join(".tmp", "cache"); let freed = 0;
-    for (const d of fs.existsSync(cr) ? fs.readdirSync(cr) : []) { const g = path.join(cr, d, "cutgroups"); try { if (Date.now() - fs.statSync(g).mtimeMs > 12 * 3600e3) { const n = fs.readdirSync(g).length; fs.rmSync(g, { recursive: true, force: true }); freed += n; } } catch { /* none */ } }
+    for (const d of fs.existsSync(cr) && process.env.FAST_RUN_KEEP_CACHE !== "1" ? fs.readdirSync(cr) : []) {   /* FAST_RUN_KEEP_CACHE=1: a rehearsal (tools/stream/stream_rehearsal.mjs) never deletes another project's cache */ const g = path.join(cr, d, "cutgroups"); try { if (Date.now() - fs.statSync(g).mtimeMs > 12 * 3600e3) { const n = fs.readdirSync(g).length; fs.rmSync(g, { recursive: true, force: true }); freed += n; } } catch { /* none */ } }
     const df = spawnSync("df", ["-BG", "/s"], { encoding: "utf8" }).stdout.split("\n")[1]?.trim().split(/\s+/), free = Number((df?.[3] ?? "0").replace("G", ""));
     console.log(`المساحة الحرة على S: ${free} جيغابايت${freed ? ` (حُذفت ${freed} ملفاً من ذاكرة القص القديمة)` : ""}${free < 40 ? " ✘ أقل من 40: أخبر المستخدم قبل البدء" : ""}`); }
   save({ t0: Date.now(), marks: {} }); console.log(`بدأت الساعتان الآن؛ الميزانية (دقائق): ${Object.entries(BUDGET).map(([k, v]) => `${k} ${v}`).join(" · ")}`); }

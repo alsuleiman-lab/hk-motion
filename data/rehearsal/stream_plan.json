@@ -1,0 +1,9 @@
+{
+ "_note": "the 3 clips of the stream rehearsal sample (10 min from 30:00 of «بث للحوار مع المخالفين (2)»), read from its own transcript + speakers (2026-11-22): one call opening (≤ 2 min → portrait), one long discussion (> 2 min → landscape), one decisive answer (≤ 2 min → portrait). a/b = seconds in the SAMPLE; start/end = the words he said there. drops = the retakes judged from redo.txt (a real restart at 195.9; the side talk with the technician at 358.7) → cut_smart.sh's second argument.",
+ "drops": "195.92-198.28,358.67-369.08",
+ "clips": [
+  { "id": "zz_stream_rehearsal_1", "topic": "المتصل يسأل عن العمل في الإيمان (افتتاح المكالمة)", "kind": "call", "ranges": [ { "a": 56.6, "b": 154.5, "start": "السلام عليكم ورحمة الله", "end": "يقول إن العمل ليس من الإسلام صحيح" } ] },
+  { "id": "zz_stream_rehearsal_2", "topic": "نقاش: ما معنى قول أهل العلم الإيمان قول وعمل", "kind": "main", "ranges": [ { "a": 372.4, "b": 565.2, "start": "طيب تتكلم أنا ولا تتكلم أنت", "end": "أيضا نحن نقول به" } ] },
+  { "id": "zz_stream_rehearsal_3", "topic": "جواب الشيخ: من لا عمل عنده ليس بمسلم", "kind": "reel", "ranges": [ { "a": 159.0, "b": 204.5, "start": "أقول إن العمل من الإسلام", "end": "لا يسمى عندنا مسلم" } ] }
+ ]
+}

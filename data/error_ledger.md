@@ -93,3 +93,17 @@
 
 - (2026-11-22) `plan-from-memory`: خطة بث من الذاكرة بترتيب خاطئ وبلا آيات وأحاديث («لا يلتزم بالإجراء»)؛ الحارس المُوصِل `tools/conduct.mjs` (الإجراء المكتوب آلة حالة في `data/pipelines/`، والهوك يرفض ما ليس خطوته ويردّ الإنجاز المدّعى والخطة من الذاكرة)، وحالاته `conduct.*` في `tools/selftest_cases/m_conductor.mjs`.
 - (2026-11-22) تسريع التفريغ: الفك المجمَّع لعدة مقاطع أسرع نحو 1.7 مرة لكنه **لا يطابق** الفك مقطعاً مقطعاً (مقاطع قليلة تخرج بكلمات أخرى)، فبقي الافتراضي `BATCH_DEFAULT = 1` في `tools/transcribe_vad_segments.py`، وحالة `transcribe.batch_identity_gate` تمنع رفعه دون تطابق. هذه الحالة تستعمل كرت الشاشة (نحو 15 ثانية).
+
+## تجربة البث الشاملة (2026-11-22، `tools/stream/stream_rehearsal.mjs`، عيّنة 10 دقائق من بث الحوار مع المخالفين)
+أخطاء محرك البث التي كشفتها قبل أي بث حقيقي، وكل منها محروس في `tools/selftest_cases/l_stream_rehearsal.mjs`:
+- `cut-speech-past-media-end`: كلام ينتهي بعد نهاية الفيديو أوقف القص («قطع داخل كلمة»)؛ تُقصّ الكلمات والكلام غير المفرَّغ عند نهاية الحاوية (`cut_model.mjs`).
+- `lost-speech-ordered-rem`: كل إعادة تُحذف بقرار مكتوب كانت تُخفق `lost_speech_check`؛ صار ما في `explicit_rem.json` قراراً لا ضياعاً.
+- `stream-clip-no-bumper`: كل مقطع عرضي رُفض «لا فاصل في الخطة»؛ `clip_build` يضع الفاصل في الخاتمة (`bumper_at --end`).
+- `slice-gate-failed-passed`: الاقتطاع يطبع فشل البوابة ويخرج 0، والمقطع بلا جدول كلمات الأب؛ صار الجدول يُمرَّر والخروج 1.
+- `stream-slice-needs-sections`: مقطع بث عرضي يُطلب له «أقسام»؛ `slicedFrom` يُخرجه (`prepublish_gates.mjs`).
+- `stream-template-waivers`: القالب يكتب إعفاءات يرفضها `coverage_check`، و`clip_pictures` يُرفض عنصره؛ لا إعفاء بعد اليوم، وتُفسح الطريق قبل الإضافة، وللمستحقات `vals`.
+- `gate-inaudible-join-click`: نقرة −54 dBFS في ضجيج الغرفة تُوقف المقطع؛ يحكم قياس الوصلة الواحد.
+- `sfx-onset-flagged-click`: بداية مؤثر `el_tick` تُعدّ حافة نقرة؛ لم تعد.
+- `asr-audit-local-loader`: `asr_audit` يخطّئ دالة `load_model` المعرَّفة على large-v3.
+- `repair-panel-overlap`: لوحة سدّ الفراغ تُمسك إلى ما بعد الفراغ فتتراكب مع التالي.
+- `stream-rehearsal-scoped`: أداة التجربة نفسها (`plan` و`run` و`purge` بأسماء التجربة وحدها).

@@ -30,6 +30,7 @@ export function sectionsWant(spec, root = WS) {
 export function appliesToEpisode(p, spec, root = WS) {
   if (!spec || NO_SECTIONS_KINDS.includes(spec.kind)) return false;
   if (/^(stream|lesson)[_-]/.test(p) || /-R$/.test(p) || spec.fromEpisode) return false;
+  if (rd(path.join(root, ".tmp", p, "prep_config.json"), null)?.slicedFrom) return false;   // a slice of a stream/lesson cut (tools/stream/clip_slice.mjs writes slicedFrom): its id need not start with stream_/lesson_ (a landscape stream clip failed «لا أقسام» in the dress rehearsal 2026-11-22)
   if (fs.existsSync(path.join(root, "public", "silent", p, "config.json"))) return false;
   const fa = rd(path.join(root, ".tmp", p, "first_answers.json"), null);
   return !fa?.formats || /عرضي/.test(String(fa.formats));   // the landscape form was chosen (first-questions)

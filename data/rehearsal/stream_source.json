@@ -1,0 +1,10 @@
+{
+ "_note": "the FIXED sample of the STREAM dress rehearsal (tools/stream/stream_rehearsal.mjs): 10 minutes of the real stream, read-only from Videos, cut by stream copy (no re-encode) into .tmp/zz_stream_rehearsal/sample10.mp4 (never under Videos). Three audio tracks kept: 0 = the broadcast mix (what the pipeline reads), 1 = his microphone, 2 = the computer (clip_audio_fix rebuilds the mix from tracks 1+2). Measured on this sample before the rehearsal: speech detection 13 s, transcription 93 s.",
+ "origin": "C:/Users/mshms/Videos/بث للحوار مع المخالفين (2).mp4",
+ "originS": 13608.7,
+ "startS": 1800,
+ "lengthS": 600,
+ "audioTracks": 3,
+ "file": ".tmp/zz_stream_rehearsal/sample10.mp4",
+ "known": { "vadS": 13, "transcribeS": 93 }
+}

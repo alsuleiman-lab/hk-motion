@@ -1,0 +1,14 @@
+{
+ "_note": "the agent's work in the stream flow that no tool can invent: the gallery picks that pick_triggers says are DUE in the 3 clips (no waiver: «لا طلب إعفاء»), each from his own words of that moment (never an invented text). Applied by the rehearsal's «pictures» stage through tools/stream/clip_pictures.mjs (entries with vals).",
+ "zz_stream_rehearsal_1": [
+  { "el": "Iceberg", "at": 32.0, "until": 38.5, "vals": { "top": ["إظهار العقدي"], "hidden": ["الاستحلال العقدي"], "revealAt": 3.0 } }
+ ],
+ "zz_stream_rehearsal_2": [
+  { "el": "Footnote", "at": 47.3, "until": 55.0, "vals": { "before": "بمعنى الإسلام ومعنى", "word": "الإيمان", "wordAt": 1.5, "meaning": "قول وعمل ولا يصح بدون عمل", "noteAt": 4.0 } },
+  { "el": "Iceberg", "at": 86.5, "until": 93.0, "vals": { "top": ["مظاهرة المشركين"], "hidden": ["ناقض من نواقض الإسلام", "أمر عملي لا علاقة له بالاعتقاد"], "revealAt": 3.0 } },
+  { "el": "FillGlasses", "at": 121.5, "until": 127.5, "vals": { "items": [ { "label": "القول", "value": 0.9, "at": 1.5 }, { "label": "الاعتقاد", "value": 0.7, "at": 2.5 }, { "label": "العمل", "value": 0.8, "at": 3.5 } ] } }
+ ],
+ "zz_stream_rehearsal_3": [
+  { "el": "FillGlasses", "at": 23.2, "until": 29.0, "vals": { "items": [ { "label": "القول", "value": 0.9, "at": 1.0 }, { "label": "العمل", "value": 0.8, "at": 2.0 } ] } }
+ ]
+}

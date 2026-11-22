@@ -22,22 +22,36 @@ const read = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } 
 const ranges = (s) => String(s || "").split(",").filter(Boolean).map((r) => r.split("-").map(Number)).filter(([a, b]) => b > a);
 const mmss = (t) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, "0")}`;
 
+/** the container duration of the project's source video. The cut can never reach past it, yet the 16 kHz wav of its audio (the VAD, the transcript and the aligned words
+ *  are measured on it) can be 0.1–0.3 s LONGER: a recording that ends while he is still speaking (the last 5 s of a stream sample, or the live stream's own last sentence) then
+ *  had a speech stretch / last word running past the end of the video and the plan failed «قطع داخل كلمة» on a word nobody could keep (found by the stream dress rehearsal 2026-11-22). */
+const mediaDurCache = new Map();
+export function mediaDur(p) {
+  if (mediaDurCache.has(p)) return mediaDurCache.get(p);
+  const f = read(path.join(T(p), "prep_config.json"), {}).source ?? path.join("public", `${p}_src.mp4`);
+  let d = Infinity; try { if (fs.existsSync(f)) { const x = fileDur(f); if (x > 0) d = x; } } catch { /* unreadable: no clamp */ }
+  mediaDurCache.set(p, d); return d;
+}
+/** words clamped to the media: a word that ends past it ends at it, one that starts at or past it is gone */
+export const clampWords = (words, D) => (D === Infinity || !words.some((w) => w.e > D) ? words : words.filter((w) => w.s < D - 0.02).map((w) => (w.e > D ? { ...w, e: D } : w)));
+
 /** the word table (source seconds). Falls back to words.json (not aligned) for projects made before the table existed — reported, never silent. */
 export function loadTable(p) {
   const t = read(path.join(T(p), "words_table.json"), null);
-  if (t?.words?.length) return { words: t.words, source: "words_table" };
+  if (t?.words?.length) return { words: clampWords(t.words, mediaDur(p)), source: "words_table" };
   const w = read(path.join(T(p), "words.json"), []);
   return { words: w.map((x, i) => ({ i, w: x.w, s: x.s, e: x.e, p: x.p ?? null, aligned: false })), source: w.length ? "words.json (غير محاذى)" : "none" };
 }
 
 /** speech the VAD hears where the table has no word (a word Whisper missed): kept as pseudo-words so the plan never drops speech silently; listed for a listen */
 export function untranscribed(p, words) {
+  const D = mediaDur(p);
   let vad = []; try { vad = JSON.parse(fs.readFileSync(path.join(T(p), "vad.json"), "utf8")).speech ?? []; } catch { return []; }
   const out = [];
   for (const [s0, e0] of vad) {
     const inside = words.filter((w) => w.e > s0 && w.s < e0).sort((x, y) => x.s - y.s);
     let cur = s0;
-    for (const w of [...inside, { s: e0, e: e0 }]) { if (w.s - cur > 0.35) out.push({ w: "[غير مفرَّغ]", s: +(cur + 0.05).toFixed(3), e: +(w.s - 0.05).toFixed(3), p: null, aligned: false, pseudo: true }); cur = Math.max(cur, w.e); }
+    for (const w of [...inside, { s: e0, e: e0 }]) { if (w.s - cur > 0.35) out.push({ w: "[غير مفرَّغ]", s: +(cur + 0.05).toFixed(3), e: +Math.min(w.s - 0.05, D).toFixed(3), p: null, aligned: false, pseudo: true }); cur = Math.max(cur, w.e); }
   }
   return out.filter((x) => x.e - x.s > 0.25);
 }

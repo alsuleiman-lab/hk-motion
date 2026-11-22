@@ -114,15 +114,16 @@
    "gate": [{ "type": "json_covers_clips", "path": ".tmp/{p}/titles.json", "fields": ["title", "main"] }]
   },
   {
-   "id": "slice", "requires": [{"file":".claude/skills/extraction/SKILL.md"}], "ar": "تسجيل المقاطع نطاقات فوق الأصل (أربعة معاً، بلا ملف فيديو) ومعها الآيات والسجل وبوابة الصوت", "type": "auto", "bg": true, "skill": "lessons-and-streams · البند 14(د) و15 · «تقسيم 12 د» · extraction (الآيات) · المقطع قائمة نطاقات وصوت لاضائع (clip_lazy.mjs)؛ STREAM_ENCODE=1 = شريحة فيديو لكل مقطع (clip_slice.mjs)",
-   "deps": ["cut", "lost_check"], "budgetMin": 12, "budgetNote": "الرقم من قبل الكسل (فيه ترميز كل شريحة)؛ المقيس على العيّنة بعد الكسل: تسجيل 3 مقاطع (5:37 د) 4 ث بلا requirements (تفريغ large-v3 على الكرت، ≈107 ث لمقطع 92 ث)؛ البث الكامل غير مقيس",
-   "cmd": ["node", "tools/stream/fast_run.mjs", "slice", "{p}", "--jobs", "4"],
+   "id": "slice", "requires": [{"file":".claude/skills/extraction/SKILL.md"}], "ar": "تسجيل المقاطع نطاقات فوق الأصل (أربعة معاً؛ حالة كل مقطع مستقلة، والفاشل لا يحجب السليم) ومعها الآيات والسجل وبوابة الصوت", "type": "auto", "bg": true, "foreach": "clips", "jobs": 4, "skill": "lessons-and-streams · البند 14(د) و15 · extraction (الآيات) · per-clip state in conductor · GPU model lock · المقطع قائمة نطاقات وصوت لاضائع (clip_lazy.mjs)؛ STREAM_ENCODE=1 = شريحة فيديو لكل مقطع (clip_slice.mjs)",
+   "fingerprintFiles": [".tmp/{p}/cut_audio.wav", "public/{c}_map.json", ".tmp/{c}/noise_ok.json", "tools/stream/clip_lazy.mjs", "tools/audio_gate.mjs", "tools/stream/join_fade.py", "tools/requirements.mjs", "tools/lib/gpu_model_lock.mjs"],
+   "deps": ["cut", "lost_check"], "budgetMin": 60, "budgetNote": "الرقم من قبل الكسل (فيه ترميز كل شريحة)؛ المقيس على العيّنة بعد الكسل: تسجيل 3 مقاطع (5:37 د) 4 ث بلا requirements (تفريغ large-v3 على الكرت، ≈107 ث لمقطع 92 ث)؛ البث الكامل غير مقيس",
+   "cmd": ["node", "tools/stream/fast_run.mjs", "slice", "{p}", "--jobs", "1", "--only", "{c}"],
    "also": ["tools/stream/clip_lazy.mjs", "tools/verse_scan.mjs", "tools/requirements.mjs", "tools/name_doubt.mjs", "tools/audio_gate.mjs", "tools/moves_plan.mjs"],
    "gate": [{ "type": "files", "paths": ["public/{c}_map.json", ".tmp/{c}/lazy_clip.json", ".tmp/{c}/cut_audio.wav", ".tmp/{c}/cut_words.json", ".tmp/{c}/verses.json", ".tmp/{c}/requirements.json", ".tmp/gates/{c}.audio.ok"] }]
   },
   {
    "id": "hadith_scan", "requires": [{"file":".claude/skills/extraction/SKILL.md"}], "ar": "كشف الأحاديث المروية في كل مقطع (hadith_scan)", "type": "auto", "bg": true, "foreach": "clips", "jobs": 3, "skill": "extraction (الأحاديث) · البند 5 من الشجرة",
-   "deps": ["slice"], "budgetMin": null,
+   "deps": ["slice"], "continueAfter": {"slice": ["public/{c}_map.json", ".tmp/{c}/lazy_clip.json", ".tmp/{c}/cut_words.json", ".tmp/gates/{c}.audio.ok"]}, "budgetMin": null,
    "cmd": ["node", "tools/hadith_scan.mjs", "{c}"],
    "gate": [{ "type": "files", "paths": [".tmp/{c}/hadith.json"] }]
   },
@@ -136,20 +137,20 @@
   },
   {
    "id": "pictures_in", "requires": [{"file":".claude/skills/gallery-placement/SKILL.md"}], "ar": "صور المذكورات pictures.json (كل اسم ومكان وحالة ومصحف له صورته)", "type": "creative", "skill": "rules.md «صور المذكورات» (أمر المستخدم 2026-11-19) · gallery-placement",
-   "deps": ["slice"], "budgetMin": null,
+   "deps": ["slice"], "continueAfter": {"slice": ["public/{c}_map.json", ".tmp/{c}/requirements.json", ".tmp/gates/{c}.audio.ok"]}, "budgetMin": null,
    "creative": { "what": ".tmp/{p}/pictures.json = { \"<مقطع>\": [ { el, at, until, src, name? } ] } لكل مقطع، ولا إعفاء لمذكور من صورته", "file": ".tmp/{p}/pictures.json" },
    "gate": [{ "type": "json_covers_clips", "path": ".tmp/{p}/pictures.json", "fields": [], "array": true }]
   },
   {
-   "id": "build", "ar": "بناء المقاطع آلياً من العناوين (القالب السريع) وتسجيل تركيباتها", "type": "auto", "bg": true, "skill": "lessons-and-streams · البند 15 · «بناء 35 د»",
-   "deps": ["slice", "titles"], "budgetMin": 35, "fastMark": "build",
-   "cmd": ["node", "tools/stream/clip_autobuild.mjs", "{p}", "--run"],
+   "id": "build", "ar": "بناء المقاطع آلياً من العناوين (القالب السريع) وتسجيل تركيباتها", "type": "auto", "bg": true, "foreach": "clips", "jobs": 3, "skill": "lessons-and-streams · البند 15 · «بناء 35 د»",
+   "deps": ["slice", "titles"], "requiresFiles": ["{src}"], "continueAfter": {"slice": ["public/{c}_map.json", ".tmp/{c}/lazy_clip.json", ".tmp/{c}/cut_words.json", ".tmp/{c}/requirements.json", ".tmp/gates/{c}.audio.ok"]}, "budgetMin": 35,
+   "cmd": ["node", "tools/stream/clip_autobuild.mjs", "{p}", "{c}", "--run"],
    "gate": [{ "type": "files", "paths": ["data/specs/{c}.json"] }]
   },
   {
-   "id": "pictures", "requires": [{"file":".claude/skills/gallery-placement/SKILL.md"}], "ar": "تركيب صور المذكورات بعد البناء وقبل الإصلاح", "type": "auto", "bg": true, "skill": "rules.md «صور المذكورات»",
+   "id": "pictures", "requires": [{"file":".claude/skills/gallery-placement/SKILL.md"}], "ar": "تركيب صور المذكورات بعد البناء وقبل الإصلاح لكل مقطع مستقل", "type": "auto", "bg": true, "foreach": "clips", "jobs": 1, "skill": "rules.md «صور المذكورات»",
    "deps": ["build", "pictures_in"], "budgetMin": null,
-   "cmd": ["node", "tools/stream/clip_pictures.mjs", "{p}", "{clips}"]
+   "cmd": ["node", "tools/stream/clip_pictures.mjs", "{p}", "{c}"]
   },
   {
    "id": "hadith_write", "requires": [{"file":".claude/skills/extraction/SKILL.md"}], "ar": "وضع بطاقة كل حديث موثَّق في المواصفة (hadith_scan --write)", "type": "auto", "bg": true, "foreach": "clips", "jobs": 3, "skill": "extraction (التوثيق ← بطاقة الكتاب والرقم)",
@@ -157,9 +158,9 @@
    "cmd": ["node", "tools/hadith_scan.mjs", "{c}", "--write"]
   },
   {
-   "id": "repair", "ar": "الإصلاح الآلي: سدّ الفراغات وفكّ التداخل وإكمال الأنواع وبطاقات الآيات", "type": "auto", "bg": true, "skill": "lessons-and-streams · البند 15 (clip_repair)",
+   "id": "repair", "ar": "الإصلاح الآلي لكل مقطع: سدّ الفراغات وفكّ التداخل وإكمال الأنواع وبطاقات الآيات", "type": "auto", "bg": true, "foreach": "clips", "jobs": 3, "skill": "lessons-and-streams · البند 15 (clip_repair)",
    "deps": ["pictures", "hadith_write"], "budgetMin": null,
-   "cmd": ["node", "tools/stream/clip_repair.mjs", "{clips}"]
+   "cmd": ["node", "tools/stream/clip_repair.mjs", "{c}"]
   },
   {
    "id": "slots", "ar": "عنصر واحد في كل مساحة ثم شبكة المواضع لكل مقطع", "type": "auto", "bg": true, "foreach": "clips", "jobs": 3, "skill": "القواعد_العامة.md §4 (عنصر واحد في كل مساحة) · rules.md",
@@ -173,9 +174,9 @@
    "gate": [{ "type": "prerender_fresh" }]
   },
   {
-   "id": "checks", "requires": [{"file":".claude/skills/checking/SKILL.md"}], "ar": "فحص كل مقطع (ثلاثة معاً): التلاوة، الأسماء، طمس النساء، الغلاف، الفاصل، التغطية", "type": "auto", "bg": true, "skill": "lessons-and-streams · البند 15 · checking · «فحوص 15 د»",
+   "id": "checks", "requires": [{"file":".claude/skills/checking/SKILL.md"}], "ar": "فحص كل مقطع مستقلاً: التلاوة، الأسماء، طمس النساء، الغلاف، الفاصل، التغطية", "type": "auto", "bg": true, "foreach": "clips", "jobs": 1, "skill": "lessons-and-streams · البند 15 · checking · «فحوص 15 د»",
    "deps": ["prerender"], "budgetMin": 15,
-   "cmd": ["node", "tools/stream/fast_run.mjs", "checks", "{p}", "--jobs", "3"],
+   "cmd": ["node", "tools/stream/fast_run.mjs", "checks", "{p}", "--jobs", "1", "--only", "{c}"],
    "also": ["tools/stage.mjs", "tools/verse_audit.mjs", "tools/recitation_check.mjs", "tools/clip_people_gate.py", "tools/bumper_at.mjs", "tools/coverage_check.mjs"],
    "gate": [
     { "type": "fast_checks_ok" },
@@ -186,20 +187,20 @@
    ]
   },
   {
-   "id": "queue", "ar": "طابور الرندر: الفاصل في الآخر، والوجهة بالطول (≤ دقيقتين طولي، وأكثر عرضي)", "type": "auto", "skill": "lessons-and-streams · البند 7 و1 (خريطة التوزيع) · identity (الفاصل)",
+   "id": "queue", "ar": "طابور الرندر لكل مقطع ناجح؛ عامل واحد مشترك يبدأ عند أول مهمة", "type": "auto", "foreach": "clips", "jobs": 1, "skill": "lessons-and-streams · البند 7 و1 (خريطة التوزيع) · identity (الفاصل)",
    "deps": ["checks"], "budgetMin": null, "fg": true,
-   "cmd": ["node", "tools/stream/fast_run.mjs", "queue", "{p}"],
+   "cmd": ["node", "tools/stream/fast_run.mjs", "queue", "{p}", "--only", "{c}"],
    "gate": [{ "type": "queue_jobs" }, { "type": "prerender_fresh" }]
   },
   {
    "id": "render", "ar": "الرندر على كرت الشاشة بعامل واحد (تلقائي بلا إذن للبثوث)", "type": "watch", "exclusive": false, "skill": "lessons-and-streams · البند 7 · «رندر 45 د» · remotion-render",
-   "deps": ["queue"], "budgetMin": 45,
+   "deps": ["queue"], "continueAfterAny": ["queue"], "budgetMin": 45,
    "watch": "الطابور يعمل: node tools/render_queue.mjs ls",
    "gate": [{ "type": "render_done" }]
   },
   {
    "id": "final_review", "requires": [{"file":".claude/skills/checking/SKILL.md"}], "ar": "الفحص النهائي على كل ملف مرندر", "type": "auto", "bg": true, "foreach": "clips", "jobs": 2, "skill": "lessons-and-streams · البند 3 (خطوة 1.4) · checking",
-   "deps": ["render"], "budgetMin": null,
+   "deps": ["render"], "continueAfter": {"render": [".tmp/gates/{c}.{O}.render.ok"]}, "budgetMin": null,
    "cmd": ["node", "tools/final_review.mjs", "{file}", "--name", "{c}"],
    "gate": [{ "type": "final_ok" }]
   },

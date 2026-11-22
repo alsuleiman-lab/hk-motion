@@ -18,12 +18,17 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import * as C from "./lib/conduct_core.mjs";
+import { envWithBash } from "./lib/bash_runtime.mjs";
 
 const ROOT = C.ROOT;
 process.chdir(ROOT);
+/* Git Bash is needed only by a command that is launched (a step's runner, `next` starting one), never by plan / lint / status: resolved at the first launch, once.
+   A missing or invalid Git is returned as an error object (a bash command then fails with its message); it never throws at import. */
+let BASH_ENV = null;
+const ensureBashEnv = () => { if (!BASH_ENV) { try { Object.assign(process.env, envWithBash(process.env)); BASH_ENV = { ok: true }; } catch (e) { BASH_ENV = { ok: false, error: String(e?.message ?? e) }; } } return BASH_ENV; };
 try { os.setPriority(process.pid, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch { /* best effort */ }
 const argv = process.argv.slice(2);
-const FLAG_VAL = new Set(["evidence", "set", "def", "user-said", "file"]);
+const FLAG_VAL = new Set(["evidence", "set", "def", "user-said", "file", "clip", "reason"]);
 const flags = {}, sets = [], pos = [];
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
@@ -128,39 +133,63 @@ const logOf = (p, id) => path.join(ROOT, ".tmp", p, `conduct_${id}.log`);
 const fastMark = (p, key, what) => { if (key && fs.existsSync(path.join(ROOT, "tools", "stream", "fast_run.mjs"))) spawnSync(process.execPath, ["tools/stream/fast_run.mjs", "mark", p, key, what], { cwd: ROOT, encoding: "utf8", windowsHide: true }); };
 const runOne = (argv, env, log, cwd) => new Promise((resolve) => {
   const [c, ...a] = argv; fs.appendFileSync(log, `\n$ ${argv.join(" ")}\n`);
+  const be = ensureBashEnv(); if (!be.ok && /^(bash|sh)(\.exe)?$/i.test(path.basename(String(c)))) { fs.appendFileSync(log, be.error + "\n"); resolve({ code: 127, tail: be.error, errTail: be.error }); return; }
   const ch = spawn(c, a, { cwd, env: { ...process.env, PYTHONIOENCODING: "utf-8", ...env }, windowsHide: true });
   try { os.setPriority(ch.pid, os.constants.priority.PRIORITY_BELOW_NORMAL); } catch { /* best effort */ }
-  let tail = ""; const take = (d) => { const s = d.toString(); tail = (tail + s).slice(-2000); fs.appendFileSync(log, s); };
-  ch.stdout.on("data", take); ch.stderr.on("data", take);
-  ch.on("error", (e) => resolve({ code: 127, tail: String(e.message) }));
-  ch.on("close", (code) => resolve({ code: code ?? 1, tail }));
+  let tail = "", errTail = ""; const take = (d) => { const s = d.toString(); tail = (tail + s).slice(-4000); fs.appendFileSync(log, s); };
+  ch.stdout.on("data", take); ch.stderr.on("data", (d) => { errTail = (errTail + d.toString()).slice(-2000); take(d); });
+  ch.on("error", (e) => resolve({ code: 127, tail: String(e.message), errTail: String(e.message) }));
+  ch.on("close", (code) => resolve({ code: code ?? 1, tail, errTail }));
 });
+/** the failure reason of a command: the REAL error line (the first one saying ✘ / Error / ENOENT, else the last stderr line, else the last output line), and the exit code —
+    not the last line of output, which is often a later, unrelated message (a spec was refused «لن تُعتمد مواصفة…» instead of the error that caused it) */
+const reasonOf = (r) => {
+  const lines = String(r.tail ?? "").split(/\r?\n/).map((x) => x.trim()).filter(Boolean), errLast = String(r.errTail ?? "").split(/\r?\n/).map((x) => x.trim()).filter(Boolean).slice(-1)[0];
+  const line = lines.find((x) => /✘|Error|ENOENT/.test(x)) ?? errLast ?? lines.slice(-1)[0] ?? "";
+  return `${line.slice(0, 200)}${line ? " " : ""}(رمز ${r.code})`;
+};
 /** run every command of a step (per clip, `jobs` at a time), then its gates; the outcome goes into the state */
 async function runStep(p, id) {
+  ensureBashEnv();
   const R = loadRun(p); if (R.error) { console.error(R.error); return 1; }
   const { def } = R, s = def.steps.find((x) => x.id === id); if (!s) { console.error(`لا خطوة ${id}`); return 1; }
   const log = logOf(p, id); fs.mkdirSync(path.dirname(log), { recursive: true }); fs.writeFileSync(log, `# ${id} ${new Date().toISOString()}\n`);
   C.editState(ROOT, p, (st) => { Object.assign(C.stepState(st, id), { status: "running", startedAt: Date.now(), pid: process.pid, exit: null, why: null, waiting: null, log: rel(log), overBudget: false }); });
   if (s.budgetMin) setTimeout(() => C.editState(ROOT, p, (st) => { const x = C.stepState(st, id); if (x.status === "running") x.overBudget = true; }), s.budgetMin * 60e3).unref();
   fastMark(p, s.fastMark, "start");
-  const st0 = C.readState(ROOT, p), clips = C.clipsFor(ROOT, def, st0);
-  const jobs = s.foreach === "clips" ? clips.map((c) => ({ c })) : [{ c: null }];
-  const fails = []; let lastTail = "";
+  const st0 = C.readState(ROOT, p), clips = C.clipsFor(ROOT, def, st0), perClip = s.foreach === "clips";
+  if (perClip) C.editState(ROOT, p, (st) => { const x = C.stepState(st, id); x.items ??= {}; for (const c of clips) x.items[c] ??= { status: "pending" }; });
+  const fresh = C.readState(ROOT, p);
+  const jobs = perClip ? clips.filter((c) => {
+    const item = fresh.steps[id]?.items?.[c], status = item?.status ?? "pending";
+    const retryChanged = status === "failed" && Boolean(item.failureFingerprint && item.failureFingerprint !== C.itemFingerprint(ROOT, fresh, s, c));
+    return (status === "pending" || retryChanged) && C.itemDepsReady(def, fresh, s, c);
+  }).map((c) => ({ c })) : [{ c: null }];
+  const fails = []; let passed = 0;
+  const itemResult = (c, status, why = null) => C.editState(ROOT, p, (st) => { const x = C.stepState(st, id); x.items ??= {}; x.items[c] = { ...(x.items[c] ?? {}), status, why, endedAt: Date.now(), failureFingerprint: status === "failed" ? C.itemFingerprint(ROOT, st, s, c) : null }; });
   const doJob = async (j) => {
     for (const a of cmdsOf(s)) {
-      const ctx = { ...fillCtx(st0, def), c: j.c ?? undefined, clips };
+      const ctx = { ...fillCtx(st0, def), c: j.c ?? undefined, clips: j.c ? [j.c] : clips };
       const argv2 = C.fillArgv(a, ctx), env = Object.fromEntries(Object.entries(s.env ?? {}).map(([k, v]) => [k, C.fill(v, ctx)]));
-      const r = await runOne(argv2, env, log, ROOT); lastTail = r.tail;
-      if (r.code !== 0) { fails.push(`${j.c ?? s.id}: ${r.tail.trim().split(/\r?\n/).filter(Boolean).slice(-1)[0]?.slice(0, 120) ?? "رمز " + r.code}`); return; }
+      const r = await runOne(argv2, env, log, ROOT);
+      if (r.code !== 0) { const why = reasonOf(r); fails.push(`${j.c ?? s.id}: ${why}`); if (perClip) itemResult(j.c, "failed", why); return; }
     }
+    if (perClip && (s.gate ?? []).length) {
+      const now = C.readState(ROOT, p), g = await C.checkGates(s, { root: ROOT, def, state: now, p, args: now.args, clips: [j.c] });
+      if (!g.ok) { fails.push(`${j.c}: ${g.why}`); itemResult(j.c, s.async ? "waiting" : "failed", g.why); return; }
+    }
+    if (perClip) itemResult(j.c, "done");
+    passed++;
   };
-  if (s.foreach === "clips" && !clips.length) fails.push("لا مقاطع (clip_table.json) لهذه الخطوة");
+  if (perClip && !clips.length) fails.push("لا مقاطع (clip_table.json) لهذه الخطوة");
+  if (perClip && clips.length && !jobs.length) fails.push("لا مقطع جاهز لهذه الخطوة؛ تبعيات المقاطع لم تكتمل بعد");
   const q = [...jobs], n = Math.max(1, Math.min(s.jobs ?? 1, q.length || 1));
   await Promise.all(Array.from({ length: n }, async () => { while (q.length) await doJob(q.shift()); }));
   fastMark(p, s.fastMark, "end");
-  const exit = fails.length ? 1 : 0;
-  C.editState(ROOT, p, (st) => { const x = C.stepState(st, id); x.exit = exit; x.pid = null; if (exit) { x.status = "failed"; x.why = fails.slice(0, 3).join(" | "); x.endedAt = Date.now(); } });
-  if (exit) return 1;
+  const latest = C.readState(ROOT, p), allItemsDone = perClip && clips.length > 0 && clips.every((c) => latest.steps[id]?.items?.[c]?.status === "done");
+  const exit = fails.length && (!perClip || passed === 0) ? 1 : 0;
+  C.editState(ROOT, p, (st) => { const x = C.stepState(st, id); x.exit = exit; x.pid = null; x.endedAt = Date.now(); if (perClip) { x.status = allItemsDone ? "done" : passed ? "partial" : "failed"; x.why = fails.slice(0, 3).join(" | ") || null; } else if (exit) { x.status = "failed"; x.why = fails.slice(0, 3).join(" | "); } });
+  if (perClip || exit) return exit;
   const st1 = C.readState(ROOT, p), ctx1 = { root: ROOT, def, state: st1, p, args: st1.args, clips };
   const g = await C.checkGates(s, ctx1);
   C.editState(ROOT, p, (st) => { const x = C.stepState(st, id); if (g.ok) { x.status = "done"; x.endedAt = Date.now(); x.waiting = null; } else if (s.async) x.waiting = g.why; else { x.status = "failed"; x.why = g.why; x.endedAt = Date.now(); } });
@@ -171,6 +200,7 @@ if (cmd === "_run") { const code = await runStep(rest[0], rest[1]); process.exit
 /* ── starting a step from `next` ──────────────────────────────────────────────────────────────────────────────────── */
 function startStep(def, st, s) {
   const p = st.project, ctx = fillCtx(st, def);
+  ensureBashEnv();
   if (s.type === "watch") { C.editState(ROOT, p, (x) => { Object.assign(C.stepState(x, s.id), { status: "running", startedAt: Date.now(), exit: null }); }); return { how: "تراقب الخلفية" }; }
   if (s.type !== "auto") return null;
   const joined = JSON.stringify(cmdsOf(s)).replace(/\{file:[^}]*\}/g, "");
@@ -194,25 +224,26 @@ function startStep(def, st, s) {
 
 /* ── next ─────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 async function finishIfComplete(def, st) {
-  const ev = C.evaluate(def, st);
+  const ev = C.evaluate(def, st, ROOT);
   if (ev.complete && st.active) { C.editState(ROOT, st.project, (x) => { x.active = false; x.completedAt = Date.now(); }); const a = C.rd(C.activeFile(ROOT), null); if (a?.project === st.project) fs.rmSync(C.activeFile(ROOT), { force: true }); }
   return ev;
 }
 if (cmd === "next" || cmd === "status") {
   const p = resolveP(rest[0]); if (!p) { say("لا تشغيل مفتوح: node tools/conduct.mjs start <النوع> <المشروع> (الخطة: node tools/conduct.mjs plan <النوع>)"); process.exit(1); }
   let R = loadRun(p); if (R.error) { say(R.error); process.exit(1); }
-  await C.reconcile(ROOT, R.def, R.st); C.editState(ROOT, p, (x) => { Object.assign(x.steps, R.st.steps); }); R = loadRun(p);
+  await C.reconcileAndSave(ROOT, p, R.def, R.st); R = loadRun(p);
   const { def } = R; let st = R.st, ev = await finishIfComplete(def, st);
   const el = Date.now() - st.t0, N = def.steps.length;
   if (cmd === "status") {
     say(`${def.ar ?? def.kind} «${p}» — انقضى ${mmss(el)} من ${def.totalMin ? def.totalMin + " د" : "غير مقيس"}${def.totalMin && el > def.totalMin * 60e3 ? "  ✘ تجاوز الحدّ" : ""} — تمّت ${ev.done.length} من ${N}`);
     for (const r of ev.rows) {
       const s = r.s, ss = r.ss, cur = ev.current === r;
-      const mark = r.status === "done" ? "✔" : r.status === "skipped" ? "↷" : r.status === "failed" ? "✘" : r.status === "running" ? "⏳" : cur ? "◀" : ev.eligible.includes(r) ? "▶" : "·";
+      const mark = r.status === "done" ? "✔" : r.status === "skipped" ? "↷" : r.status === "failed" ? "✘" : r.status === "partial" ? "◐" : r.status === "running" ? "⏳" : cur ? "◀" : ev.eligible.includes(r) ? "▶" : "·";
       const spent = ss.startedAt ? ((ss.endedAt ?? Date.now()) - ss.startedAt) : 0;
       const bud = s.budgetMin ? `${(spent / 60000).toFixed(1)}/${s.budgetMin} د${spent / 60000 > s.budgetMin && r.status !== "done" ? " ✘ تجاوز" : ""}` : spent ? `${(spent / 60000).toFixed(1)} د (غير مقيس)` : "غير مقيس";
-      const state = { done: "تمّت", running: "جارية", failed: "فشلت", pending: ev.eligible.includes(r) ? "جاهزة" : `تنتظر ${s.deps.filter((d) => !["done", "skipped"].includes(st.steps[d]?.status)).join("،")}`, skipped: "تخطّتها بسبب" }[r.status] ?? r.status;
-      say(`${mark} ${String(def.steps.indexOf(s) + 1).padStart(2)} [${s.id}] ${s.ar} — ${state} — ${bud}${ss.why && r.status === "failed" ? ` — ${ss.why.slice(0, 120)}` : ""}${ss.waiting && r.status === "running" ? ` — ينتظر: ${String(ss.waiting).slice(0, 100)}` : ""}`);
+      const completedItems = ss.items ? Object.values(ss.items).filter((x) => x.status === "done").length : 0, totalItems = ss.items ? Object.keys(ss.items).length : 0;
+      const state = { done: "تمّت", running: "جارية", failed: "فشلت", partial: `جزئية ${completedItems}/${totalItems}؛ تتابع العناصر المستقلة`, pending: ev.eligible.includes(r) ? "جاهزة" : `تنتظر ${s.deps.filter((d) => !["done", "skipped"].includes(st.steps[d]?.status)).join("،")}`, skipped: "تخطّتها بسبب" }[r.status] ?? r.status;
+      say(`${mark} ${String(def.steps.indexOf(s) + 1).padStart(2)} [${s.id}] ${s.ar} — ${state} — ${bud}${ss.why && ["failed", "partial"].includes(r.status) ? ` — ${ss.why.slice(0, 120)}` : ""}${ss.waiting && r.status === "running" ? ` — ينتظر: ${String(ss.waiting).slice(0, 100)}` : ""}`);
     }
     { const v = C.violationsSummary(ROOT, p); say(`محاولات الخروج عن الخطة المرفوضة: ${v.n}${v.last ? ` (آخرها: ${v.last.why} — ${String(v.last.tried).slice(0, 70)})` : ""} — data/conduct_violations.jsonl`); }
     say(ev.complete ? "\n✔ الخطوات كلها تمّت." : `\n${C.lineOf(def, st, ev)}`);
@@ -220,12 +251,32 @@ if (cmd === "next" || cmd === "status") {
   }
   if (ev.complete) { say(`✔ الخطوات كلها تمّت لـ«${p}» (${mmss(el)}). ما بقي خارج المُوصِل: سؤال الاعتماد والنشر بمهارتيهما.`); process.exit(0); }
   const cur = ev.current;
-  if (!cur) { say("لا خطوة متاحة: كل شيء جارٍ في الخلفية. انتظر (node tools/conduct.mjs status)."); process.exit(0); }
+  if (!cur) {
+    const stuck = ev.rows.filter((r) => ["partial", "failed"].includes(r.status));
+    if (stuck.length && !ev.running.length) {
+      const items = stuck.flatMap((r) => Object.entries(r.ss.items ?? {}).filter(([, x]) => x.status === "failed").map(([c, x]) => `[${r.s.id}/${c}] ${x.why ?? "فشل بلا سبب"}`)).slice(0, 5);
+      say(`لا عمل جارياً الآن؛ بقيت عناصر معلّقة ولا يعاد الفشل نفسه آلياً. ${items.join(" · ") || stuck.map((r) => `[${r.s.id}] ${r.ss.why ?? "تنتظر تبعية"}`).join(" · ")}`);
+      say("أصلح السبب أو غيّر المدخلات ثم next؛ وإذا كان الإصلاح بيئياً بلا تغير ملف: node tools/conduct.mjs retry <الخطوة> --clip <المقطع> --reason \"<التشخيص والإصلاح>\"");
+      const missing = ev.rows.flatMap((r) => r.s.foreach === "clips" ? C.clipsFor(ROOT, def, st).flatMap((c) => (r.s.requiresFiles ?? []).map((f) => {
+        const rel = C.fill(f, { root: ROOT, p: st.project, c, clips: [c], args: st.args ?? {} });
+        return fs.existsSync(path.resolve(ROOT, rel)) ? null : `[${r.s.id}/${c}] ${rel}`;
+      }).filter(Boolean)) : []);
+      if (missing.length) say(`ملفات لازمة لاستئناف بعض العناصر ما زالت مفقودة: ${missing.slice(0, 5).join(" · ")}`);
+    } else {
+      const missing = ev.rows.flatMap((r) => r.s.foreach === "clips" ? C.clipsFor(ROOT, def, st).flatMap((c) => (r.s.requiresFiles ?? []).map((f) => {
+        const rel = C.fill(f, { root: ROOT, p: st.project, c, clips: [c], args: st.args ?? {} });
+        return fs.existsSync(path.resolve(ROOT, rel)) ? null : `[${r.s.id}/${c}] ${rel}`;
+      }).filter(Boolean)) : []);
+      if (missing.length) say(`خطوات مستقلة معلّقة على ملفات مطلوبة مفقودة؛ لن أطلقها حتى تعود: ${missing.slice(0, 5).join(" · ")}`);
+      else say("لا خطوة متاحة: العمل مستقل جارٍ في الخلفية. انتظر (node tools/conduct.mjs status).");
+    }
+    process.exit(0);
+  }
   // start the current step when it is automatic and not yet running; start the parallel automatic ones with it
   const started = []; const errors = [];
-  const toStart = [cur, ...ev.parallel].filter((r) => ["pending", "failed"].includes(r.status) && ["auto", "watch"].includes(r.s.type) && ev.eligible.includes(r));
+  const toStart = [cur, ...ev.parallel].filter((r) => ["pending", "failed", "partial"].includes(r.status) && ["auto", "watch"].includes(r.s.type) && ev.eligible.includes(r));
   const exclusive = toStart.find((r) => r.s.exclusive);
-  const unreadOf = (s) => C.unreadFor(ROOT, null, st.project, C.requiresOf(def, s), st.t0);
+  const unreadOf = (s) => C.unreadFor(ROOT, null, st.project, C.requiresOf(s.launchBeforeReading ? { ...def, defaultRequires: [] } : def, s), st.t0);
   for (const r of exclusive ? [exclusive] : toStart) {
     const miss0 = unreadOf(r.s);
     if (miss0.length) { errors.push(`[${r.s.id}] لم تُقرأ مهارتها: ${miss0.map((m) => m.file).join("، ")} — اقرأها بأداة القراءة (الملف كله) ثم أعد next`); C.logViolation(ROOT, { project: st.project, step: r.s.id, tried: `next ← بدء ${r.s.id}`, why: "لم تُقرأ مهارة الخطوة" }); continue; }
@@ -234,7 +285,10 @@ if (cmd === "next" || cmd === "status") {
     else if (res?.fgPromise) { const code = await res.fgPromise; started.push(`[${r.s.id}] نُفِّذت الآن ${code === 0 ? "ونجحت بوابتها" : "وفشلت (انظر السجل)"}`); }
     else if (res) started.push(`[${r.s.id}] ${res.how}`);
   }
-  R = loadRun(p); st = R.st; await C.reconcile(ROOT, def, st); C.editState(ROOT, p, (x) => { Object.assign(x.steps, st.steps); }); st = C.readState(ROOT, p); ev = await finishIfComplete(def, st);
+  // A detached runner can write immediately after startStep; reload only. The
+  // reconciliation above already ran before starts, so copying this snapshot
+  // back here would overwrite a just-finished runner's newer item state.
+  R = loadRun(p); st = R.st; ev = await finishIfComplete(def, st);
   const c2 = ev.current ?? cur, s = c2.s, ss = c2.ss;
   say(`الخطوة الحالية [${s.id}] (${def.steps.indexOf(s) + 1}/${N}) — ${s.ar}`);
   say(`  المهارة: ${s.skill}`);
@@ -264,7 +318,7 @@ if (cmd === "done") {
   const s = R.def.steps.find((x) => x.id === id); if (!s) { say(`✘ لا خطوة «${id}»: ${R.def.steps.map((x) => x.id).join("، ")}`); process.exit(1); }
   if (s.type === "auto" || s.type === "watch") { say(`✘ «${id}» خطوة ${s.type === "auto" ? "تلقائية" : "مراقبة"}: يُغلقها المُوصِل ببوابتها لا بقولي (node tools/conduct.mjs next).`); process.exit(1); }
   const pend = s.deps.filter((d) => !["done", "skipped"].includes(R.st.steps[d]?.status));
-  if (pend.length) { C.logViolation(ROOT, { project: p, step: id, tried: `done ${id}`, why: `قبل ما قبلها: ${pend.join("،")}` }); say(`✘ «${id}» لا تُغلق قبل ما قبلها: ${pend.join("، ")} (node tools/conduct.mjs status)`); process.exit(1); }
+  if (!C.depsReady(ROOT, R.def, R.st, s)) { C.logViolation(ROOT, { project: p, step: id, tried: `done ${id}`, why: `قبل ما قبلها أو ملفات الاستمرار المعلنة: ${pend.join("،") || "بوابة غير ناجحة"}` }); say(`✘ «${id}» لا تُغلق قبل نجاح تبعياتها أو وجود ملفات الاستمرار المعلنة: ${pend.join("، ") || "بوابة غير ناجحة"} (node tools/conduct.mjs status)`); process.exit(1); }
   { const miss = C.unreadFor(ROOT, null, p, C.requiresOf(R.def, s), R.st.t0); if (miss.length) { C.logViolation(ROOT, { project: p, step: id, tried: `done ${id}`, why: `لم تُقرأ: ${miss.map((m) => m.file).join("،")}` }); say(`✘ «${id}» لا تُغلق قبل قراءة مهارتها (بأداة القراءة، الملف كله، بعد بدء التشغيل): ${miss.map((m) => m.file).join(" ، ")}`); process.exit(1); } }
   C.editState(ROOT, p, (st) => { setArgs(st); const ss = C.stepState(st, id); if (flags.evidence) ss.evidence = String(flags.evidence); if (!ss.startedAt) ss.startedAt = Date.now(); });
   const st = C.readState(ROOT, p), g = await C.checkGates(s, { root: ROOT, def: R.def, state: st, p, args: st.args, clips: C.clipsFor(ROOT, R.def, st) });
@@ -274,6 +328,42 @@ if (cmd === "done") {
   const st2 = C.readState(ROOT, p); const ev = await finishIfComplete(R.def, st2);
   say(`✔ تمّت [${id}] ${s.ar}`); say(ev.complete ? "✔ الخطوات كلها تمّت." : C.lineOf(R.def, st2, ev));
   process.exit(0);
+}
+
+/* A failed per-clip item is not retried on every `next` with identical inputs.
+   After the cause is fixed (including an environmental fix), an explicit retry records the diagnosis. */
+if (cmd === "retry") {
+  const [id, given] = rest, p = resolveP(given), clip = flags.clip, reason = String(flags.reason ?? "").trim();
+  if (!id || !p || !clip || reason.length < 8) { console.error('usage: node tools/conduct.mjs retry <step> --clip <id> --reason "<diagnosis and repair>" [project]'); process.exit(2); }
+  const R = loadRun(p); if (R.error) { say(R.error); process.exit(1); }
+  const s = R.def.steps.find((x) => x.id === id), st = R.st, old = st.steps[id]?.items?.[clip];
+  if (!s || s.foreach !== "clips" || !C.clipsFor(ROOT, R.def, st).includes(clip)) { say(`✘ «${id}» ليست خطوة لكل مقطع أو «${clip}» ليس في جدول المقاطع.`); process.exit(1); }
+  if (old?.status !== "failed") { say(`✘ «${clip}» حالته ${old?.status ?? "غير مسجل"}؛ الإعادة الصريحة للفاشل فقط.`); process.exit(1); }
+  if (!C.itemDepsReady(R.def, st, s, clip, ROOT)) { say(`✘ تبعيات «${id}/${clip}» أو ملفات استمراره لم تنجح؛ لن أعيد العمل قبل اكتمال متطلباته.`); process.exit(1); }
+  C.editState(ROOT, p, (x) => { const item = C.stepState(x, id).items[clip]; item.status = "pending"; item.retryReason = reason; item.failureFingerprint = null; item.why = null; });
+  say(`✔ سُجل تشخيص إعادة «${clip}» في [${id}]؛ ستُنفذ في دورها مع بقاء بقية المقاطع كما هي.`); process.exit(0);
+}
+
+/* ── recheck ──────────────────────────────────────────────────────────────────────────────────────────────────────── */
+// An automatic step whose RUNNER died («مات المشغّل بلا نتيجة») while its work went on to the end (a 21 GB cut encode must not be repeated because a runner was killed: full stream 2026-11-22):
+// the real gate decides — nothing else. Only a step that failed that way; a gate failure or a nonzero exit still reruns through `next`.
+if (cmd === "recheck") {
+  const [id, given] = rest, p = resolveP(given);
+  if (!id || !p) { console.error("usage: node tools/conduct.mjs recheck <step> [project]"); process.exit(2); }
+  const R = loadRun(p); if (R.error) { say(R.error); process.exit(1); }
+  const s = R.def.steps.find((x) => x.id === id), ss = R.st.steps[id];
+  if (!s || s.type !== "auto") { say(`✘ «${id}» ليست خطوة تلقائية`); process.exit(1); }
+  if (ss?.status !== "failed" || !/مات المشغّل/.test(ss.why ?? "")) { say(`✘ «${id}» لم تفشل بموت المشغّل (حالتها ${ss?.status ?? "pending"}${ss?.why ? ": " + ss.why : ""}): تُعاد بـ node tools/conduct.mjs next`); process.exit(1); }
+  // no gate = nothing proves the work finished (an empty gate list passes by itself): the step stays failed and `next` reruns it; a per-clip step also needs EVERY clip's item done
+  if (!(s.gate ?? []).length) { say(`✘ «${id}» بلا بوابة: لا دليل على أن عملها اكتمل بعد موت مشغّلها، فتبقى فاشلة وتُعاد بـ node tools/conduct.mjs next`); process.exit(1); }
+  if (s.foreach === "clips") {
+    const all = C.clipsFor(ROOT, R.def, R.st), open = all.filter((c) => ss.items?.[c]?.status !== "done");
+    if (!all.length || open.length) { say(`✘ «${id}» لكل مقطع: ${open.length ? `لم يتمّ ${open.slice(0, 4).join("، ")}${open.length > 4 ? ` (+${open.length - 4})` : ""}` : "لا مقاطع"} — تُعاد بـ node tools/conduct.mjs next (تكمل غير المتمّ وحده)`); process.exit(1); }
+  }
+  const g = await C.checkGates(s, { root: ROOT, def: R.def, state: R.st, p, args: R.st.args, clips: C.clipsFor(ROOT, R.def, R.st) });
+  if (!g.ok) { say(`✘ بوابة «${id}» لم تنجح: ${g.why} — الخطوة تُعاد بـ node tools/conduct.mjs next`); process.exit(1); }
+  C.editState(ROOT, p, (x) => { const y = C.stepState(x, id); y.status = "done"; y.endedAt = Date.now(); y.why = null; y.evidence = "بوابتها الحقيقية نجحت بعد موت المشغّل (recheck)"; });
+  say(`✔ تمّت [${id}] ${s.ar} — ببوابتها لا بقولي`); process.exit(0);
 }
 
 /* ── set ──────────────────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -288,7 +378,7 @@ if (cmd === "set") {
 if (cmd === "end") {
   const p = resolveP(rest[0]); if (!p) { say("لا تشغيل مفتوح"); process.exit(1); }
   const R = loadRun(p); if (R.error) { say(R.error); process.exit(1); }
-  const ev = C.evaluate(R.def, R.st);
+  const ev = C.evaluate(R.def, R.st, ROOT);
   if (!ev.complete && !C.userSaid(ROOT, typeof flags["user-said"] === "string" ? flags["user-said"] : "", R.st.t0)) { C.logViolation(ROOT, { project: p, step: null, tried: `end ${flags["user-said"] ?? ""}`, why: "إنهاء التشغيل مبكراً بلا نص المستخدم" }); say(`✘ بقيت ${ev.open.length} خطوة مفتوحة: لا يُنهى التشغيل إلا بتمامه أو بنص من رسالة المستخدم نفسها (--user-said "…" بعد بدء التشغيل؛ يتحقق الحارس من رسائله المسجَّلة فلا ينفع نص أكتبه أنا).`); process.exit(1); }
   C.editState(ROOT, p, (x) => { x.active = false; x.endedAt = Date.now(); if (!ev.complete) x.endedByUser = String(flags["user-said"]); });
   const a = C.rd(C.activeFile(ROOT), null); if (a?.project === p) fs.rmSync(C.activeFile(ROOT), { force: true });

@@ -5,6 +5,7 @@
 // Every function takes `root` (the workspace, or a scratch copy in the self-test) and reads only files under it.
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL, fileURLToPath } from "node:url";
 
@@ -42,12 +43,42 @@ export function loadDef(kindOrFile, root = ROOT) {
 export const stateFile = (root, p) => path.join(root, ".tmp", p, "conduct.json");
 export const activeFile = (root) => path.join(root, ".tmp", "conduct_active.json");
 export const readState = (root, p) => rd(stateFile(root, p), null);
-/** read-modify-write through a rename (the runner, `done` and the hook all write it: re-read right before) */
+const pidAlive = (pid) => { try { process.kill(Number(pid), 0); return true; } catch (e) { return e.code === "EPERM"; } };
+const syncPause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+/** Cross-process read-modify-write lock: next, its detached runner and status can all update the same state. */
 export function editState(root, p, fn) {
-  const st = readState(root, p); if (!st) return null;
-  fn(st); st.updatedAt = Date.now();
-  const f = stateFile(root, p); fs.writeFileSync(f + ".tmp", JSON.stringify(st, null, 1)); fs.renameSync(f + ".tmp", f);
-  return st;
+  const f = stateFile(root, p), lock = path.join(path.dirname(f), "conduct.state.lock"), token = crypto.randomUUID();
+  fs.mkdirSync(path.dirname(f), { recursive: true });
+  const started = Date.now(); let lockFd = null;
+  for (;;) {
+    try { lockFd = fs.openSync(lock, "wx"); fs.writeFileSync(lockFd, JSON.stringify({ pid: process.pid, token, at: Date.now() })); break; }
+    catch (e) {
+      if (e.code !== "EEXIST") throw e;
+      let owner = null; try { owner = JSON.parse(fs.readFileSync(lock, "utf8")); } catch { /* a writer may be creating the lock */ }
+      if (owner?.pid && !pidAlive(owner.pid)) { try { fs.rmSync(lock, { force: true }); } catch { /* another waiter recovered it */ } }
+      else if (!owner) { try { if (Date.now() - fs.statSync(lock).mtimeMs > 30000) fs.rmSync(lock, { force: true }); } catch { /* another waiter recovered it */ } }
+      if (Date.now() - started > 15000) throw new Error("المُوصِل ينتظر قفل حالة «" + p + "» أكثر من 15 ثانية؛ لم تُكتب حالة متضاربة.");
+      syncPause(20);
+    }
+  }
+  const tmp = f + "." + process.pid + "." + token + ".tmp";
+  try {
+    const st = readState(root, p); if (!st) return null;
+    fn(st); st.updatedAt = Date.now();
+    fs.writeFileSync(tmp, JSON.stringify(st, null, 1));
+    for (let attempt = 0; ; attempt++) {
+      try { fs.renameSync(tmp, f); break; }
+      catch (e) {
+        if (!["EPERM", "EACCES", "EBUSY"].includes(e.code) || attempt >= 20) throw e;
+        syncPause(50);
+      }
+    }
+    return st;
+  } finally {
+    try { fs.rmSync(tmp, { force: true }); } catch { /* not created or already renamed */ }
+    try { fs.closeSync(lockFd); } catch { /* already closed */ }
+    try { if (JSON.parse(fs.readFileSync(lock, "utf8")).token === token) fs.rmSync(lock, { force: true }); } catch { /* stale recovery */ }
+  }
 }
 export const stepState = (st, id) => (st.steps[id] ??= { status: "pending" });
 const stepsById = (def) => Object.fromEntries(def.steps.map((s) => [s.id, s]));
@@ -78,12 +109,18 @@ export function finalFileOf(root, c) {
   const jobs = (rd(path.join(root, "data", "render_queue", "state.json"), { jobs: [] }).jobs ?? []).filter((j) => j.spec === c && j.state === "done");
   const j = jobs[jobs.length - 1]; return j ? (j.to ?? j.file ?? "") : "";
 }
-/** fill {p} {c} {clips} {o} {O} {file} {PY} {file:PATH} and any args key; unknown placeholders stay (the lint reports them) */
+/** the original recording of a clip or of a stream: `source` in the clip's own .tmp/<clip>/prep_config.json, else the parent's, else public/<p>_src.mp4 (relative to the root, or absolute) */
+export function sourceOf(root, p, c) {
+  for (const id of [c, p]) { if (!id) continue; const s = rd(path.join(root, ".tmp", id, "prep_config.json"), {}).source; if (typeof s === "string" && s.trim()) return s; }
+  return `public/${p}_src.mp4`;
+}
+/** fill {p} {c} {clips} {o} {O} {file} {src} {PY} {file:PATH} and any args key; unknown placeholders stay (the lint reports them) */
 export function fill(s, ctx) { return C_fill(s, ctx); }
 function C_fill(s, ctx) {
   const root = ctx.root ?? ROOT; let t = String(s);
   const simple = { p: ctx.p, c: ctx.c ?? "{c}", clips: (ctx.clips ?? []).join(" "), PY: process.env.PY ?? PY_DEFAULT, ...(ctx.args ?? {}) };
   if (ctx.c) { simple.o = orientOfClip(root, ctx.p, ctx.c) === "L" ? "land" : "port"; simple.O = orientOfClip(root, ctx.p, ctx.c); simple.file = finalFileOf(root, ctx.c); }
+  if (simple.src === undefined && t.includes("{src}")) simple.src = sourceOf(root, ctx.p, ctx.c);
   t = t.replace(/\{(\w+)\}/g, (m, k) => (k in simple && simple[k] !== undefined ? String(simple[k]) : m));
   t = t.replace(/\{file:([^}]+)\}/g, (m, f) => { try { return fs.readFileSync(path.join(root, f), "utf8").trim(); } catch { return ""; } });
   return t;
@@ -91,7 +128,7 @@ function C_fill(s, ctx) {
 const hasClipVar = (x) => /\{(c|o|O|file)\}/.test(JSON.stringify(x));
 
 /* ── gates: every gate type has a checker here; the lint refuses a gate type that is not in this table ───────────── */
-const fileOk = (root, f) => { try { return fs.statSync(path.join(root, f)).size > 0 || fs.statSync(path.join(root, f)).isDirectory(); } catch { return false; } };
+const fileOk = (root, f) => { try { const a = path.resolve(root, f); return fs.statSync(a).size > 0 || fs.statSync(a).isDirectory(); } catch { return false; } };
 const eachClip = (ctx, fn) => {
   const bad = []; for (const c of ctx.clips) { const r = fn(c); if (r !== true && r) bad.push(`${c}: ${r}`); }
   return bad.length ? { ok: false, why: bad.slice(0, 3).join(" | ") + (bad.length > 3 ? ` (+${bad.length - 3})` : "") } : { ok: true };
@@ -293,7 +330,7 @@ export function stepAllows(step, inv, run) {
 }
 
 /* ── the machine: what is done, running, current, allowed ────────────────────────────────────────────────────────── */
-const alive = (pid) => { try { process.kill(Number(pid), 0); return true; } catch (e) { return e.code === "EPERM"; } };
+const alive = pidAlive;
 export function newState(def, p, extra = {}) {
   return { kind: def.kind, project: p, defPath: extra.defPath ?? null, t0: Date.now(), args: extra.args ?? {}, steps: {}, clips: [], active: true, ...extra.more };
 }
@@ -321,12 +358,80 @@ export async function reconcile(root, def, st, { cheap = false } = {}) {
   }
   return changed;
 }
-const depsDone = (def, st, s) => s.deps.every((d) => st.steps[d]?.status === "done" || st.steps[d]?.status === "skipped");
-/** eligible = not done/running, dependencies done. running = started. current = the first ELIGIBLE step (what to do now), else the first running */
-export function evaluate(def, st) {
+/** reconcile, then write ONLY the step fields reconcile changed, inside the state lock, and only when the runner has not touched that step since the snapshot (its status, exit, pid and start are the
+    same). A runner's newer item result is never overwritten by this stale snapshot (the old `Object.assign(st.steps, snapshot)` replaced whole steps, items included). */
+export async function reconcileAndSave(root, p, def, st, opts) {
+  const before = JSON.parse(JSON.stringify(st.steps ?? {})), changed = await reconcile(root, def, st, opts), patch = {};
+  const base = (x) => ({ status: x?.status ?? null, exit: x?.exit ?? null, pid: x?.pid ?? null, startedAt: x?.startedAt ?? null });
+  for (const [id, now] of Object.entries(st.steps ?? {})) {
+    const was = before[id] ?? {}, set = {};
+    for (const k of Object.keys(now)) if (k !== "items" && JSON.stringify(now[k]) !== JSON.stringify(was[k])) set[k] = now[k];
+    if (Object.keys(set).length && before[id]) patch[id] = { base: base(was), set };
+  }
+  if (Object.keys(patch).length) editState(root, p, (cur) => {
+    for (const [id, { base: b, set }] of Object.entries(patch)) { const x = cur.steps?.[id]; if (x && JSON.stringify(base(x)) === JSON.stringify(b)) Object.assign(x, set); }
+  });
+  return changed;
+}
+const stepBy = (def, id) => def.steps.find((x) => x.id === id);
+/** A per-clip dependency releases that clip when it passed or explicitly lists safe continuation artifacts. */
+const continueFiles = (s, dep) => s.continueAfter?.[dep] ?? [];
+export function itemFingerprint(root, st, s, clip) {
+  if (!Array.isArray(s.fingerprintFiles) || !s.fingerprintFiles.length) return null;
+  const h = crypto.createHash("sha256"), ctx = { root, p: st.project, c: clip, clips: [clip], args: st.args ?? {} };
+  for (const template of s.fingerprintFiles) {
+    const rel = fill(template, ctx), f = path.join(root, rel); h.update(norm(rel));
+    try {
+      const stat = fs.statSync(f); h.update(`${stat.size}:${stat.mtimeMs}`);
+      if (stat.size <= 16 * 1024 * 1024) { const data = fs.readFileSync(f); h.update(data); }
+    } catch { h.update("<missing>"); }
+  }
+  return h.digest("hex");
+}
+const filesAvailable = (root, st, p, clip, files) => files.length > 0 && files.every((f) => {
+  const rel = fill(f, { root, p, c: clip, clips: clip ? [clip] : [], args: st.args ?? {} });
+  if (!fileOk(root, rel)) return false;
+  if (!/\.render\.ok$/.test(rel)) return true;
+  const proof = rd(path.join(root, rel), null), queue = rd(path.join(root, "data", "render_queue", "state.json"), { jobs: [] }).jobs ?? [];
+  const job = [...queue].reverse().find((j) => j.spec === proof?.spec && j.orient === proof?.orient);
+  return job?.state === "done" && job.inputFingerprint === proof?.inputFingerprint && Boolean(proof.file) && fileOk(root, proof.file);
+});
+export function itemDepsReady(def, st, s, clip, root = ROOT) {
+  const required = s.requiresFiles ?? [];
+  if (required.length && !filesAvailable(root, st, st.project, clip, required)) return false;
+  return s.deps.every((d) => {
+    const ds = stepState(st, d), dd = stepBy(def, d);
+    if (ds.status === "done" || ds.status === "skipped") return true;
+    if (s.foreach === "clips" && dd?.foreach === "clips" && ds.items?.[clip]?.status === "done") return true;
+    return filesAvailable(root, st, st.project, clip, continueFiles(s, d));
+  });
+}
+export function depsReady(root, def, st, s) {
+  return s.deps.every((d) => {
+    const ds = stepState(st, d), dd = stepBy(def, d);
+    if (ds.status === "done" || ds.status === "skipped") return true;
+    if (s.continueAfterAny?.includes(d) && dd?.foreach === "clips" && Object.values(ds.items ?? {}).some((item) => item.status === "done")) return true;
+    const required = continueFiles(s, d);
+    if (!required.length) return false;
+    if (dd?.foreach === "clips") { const clips = clipsFor(root, def, st); return clips.length > 0 && clips.every((c) => filesAvailable(root, st, st.project, c, required)); }
+    return filesAvailable(root, st, st.project, null, required);
+  });
+}
+/** Per-clip steps can resume independent items whose own prerequisites passed. */
+export function evaluate(def, st, root = ROOT) {
   const by = stepsById(def), rows = def.steps.map((s) => { const ss = stepState(st, s.id); return { s, ss, status: ss.status }; });
   const running = rows.filter((r) => r.status === "running");
-  const eligible = rows.filter((r) => ["pending", "failed"].includes(r.status) && depsDone(def, st, r.s));
+  const eligible = rows.filter((r) => {
+    if (!["pending", "failed", "partial"].includes(r.status)) return false;
+    if (r.s.foreach !== "clips") return depsReady(root, def, st, r.s);
+    return clipsFor(root, def, st).some((c) => {
+      const item = r.ss.items?.[c], status = item?.status ?? "pending";
+      // Unknown fingerprints are not permission to repeat the same expensive job.
+      // The explicit `retry` command resets only the selected item after diagnosis.
+      const retryChanged = status === "failed" && Boolean(item.failureFingerprint && item.failureFingerprint !== itemFingerprint(root, st, r.s, c));
+      return (status === "pending" || retryChanged) && itemDepsReady(def, st, r.s, c, root);
+    });
+  });
   const done = rows.filter((r) => r.status === "done" || r.status === "skipped");
   const open = rows.filter((r) => r.status !== "done" && r.status !== "skipped");
   const exclusiveRunning = running.find((r) => r.s.exclusive);
@@ -361,7 +466,7 @@ export async function activeRun(root, sessionId, { cheap = true } = {}) {
   if (Date.now() - (a.at ?? 0) > 24 * 3600e3) return null;
   const st = readState(root, a.project); if (!st?.active) return null;
   const L = loadDef(st.defPath ?? st.kind, root); if (!L.def) return null;
-  if (await reconcile(root, L.def, st, { cheap })) editState(root, a.project, (s) => { Object.assign(s.steps, st.steps); });
+  await reconcileAndSave(root, a.project, L.def, st, { cheap });
   return { a, st, def: L.def, root };
 }
 /* ── what I READ is seen by the hook (user 2026-11-22: «كيف ألزمك أنك ما تنفذ شيء إلا بعد الرجوع إلى المهارات والتعليمات؟») ─────────────────────────────────────────────
@@ -507,13 +612,21 @@ export function bashProtected(cmd, root, bodies = []) {
 }
 
 const FLAGS_FREE = /(^|\s)(--help|-h|--dry|--dry-run)(\s|$)/;
-const stepOfAllowed = (ev, inv, ctx) => ev.allowed.find((r) => stepAllows(r.s, inv, ctx));
+const stepOfAllowed = (ev, inv, ctx) => ev.allowed.find((r) => {
+  if (!stepAllows(r.s, inv, ctx)) return false;
+  if (r.s.foreach !== "clips") return true;
+  return ctx.clips.some((c) => {
+    const item = r.ss.items?.[c], status = item?.status ?? "pending";
+    const changed = status === "failed" && Boolean(item.failureFingerprint && item.failureFingerprint !== itemFingerprint(ctx.root, ctx.state, r.s, c));
+    return inv.args.includes(c) && (status === "pending" || changed) && itemDepsReady(ctx.def, ctx.state, r.s, c, ctx.root);
+  });
+});
 /** the PreToolUse verdict: null = free, else the Arabic refusal (and one line in data/conduct_violations.jsonl) */
 export async function hookVerdict(root, sessionId, cmd, { agentId, run: given } = {}) {
   if (agentId) return null;                                                    // a sub-agent works on delegated tasks beside the main session
   const run = given ?? await activeRun(root, sessionId); if (!run) return null;
-  const { def, st } = run, ev = evaluate(def, st); if (ev.complete) return null;
-  const ctx = { p: st.project, clips: clipsFor(root, def, st) }, cur = ev.current;
+  const { def, st } = run, ev = evaluate(def, st, root); if (ev.complete) return null;
+  const ctx = { root, def, state: st, p: st.project, clips: clipsFor(root, def, st) }, cur = ev.current;
   const refuse = (tried, shortWhy, text) => { logViolation(root, { session: sessionId, project: st.project, step: cur?.s.id ?? null, tried, why: shortWhy }); return text; };
   const head = `ليس هذا أوانه — الإجراء المعتمد (${def.ar ?? def.kind}، «${st.project}») يمشي بالترتيب ويقرّر المُوصِل التالي لا الذاكرة (أمر المستخدم 2026-11-22: «كيف أنت تلتزم بالخطة الموجودة عندنا، دائماً تبقى ملتزم»).\n`;
   const fillCtx = { root, p: st.project, args: st.args, clips: ctx.clips, ...(def.single ? { c: st.project } : {}) };

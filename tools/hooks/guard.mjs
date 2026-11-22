@@ -463,7 +463,19 @@ if (mode === "stop") {
 `);
       if (rendering) {
         const armed = path.join(ROOT, ".tmp", "hibernate_watcher.pid"); let alive = false; try { process.kill(Number(fs.readFileSync(armed, "utf8")), 0); alive = true; } catch { /* not running */ }
-        if (!alive) { const ch = spawn("bash", [path.join(ROOT, "tools", "hibernate_after_queue.sh")], { cwd: ROOT, detached: true, stdio: "ignore", windowsHide: true }); fs.writeFileSync(armed, String(ch.pid)); ch.unref(); log("rendering: hibernate watcher armed"); }
+        if (!alive) {
+          // the resolved Git Bash (a bare `bash` can be the WSL launcher, EACCES); the old bare call if the resolver is missing or Git is absent; a launch failure is logged, never thrown inside the hook
+          let bashExe = "bash", bashEnv = process.env;
+          try { const BR = await import("../lib/bash_runtime.mjs"); bashExe = BR.bashExecutable(); bashEnv = BR.envWithBash(process.env); } catch { /* fall back to the old call */ }
+          let ch = null;   // a failed launch throws at once (an invalid executable) or emits 'error' later (not found); either way it is logged here and never reaches the turn
+          try {
+            ch = spawn(bashExe, [path.join(ROOT, "tools", "hibernate_after_queue.sh")], { cwd: ROOT, env: bashEnv, detached: true, stdio: "ignore", windowsHide: true });
+            ch.on("error", (e) => { try { log("hibernate watcher failed to launch: " + String(e?.message ?? e).slice(0, 160)); } catch { /* the stop hook never fails the turn */ } });
+            ch.unref();
+          } catch (e) { ch = null; log("hibernate watcher failed to launch (" + bashExe + "): " + String(e?.message ?? e).slice(0, 160)); }
+          if (ch?.pid) { fs.writeFileSync(armed, String(ch.pid)); log("rendering: hibernate watcher armed"); }
+          else if (ch) log("hibernate watcher failed to launch (" + bashExe + "): the PC will not hibernate after the queue");   // no pid = the launch failed
+        }
       } else if (!keep) {
         log("asleep and I stopped with no render: hibernating in 90 s");
         spawn("powershell.exe", ["-NoProfile", "-WindowStyle", "Hidden", "-Command", "Start-Sleep 90; shutdown.exe /h"], { detached: true, stdio: "ignore", windowsHide: true }).unref();

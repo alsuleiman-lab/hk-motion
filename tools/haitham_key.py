@@ -21,6 +21,9 @@ for f in sorted(os.listdir(src)):
     lab, n = ndi.label(near)
     border = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
     bgmask = np.isin(lab, list(border))
+    big = np.bincount(lab.ravel())                      # مناطق داخلية بلون الورق واسعة (داخل الحلقة مثلاً) ثقبٌ لا جسم
+    for k in np.where(big > 0.015 * lab.size)[0]:
+        if k != 0: bgmask |= (lab == k)
     alpha = np.where(bgmask, np.clip((dist - 7) / 30.0, 0, 1), 1.0)
     alpha = ndi.gaussian_filter(alpha, 0.8)
     rgba = np.dstack([a, alpha * 255]).astype(np.uint8)

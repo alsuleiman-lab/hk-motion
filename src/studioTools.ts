@@ -727,7 +727,7 @@ const installHK = () => {
   const strip = document.createElement("div"); strip.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:6px";
   /* (user 2026-11-21: «ليش أسود وليس رمادي ولا بيجي؟») the look switch (night graphite ↔ day beige, src/hkTheme.ts) comes back as one icon: it had left with the other tools */
   ico(bTheme, "🌗", "المظهر: ليلي ↔ نهاري (بيج)");
-  strip.append(bRen, bMsg, sep(), bA, bB, bDel, sep(), bCol, bTheme);
+  strip.append(bMsg, bRen, sep(), bA, bB, bDel, sep(), bCol, bTheme);   // (user 2026-11-22) «راسلني» first, the Render button right under it
   // the hide/show tab: on a phone the strip folds to this one small tab
   const tog = document.createElement("button"); tog.type = "button"; tog.style.cssText = "width:34px;height:20px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--hk-dim);font:700 13px Arial,sans-serif;cursor:pointer";
   const HIDE = "__hk_strip_hidden"; let hidden = false; try { hidden = localStorage.getItem(HIDE) === "1"; } catch { /* default shown */ }
@@ -769,6 +769,8 @@ const installHK = () => {
   bRen.addEventListener("click", async () => {
     const c = comp(); if (!c) return;
     if (kindInfo && !kindInfo.render.ok && comp() === kindFor) { paint(`هذا النوع (${kindInfo.label}) لا يُرندر هنا: ${kindInfo.render.why}`, "#ffd479"); return; }
+    /* (user 2026-11-22: «زر الرندر يطالع رسالة… هل أنت متأكد أنك تريد الرندر») a message box first; «إلغاء» does nothing */
+    if (!window.confirm("هل أنت متأكد أنك تريد الرندر؟")) return;
     bRen.disabled = true; paint(kindInfo?.render.mode === "spec" ? "⏳ أفحص قبل الرندر…" : "⏳ أجهّز الرندر…", "#ffd479");
     try {
       const r = await call("/api/render", { comp: c, frame: frameNow() ?? 0 });

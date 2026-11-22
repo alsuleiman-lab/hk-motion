@@ -64,6 +64,12 @@ export const openMsgPanel = (ctx: GalleryCtx): void => {
     } catch (e) { say(String((e as Error).message), "var(--hk-danger)"); }
     finally { sendB.disabled = false; }
   });
+  /* (user 2026-11-22: «أريد زر إنتر يرسل») Enter sends; Shift+Enter makes a new line; an Arabic/IME composition in progress is never cut by Enter */
+  ta.addEventListener("keydown", (k) => {
+    if (k.key !== "Enter" || k.shiftKey || k.isComposing || k.keyCode === 229) return;
+    k.preventDefault(); k.stopPropagation();
+    if (!sendB.disabled) sendB.click();
+  });
   const timer = window.setInterval(() => { paintCtx(); void refresh(); }, 4000);
   const close = () => { window.clearInterval(timer); root.remove(); open = null; };
   closeB.addEventListener("click", close);

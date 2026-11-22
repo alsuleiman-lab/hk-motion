@@ -12,7 +12,7 @@ for f in sorted(os.listdir(src)):
     if not f.lower().endswith(".png"): continue
     im = Image.open(os.path.join(src, f)).convert("RGB")
     if f.startswith("bg"):
-        im.resize((1080, 1566), Image.LANCZOS).save(os.path.join(out, f), optimize=True); print("bg", f); continue
+        im.resize((1080, 1566), Image.LANCZOS).convert("L").convert("RGB").save(os.path.join(out, f), optimize=True); print("bg", f); continue
     a = np.asarray(im).astype(np.float32)
     edge = np.concatenate([a[:6].reshape(-1, 3), a[-6:].reshape(-1, 3), a[:, :6].reshape(-1, 3), a[:, -6:].reshape(-1, 3)])
     paper = np.median(edge, axis=0)
@@ -26,6 +26,11 @@ for f in sorted(os.listdir(src)):
         if k != 0: bgmask |= (lab == k)
     alpha = np.where(bgmask, np.clip((dist - 7) / 30.0, 0, 1), 1.0)
     alpha = ndi.gaussian_filter(alpha, 0.8)
+    if '--mono' in sys.argv:                              # أحادي اللون بلوحة المرجع: حبر #160c06 على بيج #efe6da (قياس بكسلي 2026-11-22)
+        g = (a @ np.array([0.299, 0.587, 0.114]) - 25) / 215.0
+        g = np.clip(g, 0, 1) ** 1.25
+        dark = np.array([22, 12, 6], np.float32); light = np.array([239, 230, 218], np.float32)
+        a = dark + (light - dark) * g[..., None]
     rgba = np.dstack([a, alpha * 255]).astype(np.uint8)
     ys, xs = np.where(alpha > 0.3)                      # قصّ على حدود الرسم ثم تربيع بهامش، فيبدو كل بطل بحجمه الحقيقي
     y0, y1, x0, x1 = ys.min(), ys.max(), xs.min(), xs.max()

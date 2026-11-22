@@ -23,6 +23,7 @@ export const FONTS = {
   jomhuria: { family: "XJomhuria", files: [["400", "Jomhuria-Regular.ttf"]], label: "جمهورية (عناوين)" },
   baloo: { family: "XBaloo", files: [["400 800", "BalooBhaijaan2[wght].ttf"]], label: "بالو (مستدير ثقيل)" },
   lalezar: { family: "XLalezar", files: [["400", "Lalezar-Regular.ttf"]], label: "لاله‌زار" },
+  almarai: { family: "XAlmarai", files: [["700", "Almarai-Bold.ttf"], ["800", "Almarai-ExtraBold.ttf"], ["400", "Almarai-Regular.ttf"]], label: "المرعي (عريض نظيف)" },
   amiri: { family: "XAmiri", files: [["400", "Amiri-Regular.ttf"], ["700", "Amiri-Bold.ttf"]], label: "أميري" },
   kitab: { family: "XKitab", files: [["400", "Kitab-Regular.ttf"]], label: "كتاب (خط المستخدم)" },
   sahlab: { family: "XSahlab", files: [["400", "ALLEXP03SAHLAB.otf"]], label: "سحلب (خط المستخدم)" },

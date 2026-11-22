@@ -23,7 +23,7 @@ export type HScene = { from: number; to: number; card?: boolean; zoom?: number[]
 export type HSpec = { video: string; dir: string; bg: string; total: number; offset: number; speakerAt: number; shrinkAt: number; srcY: number; endZoom: number; scenes: HScene[] };
 
 const W = 1080, H = 1920, PAN = 0.9;
-export const HC = { paper: "#eadfc6", paper2: "#f3ead3", ink: "#2a1c14", sepia: "#6a4a30", maroon: "#8f1d1d", band: "rgba(96,112,140,.32)", card: "#7a5a3a" };
+export const HC = { paper: "#ded5c3", paper2: "#e6d3c2", ink: "#0e0c0b", sepia: "#1b1210", maroon: "#9a2a22", band: "#9f9f9f", card: "#ceb49f", folder: "#8a6e56", folderDk: "#795f4a", folderLt: "#b6a580", sheet: "#dbc7a7", sheet2: "#d4b88d", med: "#f3e8dd", frame: "#372c27", brass: "#9a7e69" };
 export const camAt = (t: number, scenes: HScene[]) => scenes.reduce((y, s, i) => (i === 0 ? y : y + H * easeInOut((t - s.from) / PAN)), 0);
 const kf = (t: number, k: number[][] | undefined, d: number[]) => {
   if (!k || !k.length) return d;
@@ -33,29 +33,32 @@ const kf = (t: number, k: number[][] | undefined, d: number[]) => {
 };
 
 const Clip: React.FC<{ x: number; y: number }> = ({ x, y }) => (
-  <svg width="86" height="104" viewBox="0 0 86 104" style={{ position: "absolute", left: x - 43, top: y - 30, filter: "drop-shadow(0 6px 6px rgba(40,24,10,.45))" }}>
-    <rect x="10" y="30" width="66" height="60" rx="8" fill="#6d4524" stroke="#2f1b0c" strokeWidth="4" />
-    <path d="M22 34 V8 Q22 2 29 2 H57 Q64 2 64 8 V34" fill="none" stroke="#b9bcc2" strokeWidth="7" strokeLinecap="round" />
-    <rect x="16" y="46" width="54" height="12" rx="4" fill="#8a5a30" />
+  <svg width="96" height="110" viewBox="0 0 96 110" style={{ position: "absolute", left: x - 48, top: y - 34, filter: "drop-shadow(0 5px 5px rgba(40,28,18,.4))" }}>
+    <path d="M24 40 V16 Q24 6 34 6 H62 Q72 6 72 16 V40" fill="none" stroke="#c2ad98" strokeWidth="8" strokeLinecap="round" />
+    <path d="M24 40 V16 Q24 6 34 6 H62 Q72 6 72 16 V40" fill="none" stroke="#8d7560" strokeWidth="3" strokeLinecap="round" />
+    <path d="M8 40 H88 L82 98 Q81 104 75 104 H21 Q15 104 14 98 Z" fill="#9a7e69" stroke="#5e4a3a" strokeWidth="3" />
+    <path d="M14 50 H82" stroke="#bda690" strokeWidth="5" />
+    <path d="M18 92 H78" stroke="#6f5845" strokeWidth="4" />
   </svg>
 );
 
 /** رقعة بطبقات: كرتون خلفي أغمق، ثم ورقة بردية، وكليب، وشارة مصدر، والكلمات بشريط تمييز تظهر عند نطقها */
 const Note: React.FC<{ n: HNote; t: number; y: number; h: number }> = ({ n, t, y, h }) => {
   if (t < n.from || t >= n.to + 0.3) return null;
-  const k = back((t - n.from) / 0.45, 1.4), out = clamp01((n.to + 0.3 - t) / 0.3), e = 1 - Math.min(1, k), size = n.size ?? 56;
+  const k = back((t - n.from) / 0.45, 1.4), out = clamp01((n.to + 0.3 - t) / 0.3), e = 1 - Math.min(1, k), size = n.size ?? 52;
   return (
-    <div style={{ position: "absolute", left: 70, top: y, width: 940, height: h, opacity: out, transform: `translateY(${e * -80}px) rotate(${e * -3 - 0.4}deg)`, transformOrigin: "50% 0" }}>
-      <div style={{ position: "absolute", left: 22, top: 20, right: -22, bottom: -20, background: "#9c7f58", borderRadius: 12, boxShadow: "0 26px 40px rgba(50,30,10,.45)" }} />
-      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 38% 30%, #f6eed6 0%, ${HC.paper2} 45%, #e0cf9f 100%)`, border: "9px solid #6f5233", borderRadius: 10, boxShadow: "inset 0 0 50px rgba(120,80,30,.35)" }}>
-        <div style={{ position: "absolute", inset: 14, border: "2px solid rgba(110,80,40,.35)", borderRadius: 6 }} />
-      </div>
-      <Clip x={470} y={4} />
-      {n.source && <div style={{ position: "absolute", right: 34, top: 28, background: "#17181c", color: "#fff", fontFamily: ff("amiri"), fontWeight: 700, fontSize: 30, padding: "3px 18px", borderRadius: 8, direction: "rtl" }}>{n.source}</div>}
-      <div style={{ position: "absolute", left: 48, right: 48, top: n.source ? 92 : 44, bottom: 26, direction: "rtl", textAlign: "center", display: "flex", flexWrap: "wrap", justifyContent: "center", alignContent: "flex-start", gap: "8px 4px", fontFamily: ff("amiri"), fontWeight: 700, fontSize: size, lineHeight: 1.5, color: HC.ink }}>
+    <div style={{ position: "absolute", left: 70, top: y, width: 940, height: h, opacity: out, transform: `translateY(${e * -80}px) rotate(${e * -2}deg)`, transformOrigin: "50% 0" }}>
+      <div style={{ position: "absolute", inset: 0, background: HC.folder, borderRadius: 6, boxShadow: "0 18px 28px rgba(50,36,24,.34)" }} />
+      <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 30, background: HC.folderDk, borderRadius: "6px 6px 0 0" }} />
+      <div style={{ position: "absolute", right: -34, bottom: 26, width: 56, height: h * 0.34, background: HC.folderDk, borderRadius: "0 10px 10px 0" }} />
+      <div style={{ position: "absolute", left: 22, right: 22, top: 36, bottom: 22, background: HC.folderLt, border: "3px solid #c9bb9a" }} />
+      <div style={{ position: "absolute", left: 34, right: 34, top: 46, bottom: 34, background: `radial-gradient(ellipse at 18% 22%, rgba(168,140,100,.45), rgba(0,0,0,0) 38%), radial-gradient(ellipse at 82% 70%, rgba(150,120,80,.4), rgba(0,0,0,0) 42%), radial-gradient(ellipse at 55% 40%, rgba(235,220,190,.7), rgba(0,0,0,0) 55%), ${HC.sheet}` }} />
+      <Clip x={820} y={6} />
+      {n.source && <div style={{ position: "absolute", right: 60, top: 60, background: "#15171b", color: "#fff", fontFamily: ff("almarai"), fontWeight: 700, fontSize: 26, padding: "2px 16px", borderRadius: 6, direction: "rtl" }}>{n.source}</div>}
+      <div style={{ position: "absolute", left: 60, right: 60, top: n.source ? 118 : 68, bottom: 44, direction: "rtl", textAlign: "right", fontFamily: ff("almarai"), fontWeight: 700, fontSize: size, lineHeight: 1.62, color: HC.ink }}>
         {n.words.map((w, i) => {
-          const o = easeOut((t - w.at) / 0.16);
-          return <span key={i} style={{ opacity: o, background: o > 0 ? HC.band : "transparent", padding: "0 9px", borderRadius: 6, transform: `translateY(${(1 - o) * 18}px)` }}>{w.w}</span>;
+          const o = easeOut((t - w.at) / 0.14);
+          return <span key={i} style={{ background: o > 0 ? HC.band : "transparent", color: `rgba(14,12,11,${o})`, padding: "0 4px 0 4px", display: "inline", boxDecorationBreak: "clone" as const, WebkitBoxDecorationBreak: "clone" as const }}>{w.w}{" "}</span>;
         })}
       </div>
     </div>
@@ -67,12 +70,13 @@ const Tag: React.FC<{ g: HTag; t: number; y: number }> = ({ g, t, y }) => {
   const at = g.words[0].at;
   if (t < at || t >= g.to + 0.3) return null;
   const u = (t - at) * 30, out = clamp01((g.to + 0.3 - t) / 0.3);
-  const drop = easeOut((t - at) / 0.3), swing = -22 * dampedSettle(u, 0.06, 0.07);
+  const drop = easeOut((t - at) / 0.3), swing = -18 * dampedSettle(u, 0.06, 0.07);
   return (
-    <div style={{ position: "absolute", left: 130, width: 820, top: y, opacity: out, transform: `translateY(${(1 - drop) * -200}px) rotate(${swing - 1}deg)`, transformOrigin: "50% -30px" }}>
-      <div style={{ position: "absolute", left: 400, top: -34, width: 18, height: 18, borderRadius: "50%", background: "#a8693a", boxShadow: "0 3px 4px rgba(0,0,0,.4)" }} />
-      <div style={{ padding: "12px 26px", background: HC.paper2, border: `7px solid ${HC.card}`, borderRadius: 12, boxShadow: "0 16px 24px rgba(60,40,20,.4)", direction: "rtl", textAlign: "center", fontFamily: ff("ruqaa"), fontWeight: 700, fontSize: g.size ?? 72, color: HC.maroon }}>
-        {g.words.map((w, i) => <span key={i} style={{ opacity: easeOut((t - w.at) / 0.16), margin: "0 8px", display: "inline-block" }}>{w.w}</span>)}
+    <div style={{ position: "absolute", left: 160, width: 760, top: y, opacity: out, transform: `translateY(${(1 - drop) * -200}px) rotate(${swing}deg)`, transformOrigin: "50% -20px" }}>
+      <div style={{ position: "absolute", left: 340, top: -52, width: 80, height: 80, borderRadius: "50%", background: "radial-gradient(circle at 38% 32%, #cdb7a2, #7a5b47 70%)", border: "5px solid #5e4a3a", boxShadow: "0 5px 6px rgba(40,28,18,.4)" }}><div style={{ position: "absolute", inset: 20, borderRadius: "50%", background: "#3c2c22" }} /></div>
+      <div style={{ position: "absolute", left: 0, top: -14, width: 320, height: 26, background: HC.card, borderRadius: "10px 10px 0 0" }} />
+      <div style={{ padding: "12px 30px 14px", background: HC.paper2, borderBottom: `7px solid ${HC.card}`, borderLeft: `3px solid ${HC.card}`, borderRight: `3px solid ${HC.card}`, borderTop: `3px solid ${HC.card}`, boxShadow: "0 12px 18px rgba(50,36,24,.3)", direction: "rtl", textAlign: "center", fontFamily: ff("almarai"), fontWeight: 700, fontSize: g.size ?? 50, color: "#15110e" }}>
+        {g.words.map((w, i) => <span key={i} style={{ opacity: easeOut((t - w.at) / 0.14), margin: "0 7px", display: "inline-block" }}>{w.w}</span>)}
       </div>
     </div>
   );
@@ -84,8 +88,8 @@ const Hero: React.FC<{ h: HHero; t: number; dir: string; cy: number }> = ({ h, t
   const bob = Math.sin(u * 2.0) * 10, rot = Math.sin(u * 1.3) * 1.6, sc = 1 + 0.015 * Math.sin(u * 1.7);
   return (
     <>
-      <div style={{ position: "absolute", left: 540 - h.w * 0.3, top: (h.cy ?? cy) + h.w * 0.36, width: h.w * 0.6, height: h.w * 0.09, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(70,45,20,.32), rgba(70,45,20,0) 70%)", opacity: out * Math.max(0, k) }} />
-      <Img src={staticFile(`${dir}/${h.img}.png`)} style={{ position: "absolute", left: 540 - h.w / 2, top: (h.cy ?? cy) - h.w / 2 + bob, width: h.w, height: h.w, opacity: out, transform: `scale(${(0.5 + 0.5 * Math.max(0, k)) * sc}) rotate(${rot + (1 - Math.min(1, k)) * -10}deg)`, filter: "drop-shadow(0 18px 18px rgba(60,40,20,.38))" }} />
+      <div style={{ position: "absolute", left: 540 - h.w * 0.3, top: (h.cy ?? cy) + h.w * 0.36, width: h.w * 0.6, height: h.w * 0.09, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(60,44,30,.26), rgba(60,44,30,0) 70%)", opacity: out * Math.max(0, k) }} />
+      <Img src={staticFile(`${dir}/${h.img}.png`)} style={{ position: "absolute", left: 540 - h.w / 2, top: (h.cy ?? cy) - h.w / 2 + bob, width: h.w, height: h.w, opacity: out, transform: `scale(${(0.5 + 0.5 * Math.max(0, k)) * sc}) rotate(${rot + (1 - Math.min(1, k)) * -10}deg)`, filter: "drop-shadow(0 10px 10px rgba(60,44,30,.22))" }} />
     </>
   );
 };
@@ -98,10 +102,9 @@ const Med: React.FC<{ m: HMed; t: number; dir: string; rows: number[] }> = ({ m,
   const cx = left ? 142 : 938, cy = rows[row] + Math.sin(u * 1.9 + m.pos) * 7;
   return (
     <div style={{ position: "absolute", left: cx - MED / 2, top: cy - MED / 2, width: MED, height: MED, opacity: out, transform: `scale(${Math.max(0, k)}) rotate(${(1 - Math.min(1, k)) * -14}deg)` }}>
-      <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "radial-gradient(circle at 40% 35%, #f8f0da, #e8dab5)", border: `7px solid ${HC.sepia}`, boxShadow: "0 16px 24px rgba(60,40,20,.42), inset 0 0 26px rgba(120,80,30,.35)", overflow: "hidden" }}>
+      <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: HC.med, border: `3px solid ${HC.sepia}`, overflow: "hidden" }}>
         <Img src={staticFile(`${dir}/${m.img}.png`)} style={{ position: "absolute", left: MED * 0.05, top: MED * 0.05, width: MED * 0.9, height: MED * 0.9 }} />
       </div>
-      <div style={{ position: "absolute", inset: 10, borderRadius: "50%", border: "2px solid rgba(106,74,48,.5)" }} />
     </div>
   );
 };
@@ -150,7 +153,7 @@ const speakerBox = (t: number, shrinkAt: number) => {
 };
 
 export const HaithamMotion: React.FC<{ spec: HSpec }> = ({ spec }) => {
-  useFonts(["amiri", "ruqaa", "rakkas"]);
+  useFonts(["amiri", "almarai"]);
   const { fps } = useVideoConfig();
   const t = useCurrentFrame() / fps + spec.offset;
   const cam = camAt(t, spec.scenes);
@@ -162,7 +165,7 @@ export const HaithamMotion: React.FC<{ spec: HSpec }> = ({ spec }) => {
     <HybridHost>
       <HybridBg>
         <AbsoluteFill style={{ background: HC.paper }}>
-          <Img src={staticFile(`${spec.dir}/${spec.bg}.png`)} style={{ width: W, height: H, objectFit: "cover", transform: `translate(${Math.sin(t * 0.4) * 14}px, ${-(cam % H) * 0.15}px) scale(1.14)` }} />
+          <Img src={staticFile(`${spec.dir}/${spec.bg}.png`)} style={{ width: W, height: H, objectFit: "cover", opacity: 0.3, mixBlendMode: "multiply" as const, transform: `translate(${Math.sin(t * 0.4) * 14}px, ${-(cam % H) * 0.15}px) scale(1.14)` }} />
         </AbsoluteFill>
       </HybridBg>
       <Audio src={staticFile(spec.video)} startFrom={Math.round(spec.offset * fps)} />
@@ -182,8 +185,10 @@ export const HaithamMotion: React.FC<{ spec: HSpec }> = ({ spec }) => {
                 <div style={{ position: "absolute", inset: 0, transform: `translate(${dx}px, ${dy}px) scale(${z * breathe})`, transformOrigin: "50% 50%" }}>
                   {sk && (
                     <>
-                      <div style={{ position: "absolute", left: 150 - 16, top: 110 - 16, width: 780 + 32, height: 560 + 32, border: "16px solid #2a1c14", borderRadius: 30, boxSizing: "border-box", opacity: sp.k, boxShadow: "0 24px 36px rgba(40,24,10,.45)" }} />
-                      <Clip x={540} y={96} />
+                      <div style={{ position: "absolute", left: 150 - 16, top: 110 - 16, width: 780 + 32, height: 560 + 32, border: `14px solid ${HC.frame}`, borderRadius: 22, boxSizing: "border-box", opacity: sp.k, boxShadow: "inset 0 0 0 5px #e9dfd0, 0 18px 26px rgba(40,28,18,.34)" }} />
+                      <div style={{ position: "absolute", left: 120, top: 330, width: 38, height: 70, background: "#823827", borderRadius: "6px 0 0 6px", opacity: sp.k }} />
+                      <div style={{ position: "absolute", left: 120, top: 250, width: 38, height: 70, background: "#696075", borderRadius: "6px 0 0 6px", opacity: sp.k }} />
+                      <Clip x={820} y={96} />
                     </>
                   )}
                   {(s.heroes ?? []).map((h, j) => <Hero key={j} h={h} t={t} dir={spec.dir} cy={heroCy} />)}

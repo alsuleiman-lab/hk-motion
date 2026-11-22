@@ -34,6 +34,24 @@ if (cmd === "wait") {
     W.beat(); setTimeout(tick, 3000);
   };
   tick();
+} else if (cmd === "watch") {
+  /* (user 2026-11-22: «حسّن وصول مراسلاتي لك من الريموشن») the STREAMING watcher: «wait» ends at the first message and the session had to start it again, so a note
+     typed in between reached the agent only with its next hook. «watch» never ends on a message: each NEW note is printed at once as one block and the watcher keeps
+     beating; run it under the Monitor tool (every printed block wakes the session) or in the background. It ends only when the last Studio is gone (or --max). */
+  const W = await import("./lib/inbox_watch.mjs");
+  const max = Number(a.includes("--max") ? a[a.indexOf("--max") + 1] : 720) * 60e3, t0 = Date.now();
+  process.on("exit", W.unbeat);
+  if (!W.studiosAlive().length && !open().length) { console.log("لا استوديو مفتوح — لا مراقبة"); process.exit(3); }
+  if (W.watcherAlive()) { console.log("مراقب آخر يعمل الآن — لا حاجة لثانٍ"); process.exit(4); }
+  const known = new Set(a.includes("--all") ? [] : open().map((m) => m.id));
+  const tick = () => {
+    const o = open().filter((m) => !known.has(m.id));
+    for (const m of o) { known.add(m.id); console.log(`رسالة من الاستوديو: ${show(m)}`.replace(/\n\s*/g, " ")); }
+    if (!W.studiosAlive().length) { console.log("أُغلق الاستوديو — انتهت المراقبة"); process.exit(3); }
+    if (Date.now() - t0 > max) process.exit(3);
+    W.beat(); setTimeout(tick, 2000);
+  };
+  tick();
 } else if (cmd === "open") {
   const o = open(); console.log(o.length ? o.map(show).join("\n") : "لا رسائل بلا رد");
 } else if (cmd === "reply") {
@@ -44,4 +62,4 @@ if (cmd === "wait") {
   m.reply = { at: new Date().toISOString(), text };
   fs.writeFileSync(F + ".tmp", all.map((x) => JSON.stringify(x)).join("\n") + "\n"); fs.renameSync(F + ".tmp", F);
   console.log(`✔ كُتب الرد تحت #${m.id}`);
-} else { console.error("usage: node tools/hk_inbox.mjs wait [--max MIN] | open | reply <id> \"<text>\""); process.exit(2); }
+} else { console.error("usage: node tools/hk_inbox.mjs wait [--max MIN] | watch [--max MIN] | open | reply <id> \"<text>\""); process.exit(2); }

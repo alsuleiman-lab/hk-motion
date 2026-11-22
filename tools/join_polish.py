@@ -136,6 +136,7 @@ jf = os.path.join(T, "join_ok.json")
 old = {}
 try: old = json.load(open(jf, encoding="utf-8"))
 except Exception: pass
+if not isinstance(old, dict): old = {}   # a lazy stream clip (tools/stream/clip_lazy.mjs) writes [] here: update() on a list crashed AFTER the map was rewritten
 old.update(okj); json.dump(old, open(jf, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 if absorbed: print("join_polish: stray sounds next to the removals absorbed:", absorbed)
 print(f"join_polish: {moved} حافة نُقلت إلى صمت حقيقي (أقصى إزاحة {maxshift:.3f}ث) · المدة {n:.2f}ث")

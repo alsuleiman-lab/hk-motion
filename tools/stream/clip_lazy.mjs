@@ -48,13 +48,14 @@ fs.writeFileSync(path.join("public", `${id}_map.json`), JSON.stringify({ segment
 fs.mkdirSync(path.join("public", id), { recursive: true });
 fs.writeFileSync(L.markerFile(id), JSON.stringify({ id, parent: P, D, frames: PC.frames, ranges: spec, pieces: pieces.map((p) => ({ cs: p.cs, ce: p.ce, off: p.off })), segments: segs.length, at: new Date().toISOString() }, null, 1));
 // 2) شرائح الصوت (رخيصة): الصوت وحده، لا فيديو
-const sliceAudio = (inF, outF, rate = 48000, mono = false) => {
-  const n = pieces.length, ss = Math.max(0, Math.min(...pieces.map((p) => p.cs)) - 1), nf = (p) => p.ce - p.cs;
-  const body = pieces.map((p, i) => `[sa${i}]atrim=start=${(p.cs - ss).toFixed(5)}:end=${(p.cs - ss + nf(p)).toFixed(5)},asetpts=PTS-STARTPTS[a${i}];`).join("");
-  const fc = `[0:a]asplit=${n}${pieces.map((_, i) => `[sa${i}]`).join("")};` + body + pieces.map((_, i) => `[a${i}]`).join("") + `concat=n=${n}:v=0:a=1[a]`;
-  const fcf = path.join(T, "slice_fc.txt"); fs.writeFileSync(fcf, fc);
-  sh("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", "-threads", "4", "-ss", ss.toFixed(3), "-i", inF, "-/filter_complex", fcf, "-map", "[a]", "-ar", String(rate), ...(mono ? ["-ac", "1"] : []), "-c:a", "pcm_s16le", outF + ".part.wav"]);
-  fs.renameSync(outF + ".part.wav", outF);
+/* (2026-11-22) the clip's sound is laid on the clip's FRAME GRID stretch by stretch (tools/stream/clip_audio.py, plan = lazy_clip.mjs audioPlan), not cut from the stream's audio at the frame-grid piece boundaries:
+   the stream's audio joins its segments at sample-exact positions, the picture and the map on the renderer's cumulative frame rounding, up to ±16 ms apart — the old slice left every join away from the map's n,
+   where the gate and the join fade look for it (khariji 1705.2 s). The rate and channels of the stream's file are kept; the delay of the cleaned files against the raw cut audio is measured and taken back. */
+const planF = path.join(T, "audio_plan.json"); fs.writeFileSync(planF, JSON.stringify(L.audioPlan(parentMap, PC)));
+const sliceAudio = (inF, outF) => {
+  const ref = path.join(TP, "cut.wav");
+  console.log(sh(PY, ["-I", "tools/stream/clip_audio.py", inF, path.join("public", `${P}_map.json`), planF, outF + ".part2.wav", ...(fs.existsSync(ref) ? ["--lag-ref", ref] : [])]).trim());
+  fs.renameSync(outF + ".part2.wav", outF);
 };
 { // cut16k.wav للأب: يصنعه القص الواحد بلا cut16k (مرة واحدة، آمن لأربع شرائح معاً)
   const p16 = path.join(TP, "cut16k.wav");
@@ -63,9 +64,15 @@ const sliceAudio = (inF, outF, rate = 48000, mono = false) => {
     if (from) { const tmp = path.join(TP, `cut16k.${process.pid}.part.wav`); sh("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", "-threads", "4", "-i", from, "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", tmp]); try { fs.renameSync(tmp, p16); } catch { try { fs.rmSync(tmp); } catch { /* another slice made it first */ } } }
   }
 }
-const audioMain = [["cut.wav", "cut.wav", 48000, false], ["cut_clean.wav", "cut_clean.wav", 48000, false], ["cut16k.wav", "cut16k.wav", 16000, true]];
-for (const [s, d, r, m] of audioMain) if (fs.existsSync(path.join(TP, s))) sliceAudio(path.join(TP, s), path.join(T, d), r, m);
-{ const ca = ["cut_audio.wav", "cut_clean.wav"].map((f) => path.join(TP, f)).find((f) => fs.existsSync(f)); if (!ca) throw new Error(`لا صوت قص للبث ${P} (.tmp/${P}/cut_audio.wav)`); sliceAudio(ca, path.join(T, "cut_audio.wav"), 48000, false); }
+for (const f of ["cut.wav", "cut_clean.wav", "cut16k.wav"]) if (fs.existsSync(path.join(TP, f))) sliceAudio(path.join(TP, f), path.join(T, f));
+{ const ca = ["cut_audio.wav", "cut_clean.wav"].map((f) => path.join(TP, f)).find((f) => fs.existsSync(f)); if (!ca) throw new Error(`لا صوت قص للبث ${P} (.tmp/${P}/cut_audio.wav)`); sliceAudio(ca, path.join(T, "cut_audio.wav")); }
+/* (2026-11-22, the real stream) micro-fade at every join of the clip's audio: the one-pass cut leaves a hard sample step at each join and the audio gate failed khariji / the deist call on «نقرات عند وصلات القص».
+   Joins = the clip map's segment starts that do not continue the previous segment in the source. Same raised-cosine dip on every sound file of the clip (tools/stream/join_fade.py). 8 ms each side, the length of the stream cut's own fades (tools/audio_cut.py): with 4 ms a speech burst 3 ms before a join (deist 733.9 s, ×8.2) survived the dip. */
+{
+  const joins = segs.filter((g, i) => i > 0 && Math.abs(g.a - segs[i - 1].b) > 1e-4).map((g) => g.n);
+  const jf = path.join(T, "joins.json"); fs.writeFileSync(jf, JSON.stringify(joins));
+  for (const f of ["cut.wav", "cut_clean.wav", "cut16k.wav", "cut_audio.wav"]) if (joins.length && fs.existsSync(path.join(T, f))) console.log(sh(PY, ["-I", "tools/stream/join_fade.py", path.join(T, f), jf, "8"]).trim());
+}
 // 3) كلمات المقطع بزمنه (من كلمات البث بعد القص)
 const cw0 = rd(path.join(TP, "cut_words.json")), cw = (cw0.words ?? cw0).map((w) => ({ w: w.w ?? w.word, s: +(w.s ?? w.start), e: +(w.e ?? w.end) })).map((w) => ({ ...w, c: toChild((w.s + w.e) / 2) })).filter((w) => w.c !== null).map((w) => { const d = w.e - w.s, cs = Math.max(0, +(w.c - d / 2).toFixed(3)); return { w: w.w, s: cs, e: +Math.min(D, cs + d).toFixed(3) }; });
 cw.sort((a, b) => a.s - b.s);

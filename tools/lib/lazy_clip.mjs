@@ -78,6 +78,22 @@ export function childSegments(parentMap, P) {
   return out;
 }
 
+/** WHERE THE CLIP'S SOUND COMES FROM, one entry per stretch of one stream segment (2026-11-22, the real stream: the one-pass cut audio joins its segments at SAMPLE-EXACT cumulative positions
+ *  (tools/audio_cut.py), the clip's picture and map join them on the renderer's cumulative FRAME rounding (n0 above): the two phases differ by up to ±16 ms, so a clip sliced from the stream's audio at
+ *  piece boundaries carried every join up to a frame away from the map's n, where the gate, the join fade and the picture look for it; a speech onset inside the join's own 8 ms fade-in then read as a
+ *  click at n — khariji 1705.2 s, ×14.1). Entry = {k: stream segment, off: seconds into that segment's own sound, dur: seconds, n: clip second to place it at (a whole frame)}. tools/stream/clip_audio.py
+ *  lays each stretch at its n, so the sound of a source second plays at the picture frame of that second and every join sits exactly on the map's n. */
+export function audioPlan(parentMap, P) {
+  const { pieces, n0, len } = P, plan = [];
+  for (const pc of pieces) {
+    for (let k = 0; k < parentMap.segments.length; k++) {
+      const s0 = n0[k], s1 = n0[k] + len[k], lo = Math.max(s0, pc.f0), hi = Math.min(s1, pc.f0 + pc.nf); if (hi <= lo) continue;
+      plan.push({ k, off: +((lo - s0) / FPS).toFixed(6), dur: +((hi - lo) / FPS).toFixed(6), n: +((pc.offF + (lo - pc.f0)) / FPS).toFixed(6) });
+    }
+  }
+  return plan;
+}
+
 /** a clip second → the second of the original, through the clip's map (null when outside) */
 export const clipToSrc = (segments, t) => { for (const g of segments) if (t >= g.n - 1e-6 && t <= g.n + (g.b - g.a) + 1e-6) return g.a + (t - g.n); return null; };
 

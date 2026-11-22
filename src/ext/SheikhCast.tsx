@@ -641,8 +641,8 @@ export const RudoodShabbiha: React.FC = () => <RudoodReply look={3} clip="rudood
 
 /* الفيديو الخامس: «قلوب الأولياء لها سيوف» — علماء السلطان (لباس ٤، القاف همزة)، وصورتا الجفري وابن بيّه عند «من اليمن» و«من موريتانيا» */
 export const RUDOOD_SULTAN_FRAMES = rudoodFrames(354, SULTAN_TUT.length);
-export const RudoodSultan: React.FC = () => <RudoodReply look={4} clip="rudood5/clip.mp4" clipAudio="rudood5/clip_audio.wav" clipFrames={354} objPos="50% 11%" reply="rudood5/reply_final.wav" mouthData={SULTAN_TUT}
-  pics={[{ src: "stock/rudood_jifri.jpg", a: 17.9, b: 19.0 }, { src: "stock/rudood_binbayyah.jpg", a: 19.0, b: 21.2 }]} />;
+export const RudoodSultan: React.FC = () => <RudoodReply look={4} clip="rudood5/clip.mp4" clipAudio="rudood5/clip_audio.wav" clipFrames={354} objPos="50% 11%" reply="rudood5/reply_final2.wav" mouthData={SULTAN_TUT}
+  pics={[{ src: "stock/rudood_jifri.jpg", a: 17.8, b: 18.8 }, { src: "stock/rudood_binbayyah.jpg", a: 18.8, b: 21.0 }]} />;
 
 /* الفيديو السادس: «علموا أولادكم الله موجود بلا مكان» (لباس ٥) */
 export const RUDOOD_MAKAN_FRAMES = rudoodFrames(591, MAKAN_TUT.length);

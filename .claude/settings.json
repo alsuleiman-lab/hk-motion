@@ -7,6 +7,11 @@
             "type": "command",
             "command": "node S:/AI_Tools/Remotion_Workspace/tools/hooks/guard.mjs prompt",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node S:/AI_Tools/Remotion_Workspace/tools/hooks/skill_at.mjs",
+            "timeout": 10
           }
         ]
       }

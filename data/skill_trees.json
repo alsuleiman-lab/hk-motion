@@ -1,0 +1,122 @@
+{
+  "_about": "علامة @ (أمر المستخدم 2026-11-22: «أريد أن أستورد كل المهارات عبر @ أو كلمة معينة»): يكتب المستخدم @ثم اسم النوع (@حلقة، @شيخ الردود، @بث…) فيضيف هوك tools/hooks/skill_at.mjs إلى الرسالة شجرة النوع كاملة: ما أقرؤه الآن كاملاً، ثم مهارة كل مرحلة بترتيبها (تُقرأ حين تصل مرحلتها، لا كلها دفعة واحدة: نصوص المهارات كلها نصف ميجابايت). @مهارات تعرض كل الأنواع. @اسم-مهارة-بعينها يحمّل تلك المهارة وحدها. للتعديل: غيّر هذا الملف فقط.",
+  "always": ["segment-cut", "hk-motion", "voice-correction", "sensitive-words"],
+  "types": {
+    "episode": {
+      "ar": "حلقة", "aliases": ["حلقة", "الحلقة", "حلقات", "مونتاج"],
+      "plan": "node tools/conduct.mjs plan episode",
+      "now": ["router", "first-questions"],
+      "stages": [
+        ["first-questions", "١ الأسئلة الأولى بالنقر + التجهيز في الخلفية"],
+        ["transcription", "٢ التفريغ مرة واحدة بأقوى نموذج"],
+        ["montage-orders", "٣ كتل «مونتاج … انتهى مونتاج» والإعادات"],
+        ["sensitive-words", "٣ الكلمات الحساسة (صافرة)"],
+        ["video-cutting", "٤ القص بنموذج القص الواحد"],
+        ["extraction", "٥ الأسماء والآيات والأحاديث والأخبار"],
+        ["identity", "٦ النمط والفاصل وشريط الحلقة"],
+        ["thumbnail-design", "٧ الغلاف والعنوان (بالتوازي بعد التفريغ)"],
+        ["video-sections", "الأقسام وخط الفصول"],
+        ["video-montage", "٨ الخطة والبناء بند بند"],
+        ["gallery-placement", "٨ توزيع عناصر المعرض على الكلام"],
+        ["source-display", "٨ عرض المصادر"],
+        ["motion-graphics", "٨ الموشن جرافيك"],
+        ["visual-thinking", "٨ فكرة بصرية لجملة قوية أو فراغ"],
+        ["collage-broll-local", "٨ القصاصات الورقية للمعاني المجردة"],
+        ["pixabay-search", "٨ بحث الصور والمقاطع المجانية"],
+        ["checking", "٩ الفحص وقائمة المراجعة"],
+        ["delivery-links", "١٠ رابط المعاينة"],
+        ["remotion-render", "١١ الرندر (بإذنه)"],
+        ["approval", "١٢ الاعتماد"],
+        ["publishing", "١٣ النشر"]
+      ]
+    },
+    "reel": {
+      "ar": "ريل", "aliases": ["ريل", "ريلز", "ريلات", "الريل"],
+      "plan": "الشجرة، صيغة الريل (طولي 9:16)",
+      "now": ["router", "first-questions"],
+      "stages": [
+        ["reel-from-episode", "ريل من حلقة منتهية بجمل كاملة وسياق كل متحدث تام"],
+        ["transcription", "التفريغ"], ["montage-orders", "كتل المونتاج"], ["sensitive-words", "الكلمات الحساسة"], ["video-cutting", "القص"],
+        ["extraction", "الاستخراج"], ["identity", "الهوية"], ["thumbnail-design", "الغلاف"], ["video-montage", "البناء"],
+        ["gallery-placement", "توزيع العناصر"], ["source-display", "المصادر"], ["motion-graphics", "الموشن"], ["visual-thinking", "الفكرة البصرية"],
+        ["checking", "الفحص"], ["delivery-links", "رابط المعاينة"], ["remotion-render", "الرندر"], ["approval", "الاعتماد"], ["publishing", "النشر"]
+      ]
+    },
+    "rudood": {
+      "ar": "شيخ الردود", "aliases": ["شيخ الردود", "الردود", "شيخ الرد"],
+      "now": ["router", "sheikh-rudood"],
+      "stages": [
+        ["arabic-tts-pronunciation", "نطق الصوت العربي (مهارة المستخدم) قبل أي توليد"],
+        ["cartoon-animation", "أصل الكرتون وقواعده العامة (شاشة النهاية، لا شعار القناة)"],
+        ["checking", "الفحص"], ["delivery-links", "رابط المعاينة"], ["remotion-render", "الرندر (زر الاستوديو أو بإذنه)"], ["approval", "الاعتماد: المؤقت وحده يُحذف"], ["publishing", "النشر: مجلد درايف drive.rudood"]
+      ]
+    },
+    "stream": {
+      "ar": "بث", "aliases": ["بث", "بثوث", "البث", "البثوث"],
+      "plan": "node tools/conduct.mjs plan stream",
+      "now": ["router", "lessons-and-streams"],
+      "stages": [
+        ["transcription", "التفريغ"], ["montage-orders", "كتل المونتاج"], ["video-cutting", "القص مرة واحدة ثم الشرائح"], ["extraction", "الآيات والأحاديث والأسماء"],
+        ["identity", "الهوية"], ["thumbnail-design", "الغلاف (أصممه بنفسي للبثوث)"], ["checking", "الفحص"], ["remotion-render", "الرندر آلياً"], ["approval", "الاعتماد"], ["publishing", "النشر"]
+      ]
+    },
+    "lesson": {
+      "ar": "درس", "aliases": ["درس", "دروس", "الدرس", "الدروس"],
+      "now": ["router", "lessons-and-streams"],
+      "stages": [
+        ["transcription", "التفريغ"], ["montage-orders", "كتل المونتاج"], ["video-cutting", "القص"], ["extraction", "الاستخراج"],
+        ["identity", "الهوية"], ["thumbnail-design", "الغلاف"], ["checking", "الفحص"], ["remotion-render", "الرندر آلياً"], ["approval", "الاعتماد"], ["publishing", "النشر"]
+      ]
+    },
+    "silent": {
+      "ar": "تعليق صامت", "aliases": ["صامت", "تعليق صامت", "ريأكشن", "رياكشن"],
+      "now": ["router", "silent-reaction"],
+      "stages": [
+        ["identity", "الهوية"], ["motion-graphics", "الموشن"], ["gallery-placement", "توزيع العناصر"], ["source-display", "المصادر"], ["thumbnail-design", "الغلاف"],
+        ["checking", "الفحص"], ["delivery-links", "رابط المعاينة"], ["remotion-render", "الرندر"], ["approval", "الاعتماد"], ["publishing", "النشر"]
+      ]
+    },
+    "motion": {
+      "ar": "موشن", "aliases": ["موشن", "موشن جرافيك"],
+      "note": "«موشن» ثلاثة مسارات: التوضيحي من الصوت (@موشن توضيحي)، وموشن المشايخ بالأسلوب المعتمد (@موشن مشايخ)، وموشن هيثم (@موشن هيثم)، والرسوم على فيديو قائم (@موشن جرافيك). إن لم يحدد المستخدم أيها فأسأله بالنقر قبل البدء.",
+      "now": ["router"],
+      "stages": [
+        ["explainer-motion", "الموشن التوضيحي المستقل من صوت يعطيه"],
+        ["scholars-motion", "موشن مشايخ: ريل طولي بالأسلوب المعتمد"],
+        ["haitham-motion", "موشن هيثم: لوحة ورق قديم تنزل عليها الكاميرا"],
+        ["motion-graphics", "رسوم على فيديو قائم"]
+      ]
+    },
+    "motion_explainer": { "ar": "موشن توضيحي", "aliases": ["موشن توضيحي", "توضيحي"], "now": ["router", "explainer-motion"], "stages": [["checking", "الفحص"], ["remotion-render", "الرندر"], ["approval", "الاعتماد"], ["publishing", "النشر"]] },
+    "motion_scholars": { "ar": "موشن مشايخ", "aliases": ["موشن مشايخ", "موشن المشايخ"], "now": ["router", "scholars-motion"],
+      "stages": [["transcription", "التجهيز الرسمي: التفريغ"], ["video-cutting", "القص الرسمي"], ["identity", "الهوية"], ["checking", "الفحص"], ["remotion-render", "الرندر"], ["approval", "الاعتماد"], ["publishing", "النشر"]] },
+    "motion_haitham": { "ar": "موشن هيثم", "aliases": ["موشن هيثم", "هيثم"], "now": ["router", "haitham-motion"],
+      "stages": [["first-questions", "الأسئلة الأولى"], ["transcription", "التفريغ"], ["video-cutting", "القص الرسمي"], ["extraction", "الاستخراج"], ["checking", "الفحص"], ["remotion-render", "الرندر بإذنه"], ["approval", "الاعتماد"], ["publishing", "النشر"]] },
+    "dubbing": {
+      "ar": "دبلجة", "aliases": ["دبلجة", "دبلجه", "الدبلجة"],
+      "now": ["router", "dubbing"],
+      "stages": [["transcription", "تفريغ الأصل"], ["explainer-motion", "مشهد الرسوم الذي يغطي الشفاه"], ["identity", "الهوية"], ["remotion-render", "الرندر"]]
+    },
+    "cartoon": {
+      "ar": "كرتون", "aliases": ["كرتون", "الكرتون", "دودو", "أبو خط"],
+      "now": ["router", "cartoon-animation"],
+      "stages": [["arabic-tts-pronunciation", "نطق الصوت العربي"], ["identity", "الهوية"], ["checking", "الفحص"], ["remotion-render", "الرندر"], ["approval", "الاعتماد: المؤقت وحده"]]
+    },
+    "echo": {
+      "ar": "صدى", "aliases": ["صدى", "الصدى", "صدى الصوت"],
+      "note": "تأثير صدى الصوت لا نوع فيديو: يدخل شجرة الحلقة. الأداة `python -I tools/echo_audio.py <دخل> <خرج.mp3> --style 2|6`: النمط ٢ «كاتدرائية مهيبة» (أذان أو كلام مهيب)، والنمط ٦ «دافئ عميق» (الافتراضي)؛ لا قائمة أنماط ولا اختبار؛ الذيل يخفت إلى الصمت ولا يُقطع. على عبارة واحدة: حقل في المواصفة بمداه يُطبَّق في مزج الصوت النهائي.",
+      "now": ["montage-orders"],
+      "stages": [["video-montage", "مكان المعالجة في الخطة (proc:صدى)"], ["checking", "فحص الصوت النهائي"]]
+    },
+    "paper": {
+      "ar": "مونتاج ورقي", "aliases": ["مونتاج ورقي", "ورقي", "المونتاج الورقي"],
+      "now": ["router", "paper-montage"],
+      "stages": [["collage-broll-local", "القصاصات للمعاني المجردة"], ["montage-orders", "كتل المونتاج"], ["identity", "الهوية"], ["thumbnail-design", "الغلاف"], ["checking", "الفحص"], ["delivery-links", "رابط المعاينة"], ["remotion-render", "الرندر"], ["approval", "الاعتماد"], ["publishing", "النشر"]]
+    },
+    "ad": {
+      "ar": "إعلان", "aliases": ["إعلان", "اعلان", "إعلاني"],
+      "now": ["router", "advertising-video"],
+      "stages": [["identity", "الهوية"], ["thumbnail-design", "الغلاف"], ["checking", "الفحص"], ["publishing", "النشر"]]
+    }
+  }
+}

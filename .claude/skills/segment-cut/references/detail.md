@@ -1,13 +1,16 @@
-# التفصيل (أُنشئ في مراجعة القواعد 2026-11-18)
+# Segment Cut — Detailed Rules
 
-> ملزم كالمهارة نفسها.
+This file supplements `segment-cut/SKILL.md`.
 
-### الإطارات بعد الفاصل (أمر المستخدم 2026-11-18)
-- أرقام إطارات الاستوديو بعد موضع الفاصل تزيد 150 إطاراً (5 ثوانٍ × 30) عن خط القص. إطار يعطيه المستخدم بعد موضع الفاصل: أطرح منه 150 ثم أقسم على 30؛ وقبل موضع الفاصل يُقسم على 30 مباشرة. موضع الفاصل من المواصفة (`spec.bumper`، مهارة `identity`).
-- طرح الإطارات آلياً في أداة قص الجزء لم يُبنَ بعد؛ حتى يُبنى أطرحها بيدي وأذكر للمستخدم الثانية بعد التحويل.
+## Studio frames after a bumper (user decision, 2026-11-18)
 
-### أرقام القص (أمر المستخدم 2026-11-18)
-- أقصى الفراغ والهامشان في `data/cut_rules.json` وحده؛ لا تُكتب أرقامها هنا.
+- Studio frame numbers after the bumper are 150 frames (5 s × 30 fps) later than cut-timeline frames. For a user-specified frame after the bumper, subtract 150, then divide by 30. Before the bumper, divide by 30 directly. Bumper position comes from the spec (`spec.bumper`; see `identity`).
+- Automatic frame conversion is not implemented in the segment-cut tool. Until implemented, perform the conversion manually and tell the user the resulting second.
 
-### ترتيب المقاطع المبقاة (2026-10-30، أُعيدت 2026-11-18)
-- حين يعدّد المستخدم مقاطع يُبقيها («أبقِ من كذا إلى كذا، ثم من كذا إلى كذا»)، تُوصل بالترتيب الذي ذكرها به، لا بترتيبها الزمني في الأصل.
+## Cut values (user decision, 2026-11-18)
+
+Maximum gap and edge margins live only in `data/cut_rules.json`; do not duplicate values here.
+
+## Preserve the user's requested order (2026-10-30, reaffirmed 2026-11-18)
+
+When the user lists spans to keep (“keep from X to Y, then from A to B”), concatenate them in the order spoken by the user, not in their chronological order in the source.

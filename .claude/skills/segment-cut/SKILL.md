@@ -1,40 +1,50 @@
 ---
 name: segment-cut
-description: قص جزء محدد بطلب المستخدم («قص من الثانية/الإطار كذا إلى كذا») في أي فيديو وفي أي وقت — يضبط الحدّين على فراغ بين كلمتين، ويحذف الجزء وحده في ثوانٍ، وكل ما بعده من صوت وعناصر يتحرك معه بلا إعادة بناء ولا أثر على باقي الفيديو.
+description: Remove a user-specified time or frame range at any stage of a video project. Snap both boundaries between complete words, remove only the requested interval, and shift later media and overlays without rebuilding the rest.
 ---
 
-# قص جزء محدد
+# Cut a specified segment
 
-## 1) متى
-كلما قال المستخدم «قص من الثانية كذا إلى كذا» أو «من الإطار كذا إلى كذا» (أو «احذف هذا الجزء» مع حدّيه)، في أي مرحلة: قبل البناء أو بعده أو بعد رابط المراجعة.
+## When to use
 
-## 2) الحدّان على فراغ بين كلمتين
-- أحوّل ما أعطاه إلى ثوانٍ على الخط الذي يراه (خط القص في الاستوديو؛ الإطار ÷ 30). إطارات الاستوديو بعد موضع الفاصل تزيد 150، فأطرحها قبل التحويل (أمر المستخدم 2026-11-18).
-- أقرأ الكلمات حول كل حدّ (`cut_words.json`): إن وقع الحد داخل كلمة أو داخل هامشها نقلتُه إلى أقرب فراغ بين كلمتين **بحيث تُحذف الكلمة كاملة أو تبقى كاملة** (القاعدة: لا يُقص نصف كلمة أبداً). الاتجاه: ما يحقق قصده (الكلمة التي بدأ الحذف عندها تُحذف كلها، والتي انتهى عندها تُحذف كلها، إلا إن كانت أول كلام يريد بقاءه).
-- الفراغ الباقي بين الكلمتين حول الوصلة لا يتجاوز أقصى الفراغ في `data/cut_rules.json` ولا يقل عن الهامشين فيه؛ فلا تحتاج الوصلة أي تعديل قبلها ولا بعدها.
-- أذكر له الحدّين بعد الضبط بالكلمة التي ينتهي عندها ما قبل القص والكلمة التي يبدأ بها ما بعده.
+Use whenever the user says “cut from second/frame X to Y” or “remove this part” with its boundaries, before the build, after the build, or after a review link.
 
-## 3) الحذف وحده (لا إعادة قص ولا إعادة بناء)
-**الأداة الآن (أمر المستخدم 2026-11-19: «كما يعمل بريمير برو»): `node tools/cut_blocks.mjs <المشروع> أ-ب[,أ-ب…] --snap-words`** (ثوانٍ من القص الحالي) — **قص ذكي بلا إعادة ترميز للفيديو:**
-- الحدّان يُضبطان أولاً على أقرب فراغ بين كلمتين، ثم على أقرب صمت حقيقي (±0.5ث، أهدأ من −40dB)، ثم تُفحص **كل** النقاط قبل مسّ أي ملف: الرفض يكلّف أقل من ثانية ولا يغيّر شيئاً.
-- لا يُرمَّز إلا ما يشارك وصلةً في مجموعة صور واحدة (نحو ثانية للوصلة)، وكل مجموعة كاملة بينهما تُنسخ حزمةً حزمة (`tools/cut_splice.py`): جودة الباقي لا تتغير بتًّا واحداً، والملف يبقى mp4 واحداً يقرؤه الاستوديو والرندر كما كان. النسخة الخفيفة للاستوديو تُقصّ بالطريقة نفسها فتجهز مع الملف الجديد.
-- ملف لم يصنعه مرمّز أدواتنا (البصمة تختلف) أو لا كرت صالح: يعود تلقائياً إلى الترميز الكامل. `CUT_BLOCKS_FULL=1` يفرضه.
-- في الاستوديو (HK-Motion): `بداية` ثم `نهاية` ثم `حذف` (مهارة `hk-motion`)، وهي تشغّل هذا الأمر نفسه.
-- **الحذف كسول (2026-11-19):** يعدّل القائمة والصوت والنسخة الخفيفة فقط ولا يلمس ملف القص الثقيل (يصير قديماً)؛ أي أداة تحتاج صورته تبنيه وحدها من الأصل (`tools/cut_lazy.mjs`، مهارة `hk-motion` 1-هـ). لا تفترض أن `<م>_cut_s.mp4` حديث بعد حذف: استدعِ `node tools/cut_lazy.mjs ensure <م>` قبل قراءته بنفسك.
-- الأمر الأقدم لجزء واحد `cut_block.mjs` ما زال يعمل (وهو الذي يحدّث البيانات)، لكن الفيديو يُقصّ بالأداة أعلاه.
-`node tools/cut_block.mjs <المشروع> <أ> <ب>` (ثوانٍ أو `f<إطار>`):
-  ومعها دائماً `--snap-words` (جواب المستخدم 2026-11-17: «أقرب فراغ… راعِ السياق»): الحدّ الواقع داخل كلمة ينتقل إلى **أقرب فراغ** بين كلمتين، وتُطبع الكلمات قبل الوصلة والمحذوف وبعدها؛ أقرؤها، فإن كسر الأقربُ المعنى (كلمة معلّقة أو جملة مبتورة) أعيد بـ`--keep-word` (تبقى الكلمة كاملة) أو `--drop-word` (تُحذف كاملة) بحسب السياق، وأذكر للمستخدم الكلمتين حول الوصلة.
-- ما قبل «أ» يبقى مطابقاً إطاراً بإطار؛ وما بعد «ب» يتقدم بالفرق بالضبط؛ ولا يبقى شيء من داخله.
-- يُحدِّث معاً: ملف قص جديد بإصدار جديد (لا يُستبدل ملف يفتحه الاستوديو)، والصوت، والخريطة، والكلمات، والمواصفة (العناصر، التقريبات، الاهتزاز، نوافذ العزل، الانقسامات، الطول)، والنسخة المجمّدة للمراجعة.
-- العنصر الواقع داخل الجزء المحذوف يُحذف، والعنصر المقطوع جزئياً يُقصَّر ويُذكر لي.
-- تلاشٍ صوتي 12 جزءاً من الألف من الثانية على جانبي الوصلة (بلا نقرة ولا تغيير طول).
-- المقاطع المبقاة بالترتيب الذي يذكره المستخدم، لا بالترتيب الزمني (2026-10-30، أُعيدت 2026-11-18).
+## Snap both boundaries between complete words
 
-## 4) التحقق في نطاقه وحده
-المقياس الواحد على الوصلة الجديدة وحدها (لا سكتة فوق الحد ولا قطع داخل كلمة)، ولقطة عند الوصلة، ولا فحص شامل.
+- Convert the user's values to seconds on the timeline they can see: the current cut timeline in Studio; frame number ÷ 30. Studio frame numbers after the bumper include 150 extra frames; subtract them before conversion (user, 2026-11-18).
+- Read nearby words in `cut_words.json`. If a boundary falls inside a word or its margin, move it to the nearest inter-word gap so the whole word is kept or removed. Never leave half a word. Follow the user's intent: remove the entire word where deletion begins and ends unless the latter is the first word they explicitly want to keep.
+- The remaining gap at the new join must stay within the maximum gap and margins in `data/cut_rules.json`; do not change the surrounding joins.
+- Tell the user the adjusted boundaries using the last word before the cut and first word after it.
 
-## التفصيل
-تفصيل هذه المهارة في `references/detail.md` بجانبها، ملزم مثلها.
+## Remove only the requested interval
 
-## بوابة المهارة
-تمّ = الجزء محذوف، والحدّان على فراغ بين كلمتين، والوصلة تجتاز المقياس الواحد، وكل ما بعدها يتحرك معها (العناصر في أوقاتها الجديدة عند كلماتها)، وكل ما قبلها مطابق كما كان. في ثوانٍ لا دقائق.
+Use the current tool (user instruction, 2026-11-19, “like Premiere Pro”):
+
+`node tools/cut_blocks.mjs <project> start-end[,start-end…] --snap-words`
+
+Times are on the current cut. This is a smart cut without full video re-encoding:
+
+- Snap the boundaries between words, then to the nearest real silence within ±0.5 seconds below −40dB. Check **every** join before touching any file. A rejected cut costs under a second and changes nothing.
+- Re-encode only the GOPs containing a join (about one second per join). Copy complete GOPs between them with `tools/cut_splice.py`. All unaffected media stays bit-for-bit unchanged in one MP4 playable by Studio and Remotion. The Studio proxy is cut in the same way.
+- If the file was not made by our encoder (fingerprint differs), or a valid graphics card is unavailable, fall back to full encoding. `CUT_BLOCKS_FULL=1` forces full encoding.
+- In HK-Motion Studio, choose **Start**, **End**, then **Delete** (see `hk-motion`); this invokes the same tool.
+- **Lazy deletion** (2026-11-19): update the cut map, audio and lightweight proxy only; do not edit the heavy cut file (it is now stale). A consumer that needs pixels must build them from the original on demand via `tools/cut_lazy.mjs`. Never assume `<project>_cut_s.mp4` is current after deletion; run `node tools/cut_lazy.mjs ensure <project>` before reading it.
+- The older single-range command `cut_block.mjs` still updates the project data, but use the tool above to cut video.
+
+For the legacy one-range data update, use `node tools/cut_block.mjs <project> <start> <end>` (seconds or `f<frame>`), always with `--snap-words` (user decision, 2026-11-17). It prints the words around the join. Read them and, if the nearest boundary leaves a dangling word or broken sentence, retry with `--keep-word` or `--drop-word` so the complete word is retained or removed. Tell the user the adjacent words.
+
+- Everything before the first boundary remains frame-accurate. Everything after the second boundary moves earlier by exactly the removed duration. Nothing inside remains.
+- Update together: a versioned cut file (do not replace one Studio currently has open), audio, map, word times, specification (items, zooms, shake, mattes, splits and duration), and frozen review copy.
+- Remove an item fully inside the deleted interval; shorten an item that only overlaps its edge, and report the change.
+- Add a 12-millisecond audio fade on both sides of the join to prevent clicks without changing duration.
+- Preserve the user's requested order of retained segments, even when it is non-chronological (2026-10-30; reiterated 2026-11-18).
+
+## Validate only the affected join
+
+Check the new join itself for excessive silence and mid-word cuts, and inspect a frame at the join. Do not run a full project review for this targeted change.
+
+## Acceptance gate
+
+The requested interval is removed; both boundaries fall between complete words; the join passes the single relevant metric; all later elements move with their words; and everything before the cut remains unchanged. Complete the operation in seconds, not minutes.
+
+Read `references/detail.md` for the binding boundary calculations and examples.

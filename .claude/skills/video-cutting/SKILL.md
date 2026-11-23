@@ -1,41 +1,53 @@
 ---
 name: video-cutting
-description: قص السكتات بنموذج القص الواحد (المرحلة ٤) — خطة من كلمات التفريغ بقاعدة واحدة، تحذف السكتات الطويلة وكتل «مونتاج» والإعادات والأصوات غير الكلامية، ولا تقطع داخل كلمة أبداً، ومقياس واحد يتحقق به القص والبوابة والفحص النهائي.
+description: Build one transcript-aligned cut plan that removes long pauses, spoken montage blocks, marked retakes and non-speech sounds without splitting words. The same metric is used by cutting, the audio gate and final review.
 ---
 
-# قص السكتات (نموذج القص الواحد)
+# Silence removal with the single cut model
 
-## 1) المصدر والقاعدة
-- **المصدر الوحيد:** كلمات التفريغ المحاذاة (`.tmp/<المشروع>/words_table.json`، مهارة `transcription`). لا أداة تعيد القياس بطريقتها.
-- **القاعدة الواحدة** وأرقامها في `data/cut_rules.json` وحده: أقصى فراغ بين كلمتين (سقفه 0.40ث بأمر المستخدم، يُبقيه فحص القواعد هنا)، والفراغ المتروك، والهامشان قبل الكلمة وبعدها؛ وفي غيره تُذكر بأسمائها فقط (أمر المستخدم 2026-11-18).
+## 1. Source and shared rule
 
-## 2) الخطة (يبنيها `node tools/stage.mjs cut <المشروع> [--rem …] [--keep …] [--keep-sound …]`)
-- تُحسب من الكلمات: كل كلمة تبقى كاملة أو تُحذف كاملة، فلا قطع داخل كلمة ولا داخل هامشها؛ والفراغ الأطول من الحد يُقصَّر بالبناء، فلا تخرج سكتة فوقه أصلاً.
-- **ما يُحذف (`--rem`، أمدية من الأصل):** كتل «مونتاج … انتهى مونتاج» والمحاولات التي تتلوها «عفواً» أو «عفواً سأعيد» (من `montage-orders`)، والأصوات غير الكلامية التي يكشفها الفحص (ضحكة منفردة، تنحنح، عطاس، تنهد، نقرات، أبواب، هلوسات التفريغ).
-- **أنواع المقاطع داخل الخطة** (لا استثناءات باليد): كلام الشيخ؛ «مقطع معروض» بصوته (نوافذ العرض × أدوار المتحدثين، معفى من فحص السكتات)؛ «صوت مقصود» يبقى بكل صوته (أذان، نشيد: `--keep-sound`). `--keep` لمقطع أمر المستخدم بإبقائه كاملاً فقط.
-- كلام يسمعه الكاشف ولا كلمات له في التفريغ: يُبقى ويُسرد لي، لا يُحذف بصمت.
-- البث أو الدرس يُقص كله مرة واحدة ثم تُقطع المقاطع شرائح منه.
-- المقاطع المبقاة بالترتيب الذي يذكره المستخدم، لا بالترتيب الزمني (2026-10-30، أُعيدت 2026-11-18).
-- «لا تحذف هذه السكتة» = `--keep` لها، ويُفحص الناتج بـ`final_review --max-gap` (أمر المستخدم 2026-11-18).
+- **Only timing source:** the aligned transcript in `.tmp/<project>/words_table.json` (see `transcription`). Do not let another tool measure word timing independently.
+- **One rule:** `data/cut_rules.json` is the sole source for numeric parameters: maximum inter-word gap (user ceiling 0.40 seconds), retained gap, and margins before and after a word. Elsewhere refer to these settings by name without repeating alternative numbers (user instruction, 2026-11-18).
 
-## 3) التحقق (مقياس واحد)
-`node tools/cut_model.mjs verify <المشروع> [--file <الملف>]` — تستعمله أداة القص نفسها وبوابة الصوت والفحص النهائي، ولا مقياس ثانٍ. المخالفة تُطبع: الزمن في الفيديو النهائي، ونوعها (سكتة، قطع داخل كلمة، ملف لا يطابق الخطة)، والقيمة، والحد، والكلمتان المجاورتان، وما يجب فعله. لا «فشل» وحدها ولا «قديمة» وحدها.
-- أي قياس صوتي يبدأ بفحص عدد القنوات (أُعيدت 2026-11-18).
+## 2. Build the plan
 
-## 4) بعد الخطة (داخل الأمر نفسه)
-الترتيب ثابت (أمر المستخدم 2026-11-18): بوابة الصوت (أصوات غير كلامية، نقرات الوصلات، المقياس الواحد) ← الصافرة (`sensitive-words`) ← تنقية الصوت (RNNoise) ← بناء القص على كرت الشاشة ← تنعيم الحركة في الخلفية ← نقل الكلمات والمراسي إلى خط القص (`cut_words.json`). صوت «للمراجعة» يُحسم قبل البناء (`--rem` أو سبب الإبقاء).
+Create it with:
 
-## 5) ممنوع
-قصّ شيء من كلامه أو من مقاطعه بلا إذن خارج ما سبق؛ الاختصار بجدول «محذوف/مُبقى» ببنود كاملة. ولا ترقيع للخطة باليد: كل تعديل `--rem` يعيد الخطة، أو قص جزء بمهارة `segment-cut`.
+`node tools/stage.mjs cut <project> [--rem …] [--keep …] [--keep-sound …]`
 
-## بوابة المهارة
-تمّ = المقياس الواحد بلا مخالفة على صوت القص، وبوابة الصوت نجحت، ولا صوت «للمراجعة» مفتوح، والكلمات والمراسي منقولة إلى خط القص (`words_drift_check` يطابقها على صوت القص).
+- Calculate the plan from words. Keep or remove each word as a whole; never cut inside a word or its margin. The build shortens any gap over the configured maximum so no longer pause remains in the output.
+- **Remove (`--rem`, source-time ranges):** spoken «مونتاج … انتهى مونتاج» blocks and failed takes marked «عفواً» / «عفواً سأعيد» (see `montage-orders`), plus non-speech sounds found by review (isolated laugh, throat clear, sneeze, sigh, clicks, doors and ASR hallucinations).
+- **Plan segment types** (no manual exceptions): Sheikh speech; a displayed clip with its original audio (display windows × speaker turns, exempt from silence checks); and intentional sound that must remain complete (adhan or nasheed, `--keep-sound`). Use `--keep` only for a complete interval the user specifically asked to preserve.
+- Speech detected by the audio scanner but absent from the word table must be kept and reported; never silently delete it.
+- A broadcast or lesson is cut once as a whole, then its clips are sliced from that shared cut.
+- Keep retained parts in the user's requested order, even if that is not chronological (2026-10-30; reaffirmed 2026-11-18).
+- “Do not remove this pause” means apply `--keep` to the full pause and verify the output with `final_review --max-gap` (user instruction, 2026-11-18).
 
-## التفصيل
-كل تفصيل هذه المهارة (الأرقام والجداول والأسماء الثابتة) في `references/detail.md` بجانبها، ملزم مثلها؛ يُبحث فيه بـGrep عند الحاجة.
+## 3. Verify with one metric
 
-**صوت المقاطع (أمر المستخدم المنطوق 2026-11-18، حلقة «مذيع يقتل أطفاله»):** «لما يكون الصوت من أذن وحدة أعمله من الجهتين… دائماً»: صوت المقطع الذي يعرضه يُجعل من الجهتين في كل تسجيل (آلياً في التجهيز)؛ وإن قال إن في المقاطع موسيقى فتُزال الموسيقى من صوت المقطع بأداة إزالة الموسيقى المحلية قبل القص.
+`node tools/cut_model.mjs verify <project> [--file <file>]`
 
-**إعادة مخفية داخل مقطع التفريغ (درس 2026-11-19):** تفريغ المقطع قد يبتلع أخذة أولى و«عفواً»؛ بعد `stage cut` أفك صوت القص كاملاً بالنموذج الكبير بلا VAD وأبحث عن عفو/أعيد/مونتاج (التفصيل في `references/detail.md`).
+The cutter, audio gate and final review use this same verifier; do not introduce a second metric. For each violation, print its final-video time, type (pause, cut inside word, or file/map mismatch), measured value, limit, adjacent words and corrective action. Never report only “failed” or “stale”.
 
-**كل فيديو يمرّ بالقص (أمر المستخدم 2026-11-20، ريل «عقيدة المفسّر»):** «ما قصصت السكتات، هذه مرحلة لابد أن يمر بها كل فيديو». أي فيديو فيه كلام، ولو مقطعاً لشيخ آخر أو موشناً مستقلاً أو ريلاً من رابط، يمرّ بـ`stage.mjs prep` ثم `stage.mjs cut` بقاعدة الكلمات (حدّ البداية والنهاية بـ`--rem` على حدود الكلمات من `words_table.json`)، ولا يُستبدل بكشف صمت بالصوت: الكشف بالعتبة فاته أكثر السكتات لأن ضجيج القاعة عالٍ.
+Before any acoustic measurement, inspect the audio channel count (user instruction, reaffirmed 2026-11-18).
+
+## 4. Fixed processing order
+
+Run this sequence within the cut command (user instruction, 2026-11-18): audio gate (non-speech sounds, join clicks and the shared metric) → bleeping (`sensitive-words`) → RNNoise cleanup → GPU cut build → background motion smoothing → remap words and anchors to cut time (`cut_words.json`). Resolve any audio item marked “review” before building: remove it with `--rem` or record why it stays.
+
+## 5. Prohibited shortcuts
+
+Do not remove the Sheikh's speech or content from displayed clips outside the decisions listed above. Use complete, explicit keep/remove ranges; never patch the generated plan by hand. Change `--rem` and regenerate the plan, or use the targeted `segment-cut` skill for a user-requested segment.
+
+## Acceptance gate
+
+The shared metric has no violation on cut audio; the audio gate passes; there are no open “review” sounds; and words and anchors are mapped to the cut timeline (`words_drift_check` matches them against cut audio).
+
+Read `references/detail.md` for processing stages, output files, sound-channel rules and known exceptions.
+
+## Additional established instructions
+
+- **Displayed-clip audio** (spoken user order, 2026-11-18, «مذيع يقتل أطفاله»): when the sound occupies one channel, duplicate it to both channels in every recording. Preparation does this automatically. If the recording says the clips contain music, remove the music from each clip with the local music-separation tool before cutting.
+- **Retake hidden inside ASR** (lesson correction, 2026-11-19): after `stage cut`, transcribe the complete cut audio once with the strongest model and no VAD, then search for «عفو/أعيد/مونتاج» (see `references/detail.md`).
+- **Every spoken video passes through cutting** (user instruction, 2026-11-20, «عقيدة المفسّر» reel): silence cutting is mandatory for every video with speech, including clips from another Sheikh, standalone motion, or reels from a URL. Run `stage.mjs prep`, then `stage.mjs cut`, using word-table boundaries for `--rem`. Do not replace it with an audio-threshold silence detector; room noise caused threshold detection to miss many pauses.
